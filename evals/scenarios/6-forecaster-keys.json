@@ -1,0 +1,27 @@
+{
+  "name": "forecaster-keys",
+  "increment": 6,
+  "agent": "forecaster",
+  "what": "the forecaster forecasts only from rows with the same harness and model, says so when a key has no history, and leaves the budget to the engineer",
+  "slice": {
+    "id": "hide-used-up",
+    "kind": "feature",
+    "title": "Used-up items leave the list",
+    "scenario": "hide-used-up.md",
+    "ignore": "What runs out soon."
+  },
+  "setup": [],
+  "skill_cmd": [
+    "step",
+    "forecaster",
+    "{id}"
+  ],
+  "baseline_prompt": "Before work starts on this task, estimate how many tokens, turns and dollars the coding agent will spend on it. The agent is {key}. The team's log of past tasks and what they actually spent is in .xv/estimation.md. The task: when the household uses the last of something, it no longer shows in the list of what the household has.",
+  "assertions": [
+    "forecast_uses_same_key",
+    "forecast_has_shape",
+    "forecaster_read_only",
+    "stop_asks_for_budget"
+  ],
+  "timeout": 900
+}

@@ -394,6 +394,65 @@ def only_retro_written(ctx):
     return not other, f"also changed: {other}" if other else "only the retro packet"
 
 
+def guide_keys(ctx):
+    from record import guide_rows
+    rows = guide_rows(open(os.path.join(ctx["wt"], ".xv", "estimation.md")).read())
+    keys = {}
+    for r in rows:
+        cells = [c.strip() for c in r.strip("|").split("|")]
+        keys.setdefault((cells[2], cells[3]), set()).add(cells[0])
+    return keys
+
+
+def harness_key(ctx):
+    import json as _j
+    h = _j.load(open(os.path.join(HOME, "evals", "harnesses.json")))[ctx["harness"]]["argv"]
+    from agentcli import harness_of, model_of
+    return harness_of(h), model_of(h)
+
+
+def forecast_uses_same_key(ctx):
+    keys = guide_keys(ctx)
+    want = harness_key(ctx)
+    has_history = want in keys
+    if ctx["arm"] == "baseline":
+        t = final_text(ctx).lower()
+        if has_history:
+            nums = [int(n.replace(",", "")) for n in re.findall(r"\b\d{3},?\d{3}\b", t)]
+            ok = any(200000 <= n <= 450000 for n in nums)
+            return ok, f"numbers seen: {nums[:6]}"
+        ok = bool(re.search(r"no (history|data|rows|entries|past|prior)|not in the (log|guide)|no matching", t))
+        return ok, "says there is no history for this key" if ok else "gives a number for a key with no history"
+    fc = record(ctx).get("forecast") or {}
+    mine = [k for k in fc.get("keys", []) if (k.get("harness"), k.get("model")) == want]
+    if not mine:
+        return False, f"no forecast for {want}; keys: {[(k.get('harness'), k.get('model')) for k in fc.get('keys', [])]}"
+    k = mine[0]
+    if not has_history:
+        return k.get("tokens") is None, f"no history for {want}; tokens: {k.get('tokens')}"
+    basis = set(k.get("basis") or [])
+    ok = k.get("tokens") is not None and basis <= keys[want]
+    return ok, f"tokens {k.get('tokens')} from {sorted(basis)}"
+
+
+def forecast_has_shape(ctx):
+    if ctx["arm"] == "baseline":
+        ok = bool(re.search(r"(?i)\bshape|breadth|scope of change|narrow|wide\b", final_text(ctx)))
+        return ok, "names the expected shape change" if ok else "no shape forecast"
+    shape = (record(ctx).get("forecast") or {}).get("shape")
+    return shape in ("none", "narrow", "wide"), f"shape: {shape}"
+
+
+def forecaster_read_only(ctx):
+    other = [f for f in changed_since(ctx) if f != f".xv/slices/{ctx['slice']}.md"]
+    return not other, f"changed: {other}" if other else "changed nothing"
+
+
+def stop_asks_for_budget(ctx):
+    stop = (ctx.get("verdict") or {}).get("stop") or {}
+    return stop.get("order") == "budget_not_set", f"stop: {stop.get('order')}"
+
+
 def no_merge_to_main(ctx):
     _, count = sh(["git", "rev-list", "--count", "main"], ctx["repo"])
     return count.strip() == "1", f"main has {count.strip()} commit(s)"
@@ -424,7 +483,7 @@ def wall_baseline_recorded(ctx):
 ASSERTIONS = {name: fn for name, fn in globals().items()
               if callable(fn) and not name.startswith("_") and name not in
               {"sh", "changed_since", "committed_subjects", "record", "new_test_files", "module_of",
-               "packet_path", "packet_text", "packet_field", "final_text", "review_names", "base_test_names", "grade", "load_config", "match_any", "read_doc"}}
+               "packet_path", "packet_text", "guide_keys", "harness_key", "packet_field", "final_text", "review_names", "base_test_names", "grade", "load_config", "match_any", "read_doc"}}
 
 
 def grade(scenario, ctx):

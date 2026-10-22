@@ -1,0 +1,1 @@
+{"info": {"id": "ses_x", "model": {"id": "gpt-oss:20b", "providerID": "ollama"}, "cost": 0, "tokens": {"input": 17794, "output": 264, "reasoning": 40, "cache": {"read": 1000, "write": 0}}, "time": {"created": 1792639563832, "updated": 1792639593128}}, "messages": [{"type": "user"}, {"type": "assistant"}, {"type": "assistant"}, {"type": "idle"}]}

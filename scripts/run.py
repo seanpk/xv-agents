@@ -225,6 +225,11 @@ def post_step(agent, root, data, config, head_before, pre, report):
     """The mechanical checks after a step. Results go in the record; orders.py reads them."""
     checks = {"at": now()}
     tests = (config.get("tests") or {}).get("paths") or []
+    if agent in ("forecaster", "guardian"):
+        # read-only agents: anything they changed besides their own output is a stop
+        own = {f"{XV_DIR}/slices/{data['id']}.packet.md", f"{XV_DIR}/slices/{data['id']}.boundary.md",
+               f"{XV_DIR}/slices/{data['id']}.md"}
+        checks["wrote"] = [f for f in changed_files(root, head_before) if f not in own]
     if agent == "scenario":
         files = changed_files(root, head_before)
         files = [f for f in files if not f.startswith(XV_DIR + "/")]

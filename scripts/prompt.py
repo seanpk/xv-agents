@@ -84,6 +84,20 @@ def pointers(agent, root, config, data=None, extra=None):
     return "\n".join(lines)
 
 
+def new_guide_rows(root, base):
+    """Estimation rows appended since `base`: they ride in the next packet."""
+    if not base:
+        return []
+    import subprocess
+    from record import guide_rows
+    p = subprocess.run(["git", "show", f"{base}:.xv/estimation.md"], cwd=root, capture_output=True, text=True)
+    path = os.path.join(root, ".xv", "estimation.md")
+    if not os.path.exists(path):
+        return []
+    old = set(guide_rows(p.stdout)) if p.returncode == 0 else set()
+    return [r for r in guide_rows(open(path).read()) if r not in old]
+
+
 def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
     root = root or repo_root()
     config = load_config(root)
@@ -101,6 +115,11 @@ def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
         bpath = os.path.join(root, ".xv", "slices", f"{data['id']}.boundary.md")
         if os.path.exists(bpath):
             extra.insert(1, f"Boundary picture: `.xv/slices/{data['id']}.boundary.md`.")
+        rows = new_guide_rows(root, data.get("base"))
+        if rows:
+            extra.append("New rows in `.xv/estimation.md` since the base, appended by the forecaster without "
+                         "acceptance; list them under Raw data so a person can revert one: "
+                         + "; ".join(r.split("|")[1].strip() for r in rows) + ".")
     if agent == "outsider" or init:
         bpath = os.path.join(root, ".xv", "boundary-all.md")
         if os.path.exists(bpath):

@@ -151,7 +151,8 @@ def run_one(scenario, harness_name, arm, n, outdir, keep=False):
             ctx["verdict"] = last_json(p.stdout)
             ctx["spend"] = spend_from_record(wt, ctx["slice"])
         else:
-            text = scenario["baseline_prompt"].replace("{id}", ctx["slice"] or "")
+            key = f"{agentcli.harness_of(harness['argv'])}/{agentcli.model_of(harness['argv'])}"
+            text = scenario["baseline_prompt"].replace("{id}", ctx["slice"] or "").replace("{key}", key)
             r = agentcli.run(harness["argv"], text, wt, None, scenario.get("timeout", 3600), env)
             ctx["exit"], ctx["stdout"], ctx["stderr"] = r["code"], r["stdout"], r["stderr"]
             s = spendlib.from_run(r)

@@ -57,6 +57,11 @@ def evaluate(data, after, config):
             q = f"The {after} stopped ({reason}): {stop.get('question') or report.get('summary', '')}"
         out.append(fire(f"{after}_stopped", seat, q))
 
+    if after in ("forecaster", "guardian") and checks.get("wrote"):
+        out.append(fire("read_only_broken", "originator",
+                        f"The {after} is read-only and changed: {', '.join(checks['wrote'])}. "
+                        "Revert it before going on."))
+
     if after == "forecaster" and not data.get("budget"):
         out.append(fire("budget_not_set", "originator",
                         f"{owner}: set the budget from the forecast (`xv record set {data['id']} budget ... --by <name>`)."))
