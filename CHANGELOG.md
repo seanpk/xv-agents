@@ -9,3 +9,5 @@ The first build of the agents, from the plan of 2026-10-21, all nine increments.
 - The seven agents as skills: the watch, the forecaster, the scenario agent, the maker, the cleaner, the guardian, the listener.
 - The standing orders as a script, `scripts/orders.py`.
 - The person-facing skills: `xv-init`, `xv-slice`, `xv-retro`, `xv-promote`, `xv-check`.
+- Learnings travel between repos as "Learning:" issues on this repo, drafted by `xv promote` and posted only with a person's approval. Sean's design, in `docs/positions.md`.
+- A one-person team declares `seats.two_people: solo`; every stop still fires. The pitch comes before the first slice. Sean's positions, in `docs/positions.md`.
