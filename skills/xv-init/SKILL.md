@@ -16,7 +16,9 @@ The one rule: an agent may stop. It may not decide. You may not invent what the 
 xv init
 ```
 
-copies the starter files from this repo's `defaults/` into `.xv/` and fills in `.xv/config.yml` with the test command and test paths it can detect. It never overwrites a file that exists. Show the person what it detected and ask them to correct the test command if it is wrong; the test wall depends on it.
+copies the starter files from this repo's `defaults/` into `.xv/` and fills in `.xv/config.yml` with the test command and test paths it can detect. It never overwrites a file that exists.
+
+If the person wants to try XV before the team commits to it, run `xv init --trial` instead: `.xv/` goes into `.git/info/exclude`, so none of it enters the repo's history, and slices still run. `xv init --adopt` ends the trial; then they commit `.xv/`. Show the person what it detected and ask them to correct the test command if it is wrong; the test wall depends on it.
 
 ## 2. The outsider read
 

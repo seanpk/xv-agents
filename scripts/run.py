@@ -99,6 +99,56 @@ def reach(config, seat, question, record_rel):
     subprocess.run(argv, check=False)
 
 
+# ---------------------------------------------------------------- trial
+
+def is_trial(root):
+    """A trial keeps .xv/ out of git: the person is trying XV before committing to it."""
+    p = subprocess.run(["git", "check-ignore", "-q", f"{XV_DIR}/config.yml"], cwd=root)
+    return p.returncode == 0
+
+
+def exclude_path(root):
+    common = git(["rev-parse", "--path-format=absolute", "--git-common-dir"], root).strip()
+    return os.path.join(common, "info", "exclude")
+
+
+LAYER_SKIP = ("slices", "worktrees", "listen", "boundary-all.md", "retro", "promote")
+
+
+def copy_layer(src_root, dst_root):
+    """In a trial the slice's worktree starts from a commit without .xv/; give it the layer."""
+    src, dst = os.path.join(src_root, XV_DIR), os.path.join(dst_root, XV_DIR)
+    for name in os.listdir(src):
+        if name in LAYER_SKIP:
+            continue
+        s, d = os.path.join(src, name), os.path.join(dst, name)
+        if os.path.isdir(s):
+            shutil.copytree(s, d, dirs_exist_ok=True)
+        else:
+            os.makedirs(dst, exist_ok=True)
+            shutil.copy(s, d)
+
+
+def bring_back(slice_root_dir, main, slice_id):
+    """At close in a trial: the slice's record and packet, and its new guide rows, go to the main checkout."""
+    from record import guide_rows
+    s_slices, m_slices = (os.path.join(r, XV_DIR, "slices") for r in (slice_root_dir, main))
+    os.makedirs(m_slices, exist_ok=True)
+    for name in os.listdir(s_slices):
+        if name.startswith(slice_id + "."):
+            shutil.copy(os.path.join(s_slices, name), os.path.join(m_slices, name))
+    sg, mg = (os.path.join(r, XV_DIR, "estimation.md") for r in (slice_root_dir, main))
+    if os.path.exists(sg):
+        if not os.path.exists(mg):
+            shutil.copy(sg, mg)
+            return
+        old = open(mg).read()
+        new = [r for r in guide_rows(open(sg).read()) if r not in set(guide_rows(old))]
+        if new:
+            with open(mg, "w") as f:
+                f.write(old.rstrip("\n") + "\n" + "\n".join(new) + "\n")
+
+
 # ---------------------------------------------------------------- slice new
 
 def cmd_slice_new(a):
@@ -111,13 +161,17 @@ def cmd_slice_new(a):
         raise XVError("the pitch comes first: .xv/pitch.md is not written. The guardian checks every change "
                       "against it. Write it with the xv-init skill, or by hand and set `status: written` in its "
                       "front matter; commit it, then start the slice")
-    if git(["status", "--porcelain", "--", XV_DIR], root).strip():
-        raise XVError("commit the project layer (.xv/) first; the slice branch starts from HEAD")
+    if not is_trial(root) and git(["status", "--porcelain", "--", XV_DIR], root).strip():
+        raise XVError("commit the project layer (.xv/) first; the slice branch starts from HEAD "
+                      "(or try XV without committing it: xv init --trial)")
     wt = os.path.join(worktrees_dir(root, config), a.id)
     branch = a.branch or f"xv/{a.id}"
     base = git(["rev-parse", "HEAD"], root).strip()
     os.makedirs(os.path.dirname(wt), exist_ok=True)
     git(["worktree", "add", "-q", "-b", branch, wt, base], root)
+    trial = is_trial(root)
+    if trial:
+        copy_layer(root, wt)
     args = ["new", a.id, "--by", a.by, "--kind", a.kind, "--branch", branch]
     for flag, value in (("--title", a.title), ("--ignore", a.ignore), ("--axis", a.axis)):
         if value:
@@ -140,6 +194,8 @@ def cmd_slice_new(a):
     path = record_path(wt, a.id)
     data, body = record.load(wt, a.id)[1:]
     data["base"] = base
+    if trial:
+        data["trial"] = True
     record.save(path, data, body)
     commit(wt, f"xv({a.id}): open slice")
     print(wt)
@@ -450,6 +506,10 @@ def close(slice_id, why=None, shape=None):
     body = record.log_line(body, "watch", "closed" + ("" if p.returncode == 0 else f"; guide: {p.stderr.strip()}"))
     record.save(path, data, body)
     commit(root, f"xv({slice_id}): close")
+    if data.get("trial"):
+        from xvlib import main_root
+        if main_root(root) != root:
+            bring_back(root, main_root(root), slice_id)
     out = {"slice": slice_id, "status": "closed", "stop": None, "guide": p.stdout.strip() or p.stderr.strip(),
            "next": f"merge {data['branch']} when you are ready; the watch does not merge"}
     try:
@@ -582,6 +642,23 @@ def repo_identity(root):
 
 def cmd_init(a):
     root = repo_root()
+    if a.adopt:
+        path = exclude_path(root)
+        lines = open(path).read().splitlines() if os.path.exists(path) else []
+        kept = [line for line in lines if line.strip() not in (f"{XV_DIR}/", f"/{XV_DIR}/", XV_DIR, f"/{XV_DIR}")]
+        with open(path, "w") as f:
+            f.write("\n".join(kept) + ("\n" if kept else ""))
+        still = is_trial(root)
+        print(json.dumps({"trial": still, "next": "a .gitignore still lists .xv/; remove it there" if still
+                          else "commit .xv/; the project layer is now part of the repo"}, indent=2))
+        return
+    if a.trial:
+        path = exclude_path(root)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        text = open(path).read() if os.path.exists(path) else ""
+        if f"/{XV_DIR}/" not in text.split():
+            with open(path, "a") as f:
+                f.write(("" if text.endswith("\n") or not text else "\n") + f"/{XV_DIR}/\n")
     src = os.path.join(XV_HOME, "defaults")
     dst = os.path.join(root, XV_DIR)
     written, kept = [], []
@@ -656,6 +733,9 @@ def main(argv=None):
     s.set_defaults(fn=lambda a: sys.exit(close(a.id, a.why, a.shape)))
 
     s = sub.add_parser("init")
+    s.add_argument("--trial", action="store_true",
+                   help="keep .xv/ out of git (in .git/info/exclude), to try XV before committing to it")
+    s.add_argument("--adopt", action="store_true", help="end a trial: let git see .xv/ again")
     s.set_defaults(fn=cmd_init)
 
     s = sub.add_parser("guard", help="the guardian on a pull request, for CI")

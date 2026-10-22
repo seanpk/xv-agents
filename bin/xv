@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """xv: the watch headless, and the scripts the agents and CI call.
 
-  xv init                       write a starter .xv/ into this repo
+  xv install                    link the skills into your agents, and xv onto PATH
+  xv init [--trial|--adopt]     write a starter .xv/ into this repo; --trial keeps it out of git
   xv slice new <id> ...         open a slice: record, branch, worktree
   xv run <id>                   run the slice to its first stop (exit 10 on a stop)
   xv step <agent> <id>          run one step
@@ -40,7 +41,7 @@ COMMANDS = {
     "adapt": "adapt.py", "prompt": "prompt.py", "recording": "recording.py",
     "playwright": "playwright_agents.py", "packet": "packet.py",
     "init": "run.py", "slice": "run.py", "run": "run.py", "step": "run.py", "close": "run.py",
-    "guard": "run.py",
+    "guard": "run.py", "install": "install.py",
 }
 PASS_NAME = {"init", "slice", "run", "step", "close", "guard"}
 

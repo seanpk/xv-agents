@@ -107,6 +107,8 @@ Each stop ends the watch's turn and waits for an answer. `xv run <id>` runs the 
 
 The whole path, on a repo that has a test suite. Install first (below).
 
+To try XV before your team commits to it, start with `xv init --trial`. It lists `.xv/` in `.git/info/exclude`, so the project layer stays on your machine and nothing about XV enters the repo's history; a slice's commits carry only the code. Everything else below works the same. When you decide to keep it, `xv init --adopt` lets git see `.xv/` again, and you commit it. To drop it, delete `.xv/` and the `xv/*` branches.
+
 1. Write the project layer. Ask your agent for the `xv-init` skill. It runs `xv init`, which copies the starter files into `.xv/` and detects the test command (a `src/` layout gets `PYTHONPATH=src` in front of it); check the command, the wall depends on it. Then it interviews you for the pitch and asks who decides. The pitch comes first: `xv slice new` refuses while `.xv/pitch.md` says `status: not written`. Without the skill, write the pitch by hand and set `status: written` in its front matter. If you are one person, say so; the skill sets `seats.two_people: solo`. Commit `.xv/`.
 2. Open a slice. Ask your agent for `xv-slice`, or run it yourself:
 
@@ -268,22 +270,18 @@ Claude Code runs a brief as the whole prompt, reports spend in its JSON result, 
 
 ## Install
 
-The skills need the scripts on your `PATH`, so clone the repo and link both:
-
 ```sh
 git clone https://github.com/seanpk/xv-agents ~/src/xv-agents
-cd ~/src/xv-agents
-for d in ~/.claude/skills ~/.codex/skills ~/.cursor/skills ~/.agents/skills; do
-  mkdir -p "$d"
-  for s in skills/*/; do ln -sfn "$PWD/$s" "$d/$(basename "$s")"; done
-done
-mkdir -p ~/.local/bin && ln -sfn "$PWD/bin/xv" ~/.local/bin/xv
-xv help   # if this fails, add ~/.local/bin to your PATH
+python3 ~/src/xv-agents/bin/xv install
 ```
 
-Use your harness's own skills folder if it is not in that list. Upgrade with `git pull`. There is no tag yet; `v0.1.0` is cut when the build is done, and until then pin a commit. `gh skill install seanpk/xv-agents --all` also installs the skills (checked with `gh` 2.102.0, where `gh skill` is a preview), but not `bin/xv`, and `--force` overwrites a local edit without warning.
+`xv install` links every skill into the skills folder of each agent you have installed (Claude Code, Codex, Cursor, Grok, and the shared `~/.agents`), and `xv` into `~/.local/bin`, and says if that is not on your `PATH`. It creates no folder for an agent you do not have, and never replaces a skill folder it did not make. `--into <folder>` names a skills folder instead; `--dry-run` says what it would do; `--remove` takes out what it put in. Upgrade with `git pull` in the clone: the links follow. There is no tag yet; `v0.1.0` is cut when the build is done, and until then pin a commit.
 
-Python 3.10 or later, standard library only. The default agent CLI is Claude Code (`claude -p`); `.xv/config.yml` names a CLI per step, opencode with a local model included.
+To give a whole team the skills through the repo instead, run `xv install --scope project` in it and commit the result. It copies the skills into the repo's agent folders (`.agents/skills` and `.claude/skills` when it has none), each with a mark of its version, so a later install replaces a copy nobody edited and refuses one somebody did, and `xv check` reports a stale or edited copy. Everyone still needs `xv` on their `PATH` from a user install. In Claude Code a person's own skill wins over the project's, and `xv check` says when both are installed.
+
+`gh skill install seanpk/xv-agents --all` and `npx skills add` also install skills from a GitHub repo. They copy the skills but not `bin/xv`, and `gh skill install --force` overwrites a local edit without warning (checked with `gh` 2.102.0, where `gh skill` is a preview; `npx skills` was not checked).
+
+Python 3.10 or later, standard library only. The default agent CLI is Claude Code (`claude -p`); `.xv/config.yml` names a CLI per step: opencode with a local model, or Grok.
 
 ## What the evals show
 
