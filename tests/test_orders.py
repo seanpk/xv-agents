@@ -95,6 +95,20 @@ class OrdersTest(unittest.TestCase):
         d["checks"]["maker"] = {"suite": "green"}
         self.assertIsNone(self.stop(d, "maker", config))
 
+    def test_the_same_tests_failing_twice_is_a_repeated_failure(self):
+        d = with_report(rec(), "maker", "green")
+        d["checks"]["maker"] = {"suite": "red", "failing_history": [["test_a (t.T.test_a)"], ["test_a (t.T.test_a)"]]}
+        fired = [f["order"] for f in orders.verdict(d, "maker", DEFAULT_CONFIG)["fired"]]
+        self.assertIn("repeated_failure", fired)
+
+    def test_solo_keeps_the_stop_and_tells_one_person_to_answer(self):
+        config = dict(DEFAULT_CONFIG, seats={"two_people": "solo"})
+        d = with_report(rec(shape_change="yes", pitch_contradiction="no"), "guardian")
+        d["checks"]["guardian"] = {}
+        s = self.stop(d, "guardian", config)
+        self.assertEqual(s["seat"], "two_people")
+        self.assertIn("runs solo", s["question"])
+
     def test_a_diff_that_more_than_doubles_between_maker_runs(self):
         d = with_report(rec(), "maker", "green")
         d["checks"]["maker"] = {"suite": "green", "diff_history": [40, 130]}

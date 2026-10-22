@@ -115,3 +115,10 @@ A fresh context reviewed the repo against the plan on 2026-10-22. Its correctnes
 78. **The files people own are checked after every working step.** If the scenario agent, the maker or the cleaner changes `.xv/config.yml`, the slice's wall baseline, the pitch, the picture, the rules or the estimation guide, the slice stops. The wall's own inputs can no longer be edited by the agent it checks.
 79. **A retro candidate's moment must name a field or a stop the record has, or quote words the record holds.** A slice id and any word was too loose.
 80. **The estimation rows ride in the next packet by name**: the guardian lists every row no earlier packet has listed.
+
+## After the newcomer review
+
+81. **Solo mode keeps every stop and changes only who answers.** With `seats.two_people: solo`, a two-person stop still fires and still ends the watch's turn. One name answers it; the decision record says one person decided. The question tells them to write down what they weighed. `xv check` lists the setting as a declared relaxation and does not fail on it.
+82. **The pitch is checked by code before a slice starts.** `xv slice new` refuses while `.xv/pitch.md` is missing or says `status: not written`.
+83. **"The same failure repeats" is measured, not only reported.** The watch reads the failing test names from the suite's output (unittest, pytest, Jest, Go) after each maker run, and fires when two runs in a row fail on the same tests.
+84. **The guardian's CI job never calls an approve, and that is a promise of the workflow, not of GitHub.** A workflow token with `pull-requests: write` can approve when the repo allows GitHub Actions to create and approve pull requests. The guardian example says to keep that setting off. The listener example pushes its branch and opens the pull request only when the setting allows it; otherwise it says which branch to open one from.

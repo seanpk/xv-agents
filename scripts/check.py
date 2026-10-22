@@ -67,6 +67,9 @@ def relaxations(root):
     if (config.get("wall") or {}).get("require_record") is False:
         hits.append({"where": f"{XV_DIR}/config.yml", "line": "wall.require_record: false",
                      "why": "lets a test move without a record in CI"})
+    if ((config.get("seats") or {}).get("two_people") or "") == "solo":
+        hits.append({"where": f"{XV_DIR}/config.yml", "line": "seats.two_people: solo", "declared": True,
+                     "why": "solo: one person answers the two-person stops (declared, and allowed)"})
     agents = config.get("agents") or {}
     if agents.get("scenario") == "session" and agents.get("maker") == "session":
         hits.append({"where": f"{XV_DIR}/config.yml", "line": "agents.scenario and agents.maker: session",
@@ -208,7 +211,8 @@ def main(argv=None):
             res["drift"] = drift(a.offline)
     except XVError as e:
         die(str(e), 2)
-    bad = res.get("relaxations") or [o for o in res.get("overrides", []) if o["kind"].startswith("override with no")]
+    bad = [h for h in res.get("relaxations", []) if not h.get("declared")] or \
+        [o for o in res.get("overrides", []) if o["kind"].startswith("override with no")]
     gone = [d for d in res.get("drift", []) if d["status"] != "present"]
     if a.report:
         with open(a.report, "w") as f:

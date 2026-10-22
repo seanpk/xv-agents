@@ -97,6 +97,11 @@ def evaluate(data, after, config):
             out.append(fire("budget_spent", "originator",
                             f"The budget is spent ({', '.join(state['over'])}) and the suite is not green. "
                             "Continue with a new budget, reshape, or set it aside."))
+        fails = checks.get("failing_history") or []
+        if len(fails) >= 2 and fails[-1] and fails[-1] == fails[-2]:
+            out.append(fire("repeated_failure", "originator",
+                            f"The same tests failed after two runs of the maker: {', '.join(fails[-1][:5])}. "
+                            "The shape conversation opens; the agent may not renovate."))
         hist = checks.get("diff_history") or []
         if len(hist) >= 2 and hist[-2] and hist[-1] > 2 * hist[-2]:
             out.append(fire("diff_growing", "originator",
@@ -170,6 +175,12 @@ def evaluate(data, after, config):
 
 def verdict(data, after, config):
     fired = evaluate(data, after, config)
+    from xvlib import solo
+    if solo(config):
+        for f in fired:
+            if f["seat"] == "two_people":
+                f["question"] += (" This repo runs solo: one person answers. Write down what you weighed; "
+                                  "the decision record keeps it.")
     blocking = [f for f in fired if f["blocking"]]
     stop = max(blocking, key=lambda f: SEAT_RANK[f["seat"]]) if blocking else None
     return {"slice": data.get("id"), "after": after, "stop": stop, "fired": fired}

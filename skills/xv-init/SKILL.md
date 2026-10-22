@@ -43,11 +43,15 @@ Ask, one question at a time, and write down the person's words:
 7. What is in motion right now?
 8. Are there runtime budgets: response times, sizes, costs the system must stay inside?
 
-**The pitch.** From answers 1 to 3, the person writes the elevator pitch and then a page. You may tidy their words: fix grammar, put them in order, ask about a gap. You may not add a purpose, a user, or a promise they did not state. Write it to `.xv/pitch.md`. If the person will not write one now, leave the file with the questions and `status: not written`, and tell them the guardian will stop every change for two people until it exists.
+**The pitch comes first.** No slice starts without it: `xv slice new` refuses while `.xv/pitch.md` says `status: not written`, because the guardian checks every change against it. From answers 1 to 3, the person writes the elevator pitch and then a page. You may tidy their words: fix grammar, put them in order, ask about a gap. You may not add a purpose, a user, or a promise they did not state. Write it to `.xv/pitch.md`. When it is written, set `status: written`. If the person will not write one now, leave the file with the questions and `status: not written`, and tell them no slice can start until it exists.
 
 **The picture.** Add answers 4 to 8 to `.xv/picture.md` under their headings. Then walk the person through the outsider's draft, section by section, and let them correct it. When they have, set `status: checked` and `checked_by: <name>` in its front matter.
 
-## 4. Sharing what this repo learns
+## 4. Who decides
+
+Ask: **is this a one-person team?** XV puts a shape change, a pitch contradiction, a prototype pick and a budget past the team's limit in front of two people. A solo team has one. If so, set `seats.two_people: solo` in `.xv/config.yml`: those stops still fire and still wait, the one person answers them, and each answer is written down in `.xv/decisions/`. Otherwise, ask who sits in the two-people seat and who is the chief engineer, and write their names under `seats:`.
+
+## 5. Sharing what this repo learns
 
 XV repos share learnings as issues on the shared xv-agents repo (the `xv-promote` skill). Nothing is posted without a person's approval, but the person decides now what this repo says about itself when it does. Ask:
 
@@ -57,11 +61,11 @@ XV repos share learnings as issues on the shared xv-agents repo (the `xv-promote
 
 Write the answers to `promote:` in `.xv/config.yml` (`include_name`, `name`, `description`, `stack`). `xv init` fills in its guesses; correct them with the person.
 
-## 5. The first packet
+## 6. The first packet
 
 List every place the outsider read and the pitch disagree: a surface the pitch does not mention, a user the code serves that the pitch leaves out, a promise the code does not keep. Write the list to `.xv/slices/packet-init.md`. It is the first packet, and the first evidence for whether a written picture loads a new person. Do not resolve the disagreements; they are for the people.
 
-## 6. Install the wall
+## 7. Install the wall
 
 ```
 xv wall install-hook

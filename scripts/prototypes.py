@@ -166,8 +166,10 @@ def pick(slice_id, variant, by, with_user=None, scenario_file=None):
     config = load_config(root)
     data, body = record.load(root, slice_id)[1:]
     who = [w.strip() for w in by.split(",") if w.strip()]
-    if len(set(who)) < 2:
-        raise XVError("the pick is for two people: --by <name>,<name>")
+    from xvlib import solo
+    if len(set(who)) < 2 and not solo(config):
+        raise XVError("the pick is for two people: --by <name>,<name> "
+                      "(a one-person team sets seats.two_people: solo in .xv/config.yml)")
     if variant != "none" and not scenario_file:
         raise XVError("restate the pick as the scenario the maker turns red and then green: --scenario-file <file>")
     names = {p["name"] for p in data.get("prototypes") or []}

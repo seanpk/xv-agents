@@ -193,6 +193,22 @@ def deep_merge(base, over):
     return out
 
 
+def solo(config):
+    """A one-person team: the two-person stops still fire, and one person answers them."""
+    return ((config.get("seats") or {}).get("two_people") or "") == "solo"
+
+
+def pitch_status(root):
+    path = os.path.join(root, XV_DIR, "pitch.md")
+    if not os.path.exists(path):
+        return "missing"
+    try:
+        data, body = read_doc(path)
+    except XVError:
+        return "unreadable"
+    return str(data.get("status") or "written")
+
+
 def load_config(root):
     path = os.path.join(root, XV_DIR, "config.yml")
     if not os.path.exists(path):

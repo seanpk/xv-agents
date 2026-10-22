@@ -35,6 +35,9 @@ agents:
   # maker: ["opencode", "run", "--auto", "--format", "json", "--model", "ollama/gpt-oss:20b", "{prompt}"]
 
 # Who sits in each seat. The person who set the work going is named in each slice record.
+# A one-person team sets two_people to solo: the two-person stops still fire and
+# wait, one person answers them, and each answer is written down. `xv check`
+# lists it, so it stays a choice the team made on purpose.
 seats:
   chief_engineer: ""
   two_people: ""

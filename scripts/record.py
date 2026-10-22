@@ -15,7 +15,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from xvlib import (XV_DIR, XVError, die, emit, git, now, read_doc,  # noqa: E402
+from xvlib import (XV_DIR, XVError, die, emit, git, load_config, now, read_doc, solo,  # noqa: E402
                    record_path, repo_root, slice_root, today, write_doc)
 
 FIELDS = [
@@ -205,14 +205,20 @@ def cmd_answer(a):
     who = [w.strip() for w in a.by.split(",") if w.strip()]
     if not who:
         raise XVError("an answer names who gave it")
-    if stop["seat"] == "two_people" and len(set(who)) < 2:
-        raise XVError("this stop is for two people: name both with --by a,b")
+    alone = stop["seat"] == "two_people" and len(set(who)) < 2
+    if alone and not solo(load_config(slice_root(path))):
+        raise XVError("this stop is for two people: name both with --by a,b "
+                      "(a one-person team sets seats.two_people: solo in .xv/config.yml)")
+    if alone:
+        stop["solo"] = True
     stop["answered_by"], stop["answer"], stop["answered_at"] = who, a.answer, now()
     data["status"] = "working" if a.resume else data["status"]
     if a.next:
         data["next"] = a.next
     if stop["seat"] == "two_people" or a.decision:
-        rec = write_decision(slice_root(path), data["id"], who, stop, a.answer)
+        rec = write_decision(slice_root(path), data["id"], who, stop, a.answer
+                             + ("\n\nDecided by one person: this repo runs solo (seats.two_people: solo)."
+                                if stop.get("solo") else ""))
         data["decisions"].append({"date": today(), "who": who, "decision": a.answer,
                                   "record": rec})
     body = log_line(body, ",".join(who), f"answered {stop['order']}: {a.answer}")

@@ -37,7 +37,7 @@ When the person answers, write it down before anything else:
 xv record answer <id> --by <name>[,<name>] --answer "<their words>" [--next <step>] --resume
 ```
 
-A stop for two people needs two names; the script refuses one. The answer goes in the record verbatim. If two people decided, the script writes the decision record in `.xv/decisions/` with who took part. Then run the step the answer points to.
+A stop for two people needs two names; the script refuses one, unless the repo runs solo (`seats.two_people: solo`), where one person answers and the decision record says so. The answer goes in the record verbatim. If two people decided, the script writes the decision record in `.xv/decisions/` with who took part. Then run the step the answer points to.
 
 `xv run <id>` is the same loop with no person: it exits with the question when a stop fires. Use it when the person asks you to run to the first stop without commentary.
 

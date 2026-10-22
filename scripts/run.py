@@ -18,6 +18,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -53,6 +54,15 @@ def run_suite(root, config):
         return None, "no tests.command in .xv/config.yml"
     code, out = shell(cmd, root, int((config.get("tests") or {}).get("timeout") or 900))
     return ("green" if code == 0 else "red"), out
+
+
+FAILING = re.compile(r"^(?:FAIL|ERROR): (\S+(?: \([^)]*\))?)|^FAILED (\S+)|^\s*[✕×] (.+?)(?: \(\d+ ?ms\))?$"
+                     r"|^--- FAIL: (\S+)", re.M)
+
+
+def failing_tests(output):
+    """Names of failing tests from unittest, pytest, jest or go output."""
+    return sorted({next(g for g in m if g) for m in FAILING.findall(output)})
 
 
 def changed_files(root, since):
@@ -96,6 +106,10 @@ def cmd_slice_new(a):
     config = load_config(root)
     if not os.path.exists(os.path.join(root, XV_DIR, "config.yml")):
         raise XVError("no .xv/config.yml here; run xv-init first")
+    from xvlib import pitch_status
+    if pitch_status(root) in ("missing", "unreadable", "not written"):
+        raise XVError("the pitch comes first: .xv/pitch.md is not written. The guardian checks every change "
+                      "against it. Write it with the xv-init skill, then start the slice")
     if git(["status", "--porcelain", "--", XV_DIR], root).strip():
         raise XVError("commit the project layer (.xv/) first; the slice branch starts from HEAD")
     wt = os.path.join(worktrees_dir(root, config), a.id)
@@ -273,6 +287,9 @@ def post_step(agent, root, data, config, head_before, pre, report):
     if agent in ("maker", "cleaner"):
         suite, out = run_suite(root, config)
         checks["suite"], checks["suite_output"] = suite, (out or "")[-800:]
+        checks["failing"] = failing_tests(out or "") if suite == "red" else []
+        prior = (data.get("checks") or {}).get(agent) or {}
+        checks["failing_history"] = (prior.get("failing_history") or []) + [checks["failing"]]
         data["suite"] = suite
         stat = git(["diff", "--numstat", data.get("base") or head_before], root)
         checks["diff_lines"] = sum(int(x) for line in stat.splitlines()

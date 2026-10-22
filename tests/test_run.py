@@ -8,6 +8,15 @@ from helpers import HOME, RepoCase, sh
 FAKE = os.path.join(HOME, "tests", "fake_agent.py")
 
 
+class FailingTestsTest(unittest.TestCase):
+    def test_names_from_unittest_pytest_and_go(self):
+        from run import failing_tests
+        out = ("FAIL: test_milk (tests.test_red.Red.test_milk)\nERROR: test_api (tests.t.A.test_api)\n"
+               "FAILED tests/test_x.py::test_y - assert 1 == 2\n--- FAIL: TestZ (0.00s)\n")
+        self.assertEqual(failing_tests(out), ["TestZ", "test_api (tests.t.A.test_api)",
+                                              "test_milk (tests.test_red.Red.test_milk)", "tests/test_x.py::test_y"])
+
+
 class WatchLoopTest(RepoCase):
     """The whole loop with a stand-in agent: the plumbing, not the briefs."""
 

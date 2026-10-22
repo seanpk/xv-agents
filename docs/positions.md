@@ -15,3 +15,10 @@ The plan's open position: "Promotion carries the abstract form only. Concrete tr
 - **Tech stacks: start with nothing more than a label**, and add structure if use asks for it. Sean: "probs the most lightweight, maybe nothing, to start".
 
 Sean asked what the example is for. The builder's answer, which v0.1 follows: the example helps a later retro match a new miss to an open issue, and helps the two people who decide see whether the sightings are the same pattern. It stays in the issue as evidence. The pull request into the skills carries the rule in its general form only, because concrete traces do not transfer between repos. Sean has not yet said whether he agrees with that last part.
+
+## A one-person team (2026-10-22)
+
+The newcomer review of the README found that someone trying XV alone hits a wall: two-person stops cannot be answered by one person. Sean: "the pitch should come first, yes. a solo mode is good, I was thinking about the need for that already, so we should support it."
+
+- **The pitch comes first.** No slice starts until `.xv/pitch.md` is written.
+- **Solo mode is supported**, as `seats.two_people: solo` in `.xv/config.yml`. How it works is the builder's, in `docs/decisions.md`.

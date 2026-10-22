@@ -110,3 +110,27 @@ class GuideTest(RepoCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SoloTest(RepoCase):
+    def test_solo_lets_one_person_answer_a_two_person_stop_and_says_so(self):
+        cfg = os.path.join(self.repo, ".xv", "config.yml")
+        text = open(cfg).read().replace('two_people: "any two of the household"', "two_people: solo")
+        open(cfg, "w").write(text)
+        sh(["git", "commit", "-qam", "solo"], self.repo)
+        wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "shape_or_pitch", "--seat", "two_people",
+                "--question", "Shape?", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "keep the new module", cwd=wt)
+        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+        self.assertTrue(data["stops"][0]["solo"])
+        self.assertIn("Decided by one person", open(os.path.join(wt, data["decisions"][0]["record"])).read())
+
+
+class PitchFirstTest(RepoCase):
+    def test_no_slice_starts_before_the_pitch_is_written(self):
+        path = os.path.join(self.repo, ".xv", "pitch.md")
+        open(path, "w").write("---\nstatus: not written\n---\n\n# The pitch\n")
+        sh(["git", "commit", "-qam", "unwritten pitch"], self.repo)
+        p = self.xv("slice", "new", "s1", "--by", "pat", "--scenario", "x", check=False)
+        self.assertIn("the pitch comes first", p.stderr)

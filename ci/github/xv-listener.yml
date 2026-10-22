@@ -53,6 +53,9 @@ jobs:
           git add ".xv/slices/packet-$day.md"
           git commit -m "xv: the packet from production, $day"
           git push -u origin "xv/packet-$day"
+          # Opening the pull request needs the repo setting that also lets Actions
+          # approve. Without it, the branch is pushed and a person opens the PR.
           gh pr create --title "The packet from production, $day" \
             --body "The listener's packet for the chief engineer. It is not ranked; the ranking is the chief engineer's." \
-            ${CHIEF:+--reviewer "$CHIEF"}
+            ${CHIEF:+--reviewer "$CHIEF"} \
+            || echo "::notice::Open a pull request from xv/packet-$day for the chief engineer."
