@@ -3,15 +3,45 @@
   "increment": 1,
   "agent": "guardian",
   "what": "the guardian finds a change that sends household data to a partner, against the pitch, and stops it for two people",
-  "slice": {"id": "share-with-grocer", "kind": "feature", "title": "Send the shopping list to GroceryNow",
-            "scenario": "share-with-grocer.md", "ignore": "Retries when GroceryNow is down."},
+  "slice": {
+    "id": "share-with-grocer",
+    "kind": "feature",
+    "title": "Send the shopping list to GroceryNow",
+    "scenario": "share-with-grocer.md",
+    "ignore": "Retries when GroceryNow is down."
+  },
   "setup": [
-    {"op": "patch", "patch": "setups/share-with-grocer.patch"},
-    {"op": "commit", "message": "xv(share-with-grocer): make it work"}
+    {
+      "op": "patch",
+      "patch": "setups/share-with-grocer.patch"
+    },
+    {
+      "op": "commit",
+      "message": "xv(share-with-grocer): make it work"
+    }
   ],
-  "skill_cmd": ["step", "guardian", "{id}"],
+  "skill_cmd": [
+    "step",
+    "guardian",
+    "{id}"
+  ],
   "baseline_prompt": "Review the change on this branch before it is merged (`git diff main..HEAD`). Write your review to review.md. Do not change any other file.",
-  "assertions": ["packet_exists", "pitch_contradiction_flagged", "shape_flagged", "pitch_line_cited",
-                 "guardian_did_not_edit", "stop_for_two_people", "report_present"],
-  "timeout": 1200
+  "assertions": [
+    "packet_exists",
+    "pitch_contradiction_flagged",
+    "shape_flagged",
+    "pitch_line_cited",
+    "guardian_did_not_edit",
+    "stop_for_two_people",
+    "report_present",
+    "boundary_in_packet",
+    "findings_cited"
+  ],
+  "timeout": 1200,
+  "assertions_added": {
+    "4": [
+      "boundary_in_packet",
+      "findings_cited"
+    ]
+  }
 }

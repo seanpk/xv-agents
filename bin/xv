@@ -14,6 +14,8 @@
   xv wall ...                   the test wall: baseline, diff, check
   xv spend ...                  actual spend from a harness's logs
   xv boundary ...               the boundary picture of a change
+  xv packet lint <file>         the guardian's packet: fixed fields, and the evidence rule
+  xv guard --base <ref>         the guardian on a pull request, for CI
   xv check ...                  what the project layer overrode, relaxed, or drifted
   xv retro ...                  fire and override counts, candidates for the retro
   xv promote ...                learnings seen in two repos
@@ -36,10 +38,11 @@ COMMANDS = {
     "boundary": "boundary.py", "check": "check.py", "retro": "retro.py",
     "promote": "promote.py", "listen": "listen.py", "prototype": "prototypes.py",
     "adapt": "adapt.py", "prompt": "prompt.py", "recording": "recording.py",
-    "playwright": "playwright_agents.py",
+    "playwright": "playwright_agents.py", "packet": "packet.py",
     "init": "run.py", "slice": "run.py", "run": "run.py", "step": "run.py", "close": "run.py",
+    "guard": "run.py",
 }
-PASS_NAME = {"init", "slice", "run", "step", "close"}
+PASS_NAME = {"init", "slice", "run", "step", "close", "guard"}
 
 
 def main():

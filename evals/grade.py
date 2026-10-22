@@ -336,6 +336,28 @@ def stop_ready_for_person(ctx):
     return ok, f"stop: {stop.get('order')} for {stop.get('seat')}"
 
 
+def stop_accept_moves(ctx):
+    stop = (ctx.get("verdict") or {}).get("stop") or {}
+    return stop.get("order") == "accept_moves", f"stop: {stop.get('order')} for {stop.get('seat')}"
+
+
+def boundary_in_packet(ctx):
+    t = packet_text(ctx)
+    ok = bool(re.search(r"(?i)boundary", t)) and ("mermaid" in t or re.search(r"\bapi\b.*\bstore\b|\bstore\b.*\bapi\b", t, re.S))
+    return bool(ok), "the boundary picture is in the packet" if ok else "no boundary picture"
+
+
+def findings_cited(ctx):
+    p = packet_path(ctx)
+    if not p:
+        return False, "no packet"
+    text = open(p).read()
+    if "## Dropped by the evidence rule" not in text:
+        return True, "every finding cites a line, a rule, or a hunk"
+    dropped = [l for l in text.split("## Dropped by the evidence rule")[1].splitlines() if l.startswith("- ")]
+    return len(dropped) <= 1, f"{len(dropped)} finding(s) dropped for citing nothing"
+
+
 def no_merge_to_main(ctx):
     _, count = sh(["git", "rev-list", "--count", "main"], ctx["repo"])
     return count.strip() == "1", f"main has {count.strip()} commit(s)"

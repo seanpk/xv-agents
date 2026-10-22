@@ -137,7 +137,8 @@ def cmd_step(a):
         return step_init(a.agent)
     if not a.id:
         raise XVError("which slice? xv step <agent> <id>")
-    code = step(a.agent, a.id, quiet=False)
+    code, v = step(a.agent, a.id)
+    print(json.dumps(v, indent=2))
     sys.exit(code)
 
 
@@ -151,23 +152,21 @@ def step_init(agent):
     print(json.dumps({"agent": agent, "report": report, "spend": spendlib.from_run(result)}, indent=2))
 
 
-def step(agent, slice_id, quiet=True):
-    """Run one step. Returns 0 to go on, EXIT_STOP when a person must answer."""
+def step(agent, slice_id):
+    """Run one step. Returns (0, verdict) to go on, (EXIT_STOP, verdict) when a person must answer."""
     root0 = repo_root()
     path = record_path(root0, slice_id)
     root = slice_root(path)
     config = load_config(root)
     data, body = record.load(root, slice_id)[1:]
     if agent == "close":
-        return close(slice_id)
+        return close(slice_id), {"slice": slice_id, "after": "close", "stop": None}
     if agent not in STEPS:
         raise XVError(f"no step {agent!r}; one of {STEPS}")
     open_stops = [s for s in data["stops"] if s.get("answer") is None]
     if open_stops:
-        s = open_stops[-1]
-        print(json.dumps({"slice": slice_id, "after": agent, "stop": s, "fired": [],
-                          "note": "an earlier stop is unanswered"}, indent=2))
-        return EXIT_STOP
+        return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": open_stops[-1], "fired": [],
+                           "note": "an earlier stop is unanswered"}
     if (config.get("agents") or {}).get(agent) == "session":
         raise XVError(f"{agent} runs in the session: use `xv prompt {agent} {slice_id}`, then "
                       f"`xv record report {slice_id} {agent} -` and `xv orders {slice_id} --after {agent}`")
@@ -209,8 +208,7 @@ def step(agent, slice_id, quiet=True):
         v["packet"] = data["packet"]
     if v["stop"]:
         reach(config, v["stop"]["seat"], v["stop"]["question"], v["record"])
-    print(json.dumps(v, indent=2))
-    return EXIT_STOP if v["stop"] else 0
+    return (EXIT_STOP if v["stop"] else 0), v
 
 
 def pre_step(agent, root, data, config):
@@ -238,7 +236,9 @@ def post_step(agent, root, data, config, head_before, pre, report):
             checks["red_output"] = out[-800:]
         else:
             checks["red_fails"] = None
-        wall_baseline(root, data, config)
+        wb = wall_baseline(root, data, config)
+        if wb:
+            data["wall_baseline"] = wb
     if agent in ("maker", "cleaner"):
         suite, out = run_suite(root, config)
         checks["suite"], checks["suite_output"] = suite, (out or "")[-800:]
@@ -259,6 +259,12 @@ def post_step(agent, root, data, config, head_before, pre, report):
         packet = os.path.join(root, XV_DIR, "slices", f"{data['id']}.packet.md")
         checks["packet"] = os.path.exists(packet)
         if os.path.exists(packet):
+            import packet as packetlib
+            try:
+                lint = packetlib.fix(packet)
+                checks["packet_problems"], checks["dropped_findings"] = lint["problems"], len(lint["dropped"])
+            except XVError as e:
+                checks["packet_problems"] = [str(e)]
             pdata, _ = record.read_doc(packet)
             for field in ("shape_change", "pitch_contradiction"):
                 v = pdata.get(field)
@@ -288,8 +294,8 @@ def wall_baseline(root, data, config):
     try:
         import wall
     except ImportError:
-        return
-    wall.baseline(root, data["id"], config)
+        return None
+    return wall.baseline(root, data["id"], config)
 
 
 def wall_check(root, data, config):
@@ -297,7 +303,10 @@ def wall_check(root, data, config):
         import wall
     except ImportError:
         return {}
-    return wall.check(root, data["id"], config)
+    try:
+        return wall.check(root, data["id"], config)
+    except XVError as e:
+        return {"note": str(e)}
 
 
 def boundary(root, data):
@@ -327,8 +336,9 @@ def cmd_run(a):
         if nxt == "prototype":
             import prototypes
             sys.exit(prototypes.run(a.id))
-        code = step(nxt, a.id)
+        code, v = step(nxt, a.id)
         if code != 0:
+            print(json.dumps(v, indent=2))
             sys.exit(code)
 
 
@@ -364,6 +374,68 @@ def close(slice_id):
     print(json.dumps({"slice": slice_id, "status": "closed", "guide": p.stdout.strip() or p.stderr.strip(),
                       "next": f"merge {data['branch']} when you are ready; the watch does not merge"}, indent=2))
     return 0
+
+
+# ---------------------------------------------------------------- guard (CI)
+
+def cmd_guard(a):
+    """The guardian on a pull request. With a slice record in the change, it is that
+    slice's guardian step. Without one, it reviews the diff against the base."""
+    root = repo_root()
+    config = load_config(root)
+    changed = git(["diff", "--name-only", f"{a.base}...HEAD"], root).split()
+    slices = [os.path.basename(f)[:-3] for f in changed
+              if f.startswith(f"{XV_DIR}/slices/") and f.endswith(".md")
+              and not os.path.basename(f).startswith("packet-") and f.count(".") == 1]
+    if len(slices) == 1:
+        os.environ["XV_NO_COMMIT"] = "1"
+        code, v = step("guardian", slices[0])
+        print(json.dumps(v, indent=2))
+        path = record_path(root, slices[0])
+        packet = os.path.join(slice_root(path), XV_DIR, "slices", f"{slices[0]}.packet.md")
+        if a.out and os.path.exists(packet):
+            shutil.copy(packet, a.out)
+        sys.exit(code)
+    rel = os.path.join(XV_DIR, "slices", "pr-packet.md")
+    os.makedirs(os.path.join(root, XV_DIR, "slices"), exist_ok=True)
+    try:
+        import boundary as b
+        bres = b.change(root, a.base, config)
+        with open(os.path.join(root, XV_DIR, "slices", "pr-boundary.md"), "w") as f:
+            f.write(b.render_change(bres))
+    except ImportError:
+        pass
+    extra = [f"No slice record: review the pull request's diff, `git diff {a.base}...HEAD`.",
+             f"Packet template: `{os.path.join(promptlib.SKILLS, 'guardian', 'packet.md')}`. "
+             f"Write the packet to `{rel}`.",
+             f"Boundary picture: `{XV_DIR}/slices/pr-boundary.md`.",
+             f"Test files changed since the base: `xv wall check --base {a.base} --json`."]
+    text = promptlib.brief("guardian") + "\n" + promptlib.pointers("guardian", root, config, None, extra)
+    result = agentcli.run(agentcli.argv_for(config, "guardian"), text, root, None,
+                          int(config.get("step_timeout") or 3600))
+    full = os.path.join(root, rel)
+    data = {"id": "pull-request", "kind": "feature", "moved_tests": [], "checks": {"reports": []}}
+    if os.path.exists(full):
+        import packet as packetlib
+        packetlib.fix(full)
+        pdata, _ = record.read_doc(full)
+        for field in ("shape_change", "pitch_contradiction"):
+            data[field] = pdata.get(field) if pdata.get(field) in ("yes", "no") else "yes"
+        data["checks"]["guardian"] = {"picture_change": pdata.get("picture_change")}
+        if pdata.get("moved_tests"):
+            data["moved_tests"] = [{"file": "see the packet"}] * int(pdata.get("moved_tests") or 0)
+        if a.out:
+            shutil.copy(full, a.out)
+    else:
+        data["shape_change"] = data["pitch_contradiction"] = "yes"
+        if a.out:
+            with open(a.out, "w") as f:
+                f.write("The guardian wrote no packet. The change waits for two people.\n")
+    data["checks"]["reports"].append({"agent": "guardian", "status": "done"})
+    v = orders.verdict(data, "guardian", config)
+    v["exit"] = result["code"]
+    print(json.dumps(v, indent=2))
+    sys.exit(EXIT_STOP if v["stop"] else 0)
 
 
 # ---------------------------------------------------------------- init
@@ -459,6 +531,11 @@ def main(argv=None):
 
     s = sub.add_parser("init")
     s.set_defaults(fn=cmd_init)
+
+    s = sub.add_parser("guard", help="the guardian on a pull request, for CI")
+    s.add_argument("--base", required=True)
+    s.add_argument("--out")
+    s.set_defaults(fn=cmd_guard)
 
     a = p.parse_args(argv)
     try:

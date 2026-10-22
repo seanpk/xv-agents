@@ -1,0 +1,64 @@
+# The guardian on a pull request. Copy to .github/workflows/xv-guardian.yml.
+#
+# Runs the guardian brief in a fresh context through the agent CLI that
+# .xv/config.yml names for the guardian, and posts the packet as a comment.
+# It never approves and never merges: the job has no permission to approve,
+# and a packet that says shape_change or pitch_contradiction only fails a
+# check so the merge waits for two people.
+#
+# Needs: the agent CLI's credentials as a secret (ANTHROPIC_API_KEY for the
+# default `claude -p`). A login session is not available in CI.
+name: xv guardian
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write     # to comment; nothing here can approve
+
+jobs:
+  guardian:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Get xv-agents
+        uses: actions/checkout@v4
+        with:
+          repository: seanpk/xv-agents
+          ref: v0.1.0
+          path: .xv-agents
+
+      - name: Put xv on PATH, and the agent CLI
+        run: |
+          echo "$GITHUB_WORKSPACE/.xv-agents/bin" >> "$GITHUB_PATH"
+          npm install -g @anthropic-ai/claude-code
+          git config user.name "xv guardian"
+          git config user.email "xv-guardian@users.noreply.github.com"
+
+      - name: The guardian
+        id: guard
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          XV_NO_COMMIT: "1"
+        run: |
+          set +e
+          xv guard --base "origin/${{ github.base_ref }}" --out "$RUNNER_TEMP/packet.md" > "$RUNNER_TEMP/verdict.json"
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/verdict.json"
+
+      - name: Post the packet
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr comment "${{ github.event.pull_request.number }}" --body-file "$RUNNER_TEMP/packet.md"
+
+      - name: Shape or pitch waits for two people
+        if: steps.guard.outputs.code == '10'
+        run: |
+          python3 -c "import json,sys; v=json.load(open('$RUNNER_TEMP/verdict.json')); s=v.get('stop') or {}; print(s.get('question','')); sys.exit(1 if s.get('seat')=='two_people' else 0)"

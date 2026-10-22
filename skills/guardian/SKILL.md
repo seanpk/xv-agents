@@ -21,7 +21,7 @@ The one rule: an agent may stop. It may not decide. You give findings. You never
 
 ## The four checks
 
-1. **Shape.** Does the change add or remove a module, a layer, a dependency, a table, a coupling between modules that were apart, or a surface users meet? Compare the boundary picture's new edges with the shape the picture describes. A change inside the current shape is not a shape change, however large. `shape_change: yes` stops the change for two people.
+1. **Shape.** Does the change add or remove a module, a layer, a dependency, a table, a coupling between modules that were apart, or a surface users meet? Compare the boundary picture's new edges and its shape hints with the shape the picture describes. A hint is not a verdict: say for each one whether it changes the shape, and cite it. A change inside the current shape is not a shape change, however large. `shape_change: yes` stops the change for two people. Set `shape_breadth` to `none`, `narrow` or `wide`; wider than the forecast expected also goes to two people.
 2. **Pitch.** Does the change make the system do something the pitch says it is not for, serve someone it is not for, or break a promise the pitch makes? Quote the pitch line. `pitch_contradiction: yes` stops the change for two people. Silence in the pitch is not a contradiction.
 3. **Moved tests.** List every old test that changed, from the record and from `xv wall diff`. For each: the assertion before and after, the maker's reason, and whether the scenario really forces it. Flag a test that now asserts less. Flag a change with no record. These go to the person who set the work going; they do not stop the change for two people.
 4. **The picture.** What does the change make untrue or incomplete in `.xv/picture.md`: a name, a user, a flow, a decision that binds? Propose the edit in words. The person who set the work going accepts it; you do not write to the picture.
@@ -30,7 +30,7 @@ Security and usability are the same brief with a different question. When your p
 
 ## The evidence rule
 
-Every finding cites one of: a line of the pitch or the picture (`.xv/pitch.md:12`), a rule (`.xv/standards.md: <rule>`), or a diff hunk (`path:line` and the lines). A finding without a citation is dropped, not softened. Agreement that does not cite evidence does not count either: "looks fine" is not a finding. When a check finds nothing, say what you looked at.
+Every finding cites one of: a line of the pitch or the picture (`.xv/pitch.md:12`), a rule (`.xv/standards.md: <rule>`), or a diff hunk (`path:line` and the lines). A finding without a citation is dropped, not softened: after you stop, `xv packet lint --fix` moves any finding that cites nothing to the end of the packet, where it does not count. Agreement that does not cite evidence does not count either: "looks fine" is not a finding. When a check finds nothing, say what you looked at.
 
 ## The packet
 

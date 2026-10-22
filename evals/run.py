@@ -148,10 +148,7 @@ def run_one(scenario, harness_name, arm, n, outdir, keep=False):
             p = subprocess.run([XV] + cmd, cwd=wt, capture_output=True, text=True, env=env,
                                timeout=scenario.get("timeout", 3600))
             ctx["exit"], ctx["stdout"], ctx["stderr"] = p.returncode, p.stdout, p.stderr
-            try:
-                ctx["verdict"] = json.loads(p.stdout[p.stdout.find("{"):]) if "{" in p.stdout else None
-            except json.JSONDecodeError:
-                ctx["verdict"] = None
+            ctx["verdict"] = last_json(p.stdout)
             ctx["spend"] = spend_from_record(wt, ctx["slice"])
         else:
             text = scenario["baseline_prompt"].replace("{id}", ctx["slice"] or "")
@@ -183,6 +180,20 @@ def run_one(scenario, harness_name, arm, n, outdir, keep=False):
     if not keep:
         cleanup(workdir)
     return out
+
+
+def last_json(text):
+    """The last JSON object printed: the verdict `xv step` or `xv run` ends with."""
+    dec, out, i = json.JSONDecoder(), None, 0
+    while True:
+        i = text.find("{", i)
+        if i < 0:
+            return out
+        try:
+            obj, end = dec.raw_decode(text, i)
+            out, i = obj, end
+        except json.JSONDecodeError:
+            i += 1
 
 
 def final_message(ctx, wt):

@@ -1,0 +1,85 @@
+{
+  "name": "guardian-moves",
+  "increment": 4,
+  "agent": "guardian",
+  "what": "the guardian lists two recorded test moves for a changed message, finds no shape change and no pitch contradiction, and hands the merge to the person",
+  "slice": {
+    "id": "message-wording",
+    "kind": "feature",
+    "title": "A plainer message for a bad quantity",
+    "scenario": "message-wording.md",
+    "ignore": "Other messages."
+  },
+  "setup": [
+    {
+      "op": "xv",
+      "args": [
+        "wall",
+        "baseline",
+        "{id}"
+      ]
+    },
+    {
+      "op": "commit",
+      "message": "xv(message-wording): wall baseline"
+    },
+    {
+      "op": "patch",
+      "patch": "setups/message-wording.patch"
+    },
+    {
+      "op": "xv",
+      "args": [
+        "record",
+        "move",
+        "{id}",
+        "--file",
+        "tests/test_store.py",
+        "--assertion",
+        "was: 'qty must be a positive whole number'; now: 'Quantity must be a whole number above zero'",
+        "--why",
+        "the scenario changes the message the household sees",
+        "--by",
+        "maker"
+      ]
+    },
+    {
+      "op": "xv",
+      "args": [
+        "record",
+        "move",
+        "{id}",
+        "--file",
+        "tests/test_api.py",
+        "--assertion",
+        "was: error 'qty must be a positive whole number'; now: 'Quantity must be a whole number above zero'",
+        "--why",
+        "the API returns the same message",
+        "--by",
+        "maker"
+      ]
+    },
+    {
+      "op": "commit",
+      "message": "xv(message-wording): make it work"
+    }
+  ],
+  "skill_cmd": [
+    "step",
+    "guardian",
+    "{id}"
+  ],
+  "baseline_prompt": "Review the change on this branch before it is merged (`git diff main..HEAD`). Write your review to review.md. Do not change any other file.",
+  "assertions": [
+    "packet_exists",
+    "shape_not_flagged",
+    "pitch_not_flagged",
+    "moved_test_listed",
+    "boundary_in_packet",
+    "findings_cited",
+    "stop_accept_moves",
+    "guardian_did_not_edit",
+    "report_present"
+  ],
+  "timeout": 1200
+}

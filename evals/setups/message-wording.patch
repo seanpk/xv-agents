@@ -1,0 +1,39 @@
+diff --git i/pantry/store.py w/pantry/store.py
+index 7290910..388626a 100644
+--- i/pantry/store.py
++++ w/pantry/store.py
+@@ -20,7 +20,7 @@ class Store:
+ 
+     def add(self, name, qty, expires_on):
+         if not isinstance(qty, int) or isinstance(qty, bool) or qty < 1:
+-            raise ValueError("qty must be a positive whole number")
++            raise ValueError("Quantity must be a whole number above zero")
+         if name in self._items:
+             item = self._items[name]
+             item.qty += qty
+diff --git i/tests/test_api.py w/tests/test_api.py
+index 39b622c..4504ae1 100644
+--- i/tests/test_api.py
++++ w/tests/test_api.py
+@@ -33,7 +33,7 @@ class ApiTest(unittest.TestCase):
+ 
+     def test_a_bad_quantity_is_a_400_with_the_reason(self):
+         status, body = self.call("POST", "/items", {"name": "rice", "qty": 0, "expires_on": "2027-01-01"})
+-        self.assertEqual((status, body), (400, {"error": "qty must be a positive whole number"}))
++        self.assertEqual((status, body), (400, {"error": "Quantity must be a whole number above zero"}))
+ 
+     def test_use_an_item(self):
+         self.call("POST", "/items", {"name": "eggs", "qty": 6, "expires_on": "2026-10-30"})
+diff --git i/tests/test_store.py w/tests/test_store.py
+index c9ae230..f493986 100644
+--- i/tests/test_store.py
++++ w/tests/test_store.py
+@@ -22,7 +22,7 @@ class StoreTest(unittest.TestCase):
+     def test_add_rejects_a_quantity_below_one(self):
+         with self.assertRaises(ValueError) as e:
+             self.store.add("rice", 0, date(2027, 1, 1))
+-        self.assertEqual(str(e.exception), "qty must be a positive whole number")
++        self.assertEqual(str(e.exception), "Quantity must be a whole number above zero")
+ 
+     def test_use_takes_from_the_quantity(self):
+         self.store.add("eggs", 6, date(2026, 10, 30))

@@ -3,6 +3,7 @@ slice: <slice id>
 shape_change: no
 pitch_contradiction: no
 picture_change: no
+shape_breadth: none
 moved_tests: 0
 door: two-way
 blast_radius: <one word>

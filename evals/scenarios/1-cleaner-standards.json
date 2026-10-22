@@ -3,19 +3,72 @@
   "increment": 1,
   "agent": "cleaner",
   "what": "the cleaner applies the standards file to the maker's diff, commits, and leaves the file alone",
-  "slice": {"id": "hide-used-up", "kind": "feature", "title": "Used-up items leave the list",
-            "scenario": "hide-used-up.md", "ignore": "What runs out soon."},
+  "slice": {
+    "id": "hide-used-up",
+    "kind": "feature",
+    "title": "Used-up items leave the list",
+    "scenario": "hide-used-up.md",
+    "ignore": "What runs out soon."
+  },
   "setup": [
-    {"op": "copy", "from": "setups/hide-used-up-red"},
-    {"op": "commit", "message": "xv(hide-used-up): red"},
-    {"op": "patch", "patch": "setups/cleaner-mess.patch"},
-    {"op": "commit", "message": "xv(hide-used-up): make it work"},
-    {"op": "xv", "args": ["record", "move", "{id}", "--file", "tests/test_store.py", "--assertion", "was: bread listed with qty 0; now: the list is empty", "--why", "the scenario takes a used-up item off the list", "--by", "maker"]},
-    {"op": "commit", "message": "xv(hide-used-up): record the move"}
+    {
+      "op": "copy",
+      "from": "setups/hide-used-up-red"
+    },
+    {
+      "op": "commit",
+      "message": "xv(hide-used-up): red"
+    },
+    {
+      "op": "xv",
+      "args": [
+        "wall",
+        "baseline",
+        "{id}"
+      ]
+    },
+    {
+      "op": "patch",
+      "patch": "setups/cleaner-mess.patch"
+    },
+    {
+      "op": "commit",
+      "message": "xv(hide-used-up): make it work"
+    },
+    {
+      "op": "xv",
+      "args": [
+        "record",
+        "move",
+        "{id}",
+        "--file",
+        "tests/test_store.py",
+        "--assertion",
+        "was: bread listed with qty 0; now: the list is empty",
+        "--why",
+        "the scenario takes a used-up item off the list",
+        "--by",
+        "maker"
+      ]
+    },
+    {
+      "op": "commit",
+      "message": "xv(hide-used-up): record the move"
+    }
   ],
-  "skill_cmd": ["step", "cleaner", "{id}"],
+  "skill_cmd": [
+    "step",
+    "cleaner",
+    "{id}"
+  ],
   "baseline_prompt": "Tidy the code changed in the last commit on this branch (`git diff HEAD~2..HEAD`). Follow this repo's coding standards. Do not change what it does. Commit your changes.",
-  "assertions": ["standards_violations_fixed", "suite_green", "standards_untouched", "agent_committed",
-                 "no_new_source_files", "report_present"],
+  "assertions": [
+    "standards_violations_fixed",
+    "suite_green",
+    "standards_untouched",
+    "agent_committed",
+    "no_new_source_files",
+    "report_present"
+  ],
   "timeout": 1200
 }
