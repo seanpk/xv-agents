@@ -75,6 +75,12 @@ class OrdersTest(unittest.TestCase):
         s = self.stop(d, "guardian")
         self.assertEqual((s["order"], s["seat"]), ("ready_to_merge", "originator"))
 
+    def test_a_feature_asks_the_person_to_watch_the_first_green(self):
+        d = with_report(rec(kind="feature", shape_change="no", pitch_contradiction="no",
+                            red={"watch_first_green": "Use the last loaf; bread leaves the list."}), "guardian")
+        d["checks"]["guardian"] = {}
+        self.assertIn("watch the first green run: Use the last loaf", self.stop(d, "guardian")["question"])
+
     def test_a_raise_past_the_team_limit_is_for_two_people(self):
         config = dict(DEFAULT_CONFIG, limits={"budget_raise_pct": 50})
         d = with_report(rec(budget={"usd": 4, "raised_from": {"usd": 2}}), "forecaster")

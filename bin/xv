@@ -7,6 +7,8 @@
   xv step <agent> <id>          run one step
   xv close <id>                 the guide row, status closed; the merge stays the person's
   xv prompt <agent> [<id>]      the whole prompt for one agent
+  xv recording ...              a defect's recording into the first draft of its red
+  xv playwright install ...     Playwright's test agents, without the healer
   xv record ...                 read and write the slice record
   xv orders <id> --after <step> the standing orders (exit 10 on a stop)
   xv wall ...                   the test wall: baseline, diff, check
@@ -33,7 +35,8 @@ COMMANDS = {
     "record": "record.py", "orders": "orders.py", "wall": "wall.py", "spend": "spend.py",
     "boundary": "boundary.py", "check": "check.py", "retro": "retro.py",
     "promote": "promote.py", "listen": "listen.py", "prototype": "prototypes.py",
-    "adapt": "adapt.py", "prompt": "prompt.py",
+    "adapt": "adapt.py", "prompt": "prompt.py", "recording": "recording.py",
+    "playwright": "playwright_agents.py",
     "init": "run.py", "slice": "run.py", "run": "run.py", "step": "run.py", "close": "run.py",
 }
 PASS_NAME = {"init", "slice", "run", "step", "close"}

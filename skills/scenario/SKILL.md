@@ -19,7 +19,7 @@ The one rule: an agent may stop. It may not decide.
 
 ## Make it red
 
-1. **A defect starts from its recording.** Replay the recorded path: the same input, the same steps. Assert the right result, which the recording or the scenario states. The wrong result in the recording is what the test must catch.
+1. **A defect starts from its recording.** Replay the recorded path: the same input, the same steps. Assert the right result, which the recording or the scenario states. The wrong result in the recording is what the test must catch. For an API sequence, a HAR file, or a Playwright trace, `xv recording to-test <file> --lang python|playwright --out <new test file>` writes a first draft that replays the requests; then make it start the app the way the existing tests do. Where the recording has no expected value, the draft fails on purpose until you write it from the scenario.
 2. **A feature starts from words.** Write the scenario as a person would watch it: the steps a user takes and what they see. Keep it close enough to the words that a person can watch the first green and spot the case nobody wrote down.
 3. **Test at the surface a user meets.** For a web app, a Playwright test against the running app. For an API, a sequence of requests and the responses. Not a unit test against an internal function, unless that function is the interface the scenario names.
 4. **Expected values come from an independent source**: the scenario, the recording, a worked example, a known-good literal. Never from running the code, and never by recomputing the answer the way the code does. A test that passes by construction is not a red. (This rule is Matt Pocock's, from `mattpocock/skills` `tdd`.)
@@ -28,7 +28,7 @@ The one rule: an agent may stop. It may not decide.
 
 ### With Playwright
 
-Use the Playwright MCP tools or the harness's browser to explore the running app, then write the test the way Playwright's planner and generator agents do: a short plan in words, then a test that verifies each selector against the live page. Leave Playwright's healer agent out. It edits tests until they pass, which is the move the test wall exists to stop.
+Use the Playwright MCP tools or the harness's browser to explore the running app, then write the test the way Playwright's planner and generator agents do: a short plan in words, then a test that verifies each selector against the live page. `xv playwright install --loop <harness>` installs those two agents for a harness and removes the third, the healer. The healer edits tests until they pass, which is the move the test wall exists to stop. Never install or call it. Without a browser tool, `npx playwright codegen` and `npx playwright test` work from the shell.
 
 For a new feature, end the test file with a comment that says what a person should watch on the first green run.
 

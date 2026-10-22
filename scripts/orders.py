@@ -131,6 +131,13 @@ def evaluate(data, after, config):
         if not out:
             out.append(fire("ready_to_merge", "originator",
                             "The suite is green and nothing stopped. The merge is yours."))
+        watch = (data.get("red") or {}).get("watch_first_green")
+        if data.get("kind") == "feature" and watch:
+            for f in out:
+                if f["order"] in ("ready_to_merge", "accept_moves"):
+                    f["question"] += (f" Before you merge, watch the first green run: {watch} If you see a case "
+                                      "nobody wrote down, add it to the scenario and send the slice back to the "
+                                      "scenario agent (--next scenario).")
 
     if after == "prototype" and checks.get("prototypes_ready") is not None:
         n = checks["prototypes_ready"]

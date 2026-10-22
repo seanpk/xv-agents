@@ -1,0 +1,30 @@
+{
+  "name": "scenario-feature",
+  "increment": 3,
+  "agent": "scenario",
+  "what": "the scenario agent writes a feature's red from words, at the surface a user meets, with a note for the person who watches the first green",
+  "slice": {
+    "id": "hide-used-up",
+    "kind": "feature",
+    "title": "Used-up items leave the list",
+    "scenario": "hide-used-up.md",
+    "ignore": "What runs out soon; the expiring list is unchanged."
+  },
+  "setup": [],
+  "skill_cmd": [
+    "step",
+    "scenario",
+    "{id}"
+  ],
+  "baseline_prompt": "Write a failing test for this new feature in this repo, before anyone builds it: when the household uses the last of something, it no longer shows in the list of what the household has. Using the last loaf of bread takes bread off GET /items. Items with some left still show, as now.",
+  "assertions": [
+    "changed_only_tests",
+    "red_fails_on_assertion",
+    "old_tests_green",
+    "red_at_user_surface",
+    "red_recorded",
+    "watch_first_green_noted",
+    "report_present"
+  ],
+  "timeout": 1200
+}

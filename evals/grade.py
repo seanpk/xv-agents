@@ -106,6 +106,18 @@ def base_test_names(ctx):
     return names
 
 
+def red_at_user_surface(ctx):
+    files = new_test_files(ctx) or [f for f in changed_since(ctx) if f.startswith("tests/")]
+    text = "".join(open(os.path.join(ctx["wt"], f)).read() for f in files if os.path.exists(os.path.join(ctx["wt"], f)))
+    ok = bool(re.search(r"\bserve\(|urlopen|/items", text))
+    return ok, "the red calls the API" if ok else "the red tests an internal function only"
+
+
+def watch_first_green_noted(ctx):
+    note = (record(ctx).get("red") or {}).get("watch_first_green")
+    return bool(note), f"note: {str(note)[:100]}" if note else "no note for the first green"
+
+
 def old_tests_green(ctx):
     """Every test that existed before the run still passes; new tests may fail."""
     code, out = sh(SUITE + " -v", ctx["wt"])

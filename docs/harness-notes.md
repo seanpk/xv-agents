@@ -37,7 +37,12 @@ Found by the first eval run, 2026-10-21. Slice worktrees were first placed under
 
 ## Playwright test agents
 
-See increment 3 below.
+Checked 2026-10-21 with Playwright 1.64.1.
+
+- `npx playwright init-agents --loop=claude` writes `.claude/agents/playwright-test-{planner,generator,healer}.md`, a `.mcp.json` that starts `npx playwright run-test-mcp-server`, `seed.spec.ts`, and `specs/README.md`.
+- `--loop=opencode` writes `.opencode/prompts/playwright-test-{planner,generator,healer}.md` and an `opencode.json` with the MCP server and one subagent entry per prompt. The healer's entry grants `edit`, `write`, `test_run` and `test_debug`.
+- `xv playwright install --loop <harness>` runs it and removes the healer: the file, and the `opencode.json` entry.
+- `claude -p --safe-mode` drops MCP servers even with `--mcp-config` and `--strict-mcp-config`. Without `--safe-mode`, the same flags load the server's tools. Checked by asking the model to list them.
 
 ## `npx skills add` and `gh skill install`
 
