@@ -36,6 +36,12 @@ class PrototypesTest(RepoCase):
         branches = sh(["git", "branch", "--list", "--format=%(refname:short)", "xv/p1-proto-*"], self.repo).stdout.split()
         self.assertEqual(len(branches), 3)
 
+        spend_before = len(self.record()["spend"])
+        p = self.xv("run", "p1", cwd=self.wt, check=False)
+        self.assertEqual(p.returncode, 10)
+        self.assertIn("unanswered", p.stdout)
+        self.assertEqual(len(self.record()["spend"]), spend_before, "resuming does not rebuild the prototypes")
+
         p = self.xv("prototype", "pick", "p1", "--variant", "b", "--by", "pat", cwd=self.wt, check=False)
         self.assertIn("two people", p.stderr)
         scen = os.path.join(self.tmp, "restated.md")

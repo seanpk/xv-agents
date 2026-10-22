@@ -372,7 +372,7 @@ def actual_by_key(spend):
     for s in spend:
         key = (s.get("harness") or "?", s.get("model") or "?")
         k = keys.setdefault(key, {"tokens": 0, "usd": 0.0, "wall_s": 0.0})
-        k["tokens"] += int(s.get("tokens_in") or 0) + int(s.get("tokens_out") or 0)
+        k["tokens"] += int(s.get("tokens") or 0)  # input, output, cache read and cache write, as everywhere
         k["usd"] += float(s.get("usd") or 0)
         k["wall_s"] += float(s.get("wall_s") or 0)
     return keys

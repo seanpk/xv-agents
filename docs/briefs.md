@@ -18,7 +18,7 @@ The briefs are the skills' `SKILL.md` files. This page gives the reason for the 
 ## The forecaster
 
 - **It forecasts per harness and model, from rows with the same key only.** A token count means something only within one model. Where a key has no rows it says so and leaves the number null; a borrowed number looks like evidence and is not.
-- **It does not read the source.** The guide is its evidence. Sizing from code is the estimate a person used to make, and section 13 of the dispositions drops it.
+- **It does not read the source.** The guide is its evidence. Sizing from code is the estimate a person used to make, and XV drops it.
 - **It writes one line at close, and the watch appends the row with a script.** The guide is data an agent consumes, so one item is added without acceptance and anyone reverts. A rewrite is refused by code (`xv record guide-verify`), because an agent that rewrites a whole context collapses it (ACE, 2025).
 
 ## The scenario agent

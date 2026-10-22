@@ -82,6 +82,11 @@ def evaluate(data, after, config):
                         f"Test files changed with no record after the {after}: "
                         + ", ".join(wall["unrecorded"]) + ". Revert them, or record why the scenario forces it."))
 
+    if checks.get("protected_changed"):
+        out.append(fire("protected_changed", "originator",
+                        f"The {after} changed files only people change: {', '.join(checks['protected_changed'])}. "
+                        "Revert them before going on."))
+
     if after == "maker" and checks.get("reused_prototype_context"):
         out.append(fire("prototype_context_reused", "originator",
                         "The maker ran in a context that built a prototype. The pick is built by a fresh context."))
@@ -92,6 +97,11 @@ def evaluate(data, after, config):
             out.append(fire("budget_spent", "originator",
                             f"The budget is spent ({', '.join(state['over'])}) and the suite is not green. "
                             "Continue with a new budget, reshape, or set it aside."))
+        hist = checks.get("diff_history") or []
+        if len(hist) >= 2 and hist[-2] and hist[-1] > 2 * hist[-2]:
+            out.append(fire("diff_growing", "originator",
+                            f"The diff grew from {hist[-2]} to {hist[-1]} lines between two runs of the maker. "
+                            "The shape conversation opens; the agent may not renovate."))
         limit = (config.get("limits") or {}).get("max_diff_lines") or 0
         if limit and (checks.get("diff_lines") or 0) > limit:
             out.append(fire("diff_growing", "originator",
@@ -101,7 +111,8 @@ def evaluate(data, after, config):
     budget = data.get("budget") or {}
     pct = (config.get("limits") or {}).get("budget_raise_pct") or 0
     raised = budget.get("raised_from") or {}
-    if pct and raised and not budget.get("raise_agreed_by"):
+    answered = any(s.get("order") == "budget_past_limit" and s.get("answer") for s in data.get("stops") or [])
+    if pct and raised and not answered and after in ("forecaster", "maker"):
         for k, old in raised.items():
             if old and budget.get(k) and (budget[k] - old) / old * 100 > pct:
                 out.append(fire("budget_past_limit", "two_people",

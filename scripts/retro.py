@@ -60,15 +60,18 @@ def due(root):
         hard = [s for s in d.get("stops") or [] if s.get("order") not in QUIET_ORDERS]
         if hard:
             r.append("stopped: " + ", ".join(sorted({s["order"] for s in hard})))
-        spent = totals(d.get("spend") or [])
+        # the budget covers the maker's steps, as the budget order counts it
+        spent = totals([s for s in d.get("spend") or [] if s.get("step") == "maker"])
         budget = dict(d.get("budget") or {})
         budget.update((budget.get("raised_from") or {}))  # a raise does not undo the overrun
+        whole = totals(d.get("spend") or [])
         fc = sum(k.get("tokens") or 0 for k in (d.get("forecast") or {}).get("keys", []))
         if (budget.get("usd") and spent["usd_known"] and spent["usd"] > budget["usd"]) or \
-                (budget.get("tokens") and spent["tokens"] > budget["tokens"]):
+                (budget.get("tokens") and spent["tokens"] > budget["tokens"]) or \
+                (budget.get("turns") and spent["turns"] > budget["turns"]):
             r.append("overran its budget")
-        elif fc and spent["tokens"] > 1.5 * fc:
-            r.append(f"spent {spent['tokens']} tokens against a forecast of {fc}")
+        elif fc and whole["tokens"] > 1.5 * fc:
+            r.append(f"spent {whole['tokens']} tokens against a forecast of {fc}")
         for s in d.get("stops") or []:
             order_seen.setdefault(s.get("order"), set()).add(d["id"])
         if r:
@@ -123,9 +126,12 @@ def traceable(c, recs_by_id):
         return False
     moment = m.group(2).strip().strip("`").lower()
     data, body = recs_by_id[m.group(1)]
-    blob = (json.dumps(data) + body).lower()
-    words = [w for w in re.findall(r"[a-z_]{4,}", moment)]
-    return bool(moment) and any(w in blob for w in words)
+    fields = {k for k, v in data.items() if v not in (None, [], {}, "")} | {"log"}
+    orders = {s.get("order") for s in data.get("stops") or []}
+    named = set(re.findall(r"[a-z_]+", moment)) & (fields | orders)
+    quoted = [q for q in re.findall(r"[\"“]([^\"”]{12,})[\"”]", m.group(2))
+              if q.lower() in (json.dumps(data) + body).lower()]
+    return bool(named or quoted)
 
 
 def run(root, ids=None):

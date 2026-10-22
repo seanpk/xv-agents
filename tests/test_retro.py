@@ -32,6 +32,10 @@ class RetroTest(RepoCase):
         good = {"from": "2026-10-16-expiring-days, the unrecorded_move stop"}
         bad = {"from": "2026-10-16-expiring-days, a vibe"}
         made_up = {"from": "2026-09-01-nothing, the stop"}
+        loose = {"from": "2026-10-16-expiring-days, the maker"}
+        quoted = {"from": '2026-10-16-expiring-days, "deleted test_expiring_within_three_days"'}
+        self.assertFalse(retro.traceable(loose, recs))
+        self.assertTrue(retro.traceable(quoted, recs))
         self.assertTrue(retro.traceable(good, recs))
         self.assertFalse(retro.traceable(bad, recs))
         self.assertFalse(retro.traceable(made_up, recs))

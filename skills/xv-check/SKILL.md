@@ -24,7 +24,7 @@ xv check relaxations | overrides | entries | drift
 
 ## Upgrades
 
-After pulling a new version of xv-agents, run `xv check`. If `CHANGELOG.md` names a renamed `.xv/` file, `xv init` applies the migration note. Project files are never overwritten: the shared skills and the project layer are different files, so an upgrade is a copy, not a merge.
+After pulling a new version of xv-agents, run `xv check`, and `xv init` to add any new default files (it never overwrites one). A version that renames an `.xv/` file says so in `CHANGELOG.md` with the steps to move it; v0.1 renames nothing. Project files are never overwritten: the shared skills and the project layer are different files, so an upgrade is a copy, not a merge.
 
 ## May not
 

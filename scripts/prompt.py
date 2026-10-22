@@ -84,18 +84,18 @@ def pointers(agent, root, config, data=None, extra=None):
     return "\n".join(lines)
 
 
-def new_guide_rows(root, base):
-    """Estimation rows appended since `base`: they ride in the next packet."""
-    if not base:
-        return []
-    import subprocess
+def new_guide_rows(root, slice_id):
+    """Estimation rows no earlier packet has listed: they ride in the next packet."""
+    import glob
     from record import guide_rows
-    p = subprocess.run(["git", "show", f"{base}:.xv/estimation.md"], cwd=root, capture_output=True, text=True)
     path = os.path.join(root, ".xv", "estimation.md")
     if not os.path.exists(path):
         return []
-    old = set(guide_rows(p.stdout)) if p.returncode == 0 else set()
-    return [r for r in guide_rows(open(path).read()) if r not in old]
+    listed = ""
+    for p in glob.glob(os.path.join(root, ".xv", "slices", "*.packet.md")):
+        if os.path.basename(p) != f"{slice_id}.packet.md":
+            listed += open(p, encoding="utf-8", errors="replace").read()
+    return [r for r in guide_rows(open(path).read()) if r.split("|")[1].strip() not in listed]
 
 
 def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
@@ -115,7 +115,7 @@ def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
         bpath = os.path.join(root, ".xv", "slices", f"{data['id']}.boundary.md")
         if os.path.exists(bpath):
             extra.insert(1, f"Boundary picture: `.xv/slices/{data['id']}.boundary.md`.")
-        rows = new_guide_rows(root, data.get("base"))
+        rows = new_guide_rows(root, data["id"])
         if rows:
             extra.append("New rows in `.xv/estimation.md` since the base, appended by the forecaster without "
                          "acceptance; list them under Raw data so a person can revert one: "

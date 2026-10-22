@@ -32,7 +32,7 @@ from xvlib import (XV_DIR, XVError, die, git, load_config, now, read_doc, record
                    repo_root, slice_root, today, worktrees_dir)
 
 NAMES = ["a", "b", "c"]
-# The three positions section 2 of the dispositions names. A team can pass its own.
+# The three positions XV's method names for an axis. A team can pass its own.
 DEFAULT_POSITIONS = [
     "the minimum the scenario allows",
     "refuses one assumption in the scenario; say which",
@@ -76,6 +76,10 @@ def start(slice_id, axis=None, positions=None, serial=False):
     root = slice_root(path)
     config = load_config(root)
     data, body = record.load(root, slice_id)[1:]
+    waiting = [s for s in data["stops"] if s.get("answer") is None]
+    if waiting:
+        return EXIT_STOP, {"slice": slice_id, "stop": waiting[-1],
+                           "note": "an earlier stop is unanswered; the prototypes are not rebuilt"}
     axis = axis or data.get("axis")
     if not axis:
         data["stops"].append({"at": now(), "step": "prototype", "order": "axis_not_named", "seat": "originator",

@@ -206,6 +206,13 @@ def local(root):
             and len(e["seen"]) >= 2]
 
 
+def stale(root, days=90):
+    """Open learnings seen once, longer ago than `days`: a person prunes them, or keeps one waiting."""
+    cutoff = (datetime.date.today() - datetime.timedelta(days=days)).isoformat()
+    return [e for e in all_entries(root) if e["file"] == "learnings.md" and e["section"] == "Open"
+            and len(e["seen"]) < 2 and e["seen"] and max(d for _, d in e["seen"]) < cutoff]
+
+
 def local_accept(root, title, to, by):
     src = os.path.join(root, XV_DIR, "learnings.md")
     text = open(src).read()
@@ -260,6 +267,8 @@ def main(argv=None):
     lo.add_argument("--accept")
     lo.add_argument("--to", choices=["standards", "rules"])
     lo.add_argument("--by")
+    lo.add_argument("--prune-days", type=int, default=90,
+                    help="also list Open entries seen once and not since this many days, to prune")
     t = sub.add_parser("tally")
     t.add_argument("-R", "--repo")
     a = p.parse_args(argv)
@@ -280,7 +289,9 @@ def main(argv=None):
                     raise XVError("--to standards|rules and --by <name>: a person promotes")
                 emit(local_accept(root, a.accept, a.to, a.by), True)
             else:
-                emit([{k: e[k] for k in ("entry", "from", "seen")} for e in local(root)], True)
+                emit({"seen_twice": [{k: e[k] for k in ("entry", "from", "seen")} for e in local(root)],
+                      "to_prune": [{k: e[k] for k in ("entry", "from", "seen")} for e in stale(root, a.prune_days)]},
+                     True)
         else:
             shared = a.repo or settings(root)["shared_repo"]
             for i in sorted(open_issues(shared), key=lambda i: -i["repos"]):

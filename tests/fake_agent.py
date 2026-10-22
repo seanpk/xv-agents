@@ -36,10 +36,17 @@ elif title.startswith("# The maker") and "prototype" not in title:
     path = "pantry/store.py"
     text = open(path).read().replace("today < i.expires_on <= last", "today <= i.expires_on <= last")
     open(path, "w").write(text)
-    if os.environ.get("FAKE_MAKER_CHEATS"):
+    moves = []
+    if os.environ.get("FAKE_MAKER_CHEATS") or os.environ.get("FAKE_MAKER_MOVES"):
         t = open("tests/test_store.py").read().replace('["yogurt"]', '["yogurt"] or []')
         open("tests/test_store.py", "w").write(t)
-    report(agent="maker", status="green", summary="inclusive start", moved_tests=[])
+    if os.environ.get("FAKE_MAKER_MOVES"):
+        moves = [{"file": "tests/test_store.py", "assertion": "was: ['yogurt']; now: ['yogurt'] or []",
+                  "why": "a stand-in move for the test"}]
+    if os.environ.get("FAKE_MAKER_EDITS_CONFIG"):
+        with open(".xv/config.yml", "a") as f:
+            f.write("# the maker was here\n")
+    report(agent="maker", status="green", summary="inclusive start", moved_tests=moves)
 elif title.startswith("# The cleaner"):
     report(agent="cleaner", status="done", summary="nothing to fix", commit=None, applied=[])
 elif title.startswith("# The guardian"):

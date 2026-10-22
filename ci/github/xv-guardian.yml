@@ -38,6 +38,7 @@ jobs:
       - name: Put xv on PATH, and the agent CLI
         run: |
           echo "$GITHUB_WORKSPACE/.xv-agents/bin" >> "$GITHUB_PATH"
+          echo ".xv-agents/" >> .git/info/exclude   # xv-agents' own checkout is not part of the change
           npm install -g @anthropic-ai/claude-code
           git config user.name "xv guardian"
           git config user.email "xv-guardian@users.noreply.github.com"

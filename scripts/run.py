@@ -152,7 +152,18 @@ def step_init(agent):
     print(json.dumps({"agent": agent, "report": report, "spend": spendlib.from_run(result)}, indent=2))
 
 
-def step(agent, slice_id):
+MERGE_STAGE = ("ready_to_merge", "accept_moves")
+
+
+def is_record_path(f):
+    """A slice record, not one of its side files or a production packet."""
+    name = os.path.basename(f)
+    return (f.startswith(f"{XV_DIR}/slices/") and f.count("/") == 2 and name.endswith(".md")
+            and not name.endswith((".packet.md", ".boundary.md", ".prototypes.md"))
+            and not name.startswith(("packet-", "pr-")))
+
+
+def step(agent, slice_id, review_again=False):
     """Run one step. Returns (0, verdict) to go on, (EXIT_STOP, verdict) when a person must answer."""
     root0 = repo_root()
     path = record_path(root0, slice_id)
@@ -163,7 +174,8 @@ def step(agent, slice_id):
         return close(slice_id), {"slice": slice_id, "after": "close", "stop": None}
     if agent not in STEPS:
         raise XVError(f"no step {agent!r}; one of {STEPS}")
-    open_stops = [s for s in data["stops"] if s.get("answer") is None]
+    open_stops = [s for s in data["stops"] if s.get("answer") is None
+                  and not (review_again and s["order"] in MERGE_STAGE)]
     if open_stops:
         return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": open_stops[-1], "fired": [],
                            "note": "an earlier stop is unanswered"}
@@ -192,6 +204,7 @@ def step(agent, slice_id):
         data["checks"].setdefault("reports", []).append(
             {"agent": agent, "status": "no-report", "summary": f"the report could not be applied: {e}", "at": now()})
         body = record.log_line(body, agent, f"the report could not be applied: {e}")
+    record.save(path, data, body)  # the wall reads moved_tests from disk: the report's moves must be there
     checks = post_step(agent, root, data, config, head_before, pre, report or {})
     data["checks"][agent] = checks
     data["status"] = "working"
@@ -236,6 +249,11 @@ def post_step(agent, root, data, config, head_before, pre, report):
         own = {f"{XV_DIR}/slices/{data['id']}.packet.md", f"{XV_DIR}/slices/{data['id']}.boundary.md",
                f"{XV_DIR}/slices/{data['id']}.md"}
         checks["wrote"] = [f for f in changed_files(root, head_before) if f not in own]
+    protected = [f"{XV_DIR}/config.yml", f"{XV_DIR}/slices/{data['id']}.wall.json", f"{XV_DIR}/pitch.md",
+                 f"{XV_DIR}/picture.md", f"{XV_DIR}/estimation.md", f"{XV_DIR}/rules.md"]
+    if agent in ("scenario", "maker", "cleaner"):
+        changed = changed_files(root, head_before)
+        checks["protected_changed"] = [f for f in protected if f in changed]
     if agent == "scenario":
         files = changed_files(root, head_before)
         files = [f for f in files if not f.startswith(XV_DIR + "/")]
@@ -259,6 +277,8 @@ def post_step(agent, root, data, config, head_before, pre, report):
         stat = git(["diff", "--numstat", data.get("base") or head_before], root)
         checks["diff_lines"] = sum(int(x) for line in stat.splitlines()
                                    for x in line.split("\t")[:2] if x.isdigit())
+        before = (data.get("checks") or {}).get(agent) or {}
+        checks["diff_history"] = (before.get("diff_history") or []) + [checks["diff_lines"]]
         checks["wall"] = wall_check(root, data, config)
     if agent == "cleaner":
         sp = os.path.join(root, XV_DIR, "standards.md")
@@ -366,6 +386,10 @@ def cmd_run(a):
                 print(json.dumps({"slice": a.id, "stop": open_stops[-1]}, indent=2))
                 sys.exit(EXIT_STOP)
             sys.exit(close(a.id))
+        open_stops = [s for s in data["stops"] if s.get("answer") is None]
+        if open_stops:
+            print(json.dumps({"slice": a.id, "stop": open_stops[-1], "note": "an earlier stop is unanswered"}, indent=2))
+            sys.exit(EXIT_STOP)
         if nxt == "prototype":
             import prototypes
             sys.exit(prototypes.run(a.id))
@@ -375,7 +399,7 @@ def cmd_run(a):
             sys.exit(code)
 
 
-def close(slice_id):
+def close(slice_id, why=None, shape=None):
     root = slice_root(record_path(repo_root(), slice_id))
     config = load_config(root)
     path, data, body = record.load(root, slice_id)
@@ -386,20 +410,24 @@ def close(slice_id):
         if s.get("answer") is None and s["order"] == "ready_to_merge":
             raise XVError("the merge is the person's: answer the ready stop "
                           f"(`xv record answer {slice_id} --by <name> --answer merge`) and then close")
-    text = promptlib.build("forecaster", slice_id, root=root, close=True)
-    argv = agentcli.argv_for(config, "forecaster")
-    result = agentcli.run(argv, text, root, os.path.join(runs_dir(root, slice_id), "close-forecaster.out"))
-    data, body = record.load(root, slice_id)[1:]
-    s = spendlib.from_run(result)
-    s.update(step="close", at=now(), exit=result["code"])
-    body, report = record.apply_report(data, body, "forecaster", result["stdout"])
-    record.save(path, data, body)
+    if why:  # the forecaster ran in the session and gave its line, or a person did
+        report, s = {"why": why, "shape_actual": shape}, None
+    else:
+        text = promptlib.build("forecaster", slice_id, root=root, close=True)
+        argv = agentcli.argv_for(config, "forecaster")
+        result = agentcli.run(argv, text, root, os.path.join(runs_dir(root, slice_id), "close-forecaster.out"))
+        data, body = record.load(root, slice_id)[1:]
+        s = spendlib.from_run(result)
+        s.update(step="close", at=now(), exit=result["code"])
+        body, report = record.apply_report(data, body, "forecaster", result["stdout"])
+        record.save(path, data, body)
     why = (report or {}).get("why") or "the forecaster gave no reason"
     p = subprocess.run([sys.executable, os.path.join(HERE, "record.py"), "guide-append", slice_id,
                         "--why", why, "--shape", (report or {}).get("shape_actual") or ""],
                        cwd=root, capture_output=True, text=True)
     data, body = record.load(root, slice_id)[1:]
-    data["spend"].append(s)  # after the guide row: the close itself is not the slice's work
+    if s:
+        data["spend"].append(s)  # after the guide row: the close itself is not the slice's work
     data["status"], data["next"] = "closed", "none"
     body = record.log_line(body, "watch", "closed" + ("" if p.returncode == 0 else f"; guide: {p.stderr.strip()}"))
     record.save(path, data, body)
@@ -425,12 +453,10 @@ def cmd_guard(a):
     root = repo_root()
     config = load_config(root)
     changed = git(["diff", "--name-only", f"{a.base}...HEAD"], root).split()
-    slices = [os.path.basename(f)[:-3] for f in changed
-              if f.startswith(f"{XV_DIR}/slices/") and f.endswith(".md")
-              and not os.path.basename(f).startswith("packet-") and f.count(".") == 1]
+    slices = [os.path.basename(f)[:-3] for f in changed if is_record_path(f)]
     if len(slices) == 1:
         os.environ["XV_NO_COMMIT"] = "1"
-        code, v = step("guardian", slices[0])
+        code, v = step("guardian", slices[0], review_again=True)
         print(json.dumps(v, indent=2))
         path = record_path(root, slices[0])
         packet = os.path.join(slice_root(path), XV_DIR, "slices", f"{slices[0]}.packet.md")
@@ -603,7 +629,9 @@ def main(argv=None):
 
     s = sub.add_parser("close")
     s.add_argument("id")
-    s.set_defaults(fn=lambda a: sys.exit(close(a.id)))
+    s.add_argument("--why", help="the line on the gap, when the forecaster ran in the session")
+    s.add_argument("--shape", help="the shape change that actually happened")
+    s.set_defaults(fn=lambda a: sys.exit(close(a.id, a.why, a.shape)))
 
     s = sub.add_parser("init")
     s.set_defaults(fn=cmd_init)

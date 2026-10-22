@@ -19,6 +19,9 @@ KNOWN = ("claude", "opencode", "codex")
 def argv_for(config, agent):
     agents = config.get("agents") or {}
     argv = agents.get(agent) or agents.get("default")
+    if argv == "session" or argv == ["session"]:
+        raise XVError(f"the {agent} is set to run in the person's session: give a subagent the text of "
+                      f"`xv prompt {agent} <id>` and nothing else")
     if isinstance(argv, str):
         argv = argv.split()
     if not argv:

@@ -1,6 +1,6 @@
 # Builder's decisions
 
-Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a two-way door unless it says otherwise: v0.2 can change it from what first use shows. Positions the plan marks as Sean's are not here; they are in `docs/positions.md`.
+Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a two-way door unless it says otherwise: v0.2 can change it from what first use shows. Positions the plan marks as Sean's are not here; they are in `docs/positions.md`. "The dispositions" below are XV's method notes, which are not published with this repo.
 
 ## Increment 1: skeleton, briefs, record, the watch from a session
 
@@ -97,8 +97,21 @@ The cross-repo mechanism is Sean's, in `docs/positions.md`. The choices below ar
 
 ## Increment 9: parallel prototypes
 
-68. **The person names the axis; the three positions default to the ones section 2 of the dispositions names**: the minimum the scenario allows, one that refuses an assumption, one that puts a different object at the centre. A team can pass its own three. Exactly three: more and people review a gallery.
+68. **The person names the axis; the three positions default to the ones XV's method names**: the minimum the scenario allows, one that refuses an assumption, one that puts a different object at the centre. A team can pass its own three. Exactly three: more and people review a gallery.
 69. **Each prototype gets its own branch and worktree from the slice branch, and its own context.** They run in parallel threads; `--serial` or `prototypes.serial` in the config runs them one at a time, as on one local GPU.
 70. **Each prototype makes its own recording**: a script it writes and runs, which shows what a user sees through the scenario's steps. The watch copies the three recordings into the slice branch and lays them side by side in `.xv/slices/<id>.prototypes.md`.
 71. **Every prototype is discarded at the pick, the picked one too.** Their worktrees and branches are removed; the recordings stay in the slice record as evidence. The pick takes two names and may name a user who took part. The restated scenario replaces the record's scenario, the old one stays in the log, and the slice goes to the forecaster as a feature.
 72. **A maker that runs in a prototype's context stops the slice.** With `xv step` every step is a new CLI call, so this cannot happen by default; the check is there for a team that runs steps in its own session.
+
+## After the review of v0.1
+
+A fresh context reviewed the repo against the plan on 2026-10-22. Its correctness findings were fixed; what it found missing is decided here.
+
+73. **The record's home is the file in v0.1.** The plan allows a pull request or an issue as the home "through record.py adapters". v0.1 ships the file home and `xv record export`, which renders the record as a pull request body one way. Two-way adapters wait for a team that keeps its records elsewhere: `record_home` is read by nothing yet.
+74. **No migration code yet.** Nothing in `.xv/` has been renamed, so there is nothing to migrate. A version that renames a file will carry its steps in `CHANGELOG.md`; `xv init` already adds new default files without touching existing ones.
+75. **The Open list's dated prune is a listing, not a deletion.** `xv promote local` lists Open learnings seen once and not since 90 days; a person deletes or keeps each.
+76. **"The diff keeps growing" is measured across the maker's runs.** The maker stops itself on a growing diff; the watch also fires when the diff more than doubles between two runs of the maker on one slice, and when it passes `limits.max_diff_lines` if the team set one.
+77. **One token count everywhere**: input, output, cache read and cache write, in the guide, the budget and the retro (see 19). The retro's "overran" compares the maker's spend with the budget, as the budget order does.
+78. **The files people own are checked after every working step.** If the scenario agent, the maker or the cleaner changes `.xv/config.yml`, the slice's wall baseline, the pitch, the picture, the rules or the estimation guide, the slice stops. The wall's own inputs can no longer be edited by the agent it checks.
+79. **A retro candidate's moment must name a field or a stop the record has, or quote words the record holds.** A slice id and any word was too loose.
+80. **The estimation rows ride in the next packet by name**: the guardian lists every row no earlier packet has listed.

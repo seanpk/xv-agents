@@ -51,6 +51,24 @@ class WatchLoopTest(RepoCase):
         guide = open(os.path.join(self.wt, ".xv", "estimation.md")).read()
         self.assertIn("| s1 |", guide)
 
+    def maker_with(self, env):
+        os.environ[env] = "1"
+        try:
+            for agent in ("forecaster", "scenario"):
+                self.xv("step", agent, "s1", cwd=self.wt)
+            return self.xv("step", "maker", "s1", cwd=self.wt, check=False)
+        finally:
+            del os.environ[env]
+
+    def test_a_move_in_the_makers_report_passes_the_wall(self):
+        p = self.maker_with("FAKE_MAKER_MOVES")
+        self.assertEqual(p.returncode, 0, p.stdout)
+        self.assertEqual(self.record()["moved_tests"][0]["file"], "tests/test_store.py")
+
+    def test_a_maker_that_edits_the_config_stops_the_slice(self):
+        p = self.maker_with("FAKE_MAKER_EDITS_CONFIG")
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "protected_changed")
+
     def test_an_unrecorded_move_by_the_maker_stops_the_slice(self):
         os.environ["FAKE_MAKER_CHEATS"] = "1"
         try:

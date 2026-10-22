@@ -27,7 +27,9 @@ jobs:
           path: .xv-agents
 
       - name: Put xv on PATH
-        run: echo "$GITHUB_WORKSPACE/.xv-agents/bin" >> "$GITHUB_PATH"
+        run: |
+          echo "$GITHUB_WORKSPACE/.xv-agents/bin" >> "$GITHUB_PATH"
+          echo ".xv-agents/" >> .git/info/exclude   # xv-agents' own checkout is not part of the change
 
       - name: The wall
         run: xv wall check --base "origin/${{ github.base_ref }}"

@@ -86,6 +86,20 @@ class OrdersTest(unittest.TestCase):
         d = with_report(rec(budget={"usd": 4, "raised_from": {"usd": 2}}), "forecaster")
         self.assertEqual(self.stop(d, "forecaster", config)["seat"], "two_people")
 
+    def test_a_raise_past_the_limit_stops_once(self):
+        config = dict(DEFAULT_CONFIG, limits={"budget_raise_pct": 50})
+        d = with_report(rec(budget={"usd": 4, "raised_from": {"usd": 2}}), "cleaner")
+        self.assertNotEqual((self.stop(d, "cleaner", config) or {}).get("order"), "budget_past_limit")
+        d["stops"] = [{"order": "budget_past_limit", "answer": "go on", "answered_by": ["a", "b"]}]
+        d = with_report(d, "maker", "green")
+        d["checks"]["maker"] = {"suite": "green"}
+        self.assertIsNone(self.stop(d, "maker", config))
+
+    def test_a_diff_that_more_than_doubles_between_maker_runs(self):
+        d = with_report(rec(), "maker", "green")
+        d["checks"]["maker"] = {"suite": "green", "diff_history": [40, 130]}
+        self.assertEqual(self.stop(d, "maker")["order"], "diff_growing")
+
     def test_no_budget_after_the_forecast_asks_the_engineer(self):
         d = with_report(rec(budget=None), "forecaster")
         self.assertEqual(self.stop(d, "forecaster")["order"], "budget_not_set")

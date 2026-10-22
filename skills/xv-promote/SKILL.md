@@ -18,7 +18,8 @@ At the two standing moments of a burst: before it, and as it ends. Also when `xv
 
 1. `xv promote local` lists the Open learnings in `.xv/learnings.md` seen at least twice.
 2. Put each one in front of the person who set the burst going, with its sightings. Do not promote from one sighting.
-3. On their word: `xv promote local --accept "<entry title>" --to standards|rules --by <name>`. It moves the entry, keeps its slices and sightings, and adds a line to Promoted so nothing is promoted twice. A judgement call about structure or style goes to `standards`; a fact the agents cannot infer goes to `rules`. If the learning is mechanical, say so: it should be a check, through a slice, not a line.
+3. It also lists Open learnings seen once and not since `--prune-days` (90 by default). Put those in front of the person too: delete each, or keep it waiting for a second sighting. Delete with a line in Promoted ("pruned"), so the history says why it went. Nothing is pruned without their word.
+4. On their word: `xv promote local --accept "<entry title>" --to standards|rules --by <name>`. It moves the entry, keeps its slices and sightings, and adds a line to Promoted so nothing is promoted twice. A judgement call about structure or style goes to `standards`; a fact the agents cannot infer goes to `rules`. If the learning is mechanical, say so: it should be a check, through a slice, not a line.
 
 ## Across repos
 
