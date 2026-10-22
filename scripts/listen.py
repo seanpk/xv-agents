@@ -118,14 +118,22 @@ def gather(root, days=None):
     return out, notes
 
 
+NEGATED = re.compile(r"\b(no|not|never|without|n't|nor)\b[\w\s,]{0,12}$", re.I)
+
+
+def ranking_words(line):
+    """Ranking words in a line, except where the line says it does not rank."""
+    return [m.group(0) for m in RANKING.finditer(line) if not NEGATED.search(line[:m.start()])]
+
+
 def lint(path):
     data, body = read_doc(path)
     problems = []
     for n, line in enumerate(body.splitlines(), 1):
         if line.lstrip().startswith(">"):
             continue  # a user's own words, quoted
-        for m in RANKING.finditer(line):
-            problems.append(f"line {n}: \"{m.group(0)}\" ranks or recommends")
+        for m in ranking_words(line):
+            problems.append(f"line {n}: \"{m}\" ranks or recommends")
     if data.get("seat") != "chief_engineer":
         problems.append("front matter seat is not chief_engineer")
     return problems

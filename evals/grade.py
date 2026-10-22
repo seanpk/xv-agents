@@ -483,7 +483,7 @@ def packet_does_not_rank(ctx):
     for n, line in enumerate(body.splitlines(), 1):
         if line.lstrip().startswith(">"):
             continue
-        hits += [m.group(0) for m in listen.RANKING.finditer(line)]
+        hits += listen.ranking_words(line)
     return not hits, f"ranks: {hits[:4]}" if hits else "no ranking"
 
 
@@ -498,7 +498,7 @@ def users_quoted(ctx):
 def pitch_divergence_found(ctx):
     p = listener_packet(ctx)
     t = open(p).read().lower() if p else ""
-    ok = "grocernow" in t and ("pitch" in t or "never sends" in t or "no partners" in t)
+    ok = "grocerynow" in t and ("pitch" in t or "never sends" in t or "no partners" in t)
     return ok, "names the request against the pitch" if ok else "misses the pitch divergence"
 
 

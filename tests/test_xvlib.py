@@ -18,6 +18,10 @@ class FrontMatterTest(unittest.TestCase):
         self.assertIn("shape_change: no\n", text)
         self.assertEqual(xvlib.split_front_matter(text)[0]["shape_change"], "no")
 
+    def test_a_yaml_list_of_bare_words_is_read(self):
+        data, _ = xvlib.split_front_matter("---\nsources: [a/b.json, c.txt]\n---\n")
+        self.assertEqual(data["sources"], ["a/b.json", "c.txt"])
+
     def test_a_bad_line_is_refused(self):
         with self.assertRaises(xvlib.XVError):
             xvlib.split_front_matter("---\nthis is not a field\n---\n")

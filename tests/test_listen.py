@@ -41,6 +41,9 @@ class ListenTest(unittest.TestCase):
         problems = self.lint(PACKET.replace("## Errors", "## Top 3 issues\n\nFix these first.\n\n## Errors"))
         self.assertTrue(any("Top 3" in p for p in problems))
 
+    def test_saying_it_does_not_rank_is_not_a_ranking(self):
+        self.assertEqual(self.lint(PACKET.replace("## Errors", "No ranking is implied, and it does not rank.\n\n## Errors")), [])
+
     def test_the_seat_is_the_chief_engineer(self):
         self.assertIn("front matter seat is not chief_engineer",
                       self.lint(PACKET.replace("seat: chief_engineer", "seat: originator")))

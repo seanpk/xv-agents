@@ -40,6 +40,9 @@ def parse_scalar(text):
         try:
             return json.loads(text)
         except json.JSONDecodeError as e:
+            if text[0] == "[" and text[-1] == "]" and "[" not in text[1:-1] and "{" not in text:
+                # a YAML flow list of bare words, as agents often write one
+                return [parse_scalar(x) for x in text[1:-1].split(",") if x.strip()]
             raise XVError(f"not valid JSON: {text[:60]}... ({e})")
     if text in ("true", "yes"):
         return True if text == "true" else "yes"

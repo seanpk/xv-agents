@@ -45,7 +45,7 @@ The packet is ordered by section, and inside a section by first seen date. Do no
 
 ## Writes
 
-The packet at `.xv/slices/packet-<YYYY-MM-DD>.md`, with front matter `kind: production-packet`, `date`, `seat: chief_engineer`, `sources: [...]`, then the four sections above. End your final message with one report block:
+The packet at `.xv/slices/packet-<YYYY-MM-DD>.md`, with front matter `kind: production-packet`, `date`, `seat: chief_engineer`, and `sources: ["<file or tool>", ...]`, then the four sections above. Say in the divergence section which line of `.xv/pitch.md` each one is against. End your final message with one report block:
 
 ```xv-report
 {"agent": "listener", "status": "done", "summary": "<one line, no ranking>", "packet": ".xv/slices/packet-2026-10-21.md",
