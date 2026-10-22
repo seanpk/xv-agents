@@ -14,7 +14,7 @@ The plan's open position: "Promotion carries the abstract form only. Concrete tr
 - **A sighting includes an example**, which the person reviews before it posts.
 - **Tech stacks: start with nothing more than a label**, and add structure if use asks for it. Sean: "probs the most lightweight, maybe nothing, to start".
 
-Sean asked what the example is for. The builder's answer, which v0.1 follows: the example helps a later retro match a new miss to an open issue, and helps the two people who decide see whether the sightings are the same pattern. It stays in the issue as evidence. The pull request into the skills carries the rule in its general form only, because concrete traces do not transfer between repos. Sean has not yet said whether he agrees with that last part.
+Sean asked what the example is for. The builder's answer, which v0.1 follows: the example helps a later retro match a new miss to an open issue, and helps the two people who decide see whether the sightings are the same pattern. It stays in the issue as evidence. The pull request into the skills carries the rule in its general form only, because concrete traces do not transfer between repos. Sean agreed on 2026-10-22: "I agree with that promotion PR statement."
 
 ## A one-person team (2026-10-22)
 
