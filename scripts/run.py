@@ -265,6 +265,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
                 checks["packet_problems"], checks["dropped_findings"] = lint["problems"], len(lint["dropped"])
             except XVError as e:
                 checks["packet_problems"] = [str(e)]
+            append_cleaner_proposals(packet, data)
             pdata, _ = record.read_doc(packet)
             for field in ("shape_change", "pitch_contradiction"):
                 v = pdata.get(field)
@@ -277,6 +278,25 @@ def post_step(agent, root, data, config, head_before, pre, report):
             data["shape_change"] = data["pitch_contradiction"] = "yes"
             checks["missing_packet"] = True
     return checks
+
+
+def append_cleaner_proposals(packet, data):
+    """The cleaner's candidate standards and shape proposals ride in the packet,
+    where the person who set the work going can accept a standard."""
+    cands, shapes = [], []
+    for rep in (data.get("checks") or {}).get("reports", []):
+        if rep.get("agent") == "cleaner":
+            cands += rep.get("candidate_standards") or []
+            shapes += rep.get("shape_proposals") or []
+    if not cands and not shapes:
+        return
+    lines = ["", "## From the cleaner", ""]
+    for i, c in enumerate(cands, 1):
+        lines.append(f"- Candidate standard {i}: {c}. To accept: `xv retro standard {data['id']} {i} --by <name>`.")
+    for s in shapes:
+        lines.append(f"- Shape proposal, for people: {s}")
+    with open(packet, "a") as f:
+        f.write("\n".join(lines) + "\n")
 
 
 def commit_step(agent, root, slice_id, checks):
@@ -371,8 +391,16 @@ def close(slice_id):
     body = record.log_line(body, "watch", "closed" + ("" if p.returncode == 0 else f"; guide: {p.stderr.strip()}"))
     record.save(path, data, body)
     commit(root, f"xv({slice_id}): close")
-    print(json.dumps({"slice": slice_id, "status": "closed", "guide": p.stdout.strip() or p.stderr.strip(),
-                      "next": f"merge {data['branch']} when you are ready; the watch does not merge"}, indent=2))
+    out = {"slice": slice_id, "status": "closed", "guide": p.stdout.strip() or p.stderr.strip(),
+           "next": f"merge {data['branch']} when you are ready; the watch does not merge"}
+    try:
+        import retro
+        why = retro.due(root)["slices"].get(slice_id)
+        if why:
+            out["retro_due"] = f"{'; '.join(why)}. Run `xv retro run {slice_id}` (the xv-retro skill)."
+    except Exception:
+        pass
+    print(json.dumps(out, indent=2))
     return 0
 
 

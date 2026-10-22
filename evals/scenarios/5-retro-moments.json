@@ -1,0 +1,26 @@
+{
+  "name": "retro-moments",
+  "increment": 5,
+  "agent": "retro",
+  "what": "the retro reads three slices that stopped or overran and proposes checks and standards, each tied to a moment in a record, without writing any rule",
+  "fixture_extra": [
+    {
+      "from": "setups/retro/.xv/slices",
+      "to": ".xv/slices"
+    }
+  ],
+  "setup": [],
+  "skill_cmd": [
+    "retro",
+    "run"
+  ],
+  "baseline_prompt": "The files in .xv/slices/ are records of three recent pieces of agent work in this repo. Suggest what this team should change in its coding standards or its automated checks so the same problems stop happening. Write your suggestions to .xv/retro/review.md.",
+  "assertions": [
+    "retro_packet_exists",
+    "retro_candidates_traced",
+    "retro_proposes_a_check",
+    "standards_untouched",
+    "only_retro_written"
+  ],
+  "timeout": 1200
+}

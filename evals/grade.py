@@ -358,6 +358,42 @@ def findings_cited(ctx):
     return len(dropped) <= 1, f"{len(dropped)} finding(s) dropped for citing nothing"
 
 
+def retro_packet(ctx):
+    files = sorted(glob.glob(os.path.join(ctx["wt"], ".xv", "retro", "*.md")))
+    return files[-1] if files else None
+
+
+def retro_packet_exists(ctx):
+    p = retro_packet(ctx)
+    return bool(p), os.path.relpath(p, ctx["wt"]) if p else "no retro packet"
+
+
+def retro_candidates_traced(ctx):
+    """Every candidate names a slice that exists and a moment in it."""
+    p = retro_packet(ctx)
+    if not p:
+        return False, "no retro packet"
+    text = open(p).read().split("## Dropped by `xv retro run`")[0]
+    ids = [os.path.basename(f)[:-3] for f in glob.glob(os.path.join(ctx["wt"], ".xv", "slices", "*.md"))]
+    blocks = re.split(r"^#{2,3} ", text, flags=re.M)[1:]
+    cands = [b for b in blocks if re.search(r"(?i)\b(kind|check|standard|rule|suggest|propos)", b)]
+    traced = [b for b in cands if any(i in b for i in ids)]
+    ok = bool(cands) and len(traced) == len(cands)
+    return ok, f"{len(traced)} of {len(cands)} candidates name a slice"
+
+
+def retro_proposes_a_check(ctx):
+    p = retro_packet(ctx)
+    t = open(p).read().lower() if p else ""
+    ok = bool(re.search(r"kind:\s*check|pre-commit|ci (job|step|check)|lint rule|a test that|xv wall|script", t))
+    return ok, "proposes a check" if ok else "proposes prose only"
+
+
+def only_retro_written(ctx):
+    other = [f for f in changed_since(ctx) if not f.startswith(".xv/retro/")]
+    return not other, f"also changed: {other}" if other else "only the retro packet"
+
+
 def no_merge_to_main(ctx):
     _, count = sh(["git", "rev-list", "--count", "main"], ctx["repo"])
     return count.strip() == "1", f"main has {count.strip()} commit(s)"

@@ -25,9 +25,9 @@ FIELDS = [
     ("forecast", None), ("budget", None), ("red", None), ("wall_baseline", None),
     ("moved_tests", []), ("suite", None), ("cleaner_commit", None),
     ("packet", None), ("shape_change", None), ("pitch_contradiction", None),
-    ("spend", []), ("stops", []), ("decisions", []), ("prototypes", []), ("checks", {}),
+    ("spend", []), ("stops", []), ("decisions", []), ("prototypes", []), ("overrides", []), ("checks", {}),
 ]
-LIST_FIELDS = {"moved_tests", "spend", "stops", "decisions", "prototypes"}
+LIST_FIELDS = {"moved_tests", "spend", "stops", "decisions", "prototypes", "overrides"}
 STATUSES = {"open", "working", "stopped", "ready", "closed", "abandoned"}
 STEPS = ["forecaster", "scenario", "maker", "cleaner", "guardian", "close", "none"]
 SEATS = {"originator", "two_people", "chief_engineer"}
@@ -172,6 +172,14 @@ def cmd_move(a):
     data["moved_tests"].append({"file": a.file, "assertion": a.assertion, "why": a.why,
                                 "by": a.by or "maker", "at": now()})
     body = log_line(body, a.by or "maker", f"moved a test in {a.file}: {a.why}")
+    save(path, data, body)
+
+
+def cmd_override(a):
+    """A person declines a standard's fix on this slice. The retro counts these."""
+    path, data, body = load(repo_root(), a.id)
+    data["overrides"].append({"rule": a.rule, "by": a.by, "why": a.why, "at": now()})
+    body = log_line(body, a.by, f"overrode the rule \"{a.rule}\": {a.why}")
     save(path, data, body)
 
 
@@ -477,6 +485,13 @@ def main(argv=None):
     s.add_argument("--why")
     s.add_argument("--by")
     s.set_defaults(fn=cmd_move)
+
+    s = sub.add_parser("override", help="a person declines a standard's fix on this slice")
+    s.add_argument("id")
+    s.add_argument("--rule", required=True, help="the rule, as it reads in .xv/standards.md")
+    s.add_argument("--by", required=True)
+    s.add_argument("--why", required=True)
+    s.set_defaults(fn=cmd_override)
 
     s = sub.add_parser("stop", help="raise a stop for a seat")
     s.add_argument("id")
