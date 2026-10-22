@@ -19,11 +19,14 @@ jobs:
       - name: Check the sentences
         id: drift
         run: |
-          python3 scripts/check.py drift --json > drift.json || true
-          python3 -c "import json; d=json.load(open('drift.json'))['drift']; gone=[x for x in d if x['status']!='present']; print('\n'.join(f\"- {x['status']}: \\\"{x['sentence']}\\\" at {x['url']} ({x['for']})\" for x in gone)); open('gone.md','w').write('\n'.join(f\"- {x['status']}: \\\"{x['sentence']}\\\" at {x['url']} ({x['for']})\" for x in gone))"
-          test -s gone.md && echo "gone=1" >> "$GITHUB_OUTPUT" || true
+          if python3 scripts/check.py drift --report gone.md; then
+            echo "gone=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "gone=1" >> "$GITHUB_OUTPUT"
+          fi
       - name: Open an issue
         if: steps.drift.outputs.gone == '1'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh issue create --title "Harness docs drifted: $(date -u +%F)" --body-file gone.md
+        run: |
+          gh issue create --title "Harness docs drifted on $(date -u +%F)" --body-file gone.md

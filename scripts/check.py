@@ -193,6 +193,7 @@ def main(argv=None):
     p.add_argument("what", nargs="?", default="all", choices=["all", "relaxations", "overrides", "entries", "drift"])
     p.add_argument("--json", action="store_true")
     p.add_argument("--offline", action="store_true", help="skip the drift fetch")
+    p.add_argument("--report", help="write the drifted sentences as Markdown to this file; exit 1 if any")
     a = p.parse_args(argv)
     try:
         root = repo_root()
@@ -208,6 +209,11 @@ def main(argv=None):
     except XVError as e:
         die(str(e), 2)
     bad = res.get("relaxations") or [o for o in res.get("overrides", []) if o["kind"].startswith("override with no")]
+    gone = [d for d in res.get("drift", []) if d["status"] != "present"]
+    if a.report:
+        with open(a.report, "w") as f:
+            f.write("".join(f"- {d['status']}: \"{d['sentence']}\" at {d['url']} ({d['for']})\n" for d in gone))
+        bad = bad or gone
     if a.json:
         print(json.dumps(res, indent=2, ensure_ascii=False))
     else:
