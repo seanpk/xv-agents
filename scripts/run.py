@@ -109,7 +109,8 @@ def cmd_slice_new(a):
     from xvlib import pitch_status
     if pitch_status(root) in ("missing", "unreadable", "not written"):
         raise XVError("the pitch comes first: .xv/pitch.md is not written. The guardian checks every change "
-                      "against it. Write it with the xv-init skill, then start the slice")
+                      "against it. Write it with the xv-init skill, or by hand and set `status: written` in its "
+                      "front matter; commit it, then start the slice")
     if git(["status", "--porcelain", "--", XV_DIR], root).strip():
         raise XVError("commit the project layer (.xv/) first; the slice branch starts from HEAD")
     wt = os.path.join(worktrees_dir(root, config), a.id)
@@ -535,13 +536,17 @@ DETECT = [
 
 
 def detect_tests(root):
+    # a src layout needs src on the path for the tests to import the package
+    src = "PYTHONPATH=src " if os.path.isdir(os.path.join(root, "src")) else ""
     for marker, command, paths in DETECT:
         if os.path.exists(os.path.join(root, marker)):
             if marker in ("pyproject.toml", "setup.py") and shutil.which("pytest") is None:
                 command = "python3 -m unittest discover -s tests -t ."
+            if command.startswith("python3"):
+                command = src + command
             return command, paths
     if os.path.isdir(os.path.join(root, "tests")):
-        return "python3 -m unittest discover -s tests -t .", ["tests/**"]
+        return src + "python3 -m unittest discover -s tests -t .", ["tests/**"]
     return "", ["tests/**", "test/**", "spec/**"]
 
 

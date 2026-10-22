@@ -6,7 +6,7 @@ Versions: Claude Code 2.1.302, opencode 2.0.32 with Ollama serving `gpt-oss:20b`
 
 ## Can a brief be the whole prompt of a fresh context?
 
-- **Claude Code: yes.** `claude -p --safe-mode --disable-slash-commands` starts with CLAUDE.md, skills, plugins, hooks and MCP servers off, and still uses the person's login. Asked directly, the model reported no CLAUDE.md in its context. `--bare` does the same but needs `ANTHROPIC_API_KEY`; a login session is not read. Checked by running it.
+- **Claude Code: yes, as the whole user prompt.** `claude -p --safe-mode --disable-slash-commands` starts with CLAUDE.md, skills, plugins, hooks and MCP servers off, and still uses the person's login. Claude Code's own system prompt is still there, as opencode's is; what is gone is everything the person or the project added. Asked directly, the model reported no CLAUDE.md in its context; that is the only check. `--bare` does the same but needs `ANTHROPIC_API_KEY`; a login session is not read. Checked by running it.
 - **opencode: partly.** `opencode run` cannot drop its own system prompt, so the brief arrives as the user message after opencode's. It reads `AGENTS.md` from the project. The fixture has none. Checked: a run in a repo with no `AGENTS.md` gets about 17,800 input tokens of opencode's own prompt before the brief.
 - **codex: not checked.** `codex exec` takes a prompt and has `--json` and `--output-last-message`.
 
@@ -30,6 +30,10 @@ Versions: Claude Code 2.1.302, opencode 2.0.32 with Ollama serving `gpt-oss:20b`
 ## Is a pre-commit hook plus a CI check enough wall without tool-level hooks?
 
 v0.1 uses three layers on every harness: the maker's brief forbids an unrecorded move in words, `xv wall check` runs after the maker and the cleaner and stops the slice, and the same check runs as a pre-commit hook on slice branches and in CI (`ci/github/xv-wall.yml`). No harness-specific hook is needed. Whether the words add anything over the checks is for the evals and for use to say.
+
+## Flags hidden from `--help`
+
+`--max-turns` is not listed by `claude --help` in 2.1.308, but the CLI reference documents it and the CLI accepts it: checked 2026-10-22 with `--max-turns 1`, which ran one turn. `docs/relies-on.md` watches the docs sentence.
 
 ## Claude Code refuses writes under `.git/`
 

@@ -25,6 +25,11 @@ class InitTest(RepoCase):
         status = sh(["git", "status", "--porcelain", "--ignored", ".xv/boundary-all.md"], self.repo).stdout
         self.assertTrue(status.startswith("!!"), "the outsider read's input stays out of the repo")
 
+    def test_a_src_layout_puts_src_on_the_path(self):
+        os.makedirs(os.path.join(self.repo, "src"))
+        self.xv("init")
+        self.assertTrue(load_config(self.repo)["tests"]["command"].startswith("PYTHONPATH=src "))
+
     def test_init_never_overwrites(self):
         os.makedirs(os.path.join(self.repo, ".xv"))
         with open(os.path.join(self.repo, ".xv", "pitch.md"), "w") as f:
