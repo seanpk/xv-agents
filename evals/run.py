@@ -217,7 +217,8 @@ def final_message(ctx, wt):
     out = []
     for t in texts:
         try:
-            out.append(json.loads(t).get("result") or "")
+            d = json.loads(t)
+            out.append(d.get("result") or d.get("text") or "")
             continue
         except (json.JSONDecodeError, AttributeError):
             pass

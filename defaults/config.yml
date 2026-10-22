@@ -33,6 +33,8 @@ agents:
   guardian: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "opus", "{prompt}"]
   # A local model through opencode:
   # maker: ["opencode", "run", "--auto", "--format", "json", "--model", "ollama/gpt-oss:20b", "{prompt}"]
+  # Grok (its home rules and skills load into every run; see docs/harness-notes.md):
+  # guardian: ["grok", "--output-format", "json", "-m", "grok-4.7", "--no-subagents", "--permission-mode", "bypassPermissions", "-p", "{prompt}"]
 
 # Who sits in each seat. The person who set the work going is named in each slice record.
 # A one-person team sets two_people to solo: the two-person stops still fire and

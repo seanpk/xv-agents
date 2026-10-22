@@ -40,5 +40,20 @@
       "{prompt}"
     ],
     "note": "A dry run: tests the setup and the grader, runs no model."
+  },
+  "grok": {
+    "argv": [
+      "grok",
+      "--output-format",
+      "json",
+      "-m",
+      "grok-4.7",
+      "--no-subagents",
+      "--permission-mode",
+      "bypassPermissions",
+      "-p",
+      "{prompt}"
+    ],
+    "note": "Grok headless with xAI's grok-4.7. Grok has no flag to leave out the user's home rules and skills; they load into every run. Subagents are off, as the Claude workers have no subagent tool."
   }
 }

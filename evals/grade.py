@@ -218,7 +218,8 @@ def final_text(ctx):
     """The agent's last message, from Claude's JSON or opencode's events."""
     out = ctx.get("stdout") or ""
     try:
-        return json.loads(out).get("result") or ""
+        d = json.loads(out)
+        return d.get("result") or d.get("text") or ""
     except (json.JSONDecodeError, AttributeError):
         pass
     parts = []

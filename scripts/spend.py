@@ -3,6 +3,7 @@
 
 Readers:
   claude-result   the JSON `claude -p --output-format json` prints
+  grok-result     the JSON `grok -p --output-format json` prints
   claude-session  a Claude Code session transcript (.jsonl), with its subagents
   opencode        an opencode session, via `opencode session export <id>`
 
@@ -59,6 +60,23 @@ def from_claude_result(text, model=None):
     return item("claude", model or model_id or "default", model_id, tin, tout, cr, cw,
                 d.get("total_cost_usd"), d.get("num_turns"),
                 round((d.get("duration_ms") or 0) / 1000, 1), d.get("session_id"))
+
+
+def from_grok_result(text, model=None):
+    """The JSON `grok -p ... --output-format json` prints. Its input_tokens are
+    uncached only, and its output_tokens include reasoning, so the four counts
+    add up to its own total_tokens. Dollars only when Grok reports a complete cost."""
+    try:
+        d = json.loads(text)
+    except json.JSONDecodeError:
+        raise XVError("not the JSON of `grok -p --output-format json`")
+    u = d.get("usage") or {}
+    mu = d.get("modelUsage") or {}
+    model_id = max(mu, key=lambda k: mu[k].get("outputTokens", 0)) if mu else None
+    usd = None if d.get("cost_is_partial") or d.get("usage_is_incomplete") else d.get("total_cost_usd")
+    return item("grok", model or model_id or "default", model_id, u.get("input_tokens", 0),
+                u.get("output_tokens", 0), u.get("cache_read_input_tokens", 0),
+                u.get("cache_creation_input_tokens", 0), usd, d.get("num_turns"), None, d.get("sessionId"))
 
 
 def from_claude_session(path, model=None):
@@ -130,6 +148,8 @@ def from_run(result):
     try:
         if h == "claude":
             s = from_claude_result(result["stdout"], result.get("model"))
+        elif h == "grok":
+            s = from_grok_result(result["stdout"], result.get("model"))
         elif h == "opencode" and result.get("session"):
             s = from_opencode(result["session"], result.get("model"))
         else:
@@ -171,7 +191,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(prog="xv spend", description=__doc__.split("\n")[0])
     sub = p.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("read")
-    r.add_argument("reader", choices=["claude-result", "claude-session", "opencode"])
+    r.add_argument("reader", choices=["claude-result", "grok-result", "claude-session", "opencode"])
     r.add_argument("source")
     r.add_argument("--model")
     b = sub.add_parser("budget")
@@ -181,6 +201,8 @@ def main(argv=None):
         if a.cmd == "read":
             if a.reader == "claude-result":
                 emit(from_claude_result(open(a.source).read(), a.model), True)
+            elif a.reader == "grok-result":
+                emit(from_grok_result(open(a.source).read(), a.model), True)
             elif a.reader == "claude-session":
                 emit(from_claude_session(a.source, a.model), True)
             else:

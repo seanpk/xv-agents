@@ -245,11 +245,12 @@ REPORT_RE = re.compile(r"```xv-report\s*\n(.*?)\n```", re.S)
 def extract_report(text):
     found = REPORT_RE.findall(text)
     if not found:
-        # Claude's JSON output wraps the final message in "result"
+        # Claude's JSON output wraps the final message in "result", Grok's in "text"
         try:
             outer = json.loads(text)
-            if isinstance(outer, dict) and isinstance(outer.get("result"), str):
-                return extract_report(outer["result"])
+            for key in ("result", "text"):
+                if isinstance(outer, dict) and isinstance(outer.get(key), str) and REPORT_RE.search(outer[key]):
+                    return extract_report(outer[key])
         except json.JSONDecodeError:
             pass
         # opencode --format json: one event per line, text parts carry the message

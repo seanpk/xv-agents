@@ -15,6 +15,11 @@ class SpendTest(unittest.TestCase):
         self.assertEqual(s["tokens"], 10 + 800 + 30000 + 2000 + 5 + 50 + 100)
         self.assertEqual((s["usd"], s["turns"], s["wall_s"]), (0.1234, 7, 12.3))
 
+    def test_grok_result_adds_up_to_its_own_total(self):
+        s = spend.from_grok_result(open(os.path.join(DATA, "grok-result.json")).read(), "grok-4.7")
+        self.assertEqual((s["harness"], s["model"], s["model_id"]), ("grok", "grok-4.7", "grok-4.7-build"))
+        self.assertEqual((s["tokens"], s["usd"], s["turns"], s["session"]), (5000, 0.0123, 3, "0000"))
+
     def test_claude_session_counts_each_message_once_and_has_no_dollars(self):
         s = spend.from_claude_session(os.path.join(DATA, "claude-session.jsonl"))
         self.assertEqual(s["tokens"], (3 + 100 + 1000 + 50) + (2 + 20 + 1100))

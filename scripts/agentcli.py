@@ -13,7 +13,7 @@ import time
 
 from xvlib import XVError
 
-KNOWN = ("claude", "opencode", "codex")
+KNOWN = ("claude", "opencode", "codex", "grok")
 
 
 def argv_for(config, agent):
@@ -45,15 +45,19 @@ def model_of(argv):
 
 
 def with_caps(argv, budget):
-    """Add the harness's own budget cap where it has one."""
-    if not budget or harness_of(argv) != "claude":
+    """Add the harness's own budget cap where it has one: dollars and turns on
+    Claude Code, turns on Grok. Elsewhere the watch's check after the step is the cap."""
+    h = harness_of(argv)
+    if not budget or h not in ("claude", "grok"):
         return argv
     caps = []
-    if budget.get("usd") and "--max-budget-usd" not in argv:
+    if h == "claude" and budget.get("usd") and "--max-budget-usd" not in argv:
         caps += ["--max-budget-usd", str(budget["usd"])]
     if budget.get("turns") and "--max-turns" not in argv:
         caps += ["--max-turns", str(budget["turns"])]
     i = argv.index("{prompt}") if "{prompt}" in argv else len(argv)
+    if 0 < i < len(argv) and argv[i - 1].startswith("-"):
+        i -= 1  # the prompt is a flag's value (`grok -p <prompt>`): keep the pair together
     return argv[:i] + caps + argv[i:]
 
 
@@ -90,6 +94,11 @@ def session_of(harness, out):
     if harness == "claude":
         try:
             return json.loads(out).get("session_id")
+        except (json.JSONDecodeError, AttributeError):
+            return None
+    if harness == "grok":
+        try:
+            return json.loads(out).get("sessionId")
         except (json.JSONDecodeError, AttributeError):
             return None
     if harness == "opencode":
