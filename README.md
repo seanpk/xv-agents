@@ -287,13 +287,20 @@ Python 3.10 or later, standard library only. The default agent CLI is Claude Cod
 
 ## What the evals show
 
-Every increment was built with an eval against a fixture repo (`evals/fixture/`, a small pantry app) that has a known slice, a known defect, a known pitch contradiction, and a test the maker will want to move. Each scenario runs with the skill and without it, on Claude Code with Sonnet and on opencode with `gpt-oss:20b` on a local GPU. One run per cell, so the numbers are counts, not rates. Increment 1's results are committed in `evals/results/`; the rest go in with the final run.
+Every increment was built with an eval against a fixture repo (`evals/fixture/`, a small pantry app) that has a known slice, a known defect, a known pitch contradiction, and a test the maker will want to move. Each scenario runs with the skill and without it, on Claude Code with Sonnet and on opencode with `gpt-oss:20b` on a local GPU. One run per cell, so the numbers are counts, not rates. The table, every run, and what each earlier run found are in `evals/results/README.md`.
 
-What increment 1 showed, from `evals/results/inc1.md`:
+The v0.1 run, all thirteen scenarios, assertions passed:
 
-- Without the brief, the maker moved the old test and recorded nothing, on both harnesses. With the brief, opencode's maker recorded the move. That gap is what the wall makes a check instead of a sentence.
-- Without the brief, neither harness's review named the pitch. With it, both guardians found the contradiction and cited the pitch line.
-- Two cells scored below their baseline. The maker on Claude, 3 of 6 against 4 of 6: Claude Code refused to write under `.git/`, where the worktrees then lived, and the maker stopped and reported it rather than working around it; increment 2 moved the worktrees. The scenario agent on opencode, 2 of 6 against 3 of 6: with the brief, the local model ended in 38 seconds with no test and no report. The same brief worked on Claude.
+| Harness | With the skills | Without |
+| --- | --- | --- |
+| Claude Code, Sonnet | 80 of 84 | 43 of 73 |
+| opencode, `gpt-oss:20b` | 72 of 84 | 36 of 73 |
+
+- Without the briefs, neither model recorded a moved test, named the pitch in a review, or stopped a change for two people. With them, both did. Both arms usually made the code work; the difference is in the record and the stops.
+- Without its brief, the maker changed the old test to get green and recorded nothing, on both harnesses, and the wall check fails that. With the brief, both makers recorded the move.
+- The headless watch ran a defect slice from the forecast to the packet on both harnesses and merged nothing. On opencode the guardian ended without a report, and the watch stopped for the person instead of guessing.
+- The local model was weakest as the scenario agent: from words and from a HAR file it wrote no red. Increment 1's run had two cells below their baseline, both explained in `evals/results/inc1.md`.
+- Three Claude cells that missed one assertion passed in full on a rerun the same day. Small gaps here are noise.
 
 ## Status
 
