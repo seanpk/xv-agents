@@ -449,7 +449,7 @@ def close(slice_id, why=None, shape=None):
     body = record.log_line(body, "watch", "closed" + ("" if p.returncode == 0 else f"; guide: {p.stderr.strip()}"))
     record.save(path, data, body)
     commit(root, f"xv({slice_id}): close")
-    out = {"slice": slice_id, "status": "closed", "guide": p.stdout.strip() or p.stderr.strip(),
+    out = {"slice": slice_id, "status": "closed", "stop": None, "guide": p.stdout.strip() or p.stderr.strip(),
            "next": f"merge {data['branch']} when you are ready; the watch does not merge"}
     try:
         import retro
