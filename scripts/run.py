@@ -500,6 +500,21 @@ def detect_tests(root):
     return "", ["tests/**", "test/**", "spec/**"]
 
 
+def repo_identity(root):
+    """The repo's name and GitHub description, for what it shares. Read-only."""
+    try:
+        p = subprocess.run(["gh", "repo", "view", "--json", "nameWithOwner,description"], cwd=root,
+                           capture_output=True, text=True, timeout=20)
+        if p.returncode == 0:
+            d = json.loads(p.stdout)
+            return d.get("nameWithOwner") or "", d.get("description") or ""
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+        pass
+    url = git(["config", "--get", "remote.origin.url"], root, check=False).strip()
+    m = __import__("re").search(r"[:/]([^/:]+/[^/]+?)(?:\.git)?$", url)
+    return (m.group(1) if m else os.path.basename(root)), ""
+
+
 def cmd_init(a):
     root = repo_root()
     src = os.path.join(XV_HOME, "defaults")
@@ -519,9 +534,12 @@ def cmd_init(a):
     cfg = os.path.join(dst, "config.yml")
     if "config.yml" in written:
         command, paths = detect_tests(root)
+        name, description = repo_identity(root)
         text = open(cfg).read()
-        text = text.replace('command: ""', f"command: {json.dumps(command)}")
+        text = text.replace('  command: ""', f"  command: {json.dumps(command)}", 1)
         text = text.replace('paths: ["tests/**"]', f"paths: {json.dumps(paths)}")
+        text = text.replace('  name: ""', f"  name: {json.dumps(name)}", 1)
+        text = text.replace('  description: ""', f"  description: {json.dumps(description)}", 1)
         open(cfg, "w").write(text)
     try:
         import boundary as b

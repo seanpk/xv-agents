@@ -130,6 +130,7 @@ def parse_entries(path):
             fields = dict(re.findall(r"^- (\w+):\s*(.+)$", rest, re.M))
             seen = re.findall(r"([\w.-]+)@(\d{4}-\d{2}-\d{2})", fields.get("seen", ""))
             out.append({"file": os.path.basename(path), "section": section, "entry": title.strip(),
+                        "linked": fields.get("adopts") or fields.get("shared"),
                         "added": fields.get("added", ""), "from": fields.get("from", ""),
                         "miss": fields.get("miss", ""), "seen": seen,
                         "repos": sorted({r for r, _ in seen})})
@@ -148,6 +149,8 @@ def entries(root):
             notes.append("no slice: delete at the next retro")
         if r["file"] == "learnings.md" and r["section"] == "Open" and len(r["seen"]) >= 2:
             notes.append("seen twice: put its promotion in front of the person")
+        if r.get("linked"):
+            notes.append(f"linked to {r['linked']}: once a release carries it, delete this local copy")
         if len(r["repos"]) >= 2:
             notes.append("seen in two repos: a candidate for the shared skills (xv promote)")
         r["notes"] = notes

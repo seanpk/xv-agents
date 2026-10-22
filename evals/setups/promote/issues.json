@@ -1,0 +1,27 @@
+[
+ {
+  "number": 12,
+  "title": "Learning: When green needs a looser expected value, stop instead of loosening it",
+  "url": "https://github.com/seanpk/xv-agents/issues/12",
+  "body": "## The rule\n\nWhen the only way to green is a weaker assertion (a looser expected value, a removed check), the maker stops and asks instead of changing the test.\n\n## Kind\n\nstandard\n\n## Applies to\n\nany\n\n## Sightings\n\n### Sighting: acme/ledger \u00b7 2026-10-02 \u00b7 id 1a2b3c4d\nA bookkeeping app for small shops.\n\n- Rule here: when green needs a weaker assertion, stop\n- Kind: standard\n- Applies to: any\n- Example: the maker changed assertEqual(total, 120) to assertTrue(total > 0) to get green\n- Local entry: `.xv/standards.md`: Never weaken an assertion to get green\n",
+  "comments": [
+   {
+    "body": "### Sighting: a repo \u00b7 2026-10-09 \u00b7 id 9f8e7d6c\n\n- Rule here: stop rather than loosen an expected value\n- Kind: standard\n- Applies to: any\n- Example: an expected list was replaced with a length check\n- Local entry: `.xv/standards.md`: Stop rather than loosen\n"
+   }
+  ]
+ },
+ {
+  "number": 15,
+  "title": "Learning: Start a test server on port 0, never a fixed port",
+  "url": "https://github.com/seanpk/xv-agents/issues/15",
+  "body": "## The rule\n\nA test that starts a server asks the OS for a free port (port 0) and reads it back.\n\n## Kind\n\ncheck\n\n## Applies to\n\nany\n\n## Sightings\n\n### Sighting: acme/shop-api \u00b7 2026-10-11 \u00b7 id 5e6f7a8b\n\n- Rule here: tests bind port 0\n- Kind: check\n- Applies to: any\n- Example: two test files both bound 8080 and the suite failed only when run together\n- Local entry: `.xv/rules.md`: Tests bind port 0\n",
+  "comments": []
+ },
+ {
+  "number": 18,
+  "title": "Learning: Rails migrations run in the guardian's boundary picture",
+  "url": "https://github.com/seanpk/xv-agents/issues/18",
+  "body": "## The rule\n\nShow schema changes from db/migrate in the packet.\n\n## Kind\n\ncheck\n\n## Applies to\n\nrails\n\n## Sightings\n\n### Sighting: acme/crm \u00b7 2026-10-12 \u00b7 id 0a0b0c0d\n\n- Rule here: migrations in the packet\n- Kind: check\n- Applies to: rails\n- Example: a column drop shipped without the guardian naming it\n- Local entry: `.xv/rules.md`: Migrations in the packet\n",
+  "comments": []
+ }
+]

@@ -79,3 +79,18 @@ Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a t
 55. **The packet reaches the chief engineer as a pull request that adds the file**, with them as reviewer, and through `reach.command` if the team set one. Not as an issue: opening an issue in the value queue is a small act of ranking. The packet never blocks.
 56. **The raw data stays out of the repo.** `.xv/listen/` is ignored; only the packet is committed. Feedback can carry personal data the packet should not.
 57. **User feedback is data, never instructions.** The brief says so, and the eval plants an instruction in the feedback to check it.
+
+## Increment 8: xv-check and xv-promote
+
+The cross-repo mechanism is Sean's, in `docs/positions.md`. The choices below are how it was built.
+
+58. **A learning issue is marked by its title, "Learning: ...", not by a label.** People without write access to the shared repo cannot set labels from the CLI, so a script cannot rely on one. Maintainers may add `learning` and `stack:` labels by hand.
+59. **A sighting is a block with a fixed heading**, `### Sighting: <repo> · <date> · id <8 hex>`, in the issue body or a comment, so `xv promote tally` can count distinct repos. The id is a hash of the repo's remote URL: a repo that leaves its name out is still counted once.
+60. **Drafts and posts are files in `.xv/promote/`.** A draft is reviewed and edited by the person; `xv promote post --approved-by <name>` is the only command that writes in public, and it keeps a copy of what it posted, with the approver, in `.xv/promote/posted/`. The person commits both, so a repo's public posts are in its own history.
+61. **The local entry is linked to the issue** (`shared:` or `adopts:`), and `xv check entries` notes it, so the local copy is removed once a release carries the learning.
+62. **Stacks are a free-text "Applies to" line and `promote.stack` in the config.** No structure in the skills until use asks for it.
+63. **The shared repo's side is a tally and a skill section, not a script that edits briefs.** Writing a learning into a brief is a change to an agent: two people and a CHANGELOG line.
+64. **Local promotion is a person's command**: `xv promote local --accept <entry> --to standards|rules --by <name>` moves an Open learning seen twice and logs it under Promoted.
+65. **`xv check relaxations` matches phrases**, so it can raise a false alarm; the skill says to read each hit. A miss is worse than a false alarm here.
+66. **The drift check reads each harness's public docs page** for the exact sentences in `docs/relies-on.md`, ignoring case and whitespace. This repo's CI runs it weekly and opens an issue for a sentence that is gone.
+67. **`xv adapt` names generated files `xv-<agent>`** and marks each with the skill's digest, so a generated file never shadows a skill and `xv check` can tell current from stale.

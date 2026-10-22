@@ -18,7 +18,7 @@
   xv guard --base <ref>         the guardian on a pull request, for CI
   xv check ...                  what the project layer overrode, relaxed, or drifted
   xv retro ...                  fire and override counts, candidates for the retro
-  xv promote ...                learnings seen in two repos
+  xv promote ...                share a learning, adopt one, promote one seen twice
   xv listen ...                 the packet from production: gather, run the listener, refuse a ranking
   xv prototype ...              three prototypes on one named axis
   xv adapt ...                  generate harness files from the skills (optional)

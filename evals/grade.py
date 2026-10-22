@@ -389,6 +389,15 @@ def retro_proposes_a_check(ctx):
     return ok, "proposes a check" if ok else "proposes prose only"
 
 
+def retro_adopts_a_shared_learning(ctx):
+    p = retro_packet(ctx)
+    t = open(p).read() if p else ""
+    m = re.findall(r"(?im)^- kind:\s*adopt\b.*?(?:\n- [^\n]*)*?\n- adopts:\s*\S*#(\d+)", t)
+    m = m or re.findall(r"(?i)adopts:\s*\S*#(\d+)", t)
+    ok = any(n in ("12", "15") for n in m)
+    return ok, f"adopts: {m}" if m else "adopts nothing"
+
+
 def only_retro_written(ctx):
     other = [f for f in changed_since(ctx) if not f.startswith(".xv/retro/")]
     return not other, f"also changed: {other}" if other else "only the retro packet"

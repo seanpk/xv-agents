@@ -135,6 +135,8 @@ def run_one(scenario, harness_name, arm, n, outdir, keep=False):
     workdir = tempfile.mkdtemp(prefix=f"xv-eval-{scenario['name']}-")
     env = dict(os.environ)
     env["PATH"] = os.path.join(HOME, "bin") + os.pathsep + env.get("PATH", "")
+    for k, v in (scenario.get("env") or {}).items():
+        env[k] = os.path.join(EVALS, v) if os.path.exists(os.path.join(EVALS, v)) else v
     os.environ["PATH"] = env["PATH"]
     started = datetime.datetime.now(datetime.timezone.utc).isoformat()
     try:

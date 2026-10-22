@@ -175,7 +175,13 @@ def accept(root, packet, n, by):
     if n not in cands:
         raise XVError(f"no candidate {n} in {packet}")
     c = cands[n]
-    kind = (c.get("kind") or "").split()[0].strip("`").lower()
+    kind = (c.get("kind") or "").split()[0].strip("`").lower() if c.get("kind") else ""
+    adopts = None
+    if kind == "adopt":
+        adopts = (c.get("adopts") or "").strip().strip("`")
+        if not re.match(r"^[\w.-]+/[\w.-]+#\d+$", adopts):
+            raise XVError(f"candidate {n} adopts {adopts!r}; expected owner/repo#number")
+        kind = "rule" if (c.get("into") or "").strip().startswith("rule") else "standard"
     if kind not in TARGET:
         raise XVError(f"candidate {n} is a {kind or 'candidate with no kind'}; only a standard, a rule or an "
                       "open entry is added here. A check is a slice; a retirement is deleting the line; "
@@ -192,6 +198,8 @@ def accept(root, packet, n, by):
                  f"- miss: {c.get('miss', '')}\n- seen: [{repo}@{today()}]\n")
         if kind == "standard":
             entry += f"- check: {c.get('check', 'none: judgement')}\n"
+        if adopts:
+            entry += f"- adopts: {adopts}\n"
     if heading not in text:
         text = text.rstrip("\n") + f"\n\n{heading}\n"
     i = text.index(heading) + len(heading)
@@ -202,7 +210,13 @@ def accept(root, packet, n, by):
         text = (text.rstrip("\n") + "\n" + entry) if nxt < 0 else (text[:nxt].rstrip("\n") + "\n" + entry + text[nxt:])
     with open(path, "w") as f:
         f.write(text)
-    return {"added_to": os.path.join(XV_DIR, fname), "entry": c["title"], "by": by}
+    out = {"added_to": os.path.join(XV_DIR, fname), "entry": c["title"], "by": by}
+    if adopts:
+        import promote
+        out["sighting_draft"] = promote.draft(root, c["title"], c["title"], c.get("miss", ""),
+                                              issue=adopts.split("#")[1], kind=kind)
+        out["next"] = "review the sighting draft with the person; post it only on their approval"
+    return out
 
 
 def accept_standard(root, slice_id, n, by):

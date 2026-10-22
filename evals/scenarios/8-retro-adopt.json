@@ -1,0 +1,28 @@
+{
+  "name": "retro-adopt",
+  "increment": 8,
+  "agent": "retro",
+  "what": "the retro finds that another repo already shared a learning that fits this repo's miss, and proposes adopting it instead of writing a new rule",
+  "fixture_extra": [
+    {
+      "from": "setups/retro/.xv/slices",
+      "to": ".xv/slices"
+    }
+  ],
+  "env": {
+    "XV_PROMOTE_ISSUES": "setups/promote/issues.json"
+  },
+  "setup": [],
+  "skill_cmd": [
+    "retro",
+    "run"
+  ],
+  "assertions": [
+    "retro_packet_exists",
+    "retro_candidates_traced",
+    "retro_adopts_a_shared_learning",
+    "standards_untouched",
+    "only_retro_written"
+  ],
+  "timeout": 1200
+}

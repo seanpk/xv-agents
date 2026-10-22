@@ -47,11 +47,21 @@ Ask, one question at a time, and write down the person's words:
 
 **The picture.** Add answers 4 to 8 to `.xv/picture.md` under their headings. Then walk the person through the outsider's draft, section by section, and let them correct it. When they have, set `status: checked` and `checked_by: <name>` in its front matter.
 
-## 4. The first packet
+## 4. Sharing what this repo learns
+
+XV repos share learnings as issues on the shared xv-agents repo (the `xv-promote` skill). Nothing is posted without a person's approval, but the person decides now what this repo says about itself when it does. Ask:
+
+1. Include the repo's name in what it shares? (Y/n)
+2. A one-line description of the repo for other teams. The default is its GitHub description (`gh repo view --json description`), blank if it has none.
+3. The stacks it is built on, as short labels (`python`, `rails`, `react`), so a learning that only means something on one stack is marked.
+
+Write the answers to `promote:` in `.xv/config.yml` (`include_name`, `name`, `description`, `stack`). `xv init` fills in its guesses; correct them with the person.
+
+## 5. The first packet
 
 List every place the outsider read and the pitch disagree: a surface the pitch does not mention, a user the code serves that the pitch leaves out, a promise the code does not keep. Write the list to `.xv/slices/packet-init.md`. It is the first packet, and the first evidence for whether a written picture loads a new person. Do not resolve the disagreements; they are for the people.
 
-## 5. Install the wall
+## 6. Install the wall
 
 ```
 xv wall install-hook

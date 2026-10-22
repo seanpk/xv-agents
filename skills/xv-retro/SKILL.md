@@ -23,6 +23,7 @@ Not after every slice. After a slice that stopped, overran its budget, or drew t
    - **standard** or **rule**: `xv retro accept <packet> <n> --by <name>` appends it to `.xv/standards.md` or `.xv/rules.md` with the date, the slice, the miss and a `seen:` list. The person commits it.
    - **check**: it is a change to the repo like any other. Open a slice for it (`xv-slice`), with the scenario "the check is red on the recorded miss and green on the suite".
    - **open**: `xv retro accept` adds it to the top of Open in `.xv/learnings.md`.
+   - **adopt**: another repo already shared this learning. `xv retro accept` adds the local entry linked to the shared issue and drafts this repo's sighting. Load `xv-promote` to review the draft with the person; it posts only on their approval.
    - **retire**: the person deletes the line; a check that guards a stop takes two people (`xv record answer --by a,b`).
    - **for two people**: it changes a brief or a standing order. It goes to the shared repo's `CHANGELOG.md` process, not here.
 
