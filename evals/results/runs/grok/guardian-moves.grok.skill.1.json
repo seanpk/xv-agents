@@ -1,0 +1,104 @@
+{
+  "scenario": "guardian-moves",
+  "increment": 4,
+  "agent": "guardian",
+  "harness": "grok",
+  "model": "grok-4.7",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T20:27:58.252546+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 114110,
+      "tokens_out": 22613,
+      "cache_read": 1180288,
+      "cache_write": 0,
+      "tokens": 1317011,
+      "usd": 0.3244,
+      "turns": 21,
+      "wall_s": 260.7,
+      "session": "01a1654c-8ead-7911-9c55-bd880cc5eb47",
+      "step": "guardian",
+      "at": "2026-10-22T20:32:19+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-guardian-moves-no8pm52y/repo/.git/xv/runs/message-wording/01-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/message-wording.packet.md"
+    },
+    {
+      "name": "shape_not_flagged",
+      "pass": true,
+      "detail": "packet: shape_change: no"
+    },
+    {
+      "name": "pitch_not_flagged",
+      "pass": true,
+      "detail": "packet: pitch_contradiction: no"
+    },
+    {
+      "name": "moved_test_listed",
+      "pass": true,
+      "detail": "both moved test files listed"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": true,
+      "detail": "the boundary picture is in the packet"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    },
+    {
+      "name": "stop_accept_moves",
+      "pass": true,
+      "detail": "stop: accept_moves for originator"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    }
+  ],
+  "passed": 9,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "message-wording",
+    "after": "guardian",
+    "stop": {
+      "order": "accept_moves",
+      "seat": "originator",
+      "question": "2 old test(s) moved with a record; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "accept_moves",
+        "seat": "originator",
+        "question": "2 old test(s) moved with a record; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/message-wording.md",
+    "worktree": "/tmp/xv-eval-guardian-moves-no8pm52y/repo/.xv/worktrees/message-wording",
+    "packet": ".xv/slices/message-wording.packet.md"
+  },
+  "final_message": "I'll read the slice record, the packet template, and the written operating picture first, then check the diff against them.The slice is a wording change. Next I\u2019ll take the diff, the wall, and the written shape so the packet cites those, not a sketch.The wording change stays inside the store. Two recorded tests moved with it. I\u2019ll write that up as the packet and check the citations.Two old tests now expect the new error text. They go to eval-person, who set the work going. The shape and the pitch leave the merge with the originator.\n\nThe packet is `.xv/slices/message-wording.packet.md`. The only product change is the bad-quantity sentence in `pantry/store.py`. The boundary picture adds no module, edge, table, or surface, and the pitch is silent on that wording. Both moved tests still match the full sentence, and the scenario names it. Nothing in the operating picture becomes untrue. The door is two-way, and the blast radius is the wording.\n\n```xv-report\n{\"agent\": \"guardian\", \"status\": \"done\", \"summary\": \"Wording change inside the store; two recorded test moves go to the originator.\", \"packet\": \".xv/slices/message-wording.packet.md\",\n \"shape_change\": \"no\", \"pitch_contradiction\": \"no\", \"picture_change\": \"no\", \"moved_tests\": 2, \"door\": \"two-way\"}\n```"
+}

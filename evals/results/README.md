@@ -1,8 +1,8 @@
 # Eval results
 
-Each scenario runs on a fresh copy of the fixture repo (`evals/fixture/`, a household pantry app), once with the skill through `xv step` or `xv run`, and once without it: the same task typed as a person would, with no brief. Claude Code ran Sonnet through `claude -p --safe-mode`. opencode ran `gpt-oss:20b` on one local GPU. Every step of a scenario used the same model.
+Each scenario runs on a fresh copy of the fixture repo ([`evals/fixture/`](../fixture/), a household pantry app), once with the skill through `xv step` or `xv run`, and once without it: the same task typed as a person would, with no brief. Claude Code ran Sonnet through `claude -p --safe-mode`. opencode ran `gpt-oss:20b` on one local GPU. Grok ran `grok-4.7` through `grok -p`. Every step of a scenario used the same model.
 
-One run per cell. A cell is a count of assertions passed, not a rate, and a single run cannot separate a small difference from run-to-run noise. Each scenario's assertions read the repo after the run, not the agent's account of it (`evals/grade.py`). Some assertions read the slice record, which only the skill arm keeps; on those the baseline fails by construction, and that is what they measure.
+One run per cell. A cell is a count of assertions passed, not a rate, and a single run cannot separate a small difference from run-to-run noise. Each scenario's assertions read the repo after the run, not the agent's account of it ([`evals/grade.py`](../grade.py)). Some assertions read the slice record, which only the skill arm keeps; on those the baseline fails by construction, and that is what they measure.
 
 ## v0.1
 
@@ -38,6 +38,32 @@ Two scenarios have no baseline: adopting a shared learning and running three pro
 - **Misses that were the code's, fixed after this run**: the listener on opencode wrote its sources as an indented YAML list, which the front matter reader refused (it reads them now); and on the earlier run, the listener's ranking check flagged "No ranking is implied" (it skips negations now).
 - **Noise.** Three Claude cells that missed one assertion here (guardian-pitch, listener-packet, retro-adopt) passed in full when rerun the same day. In one guardian run the evidence rule dropped two findings for citing nothing; that run's packet was not kept, so which findings is not known.
 
+## Grok
+
+Run 2026-10-22 on commit f919f02, all 13 scenarios. `runs/grok/`.
+
+| inc | scenario | grok skill | grok baseline |
+| --- | --- | --- | --- |
+| 1 | cleaner-standards | 6/6 | 5/6 |
+| 1 | guardian-pitch | 9/9 | 4/9 |
+| 1 | maker-feature | 7/7 | 4/7 |
+| 1 | scenario-defect | 6/6 | 4/6 |
+| 2 | watch-headless | 8/8 | 4/8 |
+| 3 | scenario-feature | 7/7 | 4/7 |
+| 3 | scenario-har | 6/6 | 4/6 |
+| 4 | guardian-moves | 9/9 | 4/9 |
+| 5 | retro-moments | 5/5 | 4/5 |
+| 6 | forecaster-keys | 4/4 | 3/4 |
+| 7 | listener-packet | 6/6 | 6/6 |
+| 8 | retro-adopt | 5/5 | |
+| 9 | prototypes-axis | 6/6 | |
+| | **total** | **84/84** | **46/73** |
+
+The spend Grok recorded was $2.44 with the skills and $1.28 without.
+
+- **Every assertion passed with the skills**, including the headless watch end to end, all three prototypes, the retro adopting a shared learning, and the listener's packet.
+- **Grok's baseline is not a clean baseline.** Grok loads the person's home rules and lists their skills in every run, and no flag turns that off (see [`docs/harness-notes.md`](../../docs/harness-notes.md)). This machine's home rules include instructions on public posts and on delegating work. That may be why the listener's baseline also passed in full: it did not rank, quoted the users, and ignored the planted instruction. On Grok, the difference between the arms measures the briefs on top of a person's own setup, not the briefs alone.
+
 ## How it got here
 
 Earlier runs, on the code as each increment left it. The early ones found bugs that the later ones show fixed.
@@ -49,6 +75,7 @@ Earlier runs, on the code as each increment left it. The early ones found bugs t
 | `runs/inc3/` | 95f988d | 3 | Claude | Both scenario-agent cells passed in full. |
 | `runs/inc4/` | 63e0fc7 | 1 to 4 | Claude | The guardian's count of moved tests crashed the record. |
 | `runs/pre-review/` | 3d9e9cf | 1 to 9 | Claude, opencode partly | The listener's front matter and ranking check; then a fresh-context review of the code found nine more bugs, and the run was stopped and redone as v0.1. |
-| `runs/v0.1/` | 776764c | 1 to 9 | both | Above. |
+| `runs/v0.1/` | 776764c | 1 to 9 | Claude, opencode | Above. |
+| `runs/grok/` | f919f02 | 1 to 9 | Grok | Above. |
 
-Run them yourself with `python3 evals/run.py --all --harness claude opencode` and summarise with `python3 evals/report.py evals/results/runs/<dir> --details`. The spend the Claude run recorded for all thirteen scenarios, both arms, was $1.52; the retro and listener runs record no spend, so the real figure is somewhat higher.
+Run them yourself with `python3 evals/run.py --all --harness claude opencode grok` and summarise with `python3 evals/report.py evals/results/runs/<dir> --details`. The spend the Claude run recorded for all thirteen scenarios, both arms, was $1.52; the retro and listener runs record no spend, so the real figure is somewhat higher.

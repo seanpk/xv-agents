@@ -1,0 +1,65 @@
+{
+  "scenario": "cleaner-standards",
+  "increment": 1,
+  "agent": "cleaner",
+  "harness": "grok",
+  "model": "grok-4.7",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T19:55:29.636496+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 65113,
+      "tokens_out": 7123,
+      "cache_read": 350208,
+      "cache_write": 0,
+      "tokens": 422444,
+      "usd": 0.1183,
+      "turns": 12,
+      "wall_s": 90.6,
+      "session": "01a1652e-d2a2-71e1-a66b-bd4f759d9f3a"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "standards_violations_fixed",
+      "pass": true,
+      "detail": "both rules applied"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "agent_committed",
+      "pass": true,
+      "detail": "commits: ['xv(hide-used-up): tidy the store list']"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 5,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I'll tidy the code from `git diff HEAD~2..HEAD` to match this repo's standards, without changing behavior, then commit. First I'll look at that diff and the project's style rules.The store list from that diff prints debug output and uses the names `d` and `x`, which this repo's standards forbid. I'll clean that up without changing the list itself.`Store.items` now follows the repo standards, and the list it returns is unchanged.\n\n- The debug `print` is gone. `pantry/` does not print, and the store does no I/O.\n- The sorted items are named `listed` and `i` instead of `d` and `x`.\n\nUsed-up items still stay out of the name-sorted list. The suite passed: 13 tests. Committed as `f87d9dd` with the message `xv(hide-used-up): tidy the store list`."
+}

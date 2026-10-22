@@ -14,7 +14,7 @@ The nearest neighbour to XV. It already encodes make it work then make it right 
 
 ## Other sources
 
-- **Anthropic, `skill-creator`** (`anthropics/skills`): every eval runs with the skill and without it, the baseline. Used in `evals/`.
+- **Anthropic, `skill-creator`** (`anthropics/skills`): every eval runs with the skill and without it, the baseline. Used in [`evals/`](../evals/).
 - **Anthropic, `code-simplifier` agent** (`anthropics/claude-plugins-official`, Apache-2.0): the wording "simplify, preserving behaviour". Used in the cleaner's brief.
 - **Playwright Test Agents** (`microsoft/playwright`, Apache-2.0): the planner and the generator, as the scenario agent's way of working in a browser. The healer is left out: it edits tests until they pass.
 - **12-Factor Agents, factor 7** (`humanlayer/12-factor-agents`): contacting a person is a step the agent takes, not an exception. The watch's stops.

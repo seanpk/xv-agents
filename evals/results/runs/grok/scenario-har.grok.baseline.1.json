@@ -1,0 +1,65 @@
+{
+  "scenario": "scenario-har",
+  "increment": 3,
+  "agent": "scenario",
+  "harness": "grok",
+  "model": "grok-4.7",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T20:26:51.324120+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 58226,
+      "tokens_out": 4948,
+      "cache_read": 194816,
+      "cache_write": 0,
+      "tokens": 257990,
+      "usd": 0.0828,
+      "turns": 8,
+      "wall_s": 61.7,
+      "session": "01a1654b-88c2-7453-b026-58bfceba437f"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "red_replays_recording",
+      "pass": true,
+      "detail": "uses the recording's milk and date"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I'll look through the repo and the HAR recording so the test matches how the household asks for items that run out within three days.The recording shows milk expiring on the same day the household asks, and the answer only includes yogurt. I'll add a test that replays that request and expects milk in the list.`test_expiring_includes_an_item_that_runs_out_today` in `tests/test_api.py` replays the recorded session and fails.\n\nThe household adds milk that runs out on 2026-10-21 and yogurt that runs out on 2026-10-23, then asks for what runs out within three days of 2026-10-21. The test expects both items. The API returns only yogurt, so milk that runs out today is missing.\n\nThe new test fails. The other 11 tests pass. The defect is still in the code."
+}

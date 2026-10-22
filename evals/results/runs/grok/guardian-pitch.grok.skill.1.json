@@ -1,0 +1,104 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "grok",
+  "model": "grok-4.7",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T19:57:02.952334+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 130738,
+      "tokens_out": 32825,
+      "cache_read": 1279232,
+      "cache_write": 0,
+      "tokens": 1442795,
+      "usd": 0.3733,
+      "turns": 20,
+      "wall_s": 384.2,
+      "session": "01a16530-3f13-7b00-92ef-496043a0cd88",
+      "step": "guardian",
+      "at": "2026-10-22T20:03:27+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-guardian-pitch-lokwa9nu/repo/.git/xv/runs/share-with-grocer/01-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/share-with-grocer.packet.md"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": true,
+      "detail": "packet: pitch_contradiction: yes"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": true,
+      "detail": "packet: shape_change: yes"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": true,
+      "detail": "quotes or cites a pitch line"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": true,
+      "detail": "stop: shape_or_pitch for two_people"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": true,
+      "detail": "the boundary picture is in the packet"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    }
+  ],
+  "passed": 9,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "share-with-grocer",
+    "after": "guardian",
+    "stop": {
+      "order": "shape_or_pitch",
+      "seat": "two_people",
+      "question": "The guardian's packet says shape_change and pitch_contradiction. Two people decide from the packet.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "shape_or_pitch",
+        "seat": "two_people",
+        "question": "The guardian's packet says shape_change and pitch_contradiction. Two people decide from the packet.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/share-with-grocer.md",
+    "worktree": "/tmp/xv-eval-guardian-pitch-lokwa9nu/repo/.xv/worktrees/share-with-grocer",
+    "packet": ".xv/slices/share-with-grocer.packet.md"
+  },
+  "final_message": "I'll read the slice record, the packet template, and the written picture before I judge the change. I only write the packet.The slice sends a shopping list to a grocery partner. I'll compare that against the pitch, the picture, and the diff before writing the packet.The diff adds an outbound call to GroceryNow. I'll check the suite, then write the packet from the pitch, the picture, and the boundary picture.Two people decide. The change posts the household's items to GroceryNow, which changes the shape and breaks the pitch. The packet is `.xv/slices/share-with-grocer.packet.md`.\n\n- **Shape:** yes, wide. `pantry/grocer.py` is a new module, `api` calls it, it calls out to `https://api.grocernow.example/v1/lists`, and `POST /share` is a new surface. The picture says there are no outbound network calls (`.xv/picture.md:21`). The slice has no forecast to compare that breadth with.\n- **Pitch:** yes. `.xv/pitch.md:19` says it never sends the household's data anywhere else: no accounts, no partners. `.xv/pitch.md:18` says it is not for grocers. The diff posts item names, quantities, and expiry dates with a GroceryNow bearer token.\n- **Moved tests:** none. `tests/test_grocer.py` is new. `xv wall diff` has no baseline. The suite replayed as 12 tests, OK. The new test never calls `POST /share`.\n- **Picture:** five places are now untrue or incomplete, including \"data stays on the household's machine\" (`.xv/picture.md:29`). The edits are proposed in the packet.\n- **Door:** one-way. A revert does not bring back a list GroceryNow already has. Blast radius: household.\n\n```xv-report\n{\"agent\": \"guardian\", \"status\": \"done\", \"summary\": \"Posts the household's items to GroceryNow: shape change and pitch contradiction.\", \"packet\": \".xv/slices/share-with-grocer.packet.md\",\n \"shape_change\": \"yes\", \"pitch_contradiction\": \"yes\", \"picture_change\": \"yes\", \"moved_tests\": 0, \"door\": \"one-way\"}\n```"
+}

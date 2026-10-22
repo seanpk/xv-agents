@@ -1,0 +1,81 @@
+{
+  "scenario": "scenario-feature",
+  "increment": 3,
+  "agent": "scenario",
+  "harness": "grok",
+  "model": "grok-4.7",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T20:22:47.625292+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 30921,
+      "tokens_out": 8903,
+      "cache_read": 166656,
+      "cache_write": 0,
+      "tokens": 206480,
+      "usd": 0.0675,
+      "turns": 6,
+      "wall_s": 105.5,
+      "session": "01a16547-d0ea-7303-8210-4d4ddaf299a9",
+      "step": "scenario",
+      "at": "2026-10-22T20:24:33+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-scenario-feature-u2jnn191/repo/.git/xv/runs/hide-used-up/01-scenario.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_at_user_surface",
+      "pass": true,
+      "detail": "the red calls the API"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_hide_used_up.py'], 'command': 'python3 -m unittest tests.test_hide_used_up', 'failure': \"AssertionError: Tuples differ: (200, [{'name': 'bread', 'qty': 0, 'expires_on': '2026-10-[57 chars]1'}]) != (200, [{'name': 'rice', 'qty': 2, 'expires_on': '2027-01-01'}])\", 'watch_first_green': 'After the household uses its last loaf, GET /items lists the rice they still have (qty 2, expires 2027-01-01) and bread is absent. The expiring list is outside this scenario.'}"
+    },
+    {
+      "name": "watch_first_green_noted",
+      "pass": true,
+      "detail": "note: After the household uses its last loaf, GET /items lists the rice they still have (qty 2, expires 20"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status red"
+    }
+  ],
+  "passed": 7,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "scenario",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-scenario-feature-u2jnn191/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "I'll start from the slice record and the repo's test rules, then write a failing test that states the scenario without touching the app.The scenario is about the household list: using the last loaf of bread removes it from `GET /items`, while anything still on hand stays. I'll add an API test for that and run it so it fails on the current list.Using the last loaf still leaves bread on `GET /items`. The new test adds one loaf and some rice, uses the loaf, and expects the list to contain only the rice. It fails because the list still includes bread at quantity 0.\n\n```xv-report\n{\"agent\": \"scenario\", \"status\": \"red\", \"summary\": \"Using the last loaf still leaves bread on GET /items\",\n \"red\": {\"files\": [\"tests/test_hide_used_up.py\"], \"command\": \"python3 -m unittest tests.test_hide_used_up\", \"failure\": \"AssertionError: Tuples differ: (200, [{'name': 'bread', 'qty': 0, 'expires_on': '2026-10-[57 chars]1'}]) != (200, [{'name': 'rice', 'qty': 2, 'expires_on': '2027-01-01'}])\",\n         \"watch_first_green\": \"After the household uses its last loaf, GET /items lists the rice they still have (qty 2, expires 2027-01-01) and bread is absent. The expiring list is outside this scenario.\"}}\n```"
+}

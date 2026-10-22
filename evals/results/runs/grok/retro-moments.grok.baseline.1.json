@@ -1,0 +1,60 @@
+{
+  "scenario": "retro-moments",
+  "increment": 5,
+  "agent": "retro",
+  "harness": "grok",
+  "model": "grok-4.7",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T20:39:25.083670+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 44154,
+      "tokens_out": 18821,
+      "cache_read": 255744,
+      "cache_write": 0,
+      "tokens": 318719,
+      "usd": 0.1119,
+      "turns": 8,
+      "wall_s": 262.0,
+      "session": "01a16557-08d6-7671-9df6-343399f57a01"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "retro_packet_exists",
+      "pass": true,
+      "detail": ".xv/retro/review.md"
+    },
+    {
+      "name": "retro_candidates_traced",
+      "pass": false,
+      "detail": "4 of 5 candidates name a slice"
+    },
+    {
+      "name": "retro_proposes_a_check",
+      "pass": true,
+      "detail": "proposes a check"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "only_retro_written",
+      "pass": true,
+      "detail": "only the retro packet"
+    }
+  ],
+  "passed": 4,
+  "total": 5,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I'll read the three slice records and the repo's current standards so the suggestions target the problems that actually showed up.The slices name three repeats: weakened assertions, a deleted test, and a server that kept binding the same port. I'll read the code and the rest of the `.xv` notes before writing the review.The suite stayed green through a weakened assertion and a deleted test, and the same two judgement-only rules came back on the later slices. I'll write the standards and checks that would have failed those runs.The suggestions are in `.xv/retro/review.md`. Four changes would have failed the runs that these slices had to revert or pay for again.\n\n- **Keep existing tests exact.** On 15 October `assertEqual(..., 4)` became `assertGreaterEqual(..., 0)`. On 16 October `test_expiring_within_three_days` was deleted. Unittest stayed green both times. An AST check against the branch base should fail a removed test or a weakened assertion unless that test is listed in `moved_tests`.\n- **Enforce the date-name rule in the suite.** The `expires_on` / `today` / `last` standard is still `check: none: judgement`, so the cleaner renamed a `d` by hand on both the 15th and the 16th. Reject `d`, `dt`, and `x` under `pantry/` with an AST walk.\n- **Allow the one startup `print`.** On 17 October the print ban matched the intentional line in `pantry/api.py`, and the rule was overridden. Limit the ban to every `print` outside that `__main__` block.\n- **Keep tests on port 0.** The 17 October run spent the budget starting a second server on a fixed port. State that in `.xv/rules.md`, reject `8077` and any non-zero `serve` port outside `__main__`, and add a test that two `serve()` calls bind two ports.\n\nPut `python3 .xv/checks.py` on the end of `tests.command` so a green suite means those checks passed."
+}

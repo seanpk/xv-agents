@@ -1,0 +1,81 @@
+{
+  "scenario": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "harness": "grok",
+  "model": "grok-4.7",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T20:07:09.959652+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 30951,
+      "tokens_out": 7543,
+      "cache_read": 275712,
+      "cache_write": 0,
+      "tokens": 314206,
+      "usd": 0.0833,
+      "turns": 9,
+      "wall_s": 90.1,
+      "session": "01a16539-8263-76b2-af72-eebff52cd05e",
+      "step": "maker",
+      "at": "2026-10-22T20:08:40+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-maker-feature-t1z5vczu/repo/.git/xv/runs/hide-used-up/01-maker.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "preset_red_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "red_file_unchanged",
+      "pass": true,
+      "detail": "the scenario agent's red is untouched"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "moved_test_recorded",
+      "pass": true,
+      "detail": "recorded moves: ['tests/test_store.py']"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status green"
+    },
+    {
+      "name": "wall_holds",
+      "pass": true,
+      "detail": "unrecorded: [], recorded: ['tests/test_store.py']"
+    }
+  ],
+  "passed": 7,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "maker",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-maker-feature-t1z5vczu/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "I'll read the slice record and the repo rules first, then run the red test to see the failure the scenario names.The scenario says a used-up item drops off the list. I'll run the red test first and confirm it fails for that reason.The red test fails because a finished item stays on the list at quantity zero. I'll hide those items in `items()` and update the old assertion the scenario overturns.`items()` now drops a finished item. Expiring still has to list what it listed before, including something at quantity zero, so I\u2019ll point that path at the stored items.A finished item stays in the store and drops off the household list. `Store.items()` now returns only items with some quantity left, which is what `GET /items` lists. The expiring list still walks every stored item, including one at quantity zero.\n\nThe old store test asserted that a used-up loaf stayed listed at quantity zero. The scenario forces that loaf off the list, so that one expected value is now an empty list.\n\n`python3 -m unittest tests.test_hide_used_up` passes, and `python3 -m unittest discover -s tests -t .` passes (13 tests). Changes are uncommitted.\n\n```xv-report\n{\"agent\": \"maker\", \"status\": \"green\", \"summary\": \"The household list omits items whose quantity has reached zero; the expiring list still includes them.\",\n \"moved_tests\": [{\"file\": \"tests/test_store.py\", \"assertion\": \"was: self.assertEqual([(i.name, i.qty) for i in listed], [(\\\"bread\\\", 0)]); now: self.assertEqual([(i.name, i.qty) for i in listed], [])\", \"why\": \"The scenario says using the last of something takes it off the list. The old test asserted a used-up loaf stays listed at quantity zero.\"}],\n \"stop\": null}\n```"
+}

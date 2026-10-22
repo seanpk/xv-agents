@@ -1,0 +1,78 @@
+{
+  "scenario": "forecaster-keys",
+  "increment": 6,
+  "agent": "forecaster",
+  "harness": "grok",
+  "model": "grok-4.7",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T20:43:47.102667+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 19541,
+      "tokens_out": 5157,
+      "cache_read": 36992,
+      "cache_write": 0,
+      "tokens": 61690,
+      "usd": 0.0301,
+      "turns": 2,
+      "wall_s": 65.0,
+      "session": "01a1655b-08b8-7ff0-b5d8-0b935860c722",
+      "step": "forecaster",
+      "at": "2026-10-22T20:44:52+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-forecaster-keys-qvehv3d_/repo/.git/xv/runs/hide-used-up/01-forecaster.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "forecast_uses_same_key",
+      "pass": true,
+      "detail": "no history for ('grok', 'grok-4.7'); tokens: None"
+    },
+    {
+      "name": "forecast_has_shape",
+      "pass": true,
+      "detail": "shape: none"
+    },
+    {
+      "name": "forecaster_read_only",
+      "pass": true,
+      "detail": "changed nothing"
+    },
+    {
+      "name": "stop_asks_for_budget",
+      "pass": true,
+      "detail": "stop: budget_not_set"
+    }
+  ],
+  "passed": 4,
+  "total": 4,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "forecaster",
+    "stop": {
+      "order": "budget_not_set",
+      "seat": "originator",
+      "question": "eval-person: set the budget from the forecast (`xv record set hide-used-up budget ... --by <name>`).",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "budget_not_set",
+        "seat": "originator",
+        "question": "eval-person: set the budget from the forecast (`xv record set hide-used-up budget ... --by <name>`).",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-forecaster-keys-qvehv3d_/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "I'll forecast this slice from the record and the estimation guide only, per harness and model.No history for grok/grok-4.7, the only key on this slice (scenario, maker, cleaner, guardian). Tokens, turns, and dollars stay unset so you can set the first budget by hand.\n\nWall clock is 480 seconds, from the feature rows closest to this list change: `2026-10-08-use-items` on claude/sonnet (420s, small store change, shape none) and `2026-10-14-expiring` on claude/sonnet (540s, one store query and one route, shape none).\n\nShape is none. `GET /items` should drop an item when its quantity hits zero; items with some left stay as they are.\n\n```xv-report\n{\"agent\": \"forecaster\", \"status\": \"done\", \"summary\": \"No history for grok/grok-4.7; wall 480s from use-items and expiring; shape none.\",\n \"forecast\": {\"keys\": [{\"harness\": \"grok\", \"model\": \"grok-4.7\", \"tokens\": null, \"turns\": null, \"usd\": null, \"basis\": [], \"note\": \"no history for grok/grok-4.7\"}],\n              \"wall_s\": 480, \"shape\": \"none\", \"breadth\": \"GET /items drops items at zero quantity; items with some left stay.\"}}\n```"
+}

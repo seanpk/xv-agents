@@ -1,6 +1,6 @@
 # Positions taken by Sean
 
-Where the plan said a position was Sean's, what he decided, and when. A builder's choice is in `docs/decisions.md`; this file holds only what a person with the say decided.
+Where the plan said a position was Sean's, what he decided, and when. A builder's choice is in [`docs/decisions.md`](decisions.md); this file holds only what a person with the say decided.
 
 ## How a learning travels between repos (2026-10-22)
 
@@ -21,4 +21,4 @@ Sean asked what the example is for. The builder's answer, which v0.1 follows: th
 The newcomer review of the README found that someone trying XV alone hits a wall: two-person stops cannot be answered by one person. Sean: "the pitch should come first, yes. a solo mode is good, I was thinking about the need for that already, so we should support it."
 
 - **The pitch comes first.** No slice starts until `.xv/pitch.md` is written.
-- **Solo mode is supported**, as `seats.two_people: solo` in `.xv/config.yml`. How it works is the builder's, in `docs/decisions.md`.
+- **Solo mode is supported**, as `seats.two_people: solo` in `.xv/config.yml`. How it works is the builder's, in [`docs/decisions.md`](decisions.md).

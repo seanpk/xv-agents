@@ -1,0 +1,171 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "grok",
+  "model": "grok-4.7",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T20:12:13.965587+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 19401,
+      "tokens_out": 5360,
+      "cache_read": 36992,
+      "cache_write": 0,
+      "tokens": 61753,
+      "usd": 0.0304,
+      "turns": 2,
+      "wall_s": 68.5,
+      "session": "01a1653e-25cc-7710-aa04-3e48dad0ac43",
+      "step": "forecaster",
+      "at": "2026-10-22T20:13:22+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-sxd3ser5/repo/.git/xv/runs/expiring-today/01-forecaster.out"
+    },
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 29199,
+      "tokens_out": 5771,
+      "cache_read": 266880,
+      "cache_write": 0,
+      "tokens": 301850,
+      "usd": 0.077,
+      "turns": 9,
+      "wall_s": 73.6,
+      "session": "01a1653f-3179-7423-929d-77f11e870f33",
+      "step": "scenario",
+      "at": "2026-10-22T20:14:36+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-sxd3ser5/repo/.git/xv/runs/expiring-today/02-scenario.out"
+    },
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 27449,
+      "tokens_out": 2065,
+      "cache_read": 205824,
+      "cache_write": 0,
+      "tokens": 235338,
+      "usd": 0.0579,
+      "turns": 7,
+      "wall_s": 30.9,
+      "session": "01a16540-5368-74f0-8858-34234995c7c6",
+      "step": "maker",
+      "at": "2026-10-22T20:15:07+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-sxd3ser5/repo/.git/xv/runs/expiring-today/03-maker.out"
+    },
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 33101,
+      "tokens_out": 7219,
+      "cache_read": 146048,
+      "cache_write": 0,
+      "tokens": 186368,
+      "usd": 0.0621,
+      "turns": 5,
+      "wall_s": 87.7,
+      "session": "01a16540-d628-78e1-adcb-84ae303c584e",
+      "step": "cleaner",
+      "at": "2026-10-22T20:16:38+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-sxd3ser5/repo/.git/xv/runs/expiring-today/04-cleaner.out"
+    },
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 89352,
+      "tokens_out": 27840,
+      "cache_read": 1355136,
+      "cache_write": 0,
+      "tokens": 1472328,
+      "usd": 0.3479,
+      "turns": 21,
+      "wall_s": 318.4,
+      "session": "01a16542-36f7-7dc3-b94f-a5f28d1b7eb0",
+      "step": "guardian",
+      "at": "2026-10-22T20:21:59+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-sxd3ser5/repo/.git/xv/runs/expiring-today/05-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": true,
+      "detail": "ran: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_expiring_today.py'], 'command': 'python3 -m unittest tests.test_expiring_today', 'failure': \"AssertionError: Lists differ: [{'name': 'yogurt', 'qty': 1, 'expires_on': '2026-10-23'}] != [{'name': 'milk', 'qty': 1, 'expires_on': '2026-10-2[57 chars]23'}]\", 'watch_first_green': None}"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": true,
+      "detail": "wall baseline: {'commit': '6aa78597e2f0b0d5d2d146da978d06f0e2220000', 'count': 4, 'digest': '7b1fbcc9b0942f6c', 'file': '.xv/slices/expiring-today.wall.json'}"
+    },
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/expiring-today.packet.md"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": true,
+      "detail": "stop: ready_to_merge for originator"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 8,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "expiring-today",
+    "after": "guardian",
+    "stop": {
+      "order": "ready_to_merge",
+      "seat": "originator",
+      "question": "The suite is green and nothing stopped. The merge is yours.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "ready_to_merge",
+        "seat": "originator",
+        "question": "The suite is green and nothing stopped. The merge is yours.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/expiring-today.md",
+    "worktree": "/tmp/xv-eval-watch-headless-sxd3ser5/repo/.xv/worktrees/expiring-today",
+    "packet": ".xv/slices/expiring-today.packet.md"
+  },
+  "final_message": "hat line so a rename matches the existing style.The store change is one comparison, and the new test copies the existing API harness. I'll run the suite to confirm it is green before deciding whether anything still needs a cleanup.Nothing in the slice needs a cleanup, so there is no commit.\n\nThe maker's change is the one comparison in `pantry/store.py`: the soon-window now includes `today`. That line already names its dates `today`, `expires_on`, and `last`, which is the date-naming rule in `.xv/standards.md`. The item in the comprehension is `i`, the same name the other comprehensions in `pantry/` and `tests/` use. There is no `print()`, no dead code, and no new parameter.\n\n`tests/test_expiring_today.py` repeats the HTTP client from `tests/test_api.py` (`setUp`, `tearDown`, and `call`). Sharing that client would add a base class, so the copy stays. The new test still checks the recorded status codes and the full milk-then-yogurt list. The suite was already green: 12 tests.\n\n```xv-report\n{\"agent\": \"cleaner\", \"status\": \"done\", \"summary\": \"No cleanup: the soon-window comparison already uses the project's date names, and the copied HTTP test client would need a new base class to share.\", \"commit\": null, \"applied\": [], \"moved_tests\": [], \"shape_proposals\": [\"A shared fixture for the pantry HTTP test client, because setUp, tearDown, and call in tests/test_expiring_today.py are copied from tests/test_api.py. Left in place: sharing them means a base class, which is a new layer.\"], \"candidate_standards\": []}\n```\n---\nI'll read the slice record, the packet template, and the written picture before I judge the change. The packet is the only file I'll write.The written picture treats the soon-window as already in the store. I'll compare that with the diff, the wall, and the tests that moved.The diff is one comparison inside the store, and the boundary picture adds no edge. I'll write the packet from that and from the pitch, the picture, and the wall.Two citations pointed at blank or neighboring lines. I'll point them at the lines that actually say the thing.The packet is `.xv/slices/expiring-today.packet.md`. Nothing in it needs a second person.\n\nThe change is one comparison in `Store.expiring`: the soon-window now includes the day the household asks (`today <= expires_on`). The boundary picture adds no module, edge, table, outbound call, or surface. That matches the forecast's shape, `none`. The pitch already says the household asks what runs out within a few days. No old test moved. The picture's users, names, routes, and binding decisions still read true. A revert of that line undoes it. The blast radius is the household.\n\n```xv-report\n{\"agent\": \"guardian\", \"status\": \"done\", \"summary\": \"Soon-window includes the ask day inside the store; no shape change, no pitch contradiction, no moved tests.\", \"packet\": \".xv/slices/expiring-today.packet.md\", \"shape_change\": \"no\", \"pitch_contradiction\": \"no\", \"picture_change\": \"no\", \"moved_tests\": 0, \"door\": \"two-way\"}\n```"
+}

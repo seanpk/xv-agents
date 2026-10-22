@@ -1,6 +1,6 @@
 # xv-agents
 
-Skills for the seven agents of Xtreme Vibing (XV): the watch, the forecaster, the scenario agent, the maker, the cleaner, the guardian, and the listener. Three of them work on one change: the maker, the cleaner, and the guardian. Each agent is a skill in the open Agent Skills format, a folder with a `SKILL.md`, so it is meant for any harness that reads skills. v0.1 ran on Claude Code and on opencode with a local model; Codex and Cursor read the same format and were not run. Beside the skills are Python scripts for the parts a check can hold, and GitHub Actions examples that run them in CI.
+Skills for the seven agents of Xtreme Vibing (XV): the watch, the forecaster, the scenario agent, the maker, the cleaner, the guardian, and the listener. Three of them work on one change: the maker, the cleaner, and the guardian. Each agent is a skill in the open Agent Skills format, a folder with a `SKILL.md`, so it is meant for any harness that reads skills. v0.1 ran on Claude Code, on Grok, and on opencode with a local model; Codex and Cursor read the same format and were not run. Beside the skills are Python scripts for the parts a check can hold, and GitHub Actions examples that run them in CI.
 
 It is not a plugin and not any one vendor's subagent format. v0.1 was built from a plan without use. The versions after it are earned by use.
 
@@ -29,7 +29,7 @@ XV has its own words. This README and the method use them from here on.
 | The three agents | The maker, the cleaner and the guardian, three contexts on one change: make it work, make it right, find what the other two would rather not say. |
 | A seat | Who answers a stop. Three seats: the person who set the work going, two people, and the chief engineer. A one-person team declares `seats.two_people: solo`. |
 | The chief engineer | The person who ranks the work and sits with users. The listener's packet from production goes to them. |
-| A standing order, a stop | A rule in `scripts/orders.py` that reads the slice record after a step and says whether a person must answer, and in which seat. A stop ends the watch's turn until they do. |
+| A standing order, a stop | A rule in [`scripts/orders.py`](scripts/orders.py) that reads the slice record after a step and says whether a person must answer, and in which seat. A stop ends the watch's turn until they do. |
 | The door, the blast radius | Two lines in the packet, from Matt Pocock's pull request template: the door is `two-way` when a revert undoes the change and `one-way` when it does not (data migrated, a public contract changed, a message sent to users); the blast radius is one word for how much it can touch. |
 | `xv-init` and `xv init` | A name with a hyphen is a skill, run by asking your agent for it. A name with a space is a command, run in a shell. The skill `xv-init` talks to you and runs the command `xv init` along the way. |
 
@@ -197,12 +197,12 @@ To try XV before your team commits to it, start with `xv init --trial`. It lists
 | Path | What it holds |
 | --- | --- |
 | `skills/<name>/SKILL.md` | One brief per agent and per person-facing skill. The body is the whole prompt of a fresh context. A skill folder may carry a second file the brief points at: the guardian's `packet.md`, the maker's `prototype.md`, xv-init's `outsider-read.md`. |
-| `bin/xv`, `scripts/` | The mechanical parts, Python 3.10 or later, standard library only. `xv` dispatches to one script per command; `xv help` lists them. |
-| `defaults/` | The starter project layer that `xv init` copies into a repo's `.xv/`. |
-| `ci/github/` | Three workflows to copy into an adopting repo: the wall on every pull request, the guardian's packet as a comment, the listener on a schedule. |
-| `docs/` | The protected core (`core.md`), why each brief says what it says (`briefs.md`), the slice record's fields (`slice-record.md`), the harness doc sentences the scripts rely on (`relies-on.md`), what was checked on each harness (`harness-notes.md`), every choice the plan left open (`decisions.md`), and what was borrowed (`borrowed.md`). |
-| `evals/` | A fixture repo, the scenarios, the runner, the grader, and the results. |
-| `tests/` | The scripts' own tests. `cd tests && python3 -m unittest`. |
+| [`bin/xv`](bin/xv), [`scripts/`](scripts/) | The mechanical parts, Python 3.10 or later, standard library only. `xv` dispatches to one script per command; `xv help` lists them. |
+| [`defaults/`](defaults/) | The starter project layer that `xv init` copies into a repo's `.xv/`. |
+| [`ci/github/`](ci/github/) | Three workflows to copy into an adopting repo: the wall on every pull request, the guardian's packet as a comment, the listener on a schedule. |
+| [`docs/`](docs/) | The protected core ([`core.md`](docs/core.md)), why each brief says what it says ([`briefs.md`](docs/briefs.md)), the slice record's fields ([`slice-record.md`](docs/slice-record.md)), the harness doc sentences the scripts rely on ([`relies-on.md`](docs/relies-on.md)), what was checked on each harness ([`harness-notes.md`](docs/harness-notes.md)), every choice the plan left open ([`decisions.md`](docs/decisions.md)), and what was borrowed ([`borrowed.md`](docs/borrowed.md)). |
+| [`evals/`](evals/) | A fixture repo, the scenarios, the runner, the grader, and the results. |
+| [`tests/`](tests/) | The scripts' own tests. `cd tests && python3 -m unittest`. |
 
 ### A brief is the whole prompt
 
@@ -252,14 +252,14 @@ sequenceDiagram
    - after the guardian: the packet exists, passes lint, and says `yes` or `no` to a shape change and a pitch contradiction;
    - after the forecaster and the guardian, which are read-only: nothing changed but their own output;
    - after the scenario agent, the maker and the cleaner: no file only people change was touched (the config, the pitch, the picture, the estimation guide, the rules, the wall's hashes).
-5. Asks the standing orders. `scripts/orders.py` reads the record and the config and returns every order that fired and the one that stops, by seat.
+5. Asks the standing orders. [`scripts/orders.py`](scripts/orders.py) reads the record and the config and returns every order that fired and the one that stops, by seat.
 6. Commits what the step produced on the slice branch, so the history shows what passed the wall.
 
 Exit 0 means go on to the next step. Exit 10 means a person must answer; the JSON on stdout says which order, which seat, and the question. A missing CLI or a failed script is an error, not a stop: the watch says what failed and does not work around it.
 
 ### The slice record
 
-One file per slice, `.xv/slices/<id>.md`, on its own branch `xv/<id>` in a worktree under `.xv/worktrees/`. Fixed fields are front matter so scripts and CI can parse them: who set the work going, the base commit, the forecast and the budget, the red, the wall baseline, each moved test with its reason, the suite's colour, the cleaner's commit, the packet, each step's spend, each stop and who answered it, and the decisions two people made. The scenario, what it may ignore, and the log are the body. The field list is `docs/slice-record.md`. `next` is the step the slice resumes at, so a slice started at a desk can be picked up in CI, or by someone else, from the record alone.
+One file per slice, `.xv/slices/<id>.md`, on its own branch `xv/<id>` in a worktree under `.xv/worktrees/`. Fixed fields are front matter so scripts and CI can parse them: who set the work going, the base commit, the forecast and the budget, the red, the wall baseline, each moved test with its reason, the suite's colour, the cleaner's commit, the packet, each step's spend, each stop and who answered it, and the decisions two people made. The scenario, what it may ignore, and the log are the body. The field list is [`docs/slice-record.md`](docs/slice-record.md). `next` is the step the slice resumes at, so a slice started at a desk can be picked up in CI, or by someone else, from the record alone.
 
 ### The wall
 
@@ -301,7 +301,7 @@ The forecaster reads `.xv/estimation.md`, a list of closed slices keyed by harne
 
 ### Headless and in CI
 
-`xv run <id>` runs from the record's `next` to the first stop and exits 10 with the question. In CI the credentials come from a secret, so `claude -p` needs `ANTHROPIC_API_KEY`; a login session is not available there. The three workflows in `ci/github/` check out this repo at a pinned ref, put `bin/xv` on the path, and run:
+`xv run <id>` runs from the record's `next` to the first stop and exits 10 with the question. In CI the credentials come from a secret, so `claude -p` needs `ANTHROPIC_API_KEY`; a login session is not available there. The three workflows in [`ci/github/`](ci/github/) check out this repo at a pinned ref, put [`bin/xv`](bin/xv) on the path, and run:
 
 - `xv wall check --base <base>` and `xv record guide-verify` on every pull request;
 - `xv guard --base <base>` on every pull request, which runs the guardian on the slice record in the change, or on the bare diff when there is none, posts the packet as a comment, and fails the check only when the packet calls for two people;
@@ -325,13 +325,13 @@ What a team adds to shape the agents for its own system lives in `.xv/`, committ
 | `decisions/` | What two people decided, and who | `xv record answer` |
 | `slices/`, `recordings/` | The records and the packets; a defect's recordings | the watch and the agents |
 
-It may add a rule, a fact, an example or a standing order. It may not relax the core: the contexts kept apart, the scenario agent never the maker, a test moves only with a record, the guardian's four checks, the stops, the may-not lists (`docs/core.md`). `xv check` reports a line that reads as a relaxation, a harness file that would shadow a shared skill, every entry with the miss it came from, and a harness doc sentence a brief relied on that is gone.
+It may add a rule, a fact, an example or a standing order. It may not relax the core: the contexts kept apart, the scenario agent never the maker, a test moves only with a record, the guardian's four checks, the stops, the may-not lists ([`docs/core.md`](docs/core.md)). `xv check` reports a line that reads as a relaxation, a harness file that would shadow a shared skill, every entry with the miss it came from, and a harness doc sentence a brief relied on that is gone.
 
 The shared skills are never edited in place. An upgrade is a copy, not a merge, because every project learning is in `.xv/`. A team that must change a brief copies it under a new name, records why in `.xv/decisions/`, and accepts that the copy no longer receives upgrades.
 
 ### How the agents learn
 
-XV's bet is that a miss turned into a check stops repeating, and a miss turned into a sentence may not. No use is behind that yet. So the main path from a miss to a rule is `xv-retro`, run after a slice that stopped, overran its budget, or drew the same guardian finding twice: a fresh context proposes candidates, each tied to a moment in a slice record, and a person picks. A check becomes a slice like any other. A judgement call becomes a line in the standards file. An Open learning seen twice is promoted inside the repo with `xv promote local`, and shared across repos as an issue on this repo with `xv promote draft` and `post`, which is the only command here that writes in public, and only with a person's approval. A change to a brief, a may-not list or a standing order takes two people and a line in `CHANGELOG.md`.
+XV's bet is that a miss turned into a check stops repeating, and a miss turned into a sentence may not. No use is behind that yet. So the main path from a miss to a rule is `xv-retro`, run after a slice that stopped, overran its budget, or drew the same guardian finding twice: a fresh context proposes candidates, each tied to a moment in a slice record, and a person picks. A check becomes a slice like any other. A judgement call becomes a line in the standards file. An Open learning seen twice is promoted inside the repo with `xv promote local`, and shared across repos as an issue on this repo with `xv promote draft` and `post`, which is the only command here that writes in public, and only with a person's approval. A change to a brief, a may-not list or a standing order takes two people and a line in [`CHANGELOG.md`](CHANGELOG.md).
 
 ```mermaid
 flowchart LR
@@ -347,7 +347,7 @@ flowchart LR
 
 ### What was checked on each harness
 
-Claude Code runs a brief as the whole prompt, reports spend in its JSON result, and refuses writes under `.git/`, which is why worktrees live in `.xv/`. opencode cannot drop its own system prompt, so the brief arrives after about 17,800 tokens of opencode's; it reports spend through `opencode session export`. codex has the flags and was not run. Playwright's test agents install without the healer, which repairs a failing test by editing it, the move the wall exists to stop. Versions, dates and what each line rests on are in `docs/harness-notes.md`; the doc sentences the scripts depend on are in `docs/relies-on.md`, and a weekly workflow opens an issue here when one is gone.
+Claude Code runs a brief as the whole prompt, reports spend in its JSON result, and refuses writes under `.git/`, which is why worktrees live in `.xv/`. opencode cannot drop its own system prompt, so the brief arrives after about 17,800 tokens of opencode's; it reports spend through `opencode session export`. codex has the flags and was not run. Playwright's test agents install without the healer, which repairs a failing test by editing it, the move the wall exists to stop. Versions, dates and what each line rests on are in [`docs/harness-notes.md`](docs/harness-notes.md); the doc sentences the scripts depend on are in [`docs/relies-on.md`](docs/relies-on.md), and a weekly workflow opens an issue here when one is gone.
 
 ## Install
 
@@ -360,13 +360,13 @@ python3 ~/src/xv-agents/bin/xv install
 
 To give a whole team the skills through the repo instead, run `xv install --scope project` in it and commit the result. It copies the skills into the repo's agent folders (`.agents/skills` and `.claude/skills` when it has none), each with a mark of its version, so a later install replaces a copy nobody edited and refuses one somebody did, and `xv check` reports a stale or edited copy. Everyone still needs `xv` on their `PATH` from a user install. In Claude Code a person's own skill wins over the project's, and `xv check` says when both are installed.
 
-`gh skill install seanpk/xv-agents --all` and `npx skills add` also install skills from a GitHub repo. They copy the skills but not `bin/xv`, and `gh skill install --force` overwrites a local edit without warning (checked with `gh` 2.102.0, where `gh skill` is a preview; `npx skills` was not checked).
+`gh skill install seanpk/xv-agents --all` and `npx skills add` also install skills from a GitHub repo. They copy the skills but not [`bin/xv`](bin/xv), and `gh skill install --force` overwrites a local edit without warning (checked with `gh` 2.102.0, where `gh skill` is a preview; `npx skills` was not checked).
 
 Python 3.10 or later, standard library only. The default agent CLI is Claude Code (`claude -p`); `.xv/config.yml` names a CLI per step: opencode with a local model, or Grok.
 
 ## What the evals show
 
-Every increment was built with an eval against a fixture repo (`evals/fixture/`, a small pantry app) that has a known slice, a known defect, a known pitch contradiction, and a test the maker will want to move. Each scenario runs with the skill and without it, on Claude Code with Sonnet and on opencode with `gpt-oss:20b` on a local GPU. One run per cell, so the numbers are counts, not rates. The table, every run, and what each earlier run found are in `evals/results/README.md`.
+Every increment was built with an eval against a fixture repo ([`evals/fixture/`](evals/fixture/), a small pantry app) that has a known slice, a known defect, a known pitch contradiction, and a test the maker will want to move. Each scenario runs with the skill and without it, on Claude Code with Sonnet and on opencode with `gpt-oss:20b` on a local GPU. One run per cell, so the numbers are counts, not rates. The table, every run, and what each earlier run found are in [`evals/results/README.md`](evals/results/README.md).
 
 The v0.1 run, all thirteen scenarios, assertions passed:
 
@@ -374,17 +374,20 @@ The v0.1 run, all thirteen scenarios, assertions passed:
 | --- | --- | --- |
 | Claude Code, Sonnet | 80 of 84 | 43 of 73 |
 | opencode, `gpt-oss:20b` | 72 of 84 | 36 of 73 |
+| Grok, `grok-4.7` | 84 of 84 | 46 of 73 |
+
+Grok always loads the person's own home rules and skills, so its baseline ran on top of one person's setup, not on a bare model.
 
 - Without the briefs, neither model recorded a moved test, named the pitch in a review, or stopped a change for two people. With them, both did. Both arms usually made the code work; the difference is in the record and the stops.
-- Without its brief, the maker changed the old test to get green and recorded nothing, on both harnesses, and the wall check fails that. With the brief, both makers recorded the move.
-- The headless watch ran a defect slice from the forecast to the packet on both harnesses and merged nothing. On opencode the guardian ended without a report, and the watch stopped for the person instead of guessing.
-- The local model was weakest as the scenario agent: from words and from a HAR file it wrote no red. Increment 1's run had two cells below their baseline, both explained in `evals/results/inc1.md`.
+- Without its brief, the maker changed the old test to get green and recorded nothing, on all three harnesses, and the wall check fails that. With the brief, every maker recorded the move.
+- The headless watch ran a defect slice from the forecast to the packet on all three harnesses and merged nothing. On opencode the guardian ended without a report, and the watch stopped for the person instead of guessing.
+- The local model was weakest as the scenario agent: from words and from a HAR file it wrote no red. Increment 1's run had two cells below their baseline, both explained in [`evals/results/inc1.md`](evals/results/inc1.md).
 - Three Claude cells that missed one assertion passed in full on a rerun the same day. Small gaps here are noise.
 
 ## Status
 
-v0.1, built 2026-10-21 and 2026-10-22, not yet used on a real slice. No brief or standing order in it has been agreed by two people. What is untested is listed in `docs/harness-notes.md`; every choice the plan left open is in `docs/decisions.md`; the positions Sean took while it was built are in `docs/positions.md`.
+v0.1, built 2026-10-21 and 2026-10-22, not yet used on a real slice. No brief or standing order in it has been agreed by two people. What is untested is listed in [`docs/harness-notes.md`](docs/harness-notes.md); every choice the plan left open is in [`docs/decisions.md`](docs/decisions.md); the positions Sean took while it was built are in [`docs/positions.md`](docs/positions.md).
 
 ## Credits and license
 
-MIT. The nearest neighbour to XV is Matt Pocock's `mattpocock/skills` (MIT): make it work and make it right in separate contexts, a standards file only the reviewer reads, findings that cite a rule, the door line in a pull request. Several briefs borrow from it, with credit in the brief. Everything borrowed, and from where, is in `docs/borrowed.md`.
+MIT. The nearest neighbour to XV is Matt Pocock's `mattpocock/skills` (MIT): make it work and make it right in separate contexts, a standards file only the reviewer reads, findings that cite a rule, the door line in a pull request. Several briefs borrow from it, with credit in the brief. Everything borrowed, and from where, is in [`docs/borrowed.md`](docs/borrowed.md).

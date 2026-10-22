@@ -1,0 +1,76 @@
+{
+  "scenario": "scenario-har",
+  "increment": 3,
+  "agent": "scenario",
+  "harness": "grok",
+  "model": "grok-4.7",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T20:25:44.953165+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 63257,
+      "tokens_out": 5448,
+      "cache_read": 272128,
+      "cache_write": 0,
+      "tokens": 340833,
+      "usd": 0.1004,
+      "turns": 10,
+      "wall_s": 62.5,
+      "session": "01a1654a-8597-7162-a916-e8dee9767278",
+      "step": "scenario",
+      "at": "2026-10-22T20:26:47+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-scenario-har-_99w51ae/repo/.git/xv/runs/expiring-today/01-scenario.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "red_replays_recording",
+      "pass": true,
+      "detail": "uses the recording's milk and date"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_expiring_today.py'], 'command': 'python3 -m unittest tests.test_expiring_today', 'failure': \"AssertionError: Lists differ: [{'name': 'yogurt', 'qty': 1, 'expires_on': '2026-10-23'}] != [{'name': 'milk', 'qty': 1, 'expires_on': '2026-10-21'}, {'name': 'yogurt', 'qty': 1, 'expires_on': '2026-10-23'}]\", 'watch_first_green': None}"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status red"
+    }
+  ],
+  "passed": 6,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "expiring-today",
+    "after": "scenario",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/expiring-today.md",
+    "worktree": "/tmp/xv-eval-scenario-har-_99w51ae/repo/.xv/worktrees/expiring-today"
+  },
+  "final_message": "I'll read the slice record and the repo's test rules first, then write a failing test that matches the scenario.The defect is recorded as an API sequence. I'll turn that recording into a test that starts the app the same way the existing suite does.The recording\u2019s GET returns only yogurt. The scenario says milk that runs out today must be in that list too, so I\u2019ll assert that and start the app the way the other API tests do.The household's request for what runs out within three days on 2026-10-21 returns only yogurt. Milk, which runs out that same day, is absent. `tests/test_expiring_today.py` replays the recording: add milk (`2026-10-21`), add yogurt (`2026-10-23`), then `GET /items/expiring?days=3&today=2026-10-21`. It expects both items. The two adds return 201, and the list assertion fails because milk is missing.\n\n```xv-report\n{\"agent\": \"scenario\", \"status\": \"red\", \"summary\": \"What runs out within three days on 2026-10-21 omits milk that runs out that day.\",\n \"red\": {\"files\": [\"tests/test_expiring_today.py\"], \"command\": \"python3 -m unittest tests.test_expiring_today\", \"failure\": \"AssertionError: Lists differ: [{'name': 'yogurt', 'qty': 1, 'expires_on': '2026-10-23'}] != [{'name': 'milk', 'qty': 1, 'expires_on': '2026-10-21'}, {'name': 'yogurt', 'qty': 1, 'expires_on': '2026-10-23'}]\",\n         \"watch_first_green\": null}}\n```"
+}

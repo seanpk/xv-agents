@@ -1,0 +1,80 @@
+{
+  "scenario": "guardian-moves",
+  "increment": 4,
+  "agent": "guardian",
+  "harness": "grok",
+  "model": "grok-4.7",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T20:32:19.200438+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 45283,
+      "tokens_out": 6405,
+      "cache_read": 328832,
+      "cache_write": 0,
+      "tokens": 380520,
+      "usd": 0.0998,
+      "turns": 8,
+      "wall_s": 82.8,
+      "session": "01a16550-89ca-70b3-b901-b4198ccd946b"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "review.md"
+    },
+    {
+      "name": "shape_not_flagged",
+      "pass": false,
+      "detail": "packet: shape_change: None"
+    },
+    {
+      "name": "pitch_not_flagged",
+      "pass": false,
+      "detail": "packet: pitch_contradiction: None"
+    },
+    {
+      "name": "moved_test_listed",
+      "pass": true,
+      "detail": "both moved test files listed"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": false,
+      "detail": "no boundary picture"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    },
+    {
+      "name": "stop_accept_moves",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I'll review the branch against `main` and write the findings to `review.md` only. First I'm loading the review skill and reading the diff.The working tree is clean, so this is a branch review against `main`. I'll read the reviewer persona and the full diff before writing `review.md`.The diff is a wording change plus two test updates. I'll read the store, the API, and the tests to see whether every path that shows this error was updated.The wording change is small. I'll run the tests to confirm the new message is what both the store and the API actually return.The branch is fine to merge. The review is in `review.md`.\n\n`Store.add` now raises \"Quantity must be a whole number above zero\" instead of \"qty must be a positive whole number\". The API still returns that text as the 400 body, and both exact-string tests were updated to match. The check itself is unchanged, and the new sentence matches it. No other copy of the old wording remains. All 11 tests passed. No issues."
+}

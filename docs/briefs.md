@@ -1,6 +1,6 @@
 # Why each brief says what it says
 
-The briefs are the skills' `SKILL.md` files. This page gives the reason for the lines that are not obvious, so a team that wants to change one knows what it would give up. A change to a brief is a change to what an agent is; it takes two people and a line in `CHANGELOG.md`.
+The briefs are the skills' `SKILL.md` files. This page gives the reason for the lines that are not obvious, so a team that wants to change one knows what it would give up. A change to a brief is a change to what an agent is; it takes two people and a line in [`CHANGELOG.md`](../CHANGELOG.md).
 
 ## Every brief
 
@@ -13,7 +13,7 @@ The briefs are the skills' `SKILL.md` files. This page gives the reason for the 
 
 - **It shells out to `xv step` for every step** rather than doing a step's work, so the per-step CLI, the caps and the spend capture hold on every harness.
 - **On a stop it ends its turn.** No polling, no retry, no reading silence as an answer. The question sits in the record and in front of the seat.
-- **It does not interpret the standing orders.** They are in `scripts/orders.py`; the brief lists them for the person's sake only. An agent that reads a prose order can talk itself past it.
+- **It does not interpret the standing orders.** They are in [`scripts/orders.py`](../scripts/orders.py); the brief lists them for the person's sake only. An agent that reads a prose order can talk itself past it.
 
 ## The forecaster
 

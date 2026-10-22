@@ -1,0 +1,55 @@
+{
+  "scenario": "forecaster-keys",
+  "increment": 6,
+  "agent": "forecaster",
+  "harness": "grok",
+  "model": "grok-4.7",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T20:44:52.185832+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 58219,
+      "tokens_out": 11286,
+      "cache_read": 634368,
+      "cache_write": 0,
+      "tokens": 703873,
+      "usd": 0.1705,
+      "turns": 16,
+      "wall_s": 138.2,
+      "session": "01a1655c-06d8-7150-b426-94e95b7de0af"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "forecast_uses_same_key",
+      "pass": true,
+      "detail": "says there is no history for this key"
+    },
+    {
+      "name": "forecast_has_shape",
+      "pass": true,
+      "detail": "names the expected shape change"
+    },
+    {
+      "name": "forecaster_read_only",
+      "pass": true,
+      "detail": "changed nothing"
+    },
+    {
+      "name": "stop_asks_for_budget",
+      "pass": false,
+      "detail": "stop: None"
+    }
+  ],
+  "passed": 3,
+  "total": 4,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I'll estimate the spend for this task from the team's past log and a look at the code the change would touch.There is no history for grok/grok-4.7, so tokens, turns, and dollars stay unset. The engineer sets the first budget by hand.\n\nThe log has five closed rows. None are this harness and model. Token counts do not transfer across keys, and the log does not record turns at all, so there is nothing to forecast those three from.\n\nWall clock does compare across keys. The nearest row is `2026-10-08-use-items` on claude/sonnet: a small change inside the store, one round, 420 seconds, shape `none`. The next feature row, `2026-10-14-expiring`, was a new query and one route and took 540 seconds, also shape `none`. This task is the smaller of those two.\n\n**Shape:** `none`. **Breadth:** the list drops an item once the household uses the last of it. The store and the routes stay as they are.\n\n**Wall clock:** 420 seconds.\n\n```xv-report\n{\"agent\": \"forecaster\", \"status\": \"done\", \"summary\": \"No history for grok/grok-4.7; tokens, turns, and dollars stay unset.\",\n \"forecast\": {\"keys\": [{\"harness\": \"grok\", \"model\": \"grok-4.7\", \"tokens\": null, \"turns\": null, \"usd\": null, \"basis\": [], \"note\": \"no history for grok/grok-4.7\"}],\n              \"wall_s\": 420, \"shape\": \"none\", \"breadth\": \"The list drops an item once it is used up. The store and the routes stay as they are.\"}}\n```"
+}

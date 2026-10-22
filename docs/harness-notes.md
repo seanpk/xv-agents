@@ -32,11 +32,11 @@ Versions: Claude Code 2.1.302, opencode 2.0.32 with Ollama serving `gpt-oss:20b`
 
 ## Is a pre-commit hook plus a CI check enough wall without tool-level hooks?
 
-v0.1 uses three layers on every harness: the maker's brief forbids an unrecorded move in words, `xv wall check` runs after the maker and the cleaner and stops the slice, and the same check runs as a pre-commit hook on slice branches and in CI (`ci/github/xv-wall.yml`). No harness-specific hook is needed. Whether the words add anything over the checks is for the evals and for use to say.
+v0.1 uses three layers on every harness: the maker's brief forbids an unrecorded move in words, `xv wall check` runs after the maker and the cleaner and stops the slice, and the same check runs as a pre-commit hook on slice branches and in CI ([`ci/github/xv-wall.yml`](../ci/github/xv-wall.yml)). No harness-specific hook is needed. Whether the words add anything over the checks is for the evals and for use to say.
 
 ## Flags hidden from `--help`
 
-`--max-turns` is not listed by `claude --help` in 2.1.308, but the CLI reference documents it and the CLI accepts it: checked 2026-10-22 with `--max-turns 1`, which ran one turn. `docs/relies-on.md` watches the docs sentence.
+`--max-turns` is not listed by `claude --help` in 2.1.308, but the CLI reference documents it and the CLI accepts it: checked 2026-10-22 with `--max-turns 1`, which ran one turn. [`docs/relies-on.md`](relies-on.md) watches the docs sentence.
 
 ## Claude Code refuses writes under `.git/`
 
@@ -53,6 +53,6 @@ Checked 2026-10-21 with Playwright 1.64.1.
 
 ## `gh skill install` and `npx skills add`
 
-- **`gh skill install` handles this repo's shape.** Checked 2026-10-21 with `gh skill install <path> --from-local --all --agent claude-code --scope project`: it found all the skills under `skills/`, copied each folder with its supporting files (the guardian's `packet.md`, the maker's `prototype.md`), and rewrote each `SKILL.md`'s front matter, adding `metadata.local-path`. It does not install `bin/xv` or `scripts/`, so the skills need the clone on `PATH` either way.
+- **`gh skill install` handles this repo's shape.** Checked 2026-10-21 with `gh skill install <path> --from-local --all --agent claude-code --scope project`: it found all the skills under [`skills/`](../skills/), copied each folder with its supporting files (the guardian's `packet.md`, the maker's `prototype.md`), and rewrote each `SKILL.md`'s front matter, adding `metadata.local-path`. It does not install [`bin/xv`](../bin/xv) or [`scripts/`](../scripts/), so the skills need the clone on `PATH` either way.
 - **A reinstall refuses to overwrite without `--force`, and `--force` overwrites a local edit with no warning.** Checked by editing an installed `SKILL.md` and installing again. This is why the project layer lives in `.xv/` and never in a skill's folder.
 - **`npx skills add`**: its help lists `add`, `update` and a lock file. Not checked against this repo.

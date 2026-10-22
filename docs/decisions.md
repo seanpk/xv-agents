@@ -1,20 +1,20 @@
 # Builder's decisions
 
-Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a two-way door unless it says otherwise: v0.2 can change it from what first use shows. Positions the plan marks as Sean's are not here; they are in `docs/positions.md`. "The dispositions" below are XV's method notes, which are not published with this repo.
+Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a two-way door unless it says otherwise: v0.2 can change it from what first use shows. Positions the plan marks as Sean's are not here; they are in [`docs/positions.md`](positions.md). "The dispositions" below are XV's method notes, which are not published with this repo.
 
 ## Increment 1: skeleton, briefs, record, the watch from a session
 
 1. **Front matter is YAML whose values are JSON.** One `key: value` per line; a value that starts with `[`, `{` or `"` is JSON, anything else is a bare scalar. Every file is valid YAML, and the scripts parse it with the standard library. Lists of objects (moved tests, spend, stops) are one JSON line each, which keeps a diff of the record readable line by line.
-2. **`.xv/config.yml` is parsed by a small subset parser** (`scripts/xvlib.py`): nested maps by two-space indent, block lists, inline JSON lists. No anchors, no multi-line strings. It fails loudly on anything else. The file keeps the plan's name.
-3. **One entry point, `bin/xv`.** Skills call `xv <command>`, never a path into the clone, so they work whether a harness resolves the skill symlink or not. Install puts `bin/xv` on `PATH`. In CI, the workflow checks out this repo and adds `bin/` to `PATH`.
+2. **`.xv/config.yml` is parsed by a small subset parser** ([`scripts/xvlib.py`](../scripts/xvlib.py)): nested maps by two-space indent, block lists, inline JSON lists. No anchors, no multi-line strings. It fails loudly on anything else. The file keeps the plan's name.
+3. **One entry point, [`bin/xv`](../bin/xv).** Skills call `xv <command>`, never a path into the clone, so they work whether a harness resolves the skill symlink or not. Install puts [`bin/xv`](../bin/xv) on `PATH`. In CI, the workflow checks out this repo and adds [`bin/`](../bin/) to `PATH`.
 4. **A worker runs as a separate CLI call by default (`xv step`)**, not as a harness subagent. It is the only way the per-step CLI in `.xv/config.yml`, the budget caps and the spend capture hold on every harness. A team can set a step to `session` to run it in its own harness's subagent, with the prompt from `xv prompt`.
 5. **Claude Code runs a brief as the whole user prompt with `claude -p --safe-mode --disable-slash-commands`.** Claude Code's own system prompt stays; the person's and the project's additions are gone. `--safe-mode` keeps CLAUDE.md, plugins, hooks and MCP servers out and still uses the person's login. `--bare` does the same but needs an API key. Verified 2026-10-21: in safe mode the model reports no CLAUDE.md in its context.
 6. **Workers report with a fenced `xv-report` JSON block** at the end of their final message. `xv record report` applies it. A step with no block is a stop (`no_report`): the watch does not guess what a worker did.
 7. **The watch commits each step's work on the slice branch; the cleaner commits its own fix; nobody merges.** Commit messages start `xv(<slice id>):`. This follows the orchestrator contract the plan borrows (the orchestrator owns git) and keeps the dispositions' rule that the cleaner commits.
 8. **Each slice gets a branch `xv/<id>` and its own worktree.** First under `.git/xv/worktrees/<id>`; moved in increment 2 (see 24).
 9. **The slice record lives on the slice branch** and merges with the change, so CI on the pull request reads the same record the watch wrote.
-10. **The checks after each step are written into the record (`checks`), and the standing orders read only the record.** `scripts/orders.py` is a pure function of the record and the config, so CI, a test, or a person can re-run it and get the same answer.
-11. **The standing orders live in `scripts/orders.py`.** The plan names the orders; one file holds them all, so a change to any order is one reviewable diff and one CHANGELOG line.
+10. **The checks after each step are written into the record (`checks`), and the standing orders read only the record.** [`scripts/orders.py`](../scripts/orders.py) is a pure function of the record and the config, so CI, a test, or a person can re-run it and get the same answer.
+11. **The standing orders live in [`scripts/orders.py`](../scripts/orders.py).** The plan names the orders; one file holds them all, so a change to any order is one reviewable diff and one CHANGELOG line.
 12. **`xv run` and `xv step` exit 10 whenever a person must act**, including "green, nothing stopped: the merge is yours". Exit 0 means there is nothing left to do. Exit 2 is an error or a refusal. CI treats 10 as a neutral result with a packet, not a failure.
 13. **A missing or malformed packet sets both fixed fields to `yes`.** A broken review waits for people, never for no one.
 14. **A stop for two people needs two names.** `xv record answer` refuses one name, and writes the decision record in `.xv/decisions/` with who took part.
@@ -25,7 +25,7 @@ Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a t
 19. **Tokens are counted as input + output + cache read + cache write.** Every harness reports these four, and the sum is what the model processed. Dollars are recorded beside them where the harness reports dollars, and left null where it does not, never estimated.
 20. **The estimation key is the harness plus the model as `.xv/config.yml` names it** (`claude`/`sonnet`). The model id the harness reports is kept beside it in the record. A team that wants each key to mean one exact model pins full model ids in its config.
 21. **The defaults name a model per step**: a small model for the forecaster, the strongest for the guardian, a mid model for the rest. Teams change them. The evals use one model per harness for every step, to keep the comparison between harnesses about the briefs.
-22. **The fixture is a small Python standard library app** (`evals/fixture/`, a household pantry with a JSON API), so the evals run anywhere Python runs. Its reds are API sequences through `unittest` and `urllib`. Playwright is covered by the scenario brief and checked separately (increment 3).
+22. **The fixture is a small Python standard library app** ([`evals/fixture/`](../evals/fixture/), a household pantry with a JSON API), so the evals run anywhere Python runs. Its reds are API sequences through `unittest` and `urllib`. Playwright is covered by the scenario brief and checked separately (increment 3).
 23. **One sample per eval cell in v0.1.** The report shows counts per assertion, not rates. A noise band needs repeated runs, and the plan's hypotheses name thirty slices; that is v0.2's job, with use.
 
 ## Increment 2: the test wall and the headless watch
@@ -82,7 +82,7 @@ Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a t
 
 ## Increment 8: xv-check and xv-promote
 
-The cross-repo mechanism is Sean's, in `docs/positions.md`. The choices below are how it was built.
+The cross-repo mechanism is Sean's, in [`docs/positions.md`](positions.md). The choices below are how it was built.
 
 58. **A learning issue is marked by its title, "Learning: ...", not by a label.** People without write access to the shared repo cannot set labels from the CLI, so a script cannot rely on one. Maintainers may add `learning` and `stack:` labels by hand.
 59. **A sighting is a block with a fixed heading**, `### Sighting: <repo> · <date> · id <8 hex>`, in the issue body or a comment, so `xv promote tally` can count distinct repos. The id is a hash of the repo's remote URL: a repo that leaves its name out is still counted once.
@@ -92,7 +92,7 @@ The cross-repo mechanism is Sean's, in `docs/positions.md`. The choices below ar
 63. **The shared repo's side is a tally and a skill section, not a script that edits briefs.** Writing a learning into a brief is a change to an agent: two people and a CHANGELOG line.
 64. **Local promotion is a person's command**: `xv promote local --accept <entry> --to standards|rules --by <name>` moves an Open learning seen twice and logs it under Promoted.
 65. **`xv check relaxations` matches phrases**, so it can raise a false alarm; the skill says to read each hit. A miss is worse than a false alarm here.
-66. **The drift check reads each harness's public docs page** for the exact sentences in `docs/relies-on.md`, ignoring case and whitespace. This repo's CI runs it weekly and opens an issue for a sentence that is gone.
+66. **The drift check reads each harness's public docs page** for the exact sentences in [`docs/relies-on.md`](relies-on.md), ignoring case and whitespace. This repo's CI runs it weekly and opens an issue for a sentence that is gone.
 67. **`xv adapt` names generated files `xv-<agent>`** and marks each with the skill's digest, so a generated file never shadows a skill and `xv check` can tell current from stale.
 
 ## Increment 9: parallel prototypes
@@ -108,7 +108,7 @@ The cross-repo mechanism is Sean's, in `docs/positions.md`. The choices below ar
 A fresh context reviewed the repo against the plan on 2026-10-22. Its correctness findings were fixed; what it found missing is decided here.
 
 73. **The record's home is the file in v0.1.** The plan allows a pull request or an issue as the home "through record.py adapters". v0.1 ships the file home and `xv record export`, which renders the record as a pull request body one way. Two-way adapters wait for a team that keeps its records elsewhere: `record_home` is read by nothing yet.
-74. **No migration code yet.** Nothing in `.xv/` has been renamed, so there is nothing to migrate. A version that renames a file will carry its steps in `CHANGELOG.md`; `xv init` already adds new default files without touching existing ones.
+74. **No migration code yet.** Nothing in `.xv/` has been renamed, so there is nothing to migrate. A version that renames a file will carry its steps in [`CHANGELOG.md`](../CHANGELOG.md); `xv init` already adds new default files without touching existing ones.
 75. **The Open list's dated prune is a listing, not a deletion.** `xv promote local` lists Open learnings seen once and not since 90 days; a person deletes or keeps each.
 76. **"The diff keeps growing" is measured across the maker's runs.** The maker stops itself on a growing diff; the watch also fires when the diff more than doubles between two runs of the maker on one slice, and when it passes `limits.max_diff_lines` if the team set one.
 77. **One token count everywhere**: input, output, cache read and cache write, in the guide, the budget and the retro (see 19). The retro's "overran" compares the maker's spend with the budget, as the budget order does.
@@ -126,7 +126,7 @@ A fresh context reviewed the repo against the plan on 2026-10-22. Its correctnes
 
 ## Grok in the benchmark
 
-86. **Grok is the third harness**, as a person has it installed: `grok -p` with `grok-4.7`, JSON output, tools approved, and no subagents, since the Claude workers have no subagent tool either. Grok cannot leave out the person's home rules and skills (see `docs/harness-notes.md`), so on Grok the brief is not the whole prompt. Isolating it would mean a second `GROK_HOME` holding a copy of the person's login; the evals do not do that.
+86. **Grok is the third harness**, as a person has it installed: `grok -p` with `grok-4.7`, JSON output, tools approved, and no subagents, since the Claude workers have no subagent tool either. Grok cannot leave out the person's home rules and skills (see [`docs/harness-notes.md`](harness-notes.md)), so on Grok the brief is not the whole prompt. Isolating it would mean a second `GROK_HOME` holding a copy of the person's login; the evals do not do that.
 87. **A harness whose prompt is a flag's value keeps the pair together.** The turn cap goes before `-p`, not between `-p` and the prompt.
 
 ## Install, and a trial before adopting

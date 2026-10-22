@@ -1,0 +1,80 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "grok",
+  "model": "grok-4.7",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T20:03:27.276531+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "grok",
+      "model": "grok-4.7",
+      "model_id": "grok-4.7-build",
+      "tokens_in": 61340,
+      "tokens_out": 16179,
+      "cache_read": 633216,
+      "cache_write": 0,
+      "tokens": 710735,
+      "usd": 0.1824,
+      "turns": 13,
+      "wall_s": 222.6,
+      "session": "01a16536-1c31-7a91-8f30-1c759efbd008"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "review.md"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": false,
+      "detail": "no pitch conflict named"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": false,
+      "detail": "no shape change named"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": false,
+      "detail": "no pitch line cited"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": true,
+      "detail": "the boundary picture is in the packet"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    }
+  ],
+  "passed": 4,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I'll review the branch diff against main and write the review only to `review.md`. First I'm loading the review skill and reading the change.The branch is clean against main. I'll read the reviewer persona and the full diff so the notes in `review.md` cover the actual change.The diff is small. I'll read the handler, store, and tests around it so findings are about real behavior, not just the patch.The low-stock filter matches the scenario. Two call-path failures do not: a missing token is reported as a missing item, and a GroceryNow error drops the connection. I'll write that up in `review.md`.The review is in `review.md`. Do not merge this as-is.\n\n`POST /share` sends items with quantity 0 or 1 to GroceryNow, and that filter is right. Two bugs are on the new call:\n\n- A missing token is returned as `404 {\"error\": \"no item 'token'\"}` because `body[\"token\"]` hits the existing `KeyError` handler.\n- A GroceryNow `URLError`, `HTTPError`, or timeout is uncaught, so the device gets a dropped connection and no JSON body. The slice skips retries; it does not cover this missing error response.\n\nThe new unit test passes without checking that higher-stock items are excluded, that the bearer token is sent, or that the HTTP route exists. `urllib` will also forward that bearer token across a redirect."
+}
