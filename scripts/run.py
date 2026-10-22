@@ -502,6 +502,21 @@ def detect_tests(root):
     return "", ["tests/**", "test/**", "spec/**"]
 
 
+def source_roots(root, test_paths):
+    """One top-level folder holding all the code is the root, so its files become the modules."""
+    import boundary as b
+    cfg = {"source": {"roots": ["."], "exclude": ["node_modules/**", "vendor/**", ".git/**", ".xv/**"]},
+           "tests": {"paths": test_paths}}
+    from xvlib import tracked_files
+    files = b.source_files(tracked_files(root), cfg)
+    tops = {f.split("/")[0] for f in files if "/" in f}
+    if len(tops) == 1 and all("/" in f for f in files):
+        return [tops.pop()]
+    if os.path.isdir(os.path.join(root, "src")) and any(f.startswith("src/") for f in files):
+        return ["src"] + sorted(t for t in tops if t != "src" and t in ("lib", "app"))
+    return ["."]
+
+
 def repo_identity(root):
     """The repo's name and GitHub description, for what it shares. Read-only."""
     try:
@@ -540,6 +555,7 @@ def cmd_init(a):
         text = open(cfg).read()
         text = text.replace('  command: ""', f"  command: {json.dumps(command)}", 1)
         text = text.replace('paths: ["tests/**"]', f"paths: {json.dumps(paths)}")
+        text = text.replace('  roots: ["."]', f"  roots: {json.dumps(source_roots(root, paths))}", 1)
         text = text.replace('  name: ""', f"  name: {json.dumps(name)}", 1)
         text = text.replace('  description: ""', f"  description: {json.dumps(description)}", 1)
         open(cfg, "w").write(text)

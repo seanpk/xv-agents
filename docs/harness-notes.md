@@ -2,7 +2,7 @@
 
 What was checked on each harness while building v0.1, against the unknowns the plan listed. Each line says how it was checked and when. A line that says "not checked" is a guess, and `xv check drift` cannot watch it.
 
-Versions: Claude Code 2.1.302, opencode 2.0.32 with Ollama serving `gpt-oss:20b`, codex-cli 0.163.0, gh 2.x with `gh skill` in preview. Checked 2026-10-21.
+Versions: Claude Code 2.1.302, opencode 2.0.32 with Ollama serving `gpt-oss:20b`, codex-cli 0.163.0, gh 2.102.0 with `gh skill` in preview, Playwright 1.64.1. Checked 2026-10-21.
 
 ## Can a brief be the whole prompt of a fresh context?
 
