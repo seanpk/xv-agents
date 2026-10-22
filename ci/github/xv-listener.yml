@@ -1,0 +1,57 @@
+# The listener on a schedule. Copy to .github/workflows/xv-listener.yml.
+#
+# Gathers errors, usage and user feedback from the sources in .xv/config.yml,
+# runs the listener brief over them, and opens a pull request that adds the
+# packet file for the chief engineer to read. It does not open issues in the
+# value queue, and it fails if the packet ranks.
+name: xv listener
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"     # Mondays, 07:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  listen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get xv-agents
+        uses: actions/checkout@v4
+        with:
+          repository: seanpk/xv-agents
+          ref: v0.1.0
+          path: .xv-agents
+
+      - name: Put xv on PATH, and the agent CLI
+        run: |
+          echo "$GITHUB_WORKSPACE/.xv-agents/bin" >> "$GITHUB_PATH"
+          npm install -g @anthropic-ai/claude-code
+
+      - name: The listener
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
+        run: xv listen run
+
+      - name: Hand the packet to the chief engineer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHIEF: ${{ vars.XV_CHIEF_ENGINEER }}
+        run: |
+          day=$(date -u +%F)
+          git config user.name "xv listener"
+          git config user.email "xv-listener@users.noreply.github.com"
+          git checkout -b "xv/packet-$day"
+          git add ".xv/slices/packet-$day.md"
+          git commit -m "xv: the packet from production, $day"
+          git push -u origin "xv/packet-$day"
+          gh pr create --title "The packet from production, $day" \
+            --body "The listener's packet for the chief engineer. It is not ranked; the ranking is the chief engineer's." \
+            ${CHIEF:+--reviewer "$CHIEF"}

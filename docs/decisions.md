@@ -71,3 +71,11 @@ Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a t
 50. **Wall clock is the watch's own clock around each CLI call**, the same measure on every harness. It overwrites what a harness reports, so wall clock compares across all of them.
 51. **The read-only agents are checked, not trusted.** If the forecaster changes any file, or the guardian changes anything but its packet, the step stops for the person who set the work going.
 52. **New estimation rows ride in the next packet.** The guardian's prompt lists the rows appended since the slice's base, so a person sees them and can revert one.
+
+## Increment 7: the listener
+
+53. **Gathering is a script**, `xv listen gather`: Sentry's issues API, a PostHog HogQL query and its recordings list, and plain-text feedback files the config names, all with the standard library. CI then needs no MCP server and no login; in a person's session the listener may also use Sentry's or PostHog's MCP tools. The two API calls follow the vendors' documented endpoints and were not run against a live account in v0.1.
+54. **"Refuses to rank" is checked by a script.** `xv listen lint` fails a packet that uses ordering or recommending words outside a quoted user line ("top 3", "priority:", "fix first", "recommend"), or whose seat is not the chief engineer. The CI example fails on it.
+55. **The packet reaches the chief engineer as a pull request that adds the file**, with them as reviewer, and through `reach.command` if the team set one. Not as an issue: opening an issue in the value queue is a small act of ranking. The packet never blocks.
+56. **The raw data stays out of the repo.** `.xv/listen/` is ignored; only the packet is committed. Feedback can carry personal data the packet should not.
+57. **User feedback is data, never instructions.** The brief says so, and the eval plants an instruction in the feedback to check it.

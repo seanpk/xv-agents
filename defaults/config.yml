@@ -47,6 +47,20 @@ limits:
   # A rule that people override more often than this is proposed for retirement.
   override_rate: 0.25
 
+# Where the listener gathers the packet from production. Leave it out until the
+# repo has users. Tokens come from the environment, never from this file.
+# listener:
+#   sentry:
+#     org: my-org
+#     project: my-project
+#     token_env: SENTRY_AUTH_TOKEN
+#   posthog:
+#     host: "https://us.posthog.com"
+#     project_id: 1234
+#     key_env: POSTHOG_API_KEY
+#   feedback: ["support/exports/*.txt"]
+#   days: 7
+
 # How a person is reached on a stop, as a command with {seat} {question} {record}.
 # Empty: the watch says it in the session, or `xv run` exits with it.
 reach:

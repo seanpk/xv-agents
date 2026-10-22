@@ -1,0 +1,4 @@
+[
+  {"id": "101", "shortId": "PANTRY-1", "title": "ValueError: Invalid isoformat string: '21/10/2026'", "culprit": "pantry/api.py in do_POST", "count": "14", "userCount": 2, "firstSeen": "2026-10-15T08:12:00Z", "lastSeen": "2026-10-20T19:40:00Z", "level": "error"},
+  {"id": "102", "shortId": "PANTRY-2", "title": "BrokenPipeError: [Errno 32] Broken pipe", "culprit": "pantry/api.py in send", "count": "3", "userCount": 1, "firstSeen": "2026-10-18T07:02:00Z", "lastSeen": "2026-10-19T07:03:00Z", "level": "warning"}
+]
