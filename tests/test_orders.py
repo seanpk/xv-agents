@@ -25,6 +25,11 @@ class OrdersTest(unittest.TestCase):
         s = self.stop(rec(), "maker")
         self.assertEqual((s["order"], s["seat"]), ("no_report", "originator"))
 
+    def test_a_missing_report_fires_one_order(self):
+        d = with_report(rec(), "maker", "no-report")
+        fired = [f["order"] for f in orders.verdict(d, "maker", DEFAULT_CONFIG)["fired"]]
+        self.assertEqual(fired, ["no_report"])
+
     def test_the_budget_is_spent_and_the_suite_is_red(self):
         d = with_report(rec(spend=[{"step": "maker", "usd": 2.5, "tokens": 10}]), "maker", "green")
         d["checks"]["maker"] = {"suite": "red"}

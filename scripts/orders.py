@@ -42,10 +42,11 @@ def evaluate(data, after, config):
     report = last_report(data, after)
     owner = data.get("set_by") or "the person who set the work going"
 
-    if after in ("forecaster", "scenario", "maker", "cleaner", "guardian") and report is None:
+    if after in ("forecaster", "scenario", "maker", "cleaner", "guardian") and \
+            (report is None or report.get("status") == "no-report"):
         out.append(fire("no_report", "originator",
                         f"The {after} ended without a report. Read its log and decide whether to re-run it."))
-    if report and report.get("status") in ("stopped", "no-report"):
+    elif report and report.get("status") == "stopped":
         stop = report.get("stop") or {}
         reason = stop.get("reason") or report.get("status")
         seat = "two_people" if reason == "shape" else "originator"

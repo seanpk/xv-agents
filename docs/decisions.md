@@ -11,7 +11,7 @@ Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a t
 5. **Claude Code runs a brief as the whole prompt with `claude -p --safe-mode --disable-slash-commands`.** `--safe-mode` keeps CLAUDE.md, plugins, hooks and MCP servers out and still uses the person's login. `--bare` does the same but needs an API key. Verified 2026-10-21: in safe mode the model reports no CLAUDE.md in its context.
 6. **Workers report with a fenced `xv-report` JSON block** at the end of their final message. `xv record report` applies it. A step with no block is a stop (`no_report`): the watch does not guess what a worker did.
 7. **The watch commits each step's work on the slice branch; the cleaner commits its own fix; nobody merges.** Commit messages start `xv(<slice id>):`. This follows the orchestrator contract the plan borrows (the orchestrator owns git) and keeps the dispositions' rule that the cleaner commits.
-8. **Each slice gets a branch `xv/<id>` and a worktree under `.git/xv/worktrees/<id>`.** Inside `.git/` no test runner or bundler scans it. Configurable with `worktrees:`.
+8. **Each slice gets a branch `xv/<id>` and its own worktree.** First under `.git/xv/worktrees/<id>`; moved in increment 2 (see 24).
 9. **The slice record lives on the slice branch** and merges with the change, so CI on the pull request reads the same record the watch wrote.
 10. **The checks after each step are written into the record (`checks`), and the standing orders read only the record.** `scripts/orders.py` is a pure function of the record and the config, so CI, a test, or a person can re-run it and get the same answer.
 11. **The standing orders live in `scripts/orders.py`.** The plan names the orders; one file holds them all, so a change to any order is one reviewable diff and one CHANGELOG line.
@@ -27,3 +27,14 @@ Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a t
 21. **The defaults name a model per step**: a small model for the forecaster, the strongest for the guardian, a mid model for the rest. Teams change them. The evals use one model per harness for every step, to keep the comparison between harnesses about the briefs.
 22. **The fixture is a small Python standard library app** (`evals/fixture/`, a household pantry with a JSON API), so the evals run anywhere Python runs. Its reds are API sequences through `unittest` and `urllib`. Playwright is covered by the scenario brief and checked separately (increment 3).
 23. **One sample per eval cell in v0.1.** The report shows counts per assertion, not rates. A noise band needs repeated runs, and the plan's hypotheses name thirty slices; that is v0.2's job, with use.
+
+## Increment 2: the test wall and the headless watch
+
+24. **Slice worktrees live in `.xv/worktrees/<id>`**, kept out of the repo by `.xv/.gitignore`. The first eval run showed Claude Code refuses every write under `.git/`, so worktrees there blocked the maker and the guardian. A test runner that scans hidden directories needs `.xv/worktrees` in its ignore list; the default config says so.
+25. **A move is recorded per file.** The record names the file, the assertion in words, and why. The check passes when every changed or deleted test file that existed at the baseline is named in `moved_tests`. Matching assertions by text across languages would be brittle; the guardian reads the words.
+26. **A new test file is not a move.** Adding a test never weakens the wall.
+27. **Assertion counts are a signal, not a gate.** `xv wall diff` counts assertion-like calls per file before and after with one regex across languages, and lists files that now have fewer. The guardian reads the list; nothing fails on it.
+28. **The CI form compares a branch with its base.** A test file that existed on the base and changed must be either the scenario agent's red (named in the record, changed before the wall baseline) or a recorded move. A changed test with no slice record in the change fails while `wall.require_record` is true, which is the default. Setting it false is reported by `xv check` as a relaxation of the core.
+29. **The pre-commit hook acts only on `xv/*` branches that have a wall baseline.** Elsewhere it does nothing, so a person's ordinary commits are not in its way. The watch commits with `--no-verify`, because it runs the same check itself just before.
+30. **The cleaner records a move with `xv record move` before it commits**, since it commits and the hook would refuse. `xv record move` only appends.
+31. **`xv run` prints the verdict as JSON with the record, the worktree and the packet**, and exits 10 on a stop. `XV_NO_COMMIT=1` keeps the watch from committing, for CI checkouts.

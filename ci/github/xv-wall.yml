@@ -1,0 +1,36 @@
+# The test wall in CI. Copy to .github/workflows/xv-wall.yml in an adopting repo.
+#
+# Fails the check when a test file that existed on the base branch changed and no
+# slice record in the pull request names it as a moved test. Also fails when the
+# estimation guide was edited instead of appended. Python 3 standard library only.
+name: xv wall
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  wall:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get xv-agents
+        uses: actions/checkout@v4
+        with:
+          repository: seanpk/xv-agents
+          ref: v0.1.0          # pin a tag; upgrade by changing it
+          path: .xv-agents
+
+      - name: Put xv on PATH
+        run: echo "$GITHUB_WORKSPACE/.xv-agents/bin" >> "$GITHUB_PATH"
+
+      - name: The wall
+        run: xv wall check --base "origin/${{ github.base_ref }}"
+
+      - name: The estimation guide is append-only
+        run: xv record guide-verify --base "origin/${{ github.base_ref }}"

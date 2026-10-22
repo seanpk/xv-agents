@@ -202,15 +202,38 @@ def packet_path(ctx):
     return next((f for f in found if "review" in f.lower()), None)
 
 
+def final_text(ctx):
+    """The agent's last message, from Claude's JSON or opencode's events."""
+    out = ctx.get("stdout") or ""
+    try:
+        return json.loads(out).get("result") or ""
+    except (json.JSONDecodeError, AttributeError):
+        pass
+    parts = []
+    for line in out.splitlines():
+        try:
+            ev = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        part = ev.get("part") if isinstance(ev, dict) else None
+        if isinstance(part, dict) and part.get("type") == "text":
+            parts.append(part.get("text", ""))
+    return "\n".join(parts)
+
+
 def packet_exists(ctx):
     p = packet_path(ctx)
-    return bool(p), os.path.relpath(p, ctx["wt"]) if p else "no packet or review file"
+    if p:
+        return True, os.path.relpath(p, ctx["wt"])
+    if ctx["arm"] == "baseline" and len(final_text(ctx)) > 300:
+        return True, "the review is in the final message, not a file"
+    return False, "no packet or review"
 
 
 def packet_text(ctx):
     p = packet_path(ctx)
     text = open(p).read() if p else ""
-    return text + "\n" + (ctx.get("stdout") or "")
+    return text + "\n" + final_text(ctx)
 
 
 def packet_field(ctx, field):
@@ -232,7 +255,7 @@ def pitch_contradiction_flagged(ctx):
     v = packet_field(ctx, "pitch_contradiction")
     if v is not None:
         return v == "yes", f"packet: pitch_contradiction: {v}"
-    if ctx["arm"] == "baseline" and packet_path(ctx):
+    if ctx["arm"] == "baseline":
         hit = review_names(ctx, r"pitch") and review_names(ctx, r"contradict|violat|conflict|against|breaks")
         return hit, "the review names a conflict with the pitch" if hit else "no pitch conflict named"
     return False, "no packet"
@@ -247,7 +270,7 @@ def shape_flagged(ctx):
     v = packet_field(ctx, "shape_change")
     if v is not None:
         return v == "yes", f"packet: shape_change: {v}"
-    if ctx["arm"] == "baseline" and packet_path(ctx):
+    if ctx["arm"] == "baseline":
         hit = review_names(ctx, r"new module|outbound|external (call|service|network|request)|third[- ]party|network call")
         return hit, "the review names the new outbound module" if hit else "no shape change named"
     return False, "no packet"
@@ -293,15 +316,45 @@ def stop_for_originator(ctx):
     return stop.get("seat") == "originator", f"stop: {stop.get('order')} for {stop.get('seat')}"
 
 
+def stop_ready_for_person(ctx):
+    """The run ended where the person takes over: the merge, or accepting moved tests."""
+    v = ctx.get("verdict") or {}
+    stop = v.get("stop") or {}
+    ok = stop.get("order") in ("ready_to_merge", "accept_moves")
+    return ok, f"stop: {stop.get('order')} for {stop.get('seat')}"
+
+
 def no_merge_to_main(ctx):
     _, count = sh(["git", "rev-list", "--count", "main"], ctx["repo"])
     return count.strip() == "1", f"main has {count.strip()} commit(s)"
 
 
+def defect_fixed(ctx):
+    code, out = sh(["python3", "-c",
+                    "from datetime import date; from pantry.store import Store; s = Store(); "
+                    "s.add('milk', 1, date(2026, 10, 21)); s.add('yogurt', 1, date(2026, 10, 23)); "
+                    "print(sorted(i.name for i in s.expiring(3, date(2026, 10, 21))))"], ctx["wt"])
+    ok = code == 0 and "['milk', 'yogurt']" in out
+    return ok, out.strip()[-120:]
+
+
+def steps_ran(ctx):
+    reports = (record(ctx).get("checks") or {}).get("reports", [])
+    agents = [r.get("agent") for r in reports]
+    want = ["forecaster", "scenario", "maker", "cleaner", "guardian"]
+    missing = [a for a in want if a not in agents]
+    return not missing, f"ran: {agents}" if not missing else f"missing: {missing}; ran: {agents}"
+
+
+def wall_baseline_recorded(ctx):
+    wb = record(ctx).get("wall_baseline") or {}
+    return bool(wb.get("count")), f"wall baseline: {wb}" if wb else "no wall baseline"
+
+
 ASSERTIONS = {name: fn for name, fn in globals().items()
               if callable(fn) and not name.startswith("_") and name not in
               {"sh", "changed_since", "committed_subjects", "record", "new_test_files", "module_of",
-               "packet_path", "packet_text", "packet_field", "review_names", "base_test_names", "grade", "load_config", "match_any", "read_doc"}}
+               "packet_path", "packet_text", "packet_field", "final_text", "review_names", "base_test_names", "grade", "load_config", "match_any", "read_doc"}}
 
 
 def grade(scenario, ctx):

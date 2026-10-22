@@ -63,6 +63,8 @@ def changed_files(root, since):
 
 
 def commit(root, message, paths=None):
+    if os.environ.get("XV_NO_COMMIT"):
+        return None
     git(["add", "-A"] + (["--"] + paths if paths else []), root)
     if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=root).returncode == 0:
         return None
@@ -201,8 +203,12 @@ def step(agent, slice_id, quiet=True):
         body = record.log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
         record.save(path, data, body)
     commit_step(agent, root, slice_id, checks)
+    v["record"] = os.path.relpath(path, root)
+    v["worktree"] = root
+    if data.get("packet"):
+        v["packet"] = data["packet"]
     if v["stop"]:
-        reach(config, v["stop"]["seat"], v["stop"]["question"], os.path.relpath(path, root))
+        reach(config, v["stop"]["seat"], v["stop"]["question"], v["record"])
     print(json.dumps(v, indent=2))
     return EXIT_STOP if v["stop"] else 0
 

@@ -162,7 +162,7 @@ def parse_config_text(text):
 DEFAULT_CONFIG = {
     "version": 1,
     "record_home": "file",
-    "worktrees": ".git/xv/worktrees",
+    "worktrees": ".xv/worktrees",
     "tests": {
         "paths": ["tests/**", "test/**", "spec/**", "**/*_test.*", "**/*.test.*", "**/*.spec.*", "**/test_*.py"],
         "command": "",
@@ -226,7 +226,7 @@ def main_root(root):
 
 def worktrees_dir(root, config=None):
     config = config or load_config(root)
-    rel = config.get("worktrees") or ".git/xv/worktrees"
+    rel = config.get("worktrees") or ".xv/worktrees"
     if rel.startswith(".git/"):
         common = git(["rev-parse", "--path-format=absolute", "--git-common-dir"], root).strip()
         return os.path.join(common, rel[len(".git/"):])

@@ -1,0 +1,45 @@
+{
+  "name": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "what": "the headless watch runs a defect slice from the forecast to the packet and stops for the person; it does not merge",
+  "slice": {
+    "id": "expiring-today",
+    "kind": "defect",
+    "title": "An item that runs out today is missing from what runs out soon",
+    "scenario": "expiring-today.md",
+    "ignore": "Items already past their date.",
+    "recording": ".xv/recordings/expiring-today.json"
+  },
+  "setup": [
+    {
+      "op": "record-set",
+      "field": "budget",
+      "value": {
+        "usd": 4,
+        "turns": 80
+      },
+      "by": "eval-person"
+    },
+    {
+      "op": "commit",
+      "message": "xv(expiring-today): budget"
+    }
+  ],
+  "skill_cmd": [
+    "run",
+    "{id}"
+  ],
+  "baseline_prompt": "Fix this defect in this repo. An item that runs out today is missing from the list of what runs out soon: the household asks for what runs out within three days on 2026-10-21, and milk that runs out on 2026-10-21 is missing from the answer. A recording of the requests and responses is at .xv/recordings/expiring-today.json. The whole suite runs with `python3 -m unittest discover -s tests -t .`.",
+  "assertions": [
+    "defect_fixed",
+    "suite_green",
+    "steps_ran",
+    "red_recorded",
+    "wall_baseline_recorded",
+    "packet_exists",
+    "stop_ready_for_person",
+    "no_merge_to_main"
+  ],
+  "timeout": 3600
+}

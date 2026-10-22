@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(HOME, "scripts"))
 
 
 def sh(cmd, cwd, check=True):
-    p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+    p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, stdin=subprocess.DEVNULL)
     if check and p.returncode != 0:
         raise AssertionError(f"{cmd} failed {p.returncode}: {p.stderr}{p.stdout}")
     return p

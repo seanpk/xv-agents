@@ -1,6 +1,6 @@
 version: 1
 record_home: file
-worktrees: .git/xv/worktrees
+worktrees: .xv/worktrees
 tests:
   paths: ["tests/**"]
   command: "python3 -m unittest discover -s tests -t ."

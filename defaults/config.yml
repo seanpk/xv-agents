@@ -7,9 +7,10 @@ version: 1
 # record in its pull requests renders it with `xv record export <id>`.
 record_home: file
 
-# Where the watch makes each slice's worktree. Under .git/ by default, so no
-# test runner or bundler in the repo scans it.
-worktrees: .git/xv/worktrees
+# Where the watch makes each slice's worktree. .xv/.gitignore keeps it out of
+# the repo. Not under .git/: Claude Code refuses writes there. If your test
+# runner scans hidden directories, add .xv/worktrees to its ignore list.
+worktrees: .xv/worktrees
 
 tests:
   # What the wall hashes. Every file matching one of these is a test file.
