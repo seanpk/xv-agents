@@ -1,0 +1,29 @@
+# Weekly: are the harness doc sentences the briefs rely on still there?
+# A gone sentence opens an issue in this repo, not in an adopting one.
+name: drift
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the sentences
+        id: drift
+        run: |
+          python3 scripts/check.py drift --json > drift.json || true
+          python3 -c "import json; d=json.load(open('drift.json'))['drift']; gone=[x for x in d if x['status']!='present']; print('\n'.join(f\"- {x['status']}: \\\"{x['sentence']}\\\" at {x['url']} ({x['for']})\" for x in gone)); open('gone.md','w').write('\n'.join(f\"- {x['status']}: \\\"{x['sentence']}\\\" at {x['url']} ({x['for']})\" for x in gone))"
+          test -s gone.md && echo "gone=1" >> "$GITHUB_OUTPUT" || true
+      - name: Open an issue
+        if: steps.drift.outputs.gone == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue create --title "Harness docs drifted: $(date -u +%F)" --body-file gone.md

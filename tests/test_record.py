@@ -65,6 +65,18 @@ class SliceRecordTest(RepoCase):
         self.assertEqual(data["moved_tests"][0]["by"], "maker")
 
 
+class GuardianReportTest(RepoCase):
+    def test_the_guardians_count_of_moved_tests_is_not_a_record(self):
+        wt = self.new_slice("s1")
+        path = os.path.join(self.tmp, "out.txt")
+        with open(path, "w") as f:
+            f.write('```xv-report\n{"agent": "guardian", "status": "done", "moved_tests": 2, '
+                    '"shape_change": "no", "pitch_contradiction": "no"}\n```\n')
+        self.xv("record", "report", "s1", "guardian", path, cwd=wt)
+        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+        self.assertEqual(data["moved_tests"], [])
+
+
 class GuideTest(RepoCase):
     def setUp(self):
         super().setUp()

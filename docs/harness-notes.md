@@ -44,6 +44,8 @@ Checked 2026-10-21 with Playwright 1.64.1.
 - `xv playwright install --loop <harness>` runs it and removes the healer: the file, and the `opencode.json` entry.
 - `claude -p --safe-mode` drops MCP servers even with `--mcp-config` and `--strict-mcp-config`. Without `--safe-mode`, the same flags load the server's tools. Checked by asking the model to list them.
 
-## `npx skills add` and `gh skill install`
+## `gh skill install` and `npx skills add`
 
-See increment 8 below.
+- **`gh skill install` handles this repo's shape.** Checked 2026-10-21 with `gh skill install <path> --from-local --all --agent claude-code --scope project`: it found all the skills under `skills/`, copied each folder with its supporting files (the guardian's `packet.md`, the maker's `prototype.md`), and rewrote each `SKILL.md`'s front matter, adding `metadata.local-path`. It does not install `bin/xv` or `scripts/`, so the skills need the clone on `PATH` either way.
+- **A reinstall refuses to overwrite without `--force`, and `--force` overwrites a local edit with no warning.** Checked by editing an installed `SKILL.md` and installing again. This is why the project layer lives in `.xv/` and never in a skill's folder.
+- **`npx skills add`**: its help lists `add`, `update` and a lock file. Not checked against this repo.

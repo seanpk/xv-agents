@@ -185,7 +185,13 @@ def step(agent, slice_id):
     s = spendlib.from_run(result)
     s.update(step=agent, at=now(), exit=result["code"], log=log)
     data["spend"].append(s)
-    body, report = record.apply_report(data, body, agent, result["stdout"])
+    try:
+        body, report = record.apply_report(data, body, agent, result["stdout"])
+    except Exception as e:  # a malformed report is a missing report, not a crash
+        report = None
+        data["checks"].setdefault("reports", []).append(
+            {"agent": agent, "status": "no-report", "summary": f"the report could not be applied: {e}", "at": now()})
+        body = record.log_line(body, agent, f"the report could not be applied: {e}")
     checks = post_step(agent, root, data, config, head_before, pre, report or {})
     data["checks"][agent] = checks
     data["status"] = "working"

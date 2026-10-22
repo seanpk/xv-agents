@@ -275,7 +275,9 @@ def apply_report(data, body, agent, text):
         checks.setdefault("reports", []).append(report)
         return log_line(body, agent, report["summary"]), None
     report.setdefault("agent", agent)
-    for mv in report.get("moved_tests") or []:
+    # only the agents that may move a test record one; the guardian's count is not a record
+    moves = report.get("moved_tests") if agent in ("maker", "cleaner") else None
+    for mv in moves if isinstance(moves, list) else []:
         if isinstance(mv, dict) and all(mv.get(k) for k in ("file", "assertion", "why")):
             mv.setdefault("by", agent)
             mv.setdefault("at", now())
