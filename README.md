@@ -89,6 +89,27 @@ The method is written up at [xtremevibing.com](https://xtremevibing.com/): [the 
 | **guardian** | One packet: a shape change, a contradiction of the pitch, any old test that moved, what the change does to the picture, each finding cited | Fix, approve, or merge |
 | **listener** | The packet from production: complaints, paths no story describes, where the pitch and the behaviour diverge | Rank; open issues in the value queue |
 
+The watch sits between the people and the agents. Solid lines are work handed on. Dashed lines are a stop: the watch writes the question in the record and waits.
+
+```mermaid
+flowchart TB
+  subgraph people["People decide"]
+    orig["The person who set the work going<br/>starts the slice, answers its stops, merges"]
+    two["Two people<br/>decide from the packet"]
+    chief["The chief engineer<br/>ranks the work, sits with users"]
+  end
+  w["The watch<br/>calls each agent in turn, keeps the slice record,<br/>stops on a standing order, never decides"]
+  subgraph agents["Agents write"]
+    chain["forecaster, scenario, maker, cleaner, guardian<br/>in turn, one fresh context each"]
+    ls["listener<br/>in production"]
+  end
+  orig -- "the scenario, the budget" --> w
+  w -- "a brief; a report comes back" --> chain
+  w -. "budget spent, a moved test,<br/>the picture changed" .-> orig
+  w -. "a shape change,<br/>a pitch contradiction" .-> two
+  ls -. "the packet from production" .-> chief
+```
+
 The person-facing skills: `xv-init` writes a starter project layer, `xv-slice` starts a slice, `xv-retro` turns misses into checks, `xv-check` reads the project layer against the core, `xv-promote` moves a learning toward these skills.
 
 ## How a slice runs
@@ -102,6 +123,34 @@ The person-facing skills: `xv-init` writes a starter project layer, `xv-slice` s
 7. Nothing stopped and the suite is green: the merge is theirs.
 
 Each stop ends the watch's turn and waits for an answer. `xv run <id>` runs the same steps with nobody in the loop and exits with the question, so a slice can start at a desk and finish in CI.
+
+One slice, with the checks and the stops in it. A diamond is a script that can fail the slice. A dashed box is a person.
+
+```mermaid
+flowchart TB
+  start["A person: the scenario in words,<br/>what it may ignore, a recording for a defect"]
+  fc["forecaster forecasts;<br/>the engineer sets the budget"]
+  sc["scenario agent: the red;<br/>then the wall baseline hashes every test file"]
+  mk["maker: green behind the wall"]
+  wall{"wall check"}
+  cl["cleaner: right, commits"]
+  gd["guardian: one packet"]
+  orders{"standing orders"}
+  two["Two people decide<br/>from the packet"]
+  accept["The person who set the work going<br/>accepts the moves from the packet"]
+  merge["The merge is theirs"]
+
+  start --> fc --> sc --> mk --> wall
+  wall -- "a test file changed<br/>with no record" --> stop1["Stop: revert it,<br/>or record why"]
+  wall -- "every move recorded" --> cl --> gd --> orders
+  orders -- "shape change or<br/>pitch contradiction" --> two
+  orders -- "moved tests or<br/>the picture changed" --> accept
+  orders -- "nothing stopped,<br/>suite green" --> merge
+  mk -. "budget spent, same tests<br/>fail twice, diff doubled" .-> stop2["Stop: continue, reshape,<br/>or set it aside"]
+
+  classDef person stroke-dasharray: 5 4
+  class start,two,accept,merge,stop1,stop2 person
+```
 
 ## Try it on a repo
 
@@ -170,6 +219,26 @@ An agent reports back in one block at the end of its final message:
 The watch applies the report to the slice record. A worker never edits the record itself, because a worker that edits the record can edit its own acceptance. The maker's moved tests ride in its report, and the watch saves the report before the wall reads the record. The cleaner is the one worker that commits, so it records a move first with `xv record move`; the pre-commit hook refuses a commit that moves a test with no record.
 
 ### One step
+
+
+```mermaid
+sequenceDiagram
+  participant W as the watch
+  participant S as xv step
+  participant A as the agent, in a fresh context
+  participant R as the slice record
+  participant O as the standing orders
+  W->>S: xv step maker <id>
+  S->>A: the brief, then pointers, with the budget as caps
+  A-->>S: final message, ending in an xv-report block
+  S->>R: the spend, the report
+  S->>S: the checks after this step: suite, diff, wall
+  S->>R: the checks
+  S->>O: read the record
+  O-->>S: what fired, and the one stop by seat
+  S->>R: the stop, if any, and the step's commit
+  S-->>W: exit 0 to go on, or exit 10 for a person to answer
+```
 
 `xv step <agent> <id>` is the unit of work. It does, in order:
 
@@ -263,6 +332,18 @@ The shared skills are never edited in place. An upgrade is a copy, not a merge, 
 ### How the agents learn
 
 XV's bet is that a miss turned into a check stops repeating, and a miss turned into a sentence may not. No use is behind that yet. So the main path from a miss to a rule is `xv-retro`, run after a slice that stopped, overran its budget, or drew the same guardian finding twice: a fresh context proposes candidates, each tied to a moment in a slice record, and a person picks. A check becomes a slice like any other. A judgement call becomes a line in the standards file. An Open learning seen twice is promoted inside the repo with `xv promote local`, and shared across repos as an issue on this repo with `xv promote draft` and `post`, which is the only command here that writes in public, and only with a person's approval. A change to a brief, a may-not list or a standing order takes two people and a line in `CHANGELOG.md`.
+
+```mermaid
+flowchart LR
+  miss["A miss, in a slice record"] --> retro["xv-retro proposes,<br/>each tied to a moment"]
+  retro --> pick{"A person picks"}
+  pick -- "a check" --> slice["A slice: red on the miss,<br/>green on the suite"]
+  pick -- "a judgement call" --> std[".xv/standards.md"]
+  pick -- "open" --> open[".xv/learnings.md"]
+  open -- "seen twice,<br/>xv promote local" --> std
+  std -- "xv promote draft,<br/>a person approves the post" --> issue["An issue on this repo,<br/>sightings from other repos"]
+  issue -- "two people decide" --> skills["The shared skills,<br/>a line in CHANGELOG.md"]
+```
 
 ### What was checked on each harness
 
