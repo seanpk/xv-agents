@@ -1,10 +1,41 @@
 # xv-agents
 
-Skills for the seven agents of Xtreme Vibing (XV): the watch, the forecaster, the scenario agent, the maker, the cleaner, the guardian, and the listener. Three of them work on one change: the maker, the cleaner, and the guardian. Each agent is a skill in the open Agent Skills format, a folder with a `SKILL.md`, so it is meant for any harness that reads skills. v0.1 ran on Claude Code and on opencode with a local model; Codex and Cursor read the same format and were not run. Beside the skills are Python scripts for the parts a check can hold (the test wall, the boundary picture, the spend, the slice record, the standing orders) and GitHub Actions examples that run them in CI.
+Skills for the seven agents of Xtreme Vibing (XV): the watch, the forecaster, the scenario agent, the maker, the cleaner, the guardian, and the listener. Three of them work on one change: the maker, the cleaner, and the guardian. Each agent is a skill in the open Agent Skills format, a folder with a `SKILL.md`, so it is meant for any harness that reads skills. v0.1 ran on Claude Code and on opencode with a local model; Codex and Cursor read the same format and were not run. Beside the skills are Python scripts for the parts a check can hold, and GitHub Actions examples that run them in CI.
 
 It is not a plugin and not any one vendor's subagent format. v0.1 was built from a plan without use. The versions after it are earned by use.
 
-XV is the method. This repo is the mechanics: how the agents run, what they may not do, and where they hand back to a person. The method is written up at [xtremevibing.com](https://xtremevibing.com/). The block below is its short form, generated from the same source as the site. It states the method's positions; the agents here are the first attempt to hold them, and no slice has run for real yet.
+XV is the method. This repo is the mechanics: how the agents run, what they may not do, and where they hand back to a person. The method is written up at [xtremevibing.com](https://xtremevibing.com/), and its short form is below, after the words it uses.
+
+## The one rule
+
+An agent may stop. It may not decide. A person is responsible for every change, including one made entirely by agents, so the harness is built to hand back, not to approve. There is no agent that says yes. When the conditions are met, nobody else has to say yes either: the person who set the work going merges.
+
+## The words
+
+XV has its own words. This README and the method use them from here on.
+
+| Word | What it means here |
+| --- | --- |
+| A slice | One change, from a scenario in words to a merge. It has its own branch, worktree and record. |
+| The scenario | What must be true when the slice is done, in the words of the person who asked for it: the steps a user takes and what they see. |
+| Red | The scenario made executable as a test, and shown to fail before the fix. Green is that test and every old test passing. |
+| The wall | Every test that existed before the slice, hashed. A test file that changes without a recorded reason fails the wall check. |
+| The packet | What the guardian writes about one change, for a person to read instead of the code: the scenario, the recording, the boundary picture, what the suite asserts after, and its four findings. The listener writes a packet from production. |
+| A recording | A defect's evidence: a Playwright trace, a HAR file, or an API sequence as JSON, saved under `.xv/recordings/`. The scenario agent starts a defect's red from it. |
+| The shape | The structure of the system as the team can see it: coupling, what users meet, runtime budgets. A change to it takes two people. |
+| The shape conversation | People deciding the shape, in conversation. It opens when the maker's failure repeats or its diff keeps growing, and before and after a burst of work. The agent may not renovate on its own. |
+| The pitch | One page in `.xv/pitch.md`: what the system does, why, and for whom. The guardian checks every change against it. |
+| The picture | `.xv/picture.md`, the shared operating picture: the users, what the system is now, the decisions that bind, what is in motion. |
+| The three agents | The maker, the cleaner and the guardian, three contexts on one change: make it work, make it right, find what the other two would rather not say. |
+| A seat | Who answers a stop. Three seats: the person who set the work going, two people, and the chief engineer. A one-person team declares `seats.two_people: solo`. |
+| The chief engineer | The person who ranks the work and sits with users. The listener's packet from production goes to them. |
+| A standing order, a stop | A rule in `scripts/orders.py` that reads the slice record after a step and says whether a person must answer, and in which seat. A stop ends the watch's turn until they do. |
+| The door, the blast radius | Two lines in the packet, from Matt Pocock's pull request template: the door is `two-way` when a revert undoes the change and `one-way` when it does not (data migrated, a public contract changed, a message sent to users); the blast radius is one word for how much it can touch. |
+| `xv-init` and `xv init` | A name with a hyphen is a skill, run by asking your agent for it. A name with a space is a command, run in a shell. The skill `xv-init` talks to you and runs the command `xv init` along the way. |
+
+## The method in brief
+
+Generated from the same source as the site. It states the method's positions; the agents here are the first attempt to hold them, and none of it has run on a real change yet.
 
 <!-- xv:method begin -->
 <!-- Generated on 2026-10-21 from map.md, the source of xtremevibing.com/map/. Edits here are overwritten at the next publish; say what is wrong in an issue on this repo. -->
@@ -46,30 +77,6 @@ The method is written up at [xtremevibing.com](https://xtremevibing.com/): [the 
 
 <!-- xv:method end -->
 
-## The one rule
-
-An agent may stop. It may not decide. A person is responsible for every change, including one made entirely by agents, so the harness is built to hand back, not to approve. There is no agent that says yes. When the conditions are met, nobody else has to say yes either: the person who set the work going merges.
-
-## The words
-
-XV has its own words, and this README uses them from here on.
-
-| Word | What it means here |
-| --- | --- |
-| A slice | One change, from a scenario in words to a merge. It has its own branch, worktree and record. |
-| The scenario | What must be true when the slice is done, in the words of the person who asked for it: the steps a user takes and what they see. |
-| Red | The scenario made executable as a test, and shown to fail before the fix. Green is that test and every old test passing. |
-| The wall | Every test that existed before the slice, hashed. A test file that changes without a recorded reason fails the wall check. |
-| The packet | What the guardian writes about one change, for a person to read instead of the code: the scenario, the recording, the boundary picture, what the suite asserts after, and its four findings. The listener writes a packet from production. |
-| The shape | The structure of the system as the team can see it: coupling, what users meet, runtime budgets. A change to it takes two people. |
-| The pitch | One page in `.xv/pitch.md`: what the system does, why, and for whom. The guardian checks every change against it. |
-| The picture | `.xv/picture.md`, the shared operating picture: the users, what the system is now, the decisions that bind, what is in motion. |
-| The three agents | The maker, the cleaner and the guardian, three contexts on one change: make it work, make it right, find what the other two would rather not say. |
-| A seat | Who answers a stop. Three seats: the person who set the work going, two people, and the chief engineer. A one-person team declares `seats.two_people: solo`. |
-| A standing order, a stop | A rule in `scripts/orders.py` that reads the slice record after a step and says whether a person must answer, and in which seat. A stop ends the watch's turn until they do. |
-| The door | Pocock's word in the packet: `two-way` when the change is easy to reverse, `one-way` when it is not. |
-| `xv-init` and `xv init` | A name with a hyphen is a skill, run by asking your agent for it. A name with a space is a command, run in a shell. The skill `xv-init` talks to you and runs the command `xv init` along the way. |
-
 ## The agents
 
 | Agent | Its job | It may not |
@@ -100,7 +107,7 @@ Each stop ends the watch's turn and waits for an answer. `xv run <id>` runs the 
 
 The whole path, on a repo that has a test suite. Install first (below).
 
-1. Write the project layer. Ask your agent for the `xv-init` skill. It runs `xv init`, which copies the starter files into `.xv/` and detects the test command; check the command, the wall depends on it. Then it interviews you for the pitch and asks who decides. The pitch comes first: `xv slice new` refuses while `.xv/pitch.md` says `status: not written`. If you are one person, say so; the skill sets `seats.two_people: solo`. Commit `.xv/`.
+1. Write the project layer. Ask your agent for the `xv-init` skill. It runs `xv init`, which copies the starter files into `.xv/` and detects the test command (a `src/` layout gets `PYTHONPATH=src` in front of it); check the command, the wall depends on it. Then it interviews you for the pitch and asks who decides. The pitch comes first: `xv slice new` refuses while `.xv/pitch.md` says `status: not written`. Without the skill, write the pitch by hand and set `status: written` in its front matter. If you are one person, say so; the skill sets `seats.two_people: solo`. Commit `.xv/`.
 2. Open a slice. Ask your agent for `xv-slice`, or run it yourself:
 
    ```sh
@@ -108,14 +115,14 @@ The whole path, on a repo that has a test suite. Install first (below).
      --kind feature --scenario-file scenario.md --ignore "quantities; the mobile layout"
    ```
 
-   The id is short and dated. The command makes the branch `xv/<id>`, a worktree under `.xv/worktrees/`, and the record `.xv/slices/<id>.md`, and prints the worktree path.
+   The file holds the scenario in words: the steps a user takes and what they see, and for a defect what happened and what should have. The id is short and dated. The command makes the branch `xv/<id>`, a worktree under `.xv/worktrees/<id>`, and the record `.xv/slices/<id>.md` in that worktree, and prints the worktree path. `xv record show <id>` finds the record from the repo root too.
 3. Set the budget. The forecaster runs first and leaves the numbers null on a fresh repo, so the first budget is yours:
 
    ```sh
    xv record set 2026-10-22-expiring-today budget '{"tokens": 400000, "usd": 3, "turns": 60}' --by sean
    ```
 
-   Those are the numbers the `xv-slice` skill shows as an example. No run has yet said what a right first budget is.
+   Those are the numbers the `xv-slice` skill shows as an example. No run has yet said what a right first budget is. This changes the record in the worktree without committing it; the watch commits it with the next step.
 4. Run it. Either ask your agent to "run slice 2026-10-22-expiring-today", which loads the `watch` skill, or run it headless:
 
    ```sh
@@ -150,7 +157,7 @@ The whole path, on a repo that has a test suite. Install first (below).
 
 Each agent runs in a context that has never seen the others. `xv prompt <agent> <id>` builds that context's entire input: the skill's body, then pointers to this slice (the record, the base commit, the budget, the project files). Nothing is restated that the agent can read itself. The same text goes to a CLI run or to a harness's own subagent.
 
-The CLI for each step is a line in `.xv/config.yml`, a list of arguments with `{prompt}` where the text goes. The default is Claude Code in print mode with the person's own customisations off (`claude -p --safe-mode --disable-slash-commands`), so the brief is the prompt and nothing else is. A step may name a different CLI and model: Haiku for the forecaster, Opus for the guardian, a local model through opencode for the maker. A step set to `session` runs in the person's own harness as a subagent instead, with the same text.
+The CLI for each step is a line in `.xv/config.yml`, a list of arguments with `{prompt}` where the text goes. The default is Claude Code in print mode with the person's own customisations off (`claude -p --safe-mode --disable-slash-commands`), so the brief is the whole user prompt. Claude Code's own system prompt stays, as opencode's does; what is gone is everything the person or the project added. A step may name a different CLI and model: Haiku for the forecaster, Opus for the guardian, a local model through opencode for the maker. A step set to `session` runs in the person's own harness as a subagent instead, with the same text.
 
 An agent reports back in one block at the end of its final message:
 
@@ -158,13 +165,13 @@ An agent reports back in one block at the end of its final message:
 {"agent": "maker", "status": "green", "summary": "...", "moved_tests": [...], "stop": null}
 ```
 
-The watch applies the report to the slice record. A worker never edits the record itself, because a worker that edits the record can edit its own acceptance. The one exception is a test it moved, which it records with `xv record move` as it goes, so the wall can read the move from disk.
+The watch applies the report to the slice record. A worker never edits the record itself, because a worker that edits the record can edit its own acceptance. The maker's moved tests ride in its report, and the watch saves the report before the wall reads the record. The cleaner is the one worker that commits, so it records a move first with `xv record move`; the pre-commit hook refuses a commit that moves a test with no record.
 
 ### One step
 
 `xv step <agent> <id>` is the unit of work. It does, in order:
 
-1. Builds the prompt and runs the agent's CLI in the slice's worktree. The maker's run gets the budget as hard caps where the CLI has them (`--max-budget-usd` and `--max-turns` on Claude Code).
+1. Builds the prompt and runs the agent's CLI in the slice's worktree. The maker's run gets the budget as hard caps where the CLI has them (`--max-budget-usd` and `--max-turns` on Claude Code; the second is missing from `claude --help` in 2.1.308 and is documented and accepted).
 2. Reads the spend from the harness's own output (Claude's JSON result, an opencode session export) and appends it to the record: tokens in and out, cache reads and writes, dollars where the harness reports them, turns, wall time.
 3. Applies the report. A report that cannot be parsed is recorded as no report, which is a stop, not a crash.
 4. Runs the checks that follow that step. They are scripts, and the results go in the record:
@@ -173,7 +180,7 @@ The watch applies the report to the slice record. A worker never edits the recor
    - after the cleaner: the standards file is untouched, and the fix was committed;
    - after the guardian: the packet exists, passes lint, and says `yes` or `no` to a shape change and a pitch contradiction;
    - after the forecaster and the guardian, which are read-only: nothing changed but their own output;
-   - after any of them: no file only people change was touched (the config, the pitch, the picture, the estimation guide, the rules, the wall's hashes).
+   - after the scenario agent, the maker and the cleaner: no file only people change was touched (the config, the pitch, the picture, the estimation guide, the rules, the wall's hashes).
 5. Asks the standing orders. `scripts/orders.py` reads the record and the config and returns every order that fired and the one that stops, by seat.
 6. Commits what the step produced on the slice branch, so the history shows what passed the wall.
 
@@ -185,11 +192,11 @@ One file per slice, `.xv/slices/<id>.md`, on its own branch `xv/<id>` in a workt
 
 ### The wall
 
-After the scenario agent's red, `xv wall baseline` hashes every file matching the test paths in `.xv/config.yml`. After the maker and the cleaner, `xv wall check` compares. A test file that changed or disappeared with no matching entry in the record's `moved_tests` fails the check and stops the slice for the person who set the work going. The wall does not forbid a move; it forbids a silent one. The same check runs as a pre-commit hook on slice branches (`xv wall install-hook`) and in CI against the pull request's base. It reads files and the record, so it needs nothing from the harness, and it held on both harnesses tried.
+After the scenario agent's red, `xv wall baseline` hashes every file matching the test paths in `.xv/config.yml`. After the maker and the cleaner, `xv wall check` compares. A test file that changed or disappeared with no matching entry in the record's `moved_tests` fails the check and stops the slice for the person who set the work going. The wall does not forbid a move; it forbids a silent one. The same check runs as a pre-commit hook on slice branches (`xv wall install-hook`) and in CI against the pull request's base. It reads files and the record, so it needs nothing from the harness. The eval results that are committed are from before the wall existed; the runs with it go in with the final results.
 
 ### The stops
 
-The standing orders are code, not prose, so the watch cannot talk itself past one. Each fires on the record alone:
+The standing orders are code, not prose. When the steps run through `xv step`, the default, the orders run inside the script and the watch cannot skip one. A step set to `session` has the watch run `xv orders` itself afterwards, and an agent can skip a command. Each order fires on the record alone:
 
 | The record shows | Seat |
 | --- | --- |
@@ -199,6 +206,8 @@ The standing orders are code, not prose, so the watch cannot talk itself past on
 | The same tests failed after two runs of the maker, or the diff more than doubled between two runs | the person who set the work going; the shape conversation opens |
 | The scenario passed before the fix, or the scenario agent touched source | the person who set the work going |
 | A worker ended with no report, or a read-only agent wrote | the person who set the work going |
+| An agent changed a file only people change: the config, the pitch, the picture, the estimation guide, the rules, the wall's hashes | the person who set the work going |
+| The maker ran in a context that had built a prototype | the person who set the work going |
 | `shape_change: yes` or `pitch_contradiction: yes` in the packet | two people |
 | A budget raised past the team's limit, or a shape change wider than forecast | two people |
 | Prototypes ready to pick from | two people |
@@ -284,8 +293,7 @@ What increment 1 showed, from `evals/results/inc1.md`:
 
 - Without the brief, the maker moved the old test and recorded nothing, on both harnesses. With the brief, opencode's maker recorded the move. That gap is what the wall makes a check instead of a sentence.
 - Without the brief, neither harness's review named the pitch. With it, both guardians found the contradiction and cited the pitch line.
-- One cell scored below its baseline: the maker on Claude, 3 of 6 against 4 of 6. Claude Code refused to write under `.git/`, where the worktrees then lived, and the maker stopped and reported it rather than working around it. Increment 2 moved the worktrees.
-- The scenario agent's brief worked on Claude and not on the local model, which ended in 38 seconds with no test and no report.
+- Two cells scored below their baseline. The maker on Claude, 3 of 6 against 4 of 6: Claude Code refused to write under `.git/`, where the worktrees then lived, and the maker stopped and reported it rather than working around it; increment 2 moved the worktrees. The scenario agent on opencode, 2 of 6 against 3 of 6: with the brief, the local model ended in 38 seconds with no test and no report. The same brief worked on Claude.
 
 ## Status
 
