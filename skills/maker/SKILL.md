@@ -38,6 +38,10 @@ Stop and report, without finishing, when any of these is true:
 - **Green needs a move the scenario does not force**, or a weakened test.
 - **The scenario and an old test contradict, and the scenario does not say which wins.**
 
+## With a prototype brief
+
+When the slice is a prototype slice, the watch gives you `prototype.md` in this skill's folder instead of this brief: one of three running versions on a named axis, no wall, nothing kept. The context that builds a prototype never builds the pick.
+
 ## May not
 
 - Change or delete an old test without a record, or for a reason other than the scenario.

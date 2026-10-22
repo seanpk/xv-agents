@@ -105,6 +105,8 @@ def setup_repo(scenario, harness, workdir):
             "--ignore", sl.get("ignore", "Nothing stated.")]
     if sl.get("recording"):
         args += ["--recording", os.path.join(repo, sl["recording"])]
+    if sl.get("axis"):
+        args += ["--axis", sl["axis"]]
     wt = sh(args, repo).stdout.strip().splitlines()[-1]
     return repo, wt
 
@@ -146,7 +148,8 @@ def run_one(scenario, harness_name, arm, n, outdir, keep=False):
         ctx = {"repo": repo, "wt": wt, "head_before": head_before, "scenario": scenario,
                "arm": arm, "harness": harness_name, "slice": (scenario.get("slice") or {}).get("id")}
         if arm == "skill":
-            cmd = [a.replace("{id}", ctx["slice"] or "") for a in scenario["skill_cmd"]]
+            cmd = (scenario.get("skill_cmd_by_harness") or {}).get(harness_name) or scenario["skill_cmd"]
+            cmd = [a.replace("{id}", ctx["slice"] or "") for a in cmd]
             p = subprocess.run([XV] + cmd, cwd=wt, capture_output=True, text=True, env=env,
                                timeout=scenario.get("timeout", 3600))
             ctx["exit"], ctx["stdout"], ctx["stderr"] = p.returncode, p.stdout, p.stderr

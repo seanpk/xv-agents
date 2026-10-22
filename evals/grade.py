@@ -520,6 +520,38 @@ def only_packet_written(ctx):
     return not other, f"also changed: {other}" if other else "only the packet"
 
 
+def prototype_recordings(ctx):
+    base = os.path.join(ctx["wt"], ".xv", "prototypes", ctx["slice"])
+    return {n: open(os.path.join(base, n, "recording.md")).read()
+            for n in "abc" if os.path.exists(os.path.join(base, n, "recording.md"))}
+
+
+def three_prototypes_recorded(ctx):
+    recs = prototype_recordings(ctx)
+    return len(recs) == 3, f"recordings: {sorted(recs)}"
+
+
+def prototypes_differ(ctx):
+    recs = list(prototype_recordings(ctx).values())
+    distinct = len({r.strip() for r in recs})
+    return len(recs) == 3 and distinct == 3, f"{distinct} distinct recordings of {len(recs)}"
+
+
+def side_by_side_packet(ctx):
+    p = os.path.join(ctx["wt"], ".xv", "slices", f"{ctx['slice']}.prototypes.md")
+    if not os.path.exists(p):
+        return False, "no side-by-side file"
+    t = open(p).read()
+    ok = all(f"## {n}:" in t for n in "abc")
+    return ok, "three sections side by side" if ok else "a section is missing"
+
+
+def no_pick_made(ctx):
+    d = record(ctx)
+    picked = [p for p in d.get("prototypes") or [] if p.get("picked")]
+    return not picked and not d.get("decisions"), "no pick" if not picked else f"picked: {picked}"
+
+
 def no_merge_to_main(ctx):
     _, count = sh(["git", "rev-list", "--count", "main"], ctx["repo"])
     return count.strip() == "1", f"main has {count.strip()} commit(s)"

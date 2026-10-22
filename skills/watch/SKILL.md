@@ -41,6 +41,10 @@ A stop for two people needs two names; the script refuses one. The answer goes i
 
 `xv run <id>` is the same loop with no person: it exits with the question when a stop fires. Use it when the person asks you to run to the first stop without commentary.
 
+## A prototype slice
+
+When `next` is `prototype`, run `xv prototype start <id>`. It builds three versions on the record's axis, each in its own worktree and context, with their recordings side by side in `.xv/slices/<id>.prototypes.md`, and stops for two people. Show them the side-by-side file. They pick one or none, with a user when one can be reached, and restate the pick as the scenario. Write it with `xv prototype pick <id> --variant a|b|c|none --by <name>,<name> [--with-user <name>] --scenario-file <file>`. That discards all three prototypes and sends the slice to the forecaster, so a fresh maker builds the pick behind the wall.
+
 ## The standing orders
 
 They are scripts (`xv orders <id>`), not this text. You do not interpret them, relax them, or edit them. A change to a standing order is a change to what you are, and it takes two people and a line in the shared repo's `CHANGELOG.md`.

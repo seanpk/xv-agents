@@ -32,7 +32,7 @@ elif title.startswith("# The scenario agent"):
     report(agent="scenario", status="red", summary="red",
            red={"files": ["tests/test_red.py"], "command": "python3 -m unittest tests.test_red",
                 "failure": "Lists differ", "watch_first_green": None})
-elif title.startswith("# The maker"):
+elif title.startswith("# The maker") and "prototype" not in title:
     path = "pantry/store.py"
     text = open(path).read().replace("today < i.expires_on <= last", "today <= i.expires_on <= last")
     open(path, "w").write(text)
@@ -49,5 +49,17 @@ elif title.startswith("# The guardian"):
                 "## 1. Shape\n\n- None: one comparison in pantry/store.py:47.\n" % sid)
     report(agent="guardian", status="done", summary="no stop", packet=f".xv/slices/{sid}.packet.md",
            shape_change="no", pitch_contradiction="no")
-else:
+elif not title.startswith("# The maker, with a prototype brief"):
     print("no brief I know")
+
+
+if title.startswith("# The maker, with a prototype brief"):
+    variant = re.search(r"Your variant: (\w)\.", prompt).group(1)
+    position = re.search(r"Your position on it: (.+?)\.\n", prompt).group(1)
+    where = re.search(r"under `([^`]+)/`", prompt).group(1)
+    os.makedirs(where, exist_ok=True)
+    with open(os.path.join(where, "recording.md"), "w") as f:
+        f.write(f"POST /items/milk/use -> 200, variant {variant}: {position}\n")
+    report(agent="prototype", status="done", variant=variant, axis_position=position,
+           refuses=f"refuses nothing ({variant})", costs="one more call", recording=f"{where}/recording.md",
+           run="python3 -m pantry.api")

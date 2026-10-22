@@ -1,0 +1,36 @@
+{
+  "name": "prototypes-axis",
+  "increment": 9,
+  "agent": "prototype",
+  "what": "three prototypes on one named axis, each with a recording, side by side, stopped for two people; no pick made by an agent",
+  "slice": {
+    "id": "quick-use",
+    "kind": "prototype",
+    "title": "Marking food used after a meal is quicker",
+    "scenario": "quick-use.md",
+    "ignore": "The expiring list.",
+    "axis": "what the household acts on when it marks food used"
+  },
+  "setup": [],
+  "skill_cmd": [
+    "run",
+    "{id}"
+  ],
+  "skill_cmd_by_harness": {
+    "opencode": [
+      "prototype",
+      "start",
+      "{id}",
+      "--serial"
+    ]
+  },
+  "assertions": [
+    "three_prototypes_recorded",
+    "prototypes_differ",
+    "side_by_side_packet",
+    "stop_for_two_people",
+    "no_pick_made",
+    "no_merge_to_main"
+  ],
+  "timeout": 3600
+}

@@ -94,3 +94,11 @@ The cross-repo mechanism is Sean's, in `docs/positions.md`. The choices below ar
 65. **`xv check relaxations` matches phrases**, so it can raise a false alarm; the skill says to read each hit. A miss is worse than a false alarm here.
 66. **The drift check reads each harness's public docs page** for the exact sentences in `docs/relies-on.md`, ignoring case and whitespace. This repo's CI runs it weekly and opens an issue for a sentence that is gone.
 67. **`xv adapt` names generated files `xv-<agent>`** and marks each with the skill's digest, so a generated file never shadows a skill and `xv check` can tell current from stale.
+
+## Increment 9: parallel prototypes
+
+68. **The person names the axis; the three positions default to the ones section 2 of the dispositions names**: the minimum the scenario allows, one that refuses an assumption, one that puts a different object at the centre. A team can pass its own three. Exactly three: more and people review a gallery.
+69. **Each prototype gets its own branch and worktree from the slice branch, and its own context.** They run in parallel threads; `--serial` or `prototypes.serial` in the config runs them one at a time, as on one local GPU.
+70. **Each prototype makes its own recording**: a script it writes and runs, which shows what a user sees through the scenario's steps. The watch copies the three recordings into the slice branch and lays them side by side in `.xv/slices/<id>.prototypes.md`.
+71. **Every prototype is discarded at the pick, the picked one too.** Their worktrees and branches are removed; the recordings stay in the slice record as evidence. The pick takes two names and may name a user who took part. The restated scenario replaces the record's scenario, the old one stays in the log, and the slice goes to the forecaster as a feature.
+72. **A maker that runs in a prototype's context stops the slice.** With `xv step` every step is a new CLI call, so this cannot happen by default; the check is there for a team that runs steps in its own session.

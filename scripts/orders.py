@@ -82,6 +82,10 @@ def evaluate(data, after, config):
                         f"Test files changed with no record after the {after}: "
                         + ", ".join(wall["unrecorded"]) + ". Revert them, or record why the scenario forces it."))
 
+    if after == "maker" and checks.get("reused_prototype_context"):
+        out.append(fire("prototype_context_reused", "originator",
+                        "The maker ran in a context that built a prototype. The pick is built by a fresh context."))
+
     if after == "maker":
         state = budget_state(data)
         if state["spent_out"] and checks.get("suite") != "green":

@@ -92,6 +92,7 @@ def cmd_new(a):
                 created=today(), branch=a.branch or f"xv/{a.id}")
     if a.kind == "prototype":
         data["next"] = "prototype"
+        data["axis"] = a.axis
     body = BODY_TEMPLATE.format(title=data["title"], scenario=scenario,
                                 ignore=a.ignore or "Nothing stated.",
                                 recording=a.recording or "None. A feature starts from words.")
@@ -453,6 +454,7 @@ def main(argv=None):
     s.add_argument("--ignore", help="what this slice may ignore")
     s.add_argument("--recording", help="path to the recording, for a defect")
     s.add_argument("--branch")
+    s.add_argument("--axis", help="for a prototype slice: the one axis the three differ on")
     s.set_defaults(fn=cmd_new)
 
     s = sub.add_parser("show")

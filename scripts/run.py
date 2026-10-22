@@ -104,7 +104,7 @@ def cmd_slice_new(a):
     os.makedirs(os.path.dirname(wt), exist_ok=True)
     git(["worktree", "add", "-q", "-b", branch, wt, base], root)
     args = ["new", a.id, "--by", a.by, "--kind", a.kind, "--branch", branch]
-    for flag, value in (("--title", a.title), ("--ignore", a.ignore)):
+    for flag, value in (("--title", a.title), ("--ignore", a.ignore), ("--axis", a.axis)):
         if value:
             args += [flag, value]
     if a.scenario_file:
@@ -250,6 +250,8 @@ def post_step(agent, root, data, config, head_before, pre, report):
         wb = wall_baseline(root, data, config)
         if wb:
             data["wall_baseline"] = wb
+    if agent == "maker" and data.get("prototype_sessions"):
+        checks["reused_prototype_context"] = (data["spend"][-1].get("session") in data["prototype_sessions"])
     if agent in ("maker", "cleaner"):
         suite, out = run_suite(root, config)
         checks["suite"], checks["suite_output"] = suite, (out or "")[-800:]
@@ -570,6 +572,7 @@ def main(argv=None):
     n.add_argument("--ignore")
     n.add_argument("--recording")
     n.add_argument("--branch")
+    n.add_argument("--axis", help="for a prototype slice: the one axis the three differ on")
     n.set_defaults(fn=cmd_slice_new)
 
     s = sub.add_parser("step")

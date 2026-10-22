@@ -17,7 +17,7 @@ One question at a time:
 1. **What must be true when this is done?** The scenario in words: the steps a user takes and what they see. For a defect: what happened, what should have happened.
 2. **What may this slice ignore?** Edge cases, screens, users, or performance that are out of scope for now.
 3. **For a defect: is there a recording?** A Playwright trace, a HAR file, a sequence of requests and responses, a screen recording with the steps. A recording is a better oracle than words. Save it under `.xv/recordings/` and pass its path.
-4. **Is the design settled?** If the scenario does not settle how it should look or flow, and a wrong design would be felt in use, this is a prototype slice (`--kind prototype`); see the maker's `prototype.md`.
+4. **Is the design settled?** If the scenario does not settle how it should look or flow, and a wrong design would be felt in use, this is a prototype slice (`--kind prototype --axis "<the one axis>"`). Ask for the axis: the one difference between three versions that people would feel by using them. An agent can suggest axes; the person names one. A column and a button have no open question; prototypes there are waste.
 5. **Who set the work going?** Their name goes in the record. They answer the stops.
 
 Read the scenario back in the person's words. Tidy grammar only. If it is ambiguous about what must be true, ask; do not pick.
