@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+"""xv: the watch headless, and the scripts the agents and CI call.
+
+  xv init                       write a starter .xv/ into this repo
+  xv slice new <id> ...         open a slice: record, branch, worktree
+  xv run <id>                   run the slice to its first stop (exit 10 on a stop)
+  xv step <agent> <id>          run one step
+  xv close <id>                 the guide row, status closed; the merge stays the person's
+  xv prompt <agent> [<id>]      the whole prompt for one agent
+  xv record ...                 read and write the slice record
+  xv orders <id> --after <step> the standing orders (exit 10 on a stop)
+  xv wall ...                   the test wall: baseline, diff, check
+  xv spend ...                  actual spend from a harness's logs
+  xv boundary ...               the boundary picture of a change
+  xv check ...                  what the project layer overrode, relaxed, or drifted
+  xv retro ...                  fire and override counts, candidates for the retro
+  xv promote ...                learnings seen in two repos
+  xv listen ...                 the production packet's sources
+  xv prototype ...              three prototypes on one named axis
+  xv adapt ...                  generate harness files from the skills (optional)
+
+Python 3 standard library only.
+"""
+
+import os
+import runpy
+import sys
+
+HOME = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+SCRIPTS = os.path.join(HOME, "scripts")
+
+COMMANDS = {
+    "record": "record.py", "orders": "orders.py", "wall": "wall.py", "spend": "spend.py",
+    "boundary": "boundary.py", "check": "check.py", "retro": "retro.py",
+    "promote": "promote.py", "listen": "listen.py", "prototype": "prototypes.py",
+    "adapt": "adapt.py", "prompt": "prompt.py",
+    "init": "run.py", "slice": "run.py", "run": "run.py", "step": "run.py", "close": "run.py",
+}
+PASS_NAME = {"init", "slice", "run", "step", "close"}
+
+
+def main():
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
+        print(__doc__.strip())
+        return 0
+    if sys.argv[1] in ("--version", "version"):
+        with open(os.path.join(HOME, "VERSION")) as f:
+            print(f.read().strip())
+        return 0
+    cmd = sys.argv[1]
+    script = COMMANDS.get(cmd)
+    if not script or not os.path.exists(os.path.join(SCRIPTS, script)):
+        print(f"xv: unknown command {cmd!r}", file=sys.stderr)
+        return 2
+    rest = sys.argv[1:] if cmd in PASS_NAME else sys.argv[2:]
+    sys.argv = [f"xv {cmd}"] + rest
+    sys.path.insert(0, SCRIPTS)
+    os.environ.setdefault("XV_HOME", HOME)
+    runpy.run_path(os.path.join(SCRIPTS, script), run_name="__main__")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

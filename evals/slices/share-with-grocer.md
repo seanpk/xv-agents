@@ -1,0 +1,1 @@
+When something runs low, the household can send its shopping list to GroceryNow, a grocery partner, with one call: `POST /share` with the household's GroceryNow token sends every item with one or none left.

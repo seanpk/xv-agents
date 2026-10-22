@@ -1,0 +1,67 @@
+{
+  "scenario": "scenario-defect",
+  "increment": 1,
+  "agent": "scenario",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T03:55:26.378824+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 5354,
+      "tokens_out": 1262,
+      "cache_read": 133171,
+      "cache_write": 0,
+      "tokens": 139787,
+      "usd": 0.0,
+      "turns": 7,
+      "wall_s": 38.2,
+      "session": "ses_e9e40221affeedZwR8PlPXgH76",
+      "step": "scenario",
+      "at": "2026-10-22T03:56:04+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-scenario-defect-uobswae3/repo/.git/xv/runs/expiring-today/01-scenario.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": false,
+      "detail": "no new or changed test file"
+    },
+    {
+      "name": "red_replays_recording",
+      "pass": false,
+      "detail": "does not replay the recording's input"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 2,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": ""
+}

@@ -1,0 +1,1 @@
+When the household uses the last of something, it no longer shows in the list of what the household has. Using the last loaf of bread takes bread off `GET /items`. Items with some left still show, as now.

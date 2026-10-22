@@ -1,0 +1,55 @@
+# The project layer's settings. Committed, shared by everyone on the project
+# and every harness they use. Add-only against the core: `xv check` reports any
+# line here that relaxes a stop, the wall, or the contexts kept apart.
+version: 1
+
+# Where slice records live. `file` is .xv/slices/<id>.md. A team that keeps the
+# record in its pull requests renders it with `xv record export <id>`.
+record_home: file
+
+# Where the watch makes each slice's worktree. Under .git/ by default, so no
+# test runner or bundler in the repo scans it.
+worktrees: .git/xv/worktrees
+
+tests:
+  # What the wall hashes. Every file matching one of these is a test file.
+  paths: ["tests/**"]
+  # The whole suite. Must return in minutes; a skipped or timed-out suite is a failed build.
+  command: ""
+  timeout: 900
+
+source:
+  roots: ["."]
+  exclude: ["node_modules/**", "vendor/**", ".git/**", ".xv/**"]
+
+# The agent CLI for each step, as a list of arguments. {prompt} is replaced by the
+# whole prompt. Name the model per step; a token count only means something within
+# one model, and the estimation guide is keyed by harness and model.
+# Set a step to `session` to run it in the person's own harness instead of a CLI.
+agents:
+  default: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "sonnet", "{prompt}"]
+  forecaster: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "haiku", "{prompt}"]
+  guardian: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "opus", "{prompt}"]
+  # A local model through opencode:
+  # maker: ["opencode", "run", "--auto", "--format", "json", "--model", "ollama/gpt-oss:20b", "{prompt}"]
+
+# Who sits in each seat. The person who set the work going is named in each slice record.
+seats:
+  chief_engineer: ""
+  two_people: ""
+
+limits:
+  # How far one person may raise a budget before it takes two people, in percent. 0: no limit agreed.
+  budget_raise_pct: 0
+  # Lines of diff past which the watch reports a growing diff. 0: off.
+  max_diff_lines: 0
+  # A rule that people override more often than this is proposed for retirement.
+  override_rate: 0.25
+
+# How a person is reached on a stop, as a command with {seat} {question} {record}.
+# Empty: the watch says it in the session, or `xv run` exits with it.
+reach:
+  command: []
+
+wall:
+  require_record: true

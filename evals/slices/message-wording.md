@@ -1,0 +1,1 @@
+When the household adds an item with a quantity below one, the error says "Quantity must be a whole number above zero." The old wording, "qty must be a positive whole number", used a field name the household never sees.

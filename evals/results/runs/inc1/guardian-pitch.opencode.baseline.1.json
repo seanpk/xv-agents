@@ -1,0 +1,68 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T03:49:55.942015+00:00",
+  "exit": 1,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 3390,
+      "tokens_out": 1902,
+      "cache_read": 33462,
+      "cache_write": 0,
+      "tokens": 38754,
+      "usd": 0.0,
+      "turns": 3,
+      "wall_s": 95.3,
+      "session": "ses_e9e452d05ffe011wejS5aufo3K"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": false,
+      "detail": "no packet or review file"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": false,
+      "detail": "no packet"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": false,
+      "detail": "no packet"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": false,
+      "detail": "no pitch line cited"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 1,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": ""
+}

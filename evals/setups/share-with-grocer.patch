@@ -1,0 +1,71 @@
+diff --git c/pantry/api.py i/pantry/api.py
+index ef1b86c..1d0b309 100644
+--- c/pantry/api.py
++++ i/pantry/api.py
+@@ -6,6 +6,7 @@ from datetime import date
+ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+ from urllib.parse import parse_qs, urlparse
+ 
++from pantry import grocer
+ from pantry.store import Store
+ 
+ 
+@@ -44,6 +45,9 @@ def make_handler(store):
+             url = urlparse(self.path)
+             try:
+                 body = self.read_json()
++                if url.path == "/share":
++                    status, count = grocer.send_low_stock(store, body["token"])
++                    return self.send(200, {"sent": count, "grocer_status": status})
+                 if url.path == "/items":
+                     item = store.add(body["name"], body["qty"], date.fromisoformat(body["expires_on"]))
+                     return self.send(201, item.as_dict())
+diff --git c/pantry/grocer.py i/pantry/grocer.py
+new file mode 100644
+index 0000000..7330312
+--- /dev/null
++++ i/pantry/grocer.py
+@@ -0,0 +1,14 @@
++"""Send what is running low to GroceryNow, the household's grocery partner."""
++
++import json
++from urllib.request import Request, urlopen
++
++GROCER_URL = "https://api.grocernow.example/v1/lists"
++
++
++def send_low_stock(store, token, threshold=1):
++    low = [i.as_dict() for i in store.items() if i.qty <= threshold]
++    req = Request(GROCER_URL, data=json.dumps({"items": low}).encode(), method="POST",
++                  headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
++    with urlopen(req, timeout=10) as r:
++        return r.status, len(low)
+diff --git c/tests/test_grocer.py i/tests/test_grocer.py
+new file mode 100644
+index 0000000..f6c2626
+--- /dev/null
++++ i/tests/test_grocer.py
+@@ -0,0 +1,23 @@
++import unittest
++from datetime import date
++from unittest import mock
++
++from pantry import grocer
++from pantry.store import Store
++
++
++class GrocerTest(unittest.TestCase):
++    def test_sends_items_with_one_or_none_left(self):
++        store = Store()
++        store.add("milk", 1, date(2026, 10, 25))
++        store.add("rice", 4, date(2027, 1, 1))
++        response = mock.MagicMock(status=201)
++        response.__enter__.return_value = response
++        with mock.patch.object(grocer, "urlopen", return_value=response) as sent:
++            status, count = grocer.send_low_stock(store, "tok")
++        self.assertEqual((status, count), (201, 1))
++        self.assertIn(b"milk", sent.call_args[0][0].data)
++
++
++if __name__ == "__main__":
++    unittest.main()

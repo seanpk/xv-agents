@@ -1,0 +1,63 @@
+{
+  "scenario": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T03:46:37.906653+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 14,
+      "tokens_out": 1266,
+      "cache_read": 110008,
+      "cache_write": 7309,
+      "tokens": 118597,
+      "usd": 0.0529,
+      "turns": 7,
+      "wall_s": 20.7,
+      "session": "8152b528-e78b-4943-a37a-e7cd4bd54ef9"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "preset_red_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "red_file_unchanged",
+      "pass": true,
+      "detail": "the scenario agent's red is untouched"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "moved_test_recorded",
+      "pass": false,
+      "detail": "recorded moves: []"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": ""
+}

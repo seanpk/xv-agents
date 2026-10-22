@@ -1,0 +1,63 @@
+{
+  "scenario": "cleaner-standards",
+  "increment": 1,
+  "agent": "cleaner",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T03:45:03.932777+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 10,
+      "tokens_out": 770,
+      "cache_read": 71451,
+      "cache_write": 5025,
+      "tokens": 77256,
+      "usd": 0.035,
+      "turns": 5,
+      "wall_s": 13.0,
+      "session": "46e9ac3d-9be3-49f6-8b3c-ab2535726209"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "standards_violations_fixed",
+      "pass": true,
+      "detail": "both rules applied"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "agent_committed",
+      "pass": true,
+      "detail": "commits: ['xv(hide-used-up): tidy items()']"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 5,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": ""
+}

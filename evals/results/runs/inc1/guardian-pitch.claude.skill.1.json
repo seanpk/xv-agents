@@ -1,0 +1,72 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T03:45:19.674800+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 10,
+      "tokens_out": 4452,
+      "cache_read": 87439,
+      "cache_write": 11623,
+      "tokens": 103524,
+      "usd": 0.0998,
+      "turns": 6,
+      "wall_s": 31.3,
+      "session": "b199f797-48e7-4e67-8852-093b9bb35e43",
+      "step": "guardian",
+      "at": "2026-10-22T03:45:51+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-guardian-pitch-_4l140x2/repo/.git/xv/runs/share-with-grocer/01-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": false,
+      "detail": "no packet or review file"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": false,
+      "detail": "no packet"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": false,
+      "detail": "no packet"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": false,
+      "detail": "no pitch line cited"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": true,
+      "detail": "stop: shape_or_pitch for two_people"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    }
+  ],
+  "passed": 3,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": ""
+}

@@ -1,0 +1,67 @@
+{
+  "scenario": "cleaner-standards",
+  "increment": 1,
+  "agent": "cleaner",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T03:44:43.273839+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 6,
+      "tokens_out": 1053,
+      "cache_read": 43756,
+      "cache_write": 7736,
+      "tokens": 52551,
+      "usd": 0.0459,
+      "turns": 3,
+      "wall_s": 15.2,
+      "session": "b8618b53-7fdd-4bf1-bc5d-3cbb0fcc38cc",
+      "step": "cleaner",
+      "at": "2026-10-22T03:44:58+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-cleaner-standards-ztulyzan/repo/.git/xv/runs/hide-used-up/01-cleaner.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "standards_violations_fixed",
+      "pass": true,
+      "detail": "both rules applied"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "agent_committed",
+      "pass": true,
+      "detail": "commits: ['xv(hide-used-up): make it right']"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    }
+  ],
+  "passed": 6,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": ""
+}

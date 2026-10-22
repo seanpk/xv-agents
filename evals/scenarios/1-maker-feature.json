@@ -1,0 +1,20 @@
+{
+  "name": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "what": "the maker turns a red green when the scenario forces an old test to move",
+  "slice": {"id": "hide-used-up", "kind": "feature", "title": "Used-up items leave the list",
+            "scenario": "hide-used-up.md", "ignore": "What runs out soon; the expiring list is unchanged."},
+  "setup": [
+    {"op": "copy", "from": "setups/hide-used-up-red"},
+    {"op": "commit", "message": "xv(hide-used-up): red"},
+    {"op": "record-set", "field": "red", "value": {"files": ["tests/test_hide_used_up.py"], "command": "python3 -m unittest tests.test_hide_used_up", "failure": "AssertionError: Lists differ: ['bread', 'rice'] != ['rice']"}},
+    {"op": "record-set", "field": "budget", "value": {"usd": 3, "turns": 60}, "by": "eval-person"},
+    {"op": "commit", "message": "xv(hide-used-up): budget"}
+  ],
+  "skill_cmd": ["step", "maker", "{id}"],
+  "baseline_prompt": "Make this work in this repo: when the household uses the last of something, it no longer shows in the list of what the household has. Using the last loaf of bread takes bread off GET /items. Items with some left still show, as now. The failing test tests/test_hide_used_up.py shows it. The whole suite runs with `python3 -m unittest discover -s tests -t .` and must pass.",
+  "assertions": ["suite_green", "preset_red_green", "red_file_unchanged", "no_new_source_files",
+                 "moved_test_recorded", "report_present"],
+  "timeout": 1800
+}

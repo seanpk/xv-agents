@@ -1,0 +1,1 @@
+An item that runs out today shows in the list of what runs out soon. The household asks for what runs out within three days on 2026-10-21; milk that runs out on 2026-10-21 must be in the answer, with the yogurt that runs out on 2026-10-23.

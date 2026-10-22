@@ -1,0 +1,67 @@
+{
+  "scenario": "cleaner-standards",
+  "increment": 1,
+  "agent": "cleaner",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T03:44:43.301453+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 6419,
+      "tokens_out": 2961,
+      "cache_read": 254426,
+      "cache_write": 0,
+      "tokens": 263806,
+      "usd": 0.0,
+      "turns": 12,
+      "wall_s": 91.6,
+      "session": "ses_e9e49f1fdffeI5P4S2aydeylj0",
+      "step": "cleaner",
+      "at": "2026-10-22T03:46:15+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-cleaner-standards-blhli83s/repo/.git/xv/runs/hide-used-up/01-cleaner.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "standards_violations_fixed",
+      "pass": false,
+      "detail": "still there: ['a one-letter name']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "agent_committed",
+      "pass": true,
+      "detail": "commits: ['xv(hide-used-up): make it right']"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    }
+  ],
+  "passed": 5,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": ""
+}

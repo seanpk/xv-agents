@@ -1,0 +1,72 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T03:48:05.027631+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 7700,
+      "tokens_out": 3875,
+      "cache_read": 230578,
+      "cache_write": 0,
+      "tokens": 242153,
+      "usd": 0.0,
+      "turns": 11,
+      "wall_s": 110.7,
+      "session": "ses_e9e46de23ffemzTqLH2xBpEQb4",
+      "step": "guardian",
+      "at": "2026-10-22T03:49:55+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-guardian-pitch-ka8eilim/repo/.git/xv/runs/share-with-grocer/01-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/share-with-grocer.packet.md"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": true,
+      "detail": "packet: pitch_contradiction: yes"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": true,
+      "detail": "packet: shape_change: yes"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": true,
+      "detail": "quotes or cites a pitch line"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": true,
+      "detail": "stop: shape_or_pitch for two_people"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    }
+  ],
+  "passed": 7,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": ""
+}

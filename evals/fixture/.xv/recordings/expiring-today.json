@@ -1,0 +1,13 @@
+{
+  "recorded": "2026-10-21",
+  "what": "Milk that runs out today is missing from the list of what runs out soon.",
+  "steps": [
+    {"request": {"method": "POST", "path": "/items", "body": {"name": "milk", "qty": 1, "expires_on": "2026-10-21"}},
+     "response": {"status": 201, "body": {"name": "milk", "qty": 1, "expires_on": "2026-10-21"}}},
+    {"request": {"method": "POST", "path": "/items", "body": {"name": "yogurt", "qty": 1, "expires_on": "2026-10-23"}},
+     "response": {"status": 201, "body": {"name": "yogurt", "qty": 1, "expires_on": "2026-10-23"}}},
+    {"request": {"method": "GET", "path": "/items/expiring?days=3&today=2026-10-21"},
+     "response": {"status": 200, "body": [{"name": "yogurt", "qty": 1, "expires_on": "2026-10-23"}]},
+     "expected": [{"name": "milk", "qty": 1, "expires_on": "2026-10-21"}, {"name": "yogurt", "qty": 1, "expires_on": "2026-10-23"}]}
+  ]
+}

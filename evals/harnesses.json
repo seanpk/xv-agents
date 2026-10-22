@@ -1,0 +1,44 @@
+{
+  "claude": {
+    "argv": [
+      "claude",
+      "-p",
+      "--safe-mode",
+      "--disable-slash-commands",
+      "--output-format",
+      "json",
+      "--permission-mode",
+      "acceptEdits",
+      "--allowedTools",
+      "Bash,Read,Edit,Write,Glob,Grep",
+      "--model",
+      "sonnet",
+      "--max-budget-usd",
+      "3",
+      "{prompt}"
+    ],
+    "note": "Claude Code headless. --safe-mode keeps CLAUDE.md, skills, plugins and hooks out, so the brief is the whole prompt."
+  },
+  "opencode": {
+    "argv": [
+      "opencode",
+      "run",
+      "--auto",
+      "--format",
+      "json",
+      "--model",
+      "ollama/gpt-oss:20b",
+      "{prompt}"
+    ],
+    "note": "opencode with a local model on the GPU. opencode adds its own system prompt; the brief is the whole user prompt."
+  },
+  "noop": {
+    "argv": [
+      "sh",
+      "-c",
+      "echo 'no agent ran'",
+      "{prompt}"
+    ],
+    "note": "A dry run: tests the setup and the grader, runs no model."
+  }
+}

@@ -1,0 +1,22 @@
+version: 1
+record_home: file
+worktrees: .git/xv/worktrees
+tests:
+  paths: ["tests/**"]
+  command: "python3 -m unittest discover -s tests -t ."
+  timeout: 300
+source:
+  roots: ["pantry"]
+  exclude: [".xv/**"]
+agents:
+  default: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Bash,Read,Edit,Write,Glob,Grep", "--model", "sonnet", "{prompt}"]
+seats:
+  chief_engineer: "the household"
+  two_people: "any two of the household"
+limits:
+  budget_raise_pct: 50
+  max_diff_lines: 400
+reach:
+  command: []
+wall:
+  require_record: true

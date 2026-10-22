@@ -1,0 +1,67 @@
+{
+  "scenario": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T03:51:31.339550+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 9160,
+      "tokens_out": 4407,
+      "cache_read": 537552,
+      "cache_write": 0,
+      "tokens": 551119,
+      "usd": 0.0,
+      "turns": 24,
+      "wall_s": 145.3,
+      "session": "ses_e9e43b814ffeaPNh2kOpjnP22g",
+      "step": "maker",
+      "at": "2026-10-22T03:53:56+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-maker-feature-6hd0akle/repo/.git/xv/runs/hide-used-up/01-maker.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "preset_red_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "red_file_unchanged",
+      "pass": true,
+      "detail": "the scenario agent's red is untouched"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "moved_test_recorded",
+      "pass": true,
+      "detail": "recorded moves: ['tests/test_store.py']"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status green"
+    }
+  ],
+  "passed": 6,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": ""
+}

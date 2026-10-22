@@ -1,0 +1,63 @@
+{
+  "scenario": "scenario-defect",
+  "increment": 1,
+  "agent": "scenario",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T03:47:16.212793+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 862,
+      "cache_read": 57006,
+      "cache_write": 6773,
+      "tokens": 64649,
+      "usd": 0.0414,
+      "turns": 4,
+      "wall_s": 13.0,
+      "session": "cc8a44b7-9f98-4124-8714-e6947428b0c8"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "red_replays_recording",
+      "pass": true,
+      "detail": "uses the recording's milk and date"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": false,
+      "detail": "FAILED (failures=1)"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 3,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": ""
+}

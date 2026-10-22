@@ -1,0 +1,15 @@
+{
+  "name": "scenario-defect",
+  "increment": 1,
+  "agent": "scenario",
+  "what": "the scenario agent turns a recorded defect into a red test and touches nothing else",
+  "slice": {"id": "expiring-today", "kind": "defect", "title": "An item that runs out today is missing from what runs out soon",
+            "scenario": "expiring-today.md", "ignore": "Items already past their date.",
+            "recording": ".xv/recordings/expiring-today.json"},
+  "setup": [],
+  "skill_cmd": ["step", "scenario", "{id}"],
+  "baseline_prompt": "There is a defect in this repo. An item that runs out today is missing from the list of what runs out soon: the household asks for what runs out within three days on 2026-10-21, and milk that runs out on 2026-10-21 is missing from the answer. A recording of the requests and responses is at .xv/recordings/expiring-today.json. Write a failing test that reproduces this defect.",
+  "assertions": ["changed_only_tests", "red_fails_on_assertion", "red_replays_recording", "old_tests_green",
+                 "red_recorded", "report_present"],
+  "timeout": 1200
+}

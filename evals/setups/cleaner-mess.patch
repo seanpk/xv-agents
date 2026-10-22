@@ -1,0 +1,33 @@
+diff --git i/pantry/store.py w/pantry/store.py
+index 7290910..0873cc7 100644
+--- i/pantry/store.py
++++ w/pantry/store.py
+@@ -39,7 +39,9 @@ class Store:
+         return item
+ 
+     def items(self):
+-        return sorted(self._items.values(), key=lambda i: i.name)
++        d = sorted(self._items.values(), key=lambda i: i.name)
++        print("items:", len(d))
++        return [x for x in d if x.qty > 0]
+ 
+     def expiring(self, within_days, today):
+         """Items that run out within `within_days` days of `today`."""
+diff --git i/tests/test_store.py w/tests/test_store.py
+index c9ae230..f518077 100644
+--- i/tests/test_store.py
++++ w/tests/test_store.py
+@@ -34,11 +34,11 @@ class StoreTest(unittest.TestCase):
+         with self.assertRaises(ValueError):
+             self.store.use("eggs", 2)
+ 
+-    def test_used_up_item_stays_listed(self):
++    def test_used_up_item_leaves_the_list(self):
+         self.store.add("bread", 1, date(2026, 10, 24))
+         self.store.use("bread")
+         listed = self.store.items()
+-        self.assertEqual([(i.name, i.qty) for i in listed], [("bread", 0)])
++        self.assertEqual([(i.name, i.qty) for i in listed], [])
+ 
+     def test_expiring_lists_items_within_the_window(self):
+         self.store.add("yogurt", 1, date(2026, 10, 23))

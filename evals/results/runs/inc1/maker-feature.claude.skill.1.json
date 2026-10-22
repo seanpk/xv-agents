@@ -1,0 +1,67 @@
+{
+  "scenario": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T03:46:14.278117+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 1725,
+      "cache_read": 63263,
+      "cache_write": 8576,
+      "tokens": 73572,
+      "usd": 0.0579,
+      "turns": 8,
+      "wall_s": 17.5,
+      "session": "d576df33-d4ad-4544-a341-5ebbef0ca514",
+      "step": "maker",
+      "at": "2026-10-22T03:46:32+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-maker-feature-k5zwtv9t/repo/.git/xv/runs/hide-used-up/01-maker.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "suite_green",
+      "pass": false,
+      "detail": "FAILED (failures=2)"
+    },
+    {
+      "name": "preset_red_green",
+      "pass": false,
+      "detail": "FAILED (failures=2)"
+    },
+    {
+      "name": "red_file_unchanged",
+      "pass": true,
+      "detail": "the scenario agent's red is untouched"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "moved_test_recorded",
+      "pass": false,
+      "detail": "recorded moves: []"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status stopped"
+    }
+  ],
+  "passed": 3,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": ""
+}
