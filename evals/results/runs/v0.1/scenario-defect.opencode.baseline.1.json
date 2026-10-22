@@ -1,0 +1,65 @@
+{
+  "scenario": "scenario-defect",
+  "increment": 1,
+  "agent": "scenario",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T17:11:02.480464+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 5172,
+      "tokens_out": 3658,
+      "cache_read": 228136,
+      "cache_write": 0,
+      "tokens": 236966,
+      "usd": 0.0,
+      "turns": 12,
+      "wall_s": 112.6,
+      "session": "ses_e9b67bd11ffecFMaqn1wAg3fUk"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "red_replays_recording",
+      "pass": true,
+      "detail": "uses the recording's milk and date"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "**tests/test_expiring_today.py**\n\n```python\nimport json\nimport unittest\nfrom urllib.error import HTTPError\nfrom urllib.request import Request, urlopen\n\nfrom pantry.api import serve\n\n\nclass ExpiringTodayApiTest(unittest.TestCase):\n    def setUp(self):\n        self.server = serve()\n        self.base = f\"http://127.0.0.1:{self.server.server_port}\"\n\n    def tearDown(self):\n        self.server.shutdown()\n        self.server.server_close()\n\n    def call(self, method, path, body=None):\n        data = json.dumps(body).encode() if body is not None else None\n        req = Request(\n            self.base + path,\n            data=data,\n            method=method,\n            headers={\"Content-Type\": \"application/json\"},\n        )\n        try:\n            with urlopen(req) as r:\n                return r.status, json.loads(r.read())\n        except HTTPError as e:\n            return e.code, json.loads(e.read())\n\n    def test_expiring_includes_today(self):\n        # Add item that expires today\n        self.call(\n            \"POST\",\n            \"/items\",\n            {\"name\": \"milk\", \"qty\": 1, \"expires_on\": \"2026-10-21\"},\n        )\n        # Add item that expires within the window but not today\n        self.call(\n            \"POST\",\n            \"/items\",\n            {\"name\": \"yogurt\", \"qty\": 1, \"expires_on\": \"2026-10-23\"},\n        )\n        status, items = self.call(\n            \"GET\", \"/items/expiring?days=3&today=2026-10-21\"\n        )\n        # The milk item should appear in the expiring list along with yogurt\n        self.assertEqual([i[\"name\"] for i in items], [\"milk\", \"yogurt\"])\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n```\n\nRunning the test suite will now reveal a failing test that reproduces the defect: milk, which expires on 2026\u201110\u201121, is omitted from the expiring list."
+}

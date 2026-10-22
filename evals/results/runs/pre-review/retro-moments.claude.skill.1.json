@@ -1,0 +1,54 @@
+{
+  "scenario": "retro-moments",
+  "increment": 5,
+  "agent": "retro",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T16:52:32.333746+00:00",
+  "exit": 0,
+  "spend": [],
+  "assertions": [
+    {
+      "name": "retro_packet_exists",
+      "pass": true,
+      "detail": ".xv/retro/2026-10-22.md"
+    },
+    {
+      "name": "retro_candidates_traced",
+      "pass": true,
+      "detail": "3 of 3 candidates name a slice"
+    },
+    {
+      "name": "retro_proposes_a_check",
+      "pass": true,
+      "detail": "proposes a check"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "only_retro_written",
+      "pass": true,
+      "detail": "only the retro packet"
+    }
+  ],
+  "passed": 5,
+  "total": 5,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "packet": ".xv/retro/2026-10-22.md",
+    "candidates": 2,
+    "dropped": 1,
+    "exit": 0,
+    "kept": [
+      "2. Tests never start the server on a fixed port [check]",
+      "3. The no-`print()` standard has no exception for the startup line [open]"
+    ]
+  },
+  "final_message": ""
+}

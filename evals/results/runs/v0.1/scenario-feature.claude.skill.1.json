@@ -1,0 +1,81 @@
+{
+  "scenario": "scenario-feature",
+  "increment": 3,
+  "agent": "scenario",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T17:03:35.092141+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 1593,
+      "cache_read": 61694,
+      "cache_write": 8586,
+      "tokens": 71881,
+      "usd": 0.0565,
+      "turns": 4,
+      "wall_s": 13.7,
+      "session": "7f208231-b802-436d-9158-9c47d34b96a1",
+      "step": "scenario",
+      "at": "2026-10-22T17:03:48+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-scenario-feature-jq6ztv9d/repo/.git/xv/runs/hide-used-up/01-scenario.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_at_user_surface",
+      "pass": true,
+      "detail": "the red calls the API"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_used_up.py'], 'command': 'python3 -m unittest tests.test_used_up', 'failure': \"AssertionError: Lists differ: ['bread', 'rice'] != ['rice']\", 'watch_first_green': 'Add bread (qty 1) and rice, use the one bread, and see GET /items list only rice; then add bread again and see it come back on the list.'}"
+    },
+    {
+      "name": "watch_first_green_noted",
+      "pass": true,
+      "detail": "note: Add bread (qty 1) and rice, use the one bread, and see GET /items list only rice; then add bread aga"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status red"
+    }
+  ],
+  "passed": 7,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "scenario",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-scenario-feature-jq6ztv9d/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "I wrote `tests/test_used_up.py`. Two of its three tests fail for the reason the scenario names. The third, an item with some left still shows, passes as it should.\n\nThe two failures are `GET /items` still returning bread (`['bread', 'rice'] != ['rice']`) and eggs after all six are used. The test goes through the running API with real requests. The expected lists come from the scenario's words, not from the code.\n\nThe scenario doesn't say what `POST /items/<name>/use` returns when it takes the last of an item, so I assert nothing about that response. I also didn't test whether the expiring list changes, since the slice says to ignore it. The test file ends with a comment saying what to watch on the first green run.\n\n```xv-report\n{\"agent\": \"scenario\", \"status\": \"red\", \"summary\": \"Using the last of an item leaves it on GET /items; two tests fail, the some-left control passes\",\n \"red\": {\"files\": [\"tests/test_used_up.py\"], \"command\": \"python3 -m unittest tests.test_used_up\", \"failure\": \"AssertionError: Lists differ: ['bread', 'rice'] != ['rice']\",\n         \"watch_first_green\": \"Add bread (qty 1) and rice, use the one bread, and see GET /items list only rice; then add bread again and see it come back on the list.\"}}\n```"
+}

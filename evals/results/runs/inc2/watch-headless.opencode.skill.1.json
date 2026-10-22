@@ -1,0 +1,133 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T04:25:58.454278+00:00",
+  "exit": 1,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 4238,
+      "tokens_out": 2219,
+      "cache_read": 54474,
+      "cache_write": 0,
+      "tokens": 60931,
+      "usd": 0.0,
+      "turns": 3,
+      "wall_s": 63.1,
+      "session": "ses_e9e242d6dffeR81YlCfVN0sJM9",
+      "step": "forecaster",
+      "at": "2026-10-22T04:27:01+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-gb8hvzfq/repo/.git/xv/runs/expiring-today/01-forecaster.out"
+    },
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 7729,
+      "tokens_out": 2441,
+      "cache_read": 184003,
+      "cache_write": 0,
+      "tokens": 194173,
+      "usd": 0.0,
+      "turns": 9,
+      "wall_s": 75.6,
+      "session": "ses_e9e2336dfffey68F5luGzfFfHX",
+      "step": "scenario",
+      "at": "2026-10-22T04:28:17+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-gb8hvzfq/repo/.git/xv/runs/expiring-today/02-scenario.out"
+    },
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 5716,
+      "tokens_out": 1198,
+      "cache_read": 164842,
+      "cache_write": 0,
+      "tokens": 171756,
+      "usd": 0.0,
+      "turns": 8,
+      "wall_s": 41.7,
+      "session": "ses_e9e220d42ffeG2B7LTo3tb3gqE",
+      "step": "maker",
+      "at": "2026-10-22T04:28:59+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-gb8hvzfq/repo/.git/xv/runs/expiring-today/03-maker.out"
+    },
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 3825,
+      "tokens_out": 2065,
+      "cache_read": 135340,
+      "cache_write": 0,
+      "tokens": 141230,
+      "usd": 0.0,
+      "turns": 7,
+      "wall_s": 62.2,
+      "session": "ses_e9e21602affeKB20QxDqXXJWGN",
+      "step": "cleaner",
+      "at": "2026-10-22T04:30:04+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-gb8hvzfq/repo/.git/xv/runs/expiring-today/04-cleaner.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": false,
+      "detail": "missing: ['guardian']; ran: ['forecaster', 'scenario', 'maker', 'cleaner']"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_expiring.py'], 'command': 'python3 -m unittest tests.test_expiring', 'failure': \"AssertionError: 'milk' not found in ['yogurt']\"}"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": false,
+      "detail": "no wall baseline"
+    },
+    {
+      "name": "packet_exists",
+      "pass": false,
+      "detail": "no packet or review"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 4,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": " \"<xv-agents>/scripts/run.py\", line 189, in step\n    body, report = record.apply_report(data, body, agent, result[\"stdout\"])\n                   ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<xv-agents>/scripts/record.py\", line 270, in apply_report\n    for mv in report.get(\"moved_tests\") or []:\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: 'int' object is not iterable\n",
+  "verdict": null,
+  "final_message": "```xv-report\n{\"agent\":\"forecaster\",\"status\":\"done\",\"summary\":\"No historical guidance for opencode/gpt-oss:20b; forecast values left null, no shape change expected.\",\n \"forecast\":{\n   \"keys\":[\n     {\"harness\":\"opencode\",\"model\":\"gpt-oss:20b\",\"tokens\":null,\"turns\":null,\"usd\":null,\"basis\":[],\"note\":\"no history for opencode/gpt-oss:20b\"}\n   ],\n   \"wall_s\":540,\n   \"shape\":\"none\",\n   \"breadth\":\"Expect no significant change in output shape.\"\n}}\n```\n\n---\n```xv-report\n{\"agent\": \"scenario\", \"status\": \"red\", \"summary\": \"Item expiring today is missing from expiring list\", \"red\": {\"files\": [\"tests/test_expiring.py\"], \"command\": \"python3 -m unittest tests.test_expiring\", \"failure\": \"AssertionError: 'milk' not found in ['yogurt']\"}, \"watch_first_green\": null}\n```\n---\n```xv-report\n{\"agent\":\"maker\",\"status\":\"green\",\"summary\":\"updated Store.expiring to include items expiring today\",\"moved_tests\":[],\"stop\":null}\n```\n---\n```xv-report\n{\"agent\":\"cleaner\",\"status\":\"done\",\"summary\":\"nothing to clean\",\"commit\":null,\n \"applied\":[],\n \"moved_tests\":[],\n \"shape_proposals\":[],\n \"candidate_standards\":[]}\n```"
+}

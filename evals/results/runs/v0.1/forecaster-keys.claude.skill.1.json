@@ -1,0 +1,78 @@
+{
+  "scenario": "forecaster-keys",
+  "increment": 6,
+  "agent": "forecaster",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T17:06:16.322123+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 4,
+      "tokens_out": 1057,
+      "cache_read": 26545,
+      "cache_write": 4876,
+      "tokens": 32482,
+      "usd": 0.0327,
+      "turns": 3,
+      "wall_s": 10.6,
+      "session": "09a14b23-c9cd-4b34-8e8a-9f3541496627",
+      "step": "forecaster",
+      "at": "2026-10-22T17:06:27+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-forecaster-keys-8pahq9vi/repo/.git/xv/runs/hide-used-up/01-forecaster.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "forecast_uses_same_key",
+      "pass": true,
+      "detail": "tokens 320000 from ['2026-10-07-add-items', '2026-10-08-use-items', '2026-10-14-expiring']"
+    },
+    {
+      "name": "forecast_has_shape",
+      "pass": true,
+      "detail": "shape: none"
+    },
+    {
+      "name": "forecaster_read_only",
+      "pass": true,
+      "detail": "changed nothing"
+    },
+    {
+      "name": "stop_asks_for_budget",
+      "pass": true,
+      "detail": "stop: budget_not_set"
+    }
+  ],
+  "passed": 4,
+  "total": 4,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "forecaster",
+    "stop": {
+      "order": "budget_not_set",
+      "seat": "originator",
+      "question": "eval-person: set the budget from the forecast (`xv record set hide-used-up budget ... --by <name>`).",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "budget_not_set",
+        "seat": "originator",
+        "question": "eval-person: set the budget from the forecast (`xv record set hide-used-up budget ... --by <name>`).",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-forecaster-keys-8pahq9vi/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "The forecast has one key, claude/sonnet, because all four agents run on it. I used three claude/sonnet rows from the guide and ignored the claude/haiku and codex rows.\n\n- **Rows used:** `2026-10-14-expiring` is the closest. It is a feature that adds a query on the store and one route, similar to filtering `GET /items`. `2026-10-08-use-items` is next, a small change inside the store that took one round. `2026-10-07-add-items` is the high end. Its overrun came from the maker installing pytest before finding the unittest command, and the suite command is given in this brief, so I don't expect that again.\n- **Tokens and dollars:** the three actuals are 268k, 330k and 412k tokens, and $1.05, $1.30 and $1.61. I forecast about 320k tokens and $1.25.\n- **Turns:** the guide has no turn counts, so turns are null.\n- **Wall clock:** the three claude/sonnet rows ran 420 to 610 s, and the one other-key row ran 900 s on a different harness and model. I forecast 540 s.\n- **Shape:** none. I expect the filter to sit in the store's list query, with no new route or signature change. Items with some quantity left stay in the list as now.\n\nThe budget is the engineer's to set.\n\n```xv-report\n{\"agent\": \"forecaster\", \"status\": \"done\", \"summary\": \"claude/sonnet ~320k tokens, ~$1.25, ~540s; shape none, filter inside the existing list query\",\n \"forecast\": {\"keys\": [{\"harness\": \"claude\", \"model\": \"sonnet\", \"tokens\": 320000, \"turns\": null, \"usd\": 1.25, \"basis\": [\"2026-10-14-expiring\", \"2026-10-08-use-items\", \"2026-10-07-add-items\"], \"note\": \"guide rows carry no turn counts\"}],\n              \"wall_s\": 540, \"shape\": \"none\", \"breadth\": \"filter used-up items out of the list query behind GET /items; no new route or signature change\"}}\n```"
+}

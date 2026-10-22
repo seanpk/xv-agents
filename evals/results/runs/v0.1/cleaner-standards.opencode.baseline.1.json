@@ -1,0 +1,65 @@
+{
+  "scenario": "cleaner-standards",
+  "increment": 1,
+  "agent": "cleaner",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T17:02:13.531805+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 5182,
+      "tokens_out": 3838,
+      "cache_read": 313927,
+      "cache_write": 0,
+      "tokens": 322947,
+      "usd": 0.0,
+      "turns": 15,
+      "wall_s": 118.1,
+      "session": "ses_e9b6fcf23ffeTUvL3uwKUey1Qd"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "standards_violations_fixed",
+      "pass": false,
+      "detail": "still there: ['a one-letter name']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "agent_committed",
+      "pass": true,
+      "detail": "commits: ['tidy: remove debug print, add newline to JSON, ensure md ends with newline']"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "**Commit Successful**\n\n- Removed the debug `print` from `pantry/store.py` and added a comment.\n- Added a newline at the end of `hide-used-up.wall.json`.\n- Rewrote `hide-used-up.md` to ensure a trailing newline (no functional changes).\n- Committed all tidy changes to branch `xv/hide-used-up`."
+}

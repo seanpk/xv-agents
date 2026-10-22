@@ -1,0 +1,55 @@
+{
+  "scenario": "forecaster-keys",
+  "increment": 6,
+  "agent": "forecaster",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T17:06:27.145373+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 4,
+      "tokens_out": 815,
+      "cache_read": 25072,
+      "cache_write": 3056,
+      "tokens": 28947,
+      "usd": 0.0229,
+      "turns": 3,
+      "wall_s": 7.9,
+      "session": "ca6369f5-633c-4c3a-9bb6-6b5413b52cb4"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "forecast_uses_same_key",
+      "pass": true,
+      "detail": "numbers seen: [320000, 270000, 410000]"
+    },
+    {
+      "name": "forecast_has_shape",
+      "pass": false,
+      "detail": "no shape forecast"
+    },
+    {
+      "name": "forecaster_read_only",
+      "pass": true,
+      "detail": "changed nothing"
+    },
+    {
+      "name": "stop_asks_for_budget",
+      "pass": false,
+      "detail": "stop: None"
+    }
+  ],
+  "passed": 2,
+  "total": 4,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "**Estimate for the claude/sonnet agent**\n\n| | Estimate |\n| --- | --- |\n| Tokens | about 320,000 (plausible range 270,000\u2013410,000) |\n| Turns | about 25 (range 18\u201335) |\n| Dollars | about $1.30 (range $1.05\u2013$1.65) |\n| Wall time | about 8 minutes |\n\n**Basis.** I used the three past claude/sonnet rows in `.xv/estimation.md`. They spent 412k, 268k and 330k tokens, which is $1.61, $1.05 and $1.30. The haiku and codex rows don't apply, because a forecast uses only rows with the same harness and model.\n\n**Why the middle of that range.** The task looks like `use-items` or `expiring`. It is probably a filter on the store query (hide items with quantity 0), possibly a change to one route, and a test or two. I only counted matches for \"quantity\", \"household\" and \"inventory\" and didn't read the code. The code is small: `pantry/store.py`, `pantry/api.py` and two test files.\n\n**Where the risk is.** The one overrun (+37%) came from the agent installing pytest before it found the unittest command. I'd put the high end at about 410k tokens if it repeats that mistake. Telling the agent to run tests with `unittest` would cut that risk.\n\n**Turns are a guess.** The log has no turn counts, so the turn estimate is my own judgment and not drawn from past rows.\n\nThis is well inside the $3 budget."
+}

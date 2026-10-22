@@ -1,0 +1,55 @@
+{
+  "scenario": "retro-adopt",
+  "increment": 8,
+  "agent": "retro",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T16:54:46.689391+00:00",
+  "exit": 0,
+  "spend": [],
+  "assertions": [
+    {
+      "name": "retro_packet_exists",
+      "pass": true,
+      "detail": ".xv/retro/2026-10-22.md"
+    },
+    {
+      "name": "retro_candidates_traced",
+      "pass": true,
+      "detail": "3 of 3 candidates name a slice"
+    },
+    {
+      "name": "retro_adopts_a_shared_learning",
+      "pass": true,
+      "detail": "adopts: ['12', '15']"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "only_retro_written",
+      "pass": true,
+      "detail": "only the retro packet"
+    }
+  ],
+  "passed": 5,
+  "total": 5,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "packet": ".xv/retro/2026-10-22.md",
+    "candidates": 3,
+    "dropped": 0,
+    "exit": 0,
+    "kept": [
+      "1. When green needs a looser expected value, stop instead of loosening it [adopt]",
+      "2. Start a test server on port 0, never a fixed port [adopt]",
+      "3. The `print()` standard does not fit the API's startup line [open]"
+    ]
+  },
+  "final_message": ""
+}

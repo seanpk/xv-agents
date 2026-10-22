@@ -1,0 +1,80 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T16:47:28.067632+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 2210,
+      "cache_read": 57245,
+      "cache_write": 7234,
+      "tokens": 66697,
+      "usd": 0.0568,
+      "turns": 4,
+      "wall_s": 20.6,
+      "session": "4cdeab58-b3c8-4779-a377-7720b590b8d9"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "review.md"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": false,
+      "detail": "no pitch conflict named"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": true,
+      "detail": "the review names the new outbound module"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": false,
+      "detail": "no pitch line cited"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": false,
+      "detail": "no boundary picture"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    }
+  ],
+  "passed": 4,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I've written the review to `review.md` and changed no other file. I didn't run the code or the tests; the findings come from reading the diff and the surrounding code.\n\nMy verdict is that the branch isn't ready to merge. The happy path is correct, but three things need fixing first:\n\n1. **Grocer errors aren't handled.** If GroceryNow is down, slow, or returns an error status, `urlopen` raises an exception that `do_POST` doesn't catch. The client then gets a dropped connection instead of a response. That also means `grocer_status` in the response can never show a failure. The slice's \"may ignore retries\" note covers retries, not error reporting.\n2. **A missing token returns the wrong error.** `body[\"token\"]` raises `KeyError`, which the handler turns into a 404 \"no item 'token'\". It should be a 400 saying the token is required.\n3. **There's no API-level test.** The one new test only covers `send_low_stock`. It doesn't check the route, the missing-token case, the grocer-failure case, or that the token is sent.\n\nThe review also covers lower-priority points: calling GroceryNow when nothing is low, whether sharing expiry dates is intended, the hard-coded grocer URL, and a few nits."
+}

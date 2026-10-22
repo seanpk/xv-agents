@@ -1,0 +1,65 @@
+{
+  "scenario": "scenario-har",
+  "increment": 3,
+  "agent": "scenario",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T04:15:07.373253+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 971,
+      "cache_read": 58943,
+      "cache_write": 7785,
+      "tokens": 67707,
+      "usd": 0.0468,
+      "turns": 5,
+      "wall_s": 12.9,
+      "session": "94ae6cda-abd2-4375-abda-8d2b53b6a126"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "red_replays_recording",
+      "pass": true,
+      "detail": "uses the recording's milk and date"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I added a failing test, `test_an_item_that_runs_out_today_is_expiring`, to `tests/test_api.py`. It fails for the reason in the report. I haven't fixed the defect or committed anything.\n\nThe test replays the HAR recording against the real API:\n- **Setup:** it adds milk expiring 2026-10-21 and yogurt expiring 2026-10-23.\n- **Request:** it asks `GET /items/expiring?days=3&today=2026-10-21`.\n- **Expected:** the answer lists `[\"milk\", \"yogurt\"]`.\n- **Actual:** the answer is `[\"yogurt\"]`.\n\nI ran it with `python3 -m unittest discover -s tests -t .`. That run was 12 tests with this one failure, so the other 11 pass.\n\nThe cause is in `Store.expiring` in `pantry/store.py`. The condition is `today < i.expires_on <= last`, and the strict `<` drops an item that expires today. Changing it to `today <= i.expires_on` should fix it. Items already past their date would stay excluded."
+}

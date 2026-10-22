@@ -1,0 +1,93 @@
+{
+  "scenario": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T04:18:18.563394+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 9497,
+      "tokens_out": 3463,
+      "cache_read": 490443,
+      "cache_write": 0,
+      "tokens": 503403,
+      "usd": 0.0,
+      "turns": 22,
+      "wall_s": 119.9,
+      "session": "ses_e9e2b31beffeWH8od0Bx8YYGBA",
+      "step": "maker",
+      "at": "2026-10-22T04:20:18+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-maker-feature-s7j0a8au/repo/.git/xv/runs/hide-used-up/01-maker.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "preset_red_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "red_file_unchanged",
+      "pass": true,
+      "detail": "the scenario agent's red is untouched"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "moved_test_recorded",
+      "pass": true,
+      "detail": "recorded moves: ['tests/test_store.py']"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status green"
+    },
+    {
+      "name": "wall_holds",
+      "pass": true,
+      "detail": "unrecorded: [], recorded: ['tests/test_store.py']"
+    }
+  ],
+  "passed": 7,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "maker",
+    "stop": {
+      "order": "unrecorded_move",
+      "seat": "originator",
+      "question": "Test files changed with no record after the maker: tests/test_store.py. Revert them, or record why the scenario forces it.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "unrecorded_move",
+        "seat": "originator",
+        "question": "Test files changed with no record after the maker: tests/test_store.py. Revert them, or record why the scenario forces it.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-maker-feature-s7j0a8au/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "```xv-report\n{\"agent\":\"maker\",\"status\":\"green\",\"summary\":\"Implemented removal of zero\u2011quantity items from the store and API, filtering the API list, and updated the test_store to reflect the scenario requirement.\",\"moved_tests\":[{\"file\":\"tests/test_store.py\",\"assertion\":\"was: [(\\\"bread\\\", 0)]; now: []\",\"why\":\"Scenario \\\"used\u2011up items leave the list\\\" forces an item to be removed from internal storage after its quantity reaches zero.\"}],\"stop\":null}\n```"
+}

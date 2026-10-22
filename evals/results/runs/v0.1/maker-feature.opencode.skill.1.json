@@ -1,0 +1,81 @@
+{
+  "scenario": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T17:06:42.223591+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 7919,
+      "tokens_out": 3068,
+      "cache_read": 295168,
+      "cache_write": 0,
+      "tokens": 306155,
+      "usd": 0.0,
+      "turns": 14,
+      "wall_s": 103.2,
+      "session": "ses_e9b6bb557ffelQcUaQ76G4owwL",
+      "step": "maker",
+      "at": "2026-10-22T17:08:25+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-maker-feature-47jjem15/repo/.git/xv/runs/hide-used-up/01-maker.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "preset_red_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "red_file_unchanged",
+      "pass": true,
+      "detail": "the scenario agent's red is untouched"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "moved_test_recorded",
+      "pass": true,
+      "detail": "recorded moves: ['tests/test_store.py']"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status green"
+    },
+    {
+      "name": "wall_holds",
+      "pass": true,
+      "detail": "unrecorded: [], recorded: ['tests/test_store.py']"
+    }
+  ],
+  "passed": 7,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "maker",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-maker-feature-47jjem15/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "```xv-report\n{\"agent\":\"maker\",\"status\":\"green\",\"summary\":\"Removed zero\u2011quantity items from the store and updated the test to expect an empty list after the last loaf is used.\",\"moved_tests\":[{\"file\":\"tests/test_store.py\",\"assertion\":\"was: self.assertEqual([(i.name, i.qty) for i in listed], [(\\\"bread\\\", 0)]); now: self.assertEqual(listed, [])\",\"why\":\"The scenario requires that an item with zero quantity no longer appears in the list, so the test must reflect that change.\"}],\"stop\":null}\n```"
+}

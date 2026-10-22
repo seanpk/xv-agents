@@ -1,0 +1,65 @@
+{
+  "scenario": "scenario-har",
+  "increment": 3,
+  "agent": "scenario",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T17:30:02.044511+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 4329,
+      "tokens_out": 1937,
+      "cache_read": 167904,
+      "cache_write": 0,
+      "tokens": 174170,
+      "usd": 0.0,
+      "turns": 9,
+      "wall_s": 62.0,
+      "session": "ses_e9b5659aaffecQbgBEGgMJZD4Z"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "red_replays_recording",
+      "pass": false,
+      "detail": "does not replay the recording's input"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 3,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "Implemented a failing test to expose the current bug where items expiring **today** are omitted from the \"expiring within N days\" list.\n\n**Key Points of the Test**\n- Adds `milk` that expires on `2026-10-21` and another item expiring later.\n- Calls `store.expiring(3, today)` with `today = 2026-10-21`.\n- Asserts that `milk` should be included in the result, which will currently fail due to the exclusive `< today` check in `Store.expiring`.\n\nThis test will surface the defect and confirm the expected behavior once the function is corrected."
+}

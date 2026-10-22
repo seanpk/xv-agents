@@ -1,0 +1,93 @@
+{
+  "scenario": "scenario-feature",
+  "increment": 3,
+  "agent": "scenario",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T17:25:33.535545+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 7392,
+      "tokens_out": 2674,
+      "cache_read": 198114,
+      "cache_write": 0,
+      "tokens": 208180,
+      "usd": 0.0,
+      "turns": 10,
+      "wall_s": 90.1,
+      "session": "ses_e9b5a7272ffehlQBEogub4hyRN",
+      "step": "scenario",
+      "at": "2026-10-22T17:27:03+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-scenario-feature-9vpzntgn/repo/.git/xv/runs/hide-used-up/01-scenario.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_at_user_surface",
+      "pass": true,
+      "detail": "the red calls the API"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "watch_first_green_noted",
+      "pass": false,
+      "detail": "no note for the first green"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "scenario",
+    "stop": {
+      "order": "no_report",
+      "seat": "originator",
+      "question": "The scenario ended without a report. Read its log and decide whether to re-run it.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "no_report",
+        "seat": "originator",
+        "question": "The scenario ended without a report. Read its log and decide whether to re-run it.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-scenario-feature-9vpzntgn/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "```xv-report\n{\"agent\":\"scenario\",\"status\":\"red\",\"summary\":\"Used-up items remain visible in list\",\"red\":{\"files\":[\"tests/test_hide_used_up.py\"],\"command\":\"python3 -m unittest tests.test_hide_used_up\",\"failure\":\"AssertionError: bread should have been removed from the list when qty reached 0\",\"watch_first_green\":null}}```\n"
+}

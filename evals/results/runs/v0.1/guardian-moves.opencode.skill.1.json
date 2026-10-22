@@ -1,0 +1,104 @@
+{
+  "scenario": "guardian-moves",
+  "increment": 4,
+  "agent": "guardian",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T17:31:06.288699+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 7344,
+      "tokens_out": 3369,
+      "cache_read": 169924,
+      "cache_write": 0,
+      "tokens": 180637,
+      "usd": 0.0,
+      "turns": 8,
+      "wall_s": 106.6,
+      "session": "ses_e9b555e42ffecJIoLyVG1NS7h0",
+      "step": "guardian",
+      "at": "2026-10-22T17:32:53+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-guardian-moves-1pz9it4g/repo/.git/xv/runs/message-wording/01-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/message-wording.packet.md"
+    },
+    {
+      "name": "shape_not_flagged",
+      "pass": true,
+      "detail": "packet: shape_change: no"
+    },
+    {
+      "name": "pitch_not_flagged",
+      "pass": true,
+      "detail": "packet: pitch_contradiction: no"
+    },
+    {
+      "name": "moved_test_listed",
+      "pass": true,
+      "detail": "both moved test files listed"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": true,
+      "detail": "the boundary picture is in the packet"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    },
+    {
+      "name": "stop_accept_moves",
+      "pass": true,
+      "detail": "stop: accept_moves for originator"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    }
+  ],
+  "passed": 9,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "message-wording",
+    "after": "guardian",
+    "stop": {
+      "order": "accept_moves",
+      "seat": "originator",
+      "question": "2 old test(s) moved with a record; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "accept_moves",
+        "seat": "originator",
+        "question": "2 old test(s) moved with a record; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/message-wording.md",
+    "worktree": "/tmp/xv-eval-guardian-moves-1pz9it4g/repo/.xv/worktrees/message-wording",
+    "packet": ".xv/slices/message-wording.packet.md"
+  },
+  "final_message": "```xv-report\n{\"agent\":\"guardian\",\"status\":\"done\",\"summary\":\"Change is a clear wording tweak with no shape or pitch impact; two\u2011way door with small blast radius.\",\"packet\":\".xv/slices/message-wording.packet.md\",\"shape_change\":\"no\",\"pitch_contradiction\":\"no\",\"picture_change\":\"no\",\"moved_tests\":2,\"door\":\"two-way\"}\n```\n"
+}

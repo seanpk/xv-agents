@@ -1,0 +1,76 @@
+{
+  "scenario": "scenario-defect",
+  "increment": 1,
+  "agent": "scenario",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T04:20:39.669305+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 1395,
+      "cache_read": 63446,
+      "cache_write": 9513,
+      "tokens": 74362,
+      "usd": 0.0584,
+      "turns": 5,
+      "wall_s": 11.4,
+      "session": "f8e868b2-fd45-46ad-bd74-03cf2f3c308a",
+      "step": "scenario",
+      "at": "2026-10-22T04:20:51+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-scenario-defect-lm0_dqvt/repo/.git/xv/runs/expiring-today/01-scenario.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "red_replays_recording",
+      "pass": true,
+      "detail": "uses the recording's milk and date"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_expiring_today.py'], 'command': 'python3 -m unittest tests.test_expiring_today', 'failure': \"AssertionError: [{'name': 'yogurt', ...}] != [{'name': 'milk', 'qty': 1, 'expires_on': '2026-10-21'}, {'name': 'yogurt', ...}]\", 'watch_first_green': None}"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status red"
+    }
+  ],
+  "passed": 6,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "expiring-today",
+    "after": "scenario",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/expiring-today.md",
+    "worktree": "/tmp/xv-eval-scenario-defect-lm0_dqvt/repo/.xv/worktrees/expiring-today"
+  },
+  "final_message": "I added `tests/test_expiring_today.py`. It fails for the reason in the recording: milk expiring on 2026-10-21 is missing from `/items/expiring?days=3&today=2026-10-21`, so the response is only the yogurt. I ran only that test file, not the whole suite.\n\nThe test replays the recorded steps against the running API. It adds the milk and the yogurt, then asks for items expiring within 3 days. The expected list, milk then yogurt, comes from the recording's `expected` field, not from the code.\n\n```xv-report\n{\"agent\": \"scenario\", \"status\": \"red\", \"summary\": \"Milk expiring today is missing from /items/expiring?days=3&today=2026-10-21\",\n \"red\": {\"files\": [\"tests/test_expiring_today.py\"], \"command\": \"python3 -m unittest tests.test_expiring_today\", \"failure\": \"AssertionError: [{'name': 'yogurt', ...}] != [{'name': 'milk', 'qty': 1, 'expires_on': '2026-10-21'}, {'name': 'yogurt', ...}]\",\n         \"watch_first_green\": null}}\n```"
+}

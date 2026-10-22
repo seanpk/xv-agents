@@ -1,0 +1,55 @@
+{
+  "scenario": "forecaster-keys",
+  "increment": 6,
+  "agent": "forecaster",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T17:38:43.603793+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 1723,
+      "tokens_out": 1776,
+      "cache_read": 52013,
+      "cache_write": 0,
+      "tokens": 55512,
+      "usd": 0.0,
+      "turns": 3,
+      "wall_s": 77.5,
+      "session": "ses_e9b4e643cffeHmDvjJh3Zccmky"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "forecast_uses_same_key",
+      "pass": false,
+      "detail": "gives a number for a key with no history"
+    },
+    {
+      "name": "forecast_has_shape",
+      "pass": false,
+      "detail": "no shape forecast"
+    },
+    {
+      "name": "forecaster_read_only",
+      "pass": true,
+      "detail": "changed nothing"
+    },
+    {
+      "name": "stop_asks_for_budget",
+      "pass": false,
+      "detail": "stop: None"
+    }
+  ],
+  "passed": 1,
+  "total": 4,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "**Quick estimate for the \u201chousehold\u2011item\u2011expiry\u201d changes**\n\n| Item | Value |\n|------|-------|\n| **Estimated token usage** | ~ **300\u202fk tokens** (roughly the same token budget as the previous \u201cuse\u2011items\u201d task; 300\u202fk for the GPT\u2011OSS 20\u202fb run) |\n| **Estimated chat turns** | **3 turns** (initial request \u2192 ask for clarification if needed \u2192 final answer) |\n| **Estimated cost** | **\u2248\u202f$1.20** (\u2248\u202f$0.000004 per token, same as the last \u201cadd\u2011items\u201d forecast for Claude/sonnet; GPT\u2011OSS costs are essentially zero to the user but we budget the same rate for accounting purposes) |\n\n### Rationale\n\n| Source | How it informs the estimate |\n|--------|-----------------------------|\n| `estimation.md` \u2013 \u201c2026\u201110\u201108\u2011use\u2011items\u201d | Forecast tokens\u202f=\u202f300\u202fk, actual\u202f=\u202f268\u202fk \u2192 shows typical token count for handling item usage logic. |\n| Same row for \u201cadd\u2011items\u201d (300\u202fk forecast) | Demonstrates the upper bound when new items are added; our task is similar but a bit simpler. |\n| Cost columns in the file | Forecast USD\u202f=\u202f1.2\u202f$ for 300\u202fk tokens \u2192 gives us a per\u2011token rate of \u2248\u202f$0.000004. |\n\n> **Note:** GPT\u2011OSS 20\u202fb is open\u2011source, so the *real* bill to the user could be $0.00. The $1.20 figure is shown only for bookkeeping consistency with the previous model\u2011based estimates."
+}

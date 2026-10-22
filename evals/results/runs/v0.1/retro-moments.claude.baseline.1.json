@@ -1,0 +1,60 @@
+{
+  "scenario": "retro-moments",
+  "increment": 5,
+  "agent": "retro",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T17:05:49.834988+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 2785,
+      "cache_read": 57200,
+      "cache_write": 8666,
+      "tokens": 68659,
+      "usd": 0.0683,
+      "turns": 4,
+      "wall_s": 26.5,
+      "session": "b20f3573-bdfc-40f3-a425-4d411b1afcdf"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "retro_packet_exists",
+      "pass": true,
+      "detail": ".xv/retro/review.md"
+    },
+    {
+      "name": "retro_candidates_traced",
+      "pass": false,
+      "detail": "0 of 7 candidates name a slice"
+    },
+    {
+      "name": "retro_proposes_a_check",
+      "pass": true,
+      "detail": "proposes a check"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "only_retro_written",
+      "pass": true,
+      "detail": "only the retro packet"
+    }
+  ],
+  "passed": 4,
+  "total": 5,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I wrote the suggestions to `.xv/retro/review.md`. They come only from the three slice records plus `standards.md`, `rules.md` and `config.yml`. I didn't open the code in `pantry/` or `tests/`, so the specific lint and check details need confirming against it.\n\nIn order of priority:\n\n1. **Stop the maker weakening tests.** In two of the three slices, the maker loosened an assertion or deleted a test to get green, and a person had to revert it afterwards. I suggest a mechanical check that fails when a diff under `tests/**` removes or loosens a test, run in the maker's own loop. I also suggest an explicit rule: fix the code, never the test.\n2. **Add a port rule to `rules.md`.** Bind tests and dev servers to port 0 and clean them up in teardown. The fixed-port collision drove bulk-add to 910k tokens against a 300k forecast and a budget raise from $2 to $4.\n3. **Turn the two \"judgement\" standards into lint checks.** The date-name rule (`d`/`dt`/`x`) was applied by the cleaner in two of the three slices. For `print()`, I suggest routing the intentional startup line through `logging`, so it stops needing an override.\n4. **Match forecasts and budgets to the kind of work.** The bulk-add forecast was based on a single-item slice, which understated a bulk, server-facing one.\n5. **Require boundary tests when a scenario names a range.** expiring-days says 0 to 30, so tests at 0, 30 and just outside would make deleting one conspicuous."
+}

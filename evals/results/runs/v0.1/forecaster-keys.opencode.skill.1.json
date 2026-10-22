@@ -1,0 +1,78 @@
+{
+  "scenario": "forecaster-keys",
+  "increment": 6,
+  "agent": "forecaster",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T17:37:25.545189+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 4182,
+      "tokens_out": 1965,
+      "cache_read": 54679,
+      "cache_write": 0,
+      "tokens": 60826,
+      "usd": 0.0,
+      "turns": 3,
+      "wall_s": 77.9,
+      "session": "ses_e9b4f9538ffeWe7dvjORJ2mM8A",
+      "step": "forecaster",
+      "at": "2026-10-22T17:38:43+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-forecaster-keys-a8k62lm_/repo/.git/xv/runs/hide-used-up/01-forecaster.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "forecast_uses_same_key",
+      "pass": true,
+      "detail": "no history for ('opencode', 'gpt-oss:20b'); tokens: None"
+    },
+    {
+      "name": "forecast_has_shape",
+      "pass": true,
+      "detail": "shape: narrow"
+    },
+    {
+      "name": "forecaster_read_only",
+      "pass": true,
+      "detail": "changed nothing"
+    },
+    {
+      "name": "stop_asks_for_budget",
+      "pass": true,
+      "detail": "stop: budget_not_set"
+    }
+  ],
+  "passed": 4,
+  "total": 4,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "forecaster",
+    "stop": {
+      "order": "budget_not_set",
+      "seat": "originator",
+      "question": "eval-person: set the budget from the forecast (`xv record set hide-used-up budget ... --by <name>`).",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "budget_not_set",
+        "seat": "originator",
+        "question": "eval-person: set the budget from the forecast (`xv record set hide-used-up budget ... --by <name>`).",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-forecaster-keys-a8k62lm_/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "```xv-report\n{\"agent\": \"forecaster\",\n \"status\": \"done\",\n \"summary\": \"No historical data for opencode/gpt-oss:20b; forecast uncertain.\",\n \"forecast\": {\"keys\": [{\"harness\": \"opencode\",\n                       \"model\": \"gpt-oss:20b\",\n                       \"tokens\": null,\n                       \"turns\": null,\n                       \"usd\": null,\n                       \"basis\": [],\n                       \"note\": \"no history for opencode/gpt-oss:20b\"}],\n              \"wall_s\": 900,\n              \"shape\": \"narrow\",\n              \"breadth\": \"Only the very last item will disappear, minimal shrink\"}}\n```"
+}

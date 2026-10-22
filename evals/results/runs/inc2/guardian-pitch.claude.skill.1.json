@@ -1,0 +1,94 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T04:11:27.684321+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 10,
+      "tokens_out": 3758,
+      "cache_read": 88148,
+      "cache_write": 11629,
+      "tokens": 103545,
+      "usd": 0.0929,
+      "turns": 6,
+      "wall_s": 31.1,
+      "session": "dc33bf82-8121-4917-a29e-768ea03b7094",
+      "step": "guardian",
+      "at": "2026-10-22T04:11:58+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-guardian-pitch-tcq90lmr/repo/.git/xv/runs/share-with-grocer/01-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/share-with-grocer.packet.md"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": true,
+      "detail": "packet: pitch_contradiction: yes"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": true,
+      "detail": "packet: shape_change: yes"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": true,
+      "detail": "quotes or cites a pitch line"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": true,
+      "detail": "stop: shape_or_pitch for two_people"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    }
+  ],
+  "passed": 7,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "share-with-grocer",
+    "after": "guardian",
+    "stop": {
+      "order": "shape_or_pitch",
+      "seat": "two_people",
+      "question": "The guardian's packet says shape_change and pitch_contradiction. Two people decide from the packet.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "shape_or_pitch",
+        "seat": "two_people",
+        "question": "The guardian's packet says shape_change and pitch_contradiction. Two people decide from the packet.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/share-with-grocer.md",
+    "worktree": "/tmp/xv-eval-guardian-pitch-tcq90lmr/repo/.xv/worktrees/share-with-grocer",
+    "packet": ".xv/slices/share-with-grocer.packet.md"
+  },
+  "final_message": "The packet is written to `.xv/slices/share-with-grocer.packet.md`. Both fixed fields are `yes`, so the change stops for two people.\n\n- **Pitch:** The change sends household data to a partner. `.xv/pitch.md:15` says \"no partners\", and `.xv/pitch.md:14` says the system is not for grocers.\n- **Shape:** The diff adds:\n  - a new module, `pantry/grocer.py`;\n  - an outbound network call to GroceryNow, against `.xv/picture.md:21` (\"no outbound network calls\");\n  - a second caller of the store, against `.xv/picture.md:17`;\n  - the new endpoint `POST /share`.\n- **Moved tests:** No old test changed. `tests/test_grocer.py` is new, and the suite passes (12 tests). The new test mocks the network call and covers only `grocer.send_low_stock`, not the `/share` route.\n- **Picture:** `.xv/picture.md` needs edits in five places, listed in the packet. They are only worth making if the household first changes the pitch.\n- **Door:** One-way. A revert cannot recall data already sent to GroceryNow.\n- **Gaps:**\n  - `xv boundary` is not a command in this build, so I made no boundary picture and listed the edges straight from the diff instead.\n  - `xv wall diff` could not run, because the slice record has no wall baseline.\n  - The record also shows no red or forecast step, although the code is committed.\n\n```xv-report\n{\"agent\": \"guardian\", \"status\": \"done\", \"summary\": \"Sends household data to a partner GroceryNow, contradicting the pitch's no-partners rule and the picture's no-outbound-calls shape; no old tests moved; xv boundary and wall diff unavailable\", \"packet\": \".xv/slices/share-with-grocer.packet.md\",\n \"shape_change\": \"yes\", \"pitch_contradiction\": \"yes\", \"picture_change\": \"yes\", \"moved_tests\": 0, \"door\": \"one-way\"}\n```"
+}

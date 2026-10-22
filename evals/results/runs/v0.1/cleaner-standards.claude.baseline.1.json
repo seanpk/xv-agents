@@ -1,0 +1,65 @@
+{
+  "scenario": "cleaner-standards",
+  "increment": 1,
+  "agent": "cleaner",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T16:59:36.724751+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 10,
+      "tokens_out": 811,
+      "cache_read": 73229,
+      "cache_write": 5613,
+      "tokens": 79663,
+      "usd": 0.0379,
+      "turns": 5,
+      "wall_s": 11.2,
+      "session": "f9a11d6b-2651-4df7-8733-deb4ed498eff"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "standards_violations_fixed",
+      "pass": true,
+      "detail": "both rules applied"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "agent_committed",
+      "pass": true,
+      "detail": "commits: ['xv(hide-used-up): tidy items()']"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 5,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I tidied `Store.items()` in `pantry/store.py` and committed it as `4f1ea76`. The suite passes (13 tests).\n\n- **`print()` removed:** the leftover `print(\"items:\", len(d))` is gone. `.xv/standards.md` says there must be no `print()` in `pantry/`.\n- **Names fixed:** `d` and `x` are now `in_stock` and `i`. I treated the standards rule against names like `d` and `x` as covering these too, even though they hold items rather than dates.\n- **Same behaviour:** it now filters out used-up items first and then sorts, instead of sorting and then filtering. The result is the same list as before.\n\nThe rest of the diff was a test rename and slice bookkeeping files, which I left alone."
+}

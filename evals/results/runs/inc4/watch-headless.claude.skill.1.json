@@ -1,0 +1,171 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T04:21:13.186004+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 4,
+      "tokens_out": 798,
+      "cache_read": 26563,
+      "cache_write": 4984,
+      "tokens": 32349,
+      "usd": 0.0306,
+      "turns": 3,
+      "wall_s": 9.5,
+      "session": "0875f944-e19e-46e6-aff8-4c91f0ce694b",
+      "step": "forecaster",
+      "at": "2026-10-22T04:21:22+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-dp0j1u7d/repo/.git/xv/runs/expiring-today/01-forecaster.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 1413,
+      "cache_read": 64077,
+      "cache_write": 9382,
+      "tokens": 74880,
+      "usd": 0.0581,
+      "turns": 5,
+      "wall_s": 12.4,
+      "session": "8dbf25f7-a708-49c5-b4d1-88ca871f5772",
+      "step": "scenario",
+      "at": "2026-10-22T04:21:35+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-dp0j1u7d/repo/.git/xv/runs/expiring-today/02-scenario.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 991,
+      "cache_read": 64298,
+      "cache_write": 8111,
+      "tokens": 73408,
+      "usd": 0.0488,
+      "turns": 7,
+      "wall_s": 12.5,
+      "session": "54ef0d53-fab8-44fa-b112-ad1153809fec",
+      "step": "maker",
+      "at": "2026-10-22T04:21:48+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-dp0j1u7d/repo/.git/xv/runs/expiring-today/03-maker.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 4,
+      "tokens_out": 808,
+      "cache_read": 26861,
+      "cache_write": 11287,
+      "tokens": 38960,
+      "usd": 0.0559,
+      "turns": 2,
+      "wall_s": 11.5,
+      "session": "d6c7df19-9546-4ca9-b0aa-3cc4d943cd83",
+      "step": "cleaner",
+      "at": "2026-10-22T04:22:02+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-dp0j1u7d/repo/.git/xv/runs/expiring-today/04-cleaner.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 2741,
+      "cache_read": 73523,
+      "cache_write": 14451,
+      "tokens": 90723,
+      "usd": 0.0926,
+      "turns": 5,
+      "wall_s": 22.0,
+      "session": "8212ea85-b273-4e3e-bc71-b2ed7a2e4c82",
+      "step": "guardian",
+      "at": "2026-10-22T04:22:27+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-dp0j1u7d/repo/.git/xv/runs/expiring-today/05-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": true,
+      "detail": "ran: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_expiring_today.py'], 'command': 'python3 -m unittest tests.test_expiring_today', 'failure': \"AssertionError: [{'expires_on': '2026-10-23', 'name': 'yogurt', 'qty': 1}] != [milk 2026-10-21, yogurt 2026-10-23] (milk missing)\", 'watch_first_green': None}"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": true,
+      "detail": "wall baseline: {'commit': '536ac71ad1e84c1c596a9ab6a96fffb3b20a533e', 'count': 4, 'digest': 'b72397f495d8090b', 'file': '.xv/slices/expiring-today.wall.json'}"
+    },
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/expiring-today.packet.md"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": true,
+      "detail": "stop: accept_moves for originator"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 8,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "expiring-today",
+    "after": "guardian",
+    "stop": {
+      "order": "accept_moves",
+      "seat": "originator",
+      "question": "The picture changed; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "accept_moves",
+        "seat": "originator",
+        "question": "The picture changed; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/expiring-today.md",
+    "worktree": "/tmp/xv-eval-watch-headless-dp0j1u7d/repo/.xv/worktrees/expiring-today",
+    "packet": ".xv/slices/expiring-today.packet.md"
+  },
+  "final_message": "top\": null}\n```\n---\nI made no changes and committed nothing. The suite is green at the start (12 tests, OK).\n\n- **Source change:** the only edit outside the slice record is in `pantry/store.py:47`, where `today < i.expires_on` became `today <= i.expires_on`. The names there are `today`, `expires_on` and `last`, as `.xv/standards.md` requires. There is no `print()`, no dead code and no duplication.\n- **Tests:** the maker changed no old tests. `tests/test_expiring_today.py` is new and came from the red step. It asserts the exact list `[milk, yogurt]`, so nothing was loosened.\n- **Test file shape:** the file borrows `ApiTest` from `tests/test_api.py` as a base class. It then sets every other inherited `test_*` to `None` in a loop. That is clumsy, but it belongs to the tests wall and a fix would be a test refactor. A cleaner shape would be to move `ApiTest`'s setup and `call` helper into a shared base, which is a new abstraction. I left it as a proposal for the packet.\n\n```xv-report\n{\"agent\": \"cleaner\", \"status\": \"done\", \"summary\": \"Nothing to fix: one-line boundary change in Store.expiring is clean, suite green, no test weakened.\", \"commit\": null,\n \"applied\": [],\n \"moved_tests\": [], \"shape_proposals\": [\"tests/test_expiring_today.py inherits ApiTest and nulls every other inherited test in a loop; a shared test base holding the server setup and call helper (extracted from tests/test_api.py) would let new API tests avoid that. It is a new abstraction and a test-wall change, so left for the packet.\"],\n \"candidate_standards\": []}\n```\n---\nThe packet is written to `.xv/slices/expiring-today.packet.md`. Nothing in it stops the change for two people.\n\n- **Shape:** no change. The diff is one comparison in `pantry/store.py:47` (`today <` became `today <=`). The boundary picture shows no hints, edges, tables or surfaces added or removed.\n- **Pitch:** no contradiction. Showing today's items serves `.xv/pitch.md:8` (\"what runs out soon, so less of it goes to waste\"). The pitch is silent on whether \"within a few days\" includes today.\n- **Moved tests:** none. `xv wall diff` and the slice record agree. I took the suite as green from the maker's and cleaner's recorded runs and did not rerun it.\n- **Picture:** one edit proposed for eval-person to accept. `.xv/picture.md` doesn't say which days the expiring window covers, so the change should add that the window runs from today through today plus N, both included.\n- **Test base:** the cleaner proposes a shared test base for `tests/test_api.py`. I flagged it for eval-person as a separate decision, not part of this slice.\n- **Door:** two-way, small blast radius.\n\n```xv-report\n{\"agent\": \"guardian\", \"status\": \"done\", \"summary\": \"One-line boundary fix in Store.expiring; no shape or pitch change, no moved tests; picture needs one line on the inclusive window.\", \"packet\": \".xv/slices/expiring-today.packet.md\",\n \"shape_change\": \"no\", \"pitch_contradiction\": \"no\", \"picture_change\": \"yes\", \"moved_tests\": 0, \"door\": \"two-way\"}\n```"
+}

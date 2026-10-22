@@ -1,0 +1,70 @@
+{
+  "scenario": "scenario-feature",
+  "increment": 3,
+  "agent": "scenario",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T17:03:55.867982+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 1311,
+      "cache_read": 56976,
+      "cache_write": 7797,
+      "tokens": 66092,
+      "usd": 0.05,
+      "turns": 5,
+      "wall_s": 14.2,
+      "session": "ba765c23-1295-4e2d-83af-66be9f7ec160"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_at_user_surface",
+      "pass": true,
+      "detail": "the red calls the API"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "watch_first_green_noted",
+      "pass": false,
+      "detail": "no note for the first green"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I added two tests to `tests/test_api.py`, and the feature test fails as it should. I haven't committed anything.\n\n- **`test_using_the_last_of_an_item_takes_it_off_the_list`** (the failing one): it adds bread (qty 1) and rice (qty 2), uses the last loaf, and expects `GET /items` to return only rice. It fails today because the list still includes bread: `['bread', 'rice'] != ['rice']`.\n- **`test_an_item_with_some_left_still_shows`**: it adds 6 eggs and uses 5. It passes now and should keep passing once the feature is built, so it guards the \"items with some left still show\" part.\n\nThe other 12 tests pass.\n\nThere's an existing test, `tests/test_store.py::test_used_up_item_stays_listed`, that asserts the opposite at the store level: `Store.items()` still returns bread with qty 0. I left it alone. Whoever builds this will have to either filter in the API handler and keep that test, or filter in `Store.items()` and change it. I wrote the new tests at the HTTP level so they don't depend on that choice."
+}

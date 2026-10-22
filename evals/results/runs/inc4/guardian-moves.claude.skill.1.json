@@ -1,0 +1,65 @@
+{
+  "scenario": "guardian-moves",
+  "increment": 4,
+  "agent": "guardian",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T04:24:02.266257+00:00",
+  "exit": 1,
+  "spend": [],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/message-wording.packet.md"
+    },
+    {
+      "name": "shape_not_flagged",
+      "pass": true,
+      "detail": "packet: shape_change: no"
+    },
+    {
+      "name": "pitch_not_flagged",
+      "pass": true,
+      "detail": "packet: pitch_contradiction: no"
+    },
+    {
+      "name": "moved_test_listed",
+      "pass": true,
+      "detail": "both moved test files listed"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": true,
+      "detail": "the boundary picture is in the packet"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    },
+    {
+      "name": "stop_accept_moves",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 7,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": " \"<xv-agents>/scripts/run.py\", line 188, in step\n    body, report = record.apply_report(data, body, agent, result[\"stdout\"])\n                   ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<xv-agents>/scripts/record.py\", line 270, in apply_report\n    for mv in report.get(\"moved_tests\") or []:\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: 'int' object is not iterable\n",
+  "verdict": null,
+  "final_message": ""
+}

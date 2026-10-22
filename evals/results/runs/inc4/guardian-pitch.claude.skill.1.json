@@ -1,0 +1,104 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T04:18:54.417577+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 3312,
+      "cache_read": 68416,
+      "cache_write": 11627,
+      "tokens": 83363,
+      "usd": 0.0865,
+      "turns": 5,
+      "wall_s": 28.3,
+      "session": "48fadd02-3891-465b-b3c2-a62563e83eae",
+      "step": "guardian",
+      "at": "2026-10-22T04:19:22+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-guardian-pitch-dmf7fluh/repo/.git/xv/runs/share-with-grocer/01-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/share-with-grocer.packet.md"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": true,
+      "detail": "packet: pitch_contradiction: yes"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": true,
+      "detail": "packet: shape_change: yes"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": true,
+      "detail": "quotes or cites a pitch line"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": true,
+      "detail": "stop: shape_or_pitch for two_people"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": true,
+      "detail": "the boundary picture is in the packet"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    }
+  ],
+  "passed": 9,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "share-with-grocer",
+    "after": "guardian",
+    "stop": {
+      "order": "shape_or_pitch",
+      "seat": "two_people",
+      "question": "The guardian's packet says shape_change and pitch_contradiction. Two people decide from the packet.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "shape_or_pitch",
+        "seat": "two_people",
+        "question": "The guardian's packet says shape_change and pitch_contradiction. Two people decide from the packet.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/share-with-grocer.md",
+    "worktree": "/tmp/xv-eval-guardian-pitch-dmf7fluh/repo/.xv/worktrees/share-with-grocer",
+    "packet": ".xv/slices/share-with-grocer.packet.md"
+  },
+  "final_message": "I wrote the packet to `.xv/slices/share-with-grocer.packet.md`. The change stops for two people on both fixed fields.\n\n- **Shape:** it changes the shape. It adds the module `pantry/grocer.py`, the edge from `api.py` to `grocer`, an outbound call to GroceryNow, and the `POST /share` surface. That is wide, and it contradicts \"no outbound network calls\" in the picture. No forecast is recorded, so I couldn't compare breadth against one.\n- **Pitch:** it contradicts the pitch. The pitch says Pantry \"never sends the household's data anywhere else: no accounts, no sync service, no partners\" and is \"not for shops, grocers\". The change sends item data to a grocery partner.\n- **Moved tests:** none. `tests/test_grocer.py` is new. `xv wall diff` could not run because the slice has no wall baseline, so I checked by git instead. The record also has no red, forecast or suite.\n- **Picture:** several lines are now untrue or incomplete: the shape section, the endpoint list, \"no outbound network calls\", and the binding decision that data stays on the household's machine. I proposed the edits in words.\n- **Door:** one-way, because data sent to GroceryNow can't be recalled. Blast radius: household-data.\n\nThe suite passes (12 tests). The new test mocks `urlopen`. It doesn't cover the `/share` route, a missing token, or a failed upstream call.\n\n```xv-report\n{\"agent\": \"guardian\", \"status\": \"done\", \"summary\": \"Sends household data to an outside grocer partner: adds module, edge, outbound call and surface; contradicts pitch and picture\", \"packet\": \".xv/slices/share-with-grocer.packet.md\",\n \"shape_change\": \"yes\", \"pitch_contradiction\": \"yes\", \"picture_change\": \"yes\", \"moved_tests\": 0, \"door\": \"one-way\"}\n```"
+}

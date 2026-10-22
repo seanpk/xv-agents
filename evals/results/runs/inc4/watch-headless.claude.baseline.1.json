@@ -1,0 +1,75 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T04:22:29.881402+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 838,
+      "cache_read": 58769,
+      "cache_write": 5978,
+      "tokens": 65593,
+      "usd": 0.0382,
+      "turns": 5,
+      "wall_s": 11.9,
+      "session": "494ed9bf-f8ee-44f8-8eb2-172140efd047"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": false,
+      "detail": "missing: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']; ran: []"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": false,
+      "detail": "no wall baseline"
+    },
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "the review is in the final message, not a file"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 4,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "Milk that runs out today now shows up in the expiring list. The full suite passes (12 tests), but I didn't replay the recording itself against the API.\n\nThe bug was in `Store.expiring` in `pantry/store.py`. The filter used `today < i.expires_on`, which dropped anything expiring on `today`. I changed it to `today <= i.expires_on`.\n\nI also added a regression test in `tests/test_store.py`. It adds milk (2026-10-21) and yogurt (2026-10-23), asks for the next three days on 2026-10-21, and expects both.\n\nI haven't committed anything."
+}

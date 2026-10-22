@@ -1,0 +1,65 @@
+{
+  "scenario": "cleaner-standards",
+  "increment": 1,
+  "agent": "cleaner",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T16:46:41.195714+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 12,
+      "tokens_out": 960,
+      "cache_read": 91375,
+      "cache_write": 6324,
+      "tokens": 98671,
+      "usd": 0.0441,
+      "turns": 7,
+      "wall_s": 14.0,
+      "session": "87cebd83-1564-433c-b5ff-7e36cf459961"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "standards_violations_fixed",
+      "pass": true,
+      "detail": "both rules applied"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "agent_committed",
+      "pass": true,
+      "detail": "commits: ['Tidy Store.items: drop debug print, clearer names']"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 5,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I tidied `Store.items()` in `pantry/store.py` and committed it as `4e7fa06`. All 13 tests pass.\n\nThe last commit's only code change was in that method. I made two changes, following `.xv/standards.md`:\n- **Debug print:** I removed the `print(\"items:\", ...)` call, because the standards say no `print()` in `pantry/`.\n- **Names and order:** I replaced the throwaway names `d` and `x`. The method now filters to items with `qty > 0` first, then sorts by name. The result is the same as before.\n\nI left the slice files and the test rename alone, since they aren't code to tidy."
+}

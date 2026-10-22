@@ -1,0 +1,55 @@
+{
+  "scenario": "forecaster-keys",
+  "increment": 6,
+  "agent": "forecaster",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T16:53:43.109723+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 4,
+      "tokens_out": 749,
+      "cache_read": 25073,
+      "cache_write": 3045,
+      "tokens": 28871,
+      "usd": 0.0222,
+      "turns": 3,
+      "wall_s": 7.1,
+      "session": "063b1ff0-f724-4837-b894-d8443acb34b3"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "forecast_uses_same_key",
+      "pass": true,
+      "detail": "numbers seen: [300000]"
+    },
+    {
+      "name": "forecast_has_shape",
+      "pass": true,
+      "detail": "names the expected shape change"
+    },
+    {
+      "name": "forecaster_read_only",
+      "pass": true,
+      "detail": "changed nothing"
+    },
+    {
+      "name": "stop_asks_for_budget",
+      "pass": false,
+      "detail": "stop: None"
+    }
+  ],
+  "passed": 3,
+  "total": 4,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "**Estimate for hiding used-up items (claude/sonnet)**\n\n- **Tokens:** about 300,000. The range is 270k to 410k.\n- **Turns:** about 20, with a range of 15 to 28. The log has no turn counts, so this is my own guess for a small store change plus its tests.\n- **Cost:** about $1.20, with a range of $1.05 to $1.65. That is well inside the $3 budget.\n\n**Basis:** The log has three past claude/sonnet rows, which are the only ones that count here:\n- add-items: 412k tokens, $1.61\n- use-items: 268k tokens, $1.05\n- expiring: 330k tokens, $1.30\n\nThis task looks most like use-items and expiring. It is probably a filter on the list query in the store, with a test or two in `tests/test_store.py` and `tests/test_api.py`. The row for the codex run and the haiku row use other models, so I left them out.\n\n**Main risk:** The add-items row overran by 37% because the agent installed pytest before finding the unittest command. This repo uses unittest, so tell the agent that up front to avoid the same overrun.\n\nI'd expect the shape to be \"none\", meaning no wider change than the store and one route. If the agent also has to change an API response contract or a stored field, expect the top of the range."
+}

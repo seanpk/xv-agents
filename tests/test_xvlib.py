@@ -22,6 +22,10 @@ class FrontMatterTest(unittest.TestCase):
         data, _ = xvlib.split_front_matter("---\nsources: [a/b.json, c.txt]\n---\n")
         self.assertEqual(data["sources"], ["a/b.json", "c.txt"])
 
+    def test_a_yaml_block_list_is_read(self):
+        data, _ = xvlib.split_front_matter('---\nsources:\n  - "a/b.json"\n  - c.txt\nseat: x\n---\n')
+        self.assertEqual((data["sources"], data["seat"]), (["a/b.json", "c.txt"], "x"))
+
     def test_a_bad_line_is_refused(self):
         with self.assertRaises(xvlib.XVError):
             xvlib.split_front_matter("---\nthis is not a field\n---\n")

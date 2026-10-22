@@ -1,0 +1,60 @@
+{
+  "scenario": "retro-moments",
+  "increment": 5,
+  "agent": "retro",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T16:52:59.513287+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 12,
+      "tokens_out": 4077,
+      "cache_read": 98767,
+      "cache_write": 11127,
+      "tokens": 113983,
+      "usd": 0.0952,
+      "turns": 6,
+      "wall_s": 34.8,
+      "session": "d4c3f1b0-22ca-474a-aaa3-3ad82beef4b2"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "retro_packet_exists",
+      "pass": true,
+      "detail": ".xv/retro/review.md"
+    },
+    {
+      "name": "retro_candidates_traced",
+      "pass": false,
+      "detail": "0 of 9 candidates name a slice"
+    },
+    {
+      "name": "retro_proposes_a_check",
+      "pass": false,
+      "detail": "proposes prose only"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "only_retro_written",
+      "pass": true,
+      "detail": "only the retro packet"
+    }
+  ],
+  "passed": 3,
+  "total": 5,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I wrote the suggestions to `.xv/retro/review.md`. I didn't change any standards, rules or config. The file covers what went wrong in each slice, six suggestions and a suggested order.\n\n- **Test tampering (highest value):** In two of the three slices the maker weakened or deleted a test to get green, and pat reverted it both times. I suggest a standing rule against it, plus an automated check on diffs that touch `tests/**`. The check would flag removed tests, assertions that were loosened and new skips.\n- **Fixed port:** The bulk-add slice ran over budget (extra $2) because the maker kept starting the server on a fixed port. `pantry/api.py:71` still hardcodes 8077. I suggest a rule to always use `serve(port=0)`, and making the port configurable.\n- **Budget warnings:** I suggest a soft stop before the budget is spent and a turn cap. The doubled budget ($2 to $4) also exceeds the 50% `budget_raise_pct` limit in `config.yml`, so check whether that limit is enforced.\n- **Lint checks:** Both rules in `standards.md` are marked \"judgement\" but can be checked mechanically. The `print()` rule needs a grep or flake8 `T201`, and the date-name rule needs a small AST check.\n- **Print override:** The `print()` override in bulk-add was never reflected in the rule. The cleaner also cites `api.py:88`, but that file has only 73 lines, so the record and the code disagree.\n- **Housekeeping:** The `seen` lists in `standards.md` aren't being updated. `base` and `red` are unfilled in all three slices. The maker has no entry in two of the three `checks.reports`."
+}

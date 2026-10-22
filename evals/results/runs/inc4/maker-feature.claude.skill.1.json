@@ -1,0 +1,93 @@
+{
+  "scenario": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T04:19:41.803511+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 14,
+      "tokens_out": 2138,
+      "cache_read": 124800,
+      "cache_write": 10372,
+      "tokens": 137324,
+      "usd": 0.0754,
+      "turns": 12,
+      "wall_s": 25.7,
+      "session": "9a0a9b6c-fde4-4bf8-b69e-a7a533cd1f79",
+      "step": "maker",
+      "at": "2026-10-22T04:20:07+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-maker-feature-7non7zra/repo/.git/xv/runs/hide-used-up/01-maker.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "preset_red_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "red_file_unchanged",
+      "pass": true,
+      "detail": "the scenario agent's red is untouched"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "moved_test_recorded",
+      "pass": true,
+      "detail": "recorded moves: ['tests/test_store.py']"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status green"
+    },
+    {
+      "name": "wall_holds",
+      "pass": true,
+      "detail": "unrecorded: [], recorded: ['tests/test_store.py']"
+    }
+  ],
+  "passed": 7,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "maker",
+    "stop": {
+      "order": "unrecorded_move",
+      "seat": "originator",
+      "question": "Test files changed with no record after the maker: tests/test_store.py. Revert them, or record why the scenario forces it.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "unrecorded_move",
+        "seat": "originator",
+        "question": "Test files changed with no record after the maker: tests/test_store.py. Revert them, or record why the scenario forces it.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-maker-feature-7non7zra/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "The red test and the whole suite (13 tests) now pass. Nothing is committed.\n\n- **Code change:** `Store.items()` in `pantry/store.py` now leaves out items with `qty` 0. `expiring()` now reads the store directly instead of calling `items()`, so the expiring list behaves as before, as the scenario asks.\n- **One old test moved:** `test_used_up_item_stays_listed` in `tests/test_store.py` asserted that a used-up bread still shows with qty 0. That is the opposite of the scenario, so I changed only that assertion to expect an empty list. The test's name is now misleading; I left it for the cleaner.\n\n```xv-report\n{\"agent\": \"maker\", \"status\": \"green\", \"summary\": \"Store.items() omits items with qty 0; expiring() reads the store directly so it is unchanged\", \"moved_tests\": [{\"file\": \"tests/test_store.py\", \"assertion\": \"was: assertEqual([(i.name, i.qty) for i in listed], [(\\\"bread\\\", 0)]); now: assertEqual([(i.name, i.qty) for i in listed], [])\", \"why\": \"The scenario says an item whose last unit is used no longer shows in the list; the old test asserted it stays listed with qty 0.\"}], \"stop\": null}\n```"
+}

@@ -1,0 +1,80 @@
+{
+  "scenario": "guardian-moves",
+  "increment": 4,
+  "agent": "guardian",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T17:32:53.165320+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 2536,
+      "tokens_out": 1411,
+      "cache_read": 53569,
+      "cache_write": 0,
+      "tokens": 57516,
+      "usd": 0.0,
+      "turns": 3,
+      "wall_s": 42.2,
+      "session": "ses_e9b53bd02ffesd3Ad1V71CZMbF"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "review.md"
+    },
+    {
+      "name": "shape_not_flagged",
+      "pass": false,
+      "detail": "packet: shape_change: None"
+    },
+    {
+      "name": "pitch_not_flagged",
+      "pass": false,
+      "detail": "packet: pitch_contradiction: None"
+    },
+    {
+      "name": "moved_test_listed",
+      "pass": false,
+      "detail": "a moved test file is missing from the packet"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": false,
+      "detail": "no boundary picture"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    },
+    {
+      "name": "stop_accept_moves",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 3,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "# Code Review\n\n## Summary  \nThe change is a small refactor that updates the wording of a validation error message around quantity input. It modifies the `ValueError` raised in `pantry/store.py` and adjusts the corresponding unit tests that expect the new message.\n\n## Positive  \n- **Clarity** \u2013 The new message *\u201cQuantity must be a whole number above zero\u201d* is more explicit than *\u201cqty must be a positive whole number\u201d* and avoids exposing an internal field name.  \n- **Consistency** \u2013 Both the application and the API now return the same message, so the tests remain coherent.\n\n## Potential Issues  \n- **Hard\u2011coded strings** \u2013 The message is still inline.  If localisation is added later, you may want to move these strings into a messages/translation catalogue.  \n- **Documentation** \u2013 The change is not reflected in any open\u2011API or user\u2011facing documentation; if that exists it should be updated.\n\n## Recommendations  \n- Add a comment in `pantry/store.py` explaining the rationale for the wording change for future maintainers.  \n- Consider extracting the message into a constant or a simple helper function if similar messages are needed elsewhere.\n\n## Overall  \nThe patch is straightforward, adds clarity, and passes the updated unit tests."
+}

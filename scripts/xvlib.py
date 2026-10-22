@@ -85,13 +85,19 @@ def split_front_matter(text):
         raise XVError("front matter has no closing ---")
     head, body = text[4:end], text[end + 5:]
     data = {}
+    last = None
     for n, line in enumerate(head.splitlines(), 2):
         if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if line.lstrip().startswith("- ") and last is not None and isinstance(data.get(last), (list, type(None))):
+            # a YAML block list under the key before it, as agents often write one
+            data[last] = (data[last] or []) + [parse_scalar(line.lstrip()[2:])]
             continue
         if ":" not in line or line.startswith(" "):
             raise XVError(f"front matter line {n} is not `key: value`: {line!r}")
         key, _, value = line.partition(":")
-        data[key.strip()] = parse_scalar(value)
+        last = key.strip()
+        data[last] = parse_scalar(value)
     return data, body
 
 

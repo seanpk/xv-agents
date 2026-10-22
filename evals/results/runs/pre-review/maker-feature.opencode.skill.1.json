@@ -1,0 +1,93 @@
+{
+  "scenario": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T16:53:11.665658+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 6894,
+      "tokens_out": 1876,
+      "cache_read": 242177,
+      "cache_write": 0,
+      "tokens": 250947,
+      "usd": 0.0,
+      "turns": 12,
+      "wall_s": 66.8,
+      "session": "ses_e9b7813a9ffeIP2LJXCwr1Cxfm",
+      "step": "maker",
+      "at": "2026-10-22T16:54:18+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-maker-feature-v29ethdp/repo/.git/xv/runs/hide-used-up/01-maker.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "preset_red_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "red_file_unchanged",
+      "pass": true,
+      "detail": "the scenario agent's red is untouched"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "moved_test_recorded",
+      "pass": true,
+      "detail": "recorded moves: ['tests/test_store.py']"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status green"
+    },
+    {
+      "name": "wall_holds",
+      "pass": true,
+      "detail": "unrecorded: [], recorded: ['tests/test_store.py']"
+    }
+  ],
+  "passed": 7,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "maker",
+    "stop": {
+      "order": "unrecorded_move",
+      "seat": "originator",
+      "question": "Test files changed with no record after the maker: tests/test_store.py. Revert them, or record why the scenario forces it.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "unrecorded_move",
+        "seat": "originator",
+        "question": "Test files changed with no record after the maker: tests/test_store.py. Revert them, or record why the scenario forces it.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-maker-feature-v29ethdp/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "```xv-report\n{\"agent\":\"maker\",\"status\":\"green\",\"summary\":\"Updated store listing to exclude zero\u2011qty items and adjusted store test accordingly\",\"moved_tests\":[{\"file\":\"tests/test_store.py\",\"assertion\":\"was: self.assertEqual([(i.name, i.qty) for i in listed], [(\\\"bread\\\", 0)]); now: self.assertEqual([(i.name, i.qty) for i in listed], [])\",\"why\":\"Scenario specifies that the last used loaf should no longer appear in the list; this change aligns the store\u2019s behavior with that expectation and satisfies the new tests.\"}],\"stop\":null}\n```\n"
+}

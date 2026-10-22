@@ -1,0 +1,80 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T17:00:23.011887+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 1591,
+      "cache_read": 56787,
+      "cache_write": 6219,
+      "tokens": 64605,
+      "usd": 0.0465,
+      "turns": 4,
+      "wall_s": 15.2,
+      "session": "d6d5a3b0-ebb8-4cc2-ae1d-aa24285dfae5"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "review.md"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": false,
+      "detail": "no pitch conflict named"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": true,
+      "detail": "the review names the new outbound module"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": false,
+      "detail": "no pitch line cited"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": false,
+      "detail": "no boundary picture"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    }
+  ],
+  "passed": 4,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I've written the review to `review.md` and changed no other file. I read the diff and `pantry/api.py`, but I didn't run the tests or the endpoint. My verdict is request changes.\n\n- **Missing token:** `POST /share` without a `token` returns 404 \"no item 'token'\". It should be a 400.\n- **GroceryNow errors:** a bad token, a 5xx or a timeout isn't caught, so the connection drops with no response. It should return something like a 502.\n- **Data shared:** the full item record, including expiry dates, goes to the partner. Only name and quantity may be needed.\n- **Empty list:** the code still POSTs to GroceryNow when nothing is low.\n- **Placeholder URL:** `GROCER_URL` is a `.example` placeholder that needs real configuration.\n- **Tests:** the happy path is covered. Nothing tests the `/share` route or the error paths, and the test never checks that \"rice\" is left out.\n\n`review.md` also covers the token handling, the hidden `threshold` parameter, and whether the slice file should be merged."
+}

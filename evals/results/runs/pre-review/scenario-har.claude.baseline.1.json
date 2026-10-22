@@ -1,0 +1,65 @@
+{
+  "scenario": "scenario-har",
+  "increment": 3,
+  "agent": "scenario",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T16:51:44.537631+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 913,
+      "cache_read": 59022,
+      "cache_write": 7693,
+      "tokens": 67636,
+      "usd": 0.0458,
+      "turns": 4,
+      "wall_s": 10.3,
+      "session": "0ccab77c-f427-4b2e-b32d-d150eed61b97"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "red_replays_recording",
+      "pass": true,
+      "detail": "uses the recording's milk and date"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I added a failing test, `test_an_item_that_runs_out_today_is_expiring`, in `tests/test_api.py`. It reproduces the defect, and it is the only failure in the suite.\n\nThe test replays the HAR requests against the API. It adds milk expiring 2026-10-21 and yogurt expiring 2026-10-23, then calls `GET /items/expiring?days=3&today=2026-10-21`. It expects `[\"milk\", \"yogurt\"]` and gets `[\"yogurt\"]`.\n\nThe cause is in `Store.expiring` in `pantry/store.py`. It filters with `today < i.expires_on <= last`, and the strict `<` drops anything expiring today. I haven't changed the code, only added the test."
+}

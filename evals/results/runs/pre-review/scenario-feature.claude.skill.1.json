@@ -1,0 +1,81 @@
+{
+  "scenario": "scenario-feature",
+  "increment": 3,
+  "agent": "scenario",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T16:50:41.799813+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 12,
+      "tokens_out": 2365,
+      "cache_read": 101190,
+      "cache_write": 9195,
+      "tokens": 112762,
+      "usd": 0.0706,
+      "turns": 7,
+      "wall_s": 25.5,
+      "session": "a22ae653-6ae8-451c-9337-6dcba673c868",
+      "step": "scenario",
+      "at": "2026-10-22T16:51:07+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-scenario-feature-tgz97kn0/repo/.git/xv/runs/hide-used-up/01-scenario.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_at_user_surface",
+      "pass": true,
+      "detail": "the red calls the API"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_used_up.py'], 'command': 'python3 -m unittest tests.test_used_up', 'failure': \"AssertionError: Lists differ: ['bread', 'rice'] != ['rice']\", 'watch_first_green': 'Add one loaf of bread and some rice, use the one loaf, and see that GET /items lists only rice; then use part of the rice and see it stays on the list.'}"
+    },
+    {
+      "name": "watch_first_green_noted",
+      "pass": true,
+      "detail": "note: Add one loaf of bread and some rice, use the one loaf, and see that GET /items lists only rice; then"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status red"
+    }
+  ],
+  "passed": 7,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "scenario",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-scenario-feature-tgz97kn0/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "I wrote `tests/test_used_up.py`, and it fails for the reason the scenario names. After the last bread is used, `GET /items` still returns `['bread', 'rice']` where it should return `['rice']`.\n\nThe second test, which checks that an item with some left still shows, passes as it should. I didn't touch any source or existing tests.\n\nThe file reuses the server setup and `call` helper from `tests/test_api.py`. It blanks out the inherited tests so they don't run a second time here.\n\n```xv-report\n{\"agent\": \"scenario\", \"status\": \"red\", \"summary\": \"Using the last of an item should remove it from GET /items; it still lists\", \"red\": {\"files\": [\"tests/test_used_up.py\"], \"command\": \"python3 -m unittest tests.test_used_up\", \"failure\": \"AssertionError: Lists differ: ['bread', 'rice'] != ['rice']\", \"watch_first_green\": \"Add one loaf of bread and some rice, use the one loaf, and see that GET /items lists only rice; then use part of the rice and see it stays on the list.\"}}\n```"
+}

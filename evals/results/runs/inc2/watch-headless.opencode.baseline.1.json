@@ -1,0 +1,75 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T04:33:18.089462+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 2688,
+      "tokens_out": 836,
+      "cache_read": 161715,
+      "cache_write": 0,
+      "tokens": 165239,
+      "usd": 0.0,
+      "turns": 9,
+      "wall_s": 31.1,
+      "session": "ses_e9e1d7833ffeRJzfHtmBh6LlZu"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": false,
+      "detail": "missing: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']; ran: []"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": false,
+      "detail": "no wall baseline"
+    },
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "the review is in the final message, not a file"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 4,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "Implemented fix to include items that expire on the current day.\n\n**Changes made**\n- Updated `pantry/store.py`:\n  - Modified the `expiring` method to include items whose `expires_on` date is equal to `today`:\n    ```python\n    return [i for i in self.items() if today <= i.expires_on <= last]\n    ```\n  - This ensures items that run out *today* are considered within the expiry window.\n\nAll tests now pass successfully."
+}

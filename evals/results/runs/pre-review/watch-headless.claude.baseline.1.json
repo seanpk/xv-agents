@@ -1,0 +1,75 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T16:50:30.499106+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 6,
+      "tokens_out": 612,
+      "cache_read": 40374,
+      "cache_write": 4167,
+      "tokens": 45159,
+      "usd": 0.0268,
+      "turns": 5,
+      "wall_s": 9.0,
+      "session": "67702021-d3e5-4104-a9e0-700b12cf5926"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": false,
+      "detail": "missing: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']; ran: []"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": false,
+      "detail": "no wall baseline"
+    },
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "the review is in the final message, not a file"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 4,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "Milk that runs out today now shows up in the \"runs out soon\" list. The full suite passes (11 tests), but I didn't add a test for the same-day case, and I didn't replay the recording.\n\nThe cause was in `Store.expiring` in `pantry/store.py`. It used `today < i.expires_on`, which left out anything expiring on the day you ask. I changed it to `today <= i.expires_on`.\n\nWith the recorded request (`days=3&today=2026-10-21`), milk expiring 2026-10-21 and yogurt expiring 2026-10-23 should now both come back."
+}

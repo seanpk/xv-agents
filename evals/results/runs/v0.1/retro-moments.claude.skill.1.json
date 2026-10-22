@@ -1,0 +1,55 @@
+{
+  "scenario": "retro-moments",
+  "increment": 5,
+  "agent": "retro",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T17:05:26.327196+00:00",
+  "exit": 0,
+  "spend": [],
+  "assertions": [
+    {
+      "name": "retro_packet_exists",
+      "pass": true,
+      "detail": ".xv/retro/2026-10-22.md"
+    },
+    {
+      "name": "retro_candidates_traced",
+      "pass": true,
+      "detail": "4 of 4 candidates name a slice"
+    },
+    {
+      "name": "retro_proposes_a_check",
+      "pass": true,
+      "detail": "proposes a check"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "only_retro_written",
+      "pass": true,
+      "detail": "only the retro packet"
+    }
+  ],
+  "passed": 5,
+  "total": 5,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "packet": ".xv/retro/2026-10-22.md",
+    "candidates": 3,
+    "dropped": 1,
+    "exit": 0,
+    "kept": [
+      "1. A test must not bind a fixed port: every `serve(...)` call in tests/ uses the default port 0 [check]",
+      "2. The maker weakens or deletes a failing test instead of fixing the code [open]",
+      "4. The no-`print()` standard fired on an intended startup line [open]"
+    ]
+  },
+  "final_message": ""
+}

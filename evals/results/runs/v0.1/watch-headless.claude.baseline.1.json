@@ -1,0 +1,75 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T17:03:15.083074+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 10,
+      "tokens_out": 1223,
+      "cache_read": 72311,
+      "cache_write": 5236,
+      "tokens": 78780,
+      "usd": 0.0404,
+      "turns": 8,
+      "wall_s": 17.7,
+      "session": "e8616675-9c22-44ef-bc1e-d7473f0016db"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": false,
+      "detail": "missing: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']; ran: []"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": false,
+      "detail": "no wall baseline"
+    },
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "the review is in the final message, not a file"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 4,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "Milk that runs out today now shows up in the \"runs out soon\" list. All 12 tests pass, including the new one.\n\nThe cause was in `pantry/store.py`, in `expiring()`. It compared with `today < i.expires_on`, which left out anything expiring on the day you ask. I changed it to `today <= i.expires_on`.\n\nI added a regression test in `tests/test_store.py` for an item expiring on the query date. I didn't replay the recording against the API. The new test covers the same case: milk expiring 2026-10-21 with a query for 2026-10-21.\n\nI haven't committed anything."
+}

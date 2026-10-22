@@ -1,0 +1,171 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T17:12:58.342334+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 4229,
+      "tokens_out": 2338,
+      "cache_read": 54696,
+      "cache_write": 0,
+      "tokens": 61263,
+      "usd": 0.0,
+      "turns": 3,
+      "wall_s": 73.2,
+      "session": "ses_e9b65f835ffee99iGYKBlucIZr",
+      "step": "forecaster",
+      "at": "2026-10-22T17:14:11+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-1iuic895/repo/.git/xv/runs/expiring-today/01-forecaster.out"
+    },
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 7501,
+      "tokens_out": 2338,
+      "cache_read": 183213,
+      "cache_write": 0,
+      "tokens": 193052,
+      "usd": 0.0,
+      "turns": 9,
+      "wall_s": 79.2,
+      "session": "ses_e9b64da47ffePAr9vBtt2NdXcI",
+      "step": "scenario",
+      "at": "2026-10-22T17:15:30+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-1iuic895/repo/.git/xv/runs/expiring-today/02-scenario.out"
+    },
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 7136,
+      "tokens_out": 5172,
+      "cache_read": 233714,
+      "cache_write": 0,
+      "tokens": 246022,
+      "usd": 0.0,
+      "turns": 10,
+      "wall_s": 166.2,
+      "session": "ses_e9b63a468fferCQQEopVoqX9mB",
+      "step": "maker",
+      "at": "2026-10-22T17:18:17+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-1iuic895/repo/.git/xv/runs/expiring-today/03-maker.out"
+    },
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 13005,
+      "tokens_out": 5039,
+      "cache_read": 488810,
+      "cache_write": 0,
+      "tokens": 506854,
+      "usd": 0.0,
+      "turns": 19,
+      "wall_s": 227.6,
+      "session": "ses_e9b611304ffemMpAsRh7r3ACgi",
+      "step": "cleaner",
+      "at": "2026-10-22T17:22:07+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-1iuic895/repo/.git/xv/runs/expiring-today/04-cleaner.out"
+    },
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 13384,
+      "tokens_out": 3746,
+      "cache_read": 210262,
+      "cache_write": 0,
+      "tokens": 227392,
+      "usd": 0.0,
+      "turns": 9,
+      "wall_s": 137.5,
+      "session": "ses_e9b5d916fffefS0Vy3sxrlr9iJ",
+      "step": "guardian",
+      "at": "2026-10-22T17:24:26+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-1iuic895/repo/.git/xv/runs/expiring-today/05-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": true,
+      "detail": "ran: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_api.py'], 'command': 'python3 -m unittest tests.test_api', 'failure': \"AssertionError: ['yogurt'] != ['milk', 'yogurt']\", 'watch_first_green': None}"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": true,
+      "detail": "wall baseline: {'commit': '5ea6c12b6620b4dd489742bebd586b384126b806', 'count': 3, 'digest': 'c7117d76a33295b8', 'file': '.xv/slices/expiring-today.wall.json'}"
+    },
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/expiring-today.packet.md"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": false,
+      "detail": "stop: no_report for originator"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 7,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "expiring-today",
+    "after": "guardian",
+    "stop": {
+      "order": "no_report",
+      "seat": "originator",
+      "question": "The guardian ended without a report. Read its log and decide whether to re-run it.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "no_report",
+        "seat": "originator",
+        "question": "The guardian ended without a report. Read its log and decide whether to re-run it.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/expiring-today.md",
+    "worktree": "/tmp/xv-eval-watch-headless-1iuic895/repo/.xv/worktrees/expiring-today",
+    "packet": ".xv/slices/expiring-today.packet.md"
+  },
+  "final_message": "```xv-report\n{\"agent\":\"forecaster\",\"status\":\"done\",\"summary\":\"No historical guidance for opencode/gpt-oss:20b; cannot forecast tokens, turns, or USD.\",\"forecast\":{\"keys\":[{\"harness\":\"opencode\",\"model\":\"gpt-oss:20b\",\"tokens\":null,\"turns\":null,\"usd\":null,\"basis\":[],\"note\":\"no history for opencode/gpt-oss:20b\"}],\"wall_s\":540,\"shape\":\"none\",\"breadth\":\"no shape change expected\"}}\n```\n---\n```xv-report\n{\"agent\":\"scenario\",\"status\":\"red\",\"summary\":\"Milk that expires today is missing from the expiring list, so the new test fails on the current code.\",\"red\":{\"files\":[\"tests/test_api.py\"],\"command\":\"python3 -m unittest tests.test_api\",\"failure\":\"AssertionError: ['yogurt'] != ['milk', 'yogurt']\",\"watch_first_green\":null}}\n```\n---\n```xv-report\n{\"agent\": \"maker\", \"status\": \"green\", \"summary\": \"Modified expiring logic to include items expiring today and updated test expectations accordingly.\",\n \"moved_tests\": [\n   {\n     \"file\": \"tests/test_api.py\",\n     \"assertion\": \"was: self.assertEqual([i[\\\"name\\\"] for i in items], [\\\"yogurt\\\"]); now: self.assertEqual([i[\\\"name\\\"] for i in items], [\\\"milk\\\",\\\"yogurt\\\"])\",\n     \"why\": \"The scenario specifies that milk expiring today must be included; the test\u2019s second assertion was inconsistent with that requirement.\"\n   }\n ],\n \"stop\": null}\n```\n---\nThe commit fixes style and dead\u2011code issues introduced by the previous maker step without altering any behaviour.\n\n**Key changes**\n\n* Removed an accidental `pass` in `tests/test_api.py`.\n* Eliminated the debug `print` in `pantry/api.py` to satisfy the \u201cNo\u202fprint() in pantry/\u201d rule.\n* Renamed the loop variable `i` to `item` in `pantry/store.py` (in both the sorter and the expiring\u2011items list) to remove a \u201cMysterious name\u201d smell.\n\nNo tests were changed, and the test suite remains green.\n\n```xv-report\n{\"agent\":\"cleaner\",\"status\":\"done\",\"summary\":\"All stylistic and dead\u2011code issues fixed, test suite green\",\"commit\":\"6a781c6\",\"applied\":[{\"rule\":\".xv/standards.md: No print() in pantry/. | baseline: \",\"where\":\"pantry/api.py:71\"},{\"rule\":\"baseline: Dead code | \",\"where\":\"tests/test_api.py:43\"},{\"rule\":\"baseline: Mysterious name | \",\"where\":\"pantry/store.py:42\"},{\"rule\":\"baseline: Mysterious name | \",\"where\":\"pantry/store.py:47\"}],\"moved_tests\":[],\"shape_proposals\":[],\"candidate_standards\":[]}\n```\n---\n```\n{\"agent\":\"guardian\",\"status\":\"done\",\"summary\":\"Change to include items expiring today verified; shape unchanged, no pitch contradiction, one moved test, two\u2011way door with small blast radius.\",\"packet\":\".xv/slices/expiring-today.packet.md\",\"shape_change\":\"no\",\"pitch_contradiction\":\"no\",\"picture_change\":\"no\",\"moved_tests\":1,\"door\":\"two-way\"}\n```"
+}

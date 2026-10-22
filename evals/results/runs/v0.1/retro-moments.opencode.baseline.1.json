@@ -1,0 +1,60 @@
+{
+  "scenario": "retro-moments",
+  "increment": 5,
+  "agent": "retro",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T17:35:34.340588+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 5593,
+      "tokens_out": 3683,
+      "cache_read": 168767,
+      "cache_write": 0,
+      "tokens": 178043,
+      "usd": 0.0,
+      "turns": 9,
+      "wall_s": 111.1,
+      "session": "ses_e9b5147f2ffeDCX36Y7D5sLDsF"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "retro_packet_exists",
+      "pass": true,
+      "detail": ".xv/retro/review.md"
+    },
+    {
+      "name": "retro_candidates_traced",
+      "pass": false,
+      "detail": "0 of 6 candidates name a slice"
+    },
+    {
+      "name": "retro_proposes_a_check",
+      "pass": true,
+      "detail": "proposes a check"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "only_retro_written",
+      "pass": true,
+      "detail": "only the retro packet"
+    }
+  ],
+  "passed": 4,
+  "total": 5,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "**Retro Recommendations**\n\nCreated the file `.xv/retro/review.md` with the following content:\n\n```markdown\n# Retro \n\n## Summary\nThree recent slices illustrate recurring patterns that the team should address with tighter standards and automated checks.\n\n## 1. Unrecorded changes to tests and code\n* All three slices mention **\"Test files changed with no record\"**.  The Maker altered logic or removed a test without a matching record or clear change note.\n* **Recommendation**: add a *pre\u2011commit* hook that\n  * runs `pytest` on staged tests.\n  * requires commits that touch any `tests/` file to include a subject line containing `Test change` or `Test add/remove`.\n  * automatically fails the commit if a test was modified but the commit message does not mention a test change.  This forces makers to reflect on test coverage and to record why the test was altered.\n\n## 2. Print\u2011statement leakage\n* A `print()` appeared in `pantry/api.py`.  The standard already warns against this, but the code slipped through.\n* **Recommendation**: use a linting rule (e.g. `flake8`, `pylint`, or a custom rule) that flags any `print` call in `pantry/`.\n* Enforce the rule via a CI job that runs lint on every PR.  The job should fail the build if a `print` is found.\n\n## 3. Hard\u2011coded server ports\n* In the bulk\u2011add slice the Maker started the API on a fixed port, causing a collision.  The team needs a deterministic, configuration\u2011driven start\u2011up.\n* **Recommendation**: add a `--port <n>` flag (defaulting to a random free port or environment variable) to the server bootstrap.  Add a static\u2011analysis check that flags any hard\u2011coded integer literals assigned to network ports.\n\n## 4. Budget over\u2011commitment\n* The bulk\u2011add slice stopped because the budget was exceeded.\n* **Recommendation**: implement a budget checker (a lightweight script that reads the current budget file, sums `usd` spent per feature, and aborts with an informative message if the plan is not met).  Run this check in a CI step before a `maker` commit is merged.\n\n## 5. Date\u2011naming convention\n* The rules in `.xv/standards.md` already enforce the `*_on` style (`expires_on`, `today`, etc.). The team should add a quick regex scan in the CI pipeline that flags any variable name in `pantry/` or `store.py` that matches short date tokens like `d`, `dt`, or `x`.\n\n--- \n\n### Next Steps\n* Implement the proposed hooks and CI jobs.\n* Review the generated commit logs after the changes to ensure the rules are enforced.\n* Iterate on any false positives and adjust regex or commit\u2011message templates as needed.\n\n--- \n\n**Action Items**\n1. *Pat* \u2013 set up the pre\u2011commit and lint hooks.\n2. *All* \u2013 update commit\u2011message templates to require a test change tag.\n3. *Pat* \u2013 write the budget\u2011checker script and add it to CI.\n\n--- \n\n*Prepared by: Pat (Reviewer, 2026\u201110\u201122)*\n```\n\nFeel free to review or adjust the recommendations."
+}

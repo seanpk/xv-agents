@@ -1,0 +1,76 @@
+{
+  "scenario": "cleaner-standards",
+  "increment": 1,
+  "agent": "cleaner",
+  "harness": "opencode",
+  "model": "gpt-oss:20b",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T16:59:28.438661+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "opencode",
+      "model": "gpt-oss:20b",
+      "model_id": "gpt-oss:20b",
+      "tokens_in": 8500,
+      "tokens_out": 4882,
+      "cache_read": 461586,
+      "cache_write": 0,
+      "tokens": 474968,
+      "usd": 0.0,
+      "turns": 20,
+      "wall_s": 159.7,
+      "session": "ses_e9b7253e3ffeZi4Kzla14FXGQ5",
+      "step": "cleaner",
+      "at": "2026-10-22T17:02:08+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-cleaner-standards-4v7pur9b/repo/.git/xv/runs/hide-used-up/01-cleaner.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "standards_violations_fixed",
+      "pass": true,
+      "detail": "both rules applied"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "agent_committed",
+      "pass": false,
+      "detail": "no commit of its own"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    }
+  ],
+  "passed": 5,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "cleaner",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-cleaner-standards-4v7pur9b/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "```xv-report\n{\"agent\": \"cleaner\", \"status\": \"done\", \"summary\": \"Renamed ambiguous variables and removed debugging output\", \"commit\": null, \"applied\": [{\"rule\": \".xv/standards.md: Mysterious name | baseline: Mysterious name\", \"where\": \"pantry/store.py:42-43\"}, {\"rule\": \".xv/standards.md: Dead code | baseline: Dead code\", \"where\": \"pantry/store.py:41\"}], \"moved_tests\": [], \"shape_proposals\": [], \"candidate_standards\": []}\n```"
+}

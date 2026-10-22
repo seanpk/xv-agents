@@ -1,0 +1,171 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T17:02:09.179398+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 4,
+      "tokens_out": 529,
+      "cache_read": 26554,
+      "cache_write": 4979,
+      "tokens": 32066,
+      "usd": 0.0279,
+      "turns": 3,
+      "wall_s": 5.4,
+      "session": "32bdf215-72e3-454f-9f7e-0134cfd7c3e8",
+      "step": "forecaster",
+      "at": "2026-10-22T17:02:14+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-5xlzq6he/repo/.git/xv/runs/expiring-today/01-forecaster.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 1476,
+      "cache_read": 64144,
+      "cache_write": 9331,
+      "tokens": 74959,
+      "usd": 0.0585,
+      "turns": 6,
+      "wall_s": 10.9,
+      "session": "438da9a8-c9d6-4ece-a605-df36c70e0c01",
+      "step": "scenario",
+      "at": "2026-10-22T17:02:25+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-5xlzq6he/repo/.git/xv/runs/expiring-today/02-scenario.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 632,
+      "cache_read": 64479,
+      "cache_write": 7986,
+      "tokens": 73105,
+      "usd": 0.0447,
+      "turns": 5,
+      "wall_s": 10.5,
+      "session": "df58e435-b499-405c-8a6e-a4faf3b81e07",
+      "step": "maker",
+      "at": "2026-10-22T17:02:36+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-5xlzq6he/repo/.git/xv/runs/expiring-today/03-maker.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 4,
+      "tokens_out": 374,
+      "cache_read": 26856,
+      "cache_write": 11463,
+      "tokens": 38697,
+      "usd": 0.0523,
+      "turns": 2,
+      "wall_s": 8.3,
+      "session": "951dd3b9-7d58-445c-a609-c5e46a5fdc2f",
+      "step": "cleaner",
+      "at": "2026-10-22T17:02:47+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-5xlzq6he/repo/.git/xv/runs/expiring-today/04-cleaner.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 10,
+      "tokens_out": 2733,
+      "cache_read": 100652,
+      "cache_write": 15906,
+      "tokens": 119301,
+      "usd": 0.101,
+      "turns": 6,
+      "wall_s": 22.0,
+      "session": "d2257229-df3c-4fe7-be7d-48e77963c67f",
+      "step": "guardian",
+      "at": "2026-10-22T17:03:12+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-5xlzq6he/repo/.git/xv/runs/expiring-today/05-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": true,
+      "detail": "ran: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_expiring_today.py'], 'command': 'python3 -m unittest tests.test_expiring_today', 'failure': \"AssertionError: [{'name': 'yogurt', ...}] != [{'name': 'milk', ...}, {'name': 'yogurt', ...}] (milk expiring today is missing)\", 'watch_first_green': None}"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": true,
+      "detail": "wall baseline: {'commit': 'cc28fd99c2c8f6ed55661522b7a6e8a323e9f16f', 'count': 4, 'digest': '21b9994d41319865', 'file': '.xv/slices/expiring-today.wall.json'}"
+    },
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/expiring-today.packet.md"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": true,
+      "detail": "stop: ready_to_merge for originator"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 8,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "expiring-today",
+    "after": "guardian",
+    "stop": {
+      "order": "ready_to_merge",
+      "seat": "originator",
+      "question": "The suite is green and nothing stopped. The merge is yours.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "ready_to_merge",
+        "seat": "originator",
+        "question": "The suite is green and nothing stopped. The merge is yours.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/expiring-today.md",
+    "worktree": "/tmp/xv-eval-watch-headless-5xlzq6he/repo/.xv/worktrees/expiring-today",
+    "packet": ".xv/slices/expiring-today.packet.md"
+  },
+  "final_message": "ouch source or any existing test.\n\n```xv-report\n{\"agent\": \"scenario\", \"status\": \"red\", \"summary\": \"Replays the recording: milk expiring today is missing from /items/expiring?days=3&today=2026-10-21.\",\n \"red\": {\"files\": [\"tests/test_expiring_today.py\"], \"command\": \"python3 -m unittest tests.test_expiring_today\", \"failure\": \"AssertionError: [{'name': 'yogurt', ...}] != [{'name': 'milk', ...}, {'name': 'yogurt', ...}] (milk expiring today is missing)\",\n         \"watch_first_green\": null}}\n```\n---\nThe fix is one comparison in `pantry/store.py`. `Store.expiring` now includes items that expire today (`today <= i.expires_on <= last`). The red test passes and the whole suite passes (12 tests). I moved no old tests, and my changes are uncommitted.\n\n```xv-report\n{\"agent\": \"maker\", \"status\": \"green\", \"summary\": \"Store.expiring now includes items expiring today (today <= expires_on <= last).\",\n \"moved_tests\": [],\n \"stop\": null}\n```\n---\nThe maker's code change is one comparison, `today < i.expires_on` to `today <= i.expires_on`, in `pantry/store.py`. It follows the date-naming standard. It adds no print, dead code, duplication or new abstraction. The suite is green, and the only test change is the new red test file. I committed nothing.\n\n```xv-report\n{\"agent\": \"cleaner\", \"status\": \"done\", \"summary\": \"Nothing to fix: the maker's one-line boundary change is clean, the suite is green, and no old tests moved.\", \"commit\": null,\n \"applied\": [],\n \"moved_tests\": [], \"shape_proposals\": [],\n \"candidate_standards\": []}\n```\n---\nI wrote the packet to `.xv/slices/expiring-today.packet.md`. The change needs no decision from two people. The merge is eval-person's, who set the work going.\n\n- **Change:** the whole production diff is one comparison in `pantry/store.py:47`. It changes `today < i.expires_on <= last` to `today <= i.expires_on <= last`.\n- **Shape:** no change. The boundary picture shows only the `store` module touched, with no new edges, tables or surfaces and no shape hints.\n- **Pitch:** no contradiction. The change serves the pitch line \"It asks what runs out within a few days.\"\n- **Moved tests:** none. The record and `xv wall diff` agree.\n- **Test gap (not a moved test):** the existing store and API tests don't cover the day-on-the-boundary case, and none covers items already past their date. The slice says to ignore past items.\n- **Picture:** nothing becomes untrue. I proposed one optional line under Names saying \"within N days\" includes today.\n- **Door:** two-way. A revert undoes it, and the blast radius is small.\n- **Estimation rows:** the five new rows in `.xv/estimation.md` are listed in the packet under Raw data.\n\n```xv-report\n{\"agent\": \"guardian\", \"status\": \"done\", \"summary\": \"One-line boundary fix inside store; no shape change, no pitch contradiction, no moved tests; optional picture note.\", \"packet\": \".xv/slices/expiring-today.packet.md\",\n \"shape_change\": \"no\", \"pitch_contradiction\": \"no\", \"picture_change\": \"no\", \"moved_tests\": 0, \"door\": \"two-way\"}\n```"
+}

@@ -1,0 +1,80 @@
+{
+  "scenario": "guardian-moves",
+  "increment": 4,
+  "agent": "guardian",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T04:24:23.622953+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 1317,
+      "cache_read": 56843,
+      "cache_write": 5476,
+      "tokens": 63644,
+      "usd": 0.0408,
+      "turns": 4,
+      "wall_s": 15.0,
+      "session": "6aec9c31-280e-4f7a-80ae-50c7a3effcc7"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "review.md"
+    },
+    {
+      "name": "shape_not_flagged",
+      "pass": false,
+      "detail": "packet: shape_change: None"
+    },
+    {
+      "name": "pitch_not_flagged",
+      "pass": false,
+      "detail": "packet: pitch_contradiction: None"
+    },
+    {
+      "name": "moved_test_listed",
+      "pass": true,
+      "detail": "both moved test files listed"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": false,
+      "detail": "no boundary picture"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    },
+    {
+      "name": "stop_accept_moves",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I reviewed `git diff main..HEAD` and wrote the review to `review.md`, which is the only file I touched. I recommend approving the change.\n\n- **The change:** it rewords the bad-quantity error in `pantry/store.py` to \"Quantity must be a whole number above zero\". The validation logic is unchanged.\n- **Tests:** the two test assertions that check the message were updated to match. Both edits are recorded in the slice file's `moved_tests` with a reason. `python -m unittest` ran 11 tests, all passing.\n- **Leftovers:** no uses of the old wording remain outside the slice file. The API passes the store's message through unchanged, so the API response picks up the new text.\n\nI noted three non-blocking points in the review:\n- The other store error, `only {n} {name} left`, is still lowercase. That is out of scope for this slice.\n- The new message is capitalised, so the two messages now differ in style.\n- The slice file still shows `status: open` with empty `forecast`, `suite` and `checks`, which I assume the workflow handles before merge."
+}

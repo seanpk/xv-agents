@@ -1,0 +1,151 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T04:13:58.703556+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 4,
+      "tokens_out": 610,
+      "cache_read": 26548,
+      "cache_write": 4960,
+      "tokens": 32122,
+      "usd": 0.0286,
+      "turns": 3,
+      "wall_s": 6.1,
+      "session": "0b3a5516-29bf-4def-ad74-bf65ae885c45",
+      "step": "forecaster",
+      "at": "2026-10-22T04:14:05+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-h6aievln/repo/.git/xv/runs/expiring-today/01-forecaster.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 10,
+      "tokens_out": 2048,
+      "cache_read": 84421,
+      "cache_write": 10259,
+      "tokens": 96738,
+      "usd": 0.07,
+      "turns": 6,
+      "wall_s": 17.6,
+      "session": "40c95588-52aa-420c-8697-a882dffd6973",
+      "step": "scenario",
+      "at": "2026-10-22T04:14:22+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-h6aievln/repo/.git/xv/runs/expiring-today/02-scenario.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 617,
+      "cache_read": 64247,
+      "cache_write": 7822,
+      "tokens": 72694,
+      "usd": 0.0439,
+      "turns": 5,
+      "wall_s": 10.0,
+      "session": "02dafb3a-31e8-4d01-88cb-c63ad47c62ef",
+      "step": "maker",
+      "at": "2026-10-22T04:14:33+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-h6aievln/repo/.git/xv/runs/expiring-today/03-maker.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 4,
+      "tokens_out": 374,
+      "cache_read": 26849,
+      "cache_write": 11299,
+      "tokens": 38526,
+      "usd": 0.0516,
+      "turns": 2,
+      "wall_s": 8.3,
+      "session": "5bc3f6b2-682e-41e4-89c2-318ba6232f58",
+      "step": "cleaner",
+      "at": "2026-10-22T04:14:44+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-h6aievln/repo/.git/xv/runs/expiring-today/04-cleaner.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 2516,
+      "cache_read": 80267,
+      "cache_write": 16651,
+      "tokens": 99442,
+      "usd": 0.0998,
+      "turns": 5,
+      "wall_s": 20.5,
+      "session": "45a9030e-31ee-4e3f-8b3e-2a2a2272f17d",
+      "step": "guardian",
+      "at": "2026-10-22T04:15:07+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-h6aievln/repo/.git/xv/runs/expiring-today/05-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": true,
+      "detail": "ran: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_expiring_today.py'], 'command': 'python3 -m unittest tests.test_expiring_today', 'failure': \"AssertionError: Lists differ: [{'name': 'yogurt', 'qty': 1, 'expires_on': '2026-10-23'}] != [milk, yogurt]\", 'watch_first_green': None}"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": false,
+      "detail": "no wall baseline"
+    },
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/expiring-today.packet.md"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 6,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "agent\": \"scenario\", \"status\": \"red\", \"summary\": \"Replays the recorded API path; expiring list omits milk that runs out today.\", \"red\": {\"files\": [\"tests/test_expiring_today.py\"], \"command\": \"python3 -m unittest tests.test_expiring_today\", \"failure\": \"AssertionError: Lists differ: [{'name': 'yogurt', 'qty': 1, 'expires_on': '2026-10-23'}] != [milk, yogurt]\", \"watch_first_green\": null}}\n```\n---\nThe expiring query now includes items that run out today. I changed one comparison in `Store.expiring` in `pantry/store.py`, from `today < i.expires_on` to `today <= i.expires_on`. The red test passes, and so does the whole suite (12 tests). I moved no old tests, and the changes are uncommitted.\n\n```xv-report\n{\"agent\": \"maker\", \"status\": \"green\", \"summary\": \"Store.expiring now includes items expiring today (today <= expires_on <= last).\",\n \"moved_tests\": [],\n \"stop\": null}\n```\n---\nThe diff is one comparison in `pantry/store.py` and one new test. Nothing in it breaks a standard or a baseline smell. The names are `today`, `last` and `expires_on`, and there is no `print()`, dead code or duplication that this change added. The suite is green with 12 tests, so I made no commit.\n\n```xv-report\n{\"agent\": \"cleaner\", \"status\": \"done\", \"summary\": \"Nothing to fix: one-line boundary change and a new test, both clean against standards and baseline; suite green, no commit.\", \"commit\": null,\n \"applied\": [],\n \"moved_tests\": [], \"shape_proposals\": [],\n \"candidate_standards\": []}\n```\n---\nI wrote the packet to `.xv/slices/expiring-today.packet.md`. It finds no shape change, no pitch contradiction and no moved tests.\n\n- **Change:** one comparison in `pantry/store.py:47` changed from `today < i.expires_on` to `today <= i.expires_on`. The new test, `tests/test_expiring_today.py`, replays the recorded path through the API and expects milk and yogurt.\n- **Shape and pitch:** `pantry/api.py` is untouched, and nothing in the diff adds a module, a route, a dependency or a network call. The fix serves the pitch's \"what runs out soon\" line.\n- **Moved tests:** `xv wall diff expiring-today` shows no changed test files, and the slice record has no moved tests.\n- **Picture:** I propose no edit. The picture doesn't say whether \"runs out soon\" includes today. You may want to add that it does.\n- **Door:** two-way, small blast radius.\n- **Missing boundary picture:** `xv boundary` returned \"unknown command\" in this build, so the packet has no boundary picture. I did not draw one freehand and worked from the diff alone.\n- **Tests not rerun:** I did not rerun the suite. The packet reports the maker's and cleaner's green result (12 tests).\n\n```xv-report\n{\"agent\": \"guardian\", \"status\": \"done\", \"summary\": \"One-line boundary fix inside current shape; no pitch conflict, no moved tests; xv boundary command unavailable so no boundary picture\", \"packet\": \".xv/slices/expiring-today.packet.md\",\n \"shape_change\": \"no\", \"pitch_contradiction\": \"no\", \"picture_change\": \"no\", \"moved_tests\": 0, \"door\": \"two-way\"}\n```"
+}

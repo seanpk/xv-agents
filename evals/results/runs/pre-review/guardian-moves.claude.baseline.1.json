@@ -1,0 +1,80 @@
+{
+  "scenario": "guardian-moves",
+  "increment": 4,
+  "agent": "guardian",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T16:52:20.408604+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 913,
+      "cache_read": 56845,
+      "cache_write": 5192,
+      "tokens": 62958,
+      "usd": 0.0356,
+      "turns": 4,
+      "wall_s": 11.6,
+      "session": "67a793d4-68e1-4ef2-bd9c-f3fa5f3b4124"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "review.md"
+    },
+    {
+      "name": "shape_not_flagged",
+      "pass": false,
+      "detail": "packet: shape_change: None"
+    },
+    {
+      "name": "pitch_not_flagged",
+      "pass": false,
+      "detail": "packet: pitch_contradiction: None"
+    },
+    {
+      "name": "moved_test_listed",
+      "pass": true,
+      "detail": "both moved test files listed"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": false,
+      "detail": "no boundary picture"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    },
+    {
+      "name": "stop_accept_moves",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I reviewed the branch and wrote the review to `review.md`. My verdict is to approve, with no blocking issues.\n\n- **The change:** it only rewords the bad-quantity error in `pantry/store.py`. The validation condition is untouched.\n- **Tests:** the two test assertions that moved match the new text, and the slice file logs both with a reason. All 11 tests pass.\n- **Leftovers:** the old wording appears nowhere else in the repo.\n- **Non-blocking note:** the new message is capitalized and the old one wasn't. That's worth aligning with other messages later.\n\nI changed no other file."
+}

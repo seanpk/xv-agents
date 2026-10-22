@@ -1,0 +1,75 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T04:15:09.922093+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 10,
+      "tokens_out": 1183,
+      "cache_read": 72297,
+      "cache_write": 5208,
+      "tokens": 78698,
+      "usd": 0.0399,
+      "turns": 8,
+      "wall_s": 17.9,
+      "session": "e5238851-cea0-418c-85a2-c87fea4728f6"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": false,
+      "detail": "missing: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']; ran: []"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": false,
+      "detail": "no wall baseline"
+    },
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "the review is in the final message, not a file"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 4,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "Milk that runs out today now shows up in the \"runs out soon\" list. All 12 tests pass, including a new one for this case.\n\nThe cause was in `pantry/store.py`, in `expiring()`. The window check was `today < i.expires_on <= last`, which dropped anything expiring on `today` itself. I changed it to `today <= i.expires_on <= last`.\n\nThe new test is in `tests/test_store.py`. It adds milk expiring 2026-10-21 and asks for the next three days from that date. I didn't replay the recording against the API; the store-level test covers the same case.\n\nI haven't committed anything."
+}

@@ -181,8 +181,11 @@ def run_one(scenario, harness_name, arm, n, outdir, keep=False):
         keep = True
     os.makedirs(outdir, exist_ok=True)
     path = os.path.join(outdir, f"{scenario['name']}.{harness_name}.{arm}.{n}.json")
+    text = json.dumps(out, indent=2)
+    # results are published: no local paths in them
+    text = text.replace(HOME, "<xv-agents>").replace(os.path.expanduser("~"), "~")
     with open(path, "w") as f:
-        json.dump(out, f, indent=2)
+        f.write(text)
     if not keep:
         cleanup(workdir)
     return out

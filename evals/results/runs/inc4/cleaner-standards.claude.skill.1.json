@@ -1,0 +1,76 @@
+{
+  "scenario": "cleaner-standards",
+  "increment": 1,
+  "agent": "cleaner",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T04:18:17.706713+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 6,
+      "tokens_out": 1018,
+      "cache_read": 45574,
+      "cache_write": 7708,
+      "tokens": 54306,
+      "usd": 0.0456,
+      "turns": 3,
+      "wall_s": 15.3,
+      "session": "fb52aa6c-d192-4c35-8a03-07b3a144aa7d",
+      "step": "cleaner",
+      "at": "2026-10-22T04:18:33+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-cleaner-standards-nqotp2qz/repo/.git/xv/runs/hide-used-up/01-cleaner.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "standards_violations_fixed",
+      "pass": true,
+      "detail": "both rules applied"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "agent_committed",
+      "pass": true,
+      "detail": "commits: ['xv(hide-used-up): make it right']"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    }
+  ],
+  "passed": 6,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "cleaner",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-cleaner-standards-nqotp2qz/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "I made two cleanups in `pantry/store.py` and committed them as 19d6251. The suite is green: 13 tests pass.\n\n- **`print()` removed:** the maker left `print(\"items:\", len(d))` in `Store.items()`, which breaks the standard \"No print() in pantry/\".\n- **Names changed:** `d` is now `by_name` and `x` is now `item`. That follows the standard on naming things for what they are, and the baseline rule on mysterious names.\n\nThe maker changed one old test, `test_used_up_item_stays_listed` in `tests/test_store.py`. It now asserts the list is empty instead of listing bread with quantity 0. That matches the scenario, and the move is already recorded. It does not assert less, so I did not stop on it.\n\n```xv-report\n{\"agent\": \"cleaner\", \"status\": \"done\", \"summary\": \"Removed a debug print and renamed two mysterious names in Store.items(); suite green\", \"commit\": \"19d6251\",\n \"applied\": [{\"rule\": \".xv/standards.md: No print() in pantry/; the API reports errors as JSON\", \"where\": \"pantry/store.py:42\"},\n             {\"rule\": \".xv/standards.md: Name a date for what it is (d, x style names) / baseline: mysterious name\", \"where\": \"pantry/store.py:42\"}],\n \"moved_tests\": [], \"shape_proposals\": [],\n \"candidate_standards\": []}\n```"
+}

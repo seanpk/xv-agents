@@ -1,0 +1,70 @@
+{
+  "scenario": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T17:01:13.350079+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 14,
+      "tokens_out": 1316,
+      "cache_read": 109473,
+      "cache_write": 7213,
+      "tokens": 118016,
+      "usd": 0.053,
+      "turns": 7,
+      "wall_s": 22.0,
+      "session": "1c5ab7fe-b168-4f3c-8e52-118fe9a428ff"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "preset_red_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "red_file_unchanged",
+      "pass": true,
+      "detail": "the scenario agent's red is untouched"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "moved_test_recorded",
+      "pass": false,
+      "detail": "recorded moves: []"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    },
+    {
+      "name": "wall_holds",
+      "pass": false,
+      "detail": "unrecorded: ['tests/test_store.py'], recorded: []"
+    }
+  ],
+  "passed": 4,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "Using the last of an item now takes it off `GET /items`, and items with some left still show. The full suite passes (13 tests).\n\n- **`pantry/store.py`:** `Store.items()` now skips items with a quantity of 0. The used-up item stays in the store, so adding more of it later still works.\n- **Expiring list:** `expiring()` used to call `items()`, so it would have changed too. I made it read the store directly, so it behaves as before, which matches the slice's \"expiring list is unchanged\".\n- **Old test:** `tests/test_store.py` had `test_used_up_item_stays_listed`, which asserted the old behavior of a used-up item showing with quantity 0. I renamed it to `test_used_up_item_leaves_the_list` and changed it to expect an empty list.\n\nI haven't committed anything."
+}

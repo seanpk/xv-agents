@@ -1,0 +1,80 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T04:19:22.914481+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 2038,
+      "cache_read": 56775,
+      "cache_write": 6596,
+      "tokens": 65417,
+      "usd": 0.0525,
+      "turns": 4,
+      "wall_s": 18.8,
+      "session": "95f760cb-e861-4363-b4bc-c2a3df3c0ff6"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "review.md"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": false,
+      "detail": "no pitch conflict named"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": true,
+      "detail": "the review names the new outbound module"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": false,
+      "detail": "no pitch line cited"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": false,
+      "detail": "no boundary picture"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    }
+  ],
+  "passed": 4,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I reviewed `git diff main..HEAD` and wrote the review to `review.md`, the only file I touched. I only read the diff and `pantry/api.py`. I didn't run the tests or the server.\n\nThe verdict is request changes.\n\n- **Unhandled GroceryNow errors:** `urlopen` raises on timeouts, connection failures and HTTP errors such as a 401 for a bad token. None of these are caught in `do_POST`, so the client gets a dropped connection instead of a response. These should return a 502 or 504 with a JSON error.\n- **Missing token reported as a 404:** a request with no `token` falls into the `KeyError` handler and returns 404 \"no item 'token'\". It should be a 400.\n- **Data sent to a third party:** the payload includes full item dicts, including expiry dates, and the URL is hard-coded. This needs an explicit decision on what to send and where.\n- **Empty list still sent:** when nothing is low, it still POSTs an empty list to GroceryNow.\n- **Thin tests:** only the happy path is tested. There are no tests for the HTTP handler, the error paths, the empty list, or the qty 0 and 2 boundaries.\n\nI also noted that `/share` has no local authentication beyond the token in the request body."
+}

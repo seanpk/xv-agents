@@ -1,0 +1,70 @@
+{
+  "scenario": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-10-22T16:48:21.056216+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 14,
+      "tokens_out": 1257,
+      "cache_read": 110574,
+      "cache_write": 7317,
+      "tokens": 119162,
+      "usd": 0.0529,
+      "turns": 7,
+      "wall_s": 20.1,
+      "session": "d329a53d-1018-45c8-b62e-7072bb4d6888"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "preset_red_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "red_file_unchanged",
+      "pass": true,
+      "detail": "the scenario agent's red is untouched"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "moved_test_recorded",
+      "pass": false,
+      "detail": "recorded moves: []"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    },
+    {
+      "name": "wall_holds",
+      "pass": false,
+      "detail": "unrecorded: ['tests/test_store.py'], recorded: []"
+    }
+  ],
+  "passed": 4,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "Using the last of an item now takes it off `GET /items`. Items with some left still show. The full suite passes (13 tests).\n\n- **`pantry/store.py`:** `Store.items()` now returns only items with `qty > 0`. I moved the old unfiltered listing into a private `_all()`.\n- **Expiring list:** `expiring()` now reads from `_all()`, so it behaves exactly as before. The slice said to leave it unchanged.\n- **`tests/test_store.py`:** `test_used_up_item_stays_listed` asserted the old behavior (bread left in the list at quantity 0), which this change reverses. I renamed it to `test_used_up_item_leaves_the_list` and made it expect an empty list.\n\nI haven't committed anything."
+}

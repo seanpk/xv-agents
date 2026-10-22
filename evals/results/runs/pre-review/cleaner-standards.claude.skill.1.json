@@ -1,0 +1,76 @@
+{
+  "scenario": "cleaner-standards",
+  "increment": 1,
+  "agent": "cleaner",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-10-22T16:46:21.532205+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 6,
+      "tokens_out": 979,
+      "cache_read": 34012,
+      "cache_write": 19196,
+      "tokens": 54193,
+      "usd": 0.09,
+      "turns": 3,
+      "wall_s": 14.3,
+      "session": "1942360b-1d3d-45ff-9e75-3e4cbbf06ae7",
+      "step": "cleaner",
+      "at": "2026-10-22T16:46:35+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-cleaner-standards-qb6nw0_v/repo/.git/xv/runs/hide-used-up/01-cleaner.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "standards_violations_fixed",
+      "pass": true,
+      "detail": "both rules applied"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "agent_committed",
+      "pass": true,
+      "detail": "commits: ['xv(hide-used-up): make it right']"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    }
+  ],
+  "passed": 6,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "cleaner",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-cleaner-standards-qb6nw0_v/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "I made one cleanup commit, `2f59071`, and the suite is green: 13 tests pass.\n\nThe maker's change to `tests/test_store.py` is already recorded as a move. That test now asserts an empty list instead of bread at quantity 0, which matches the scenario, so I didn't treat it as a weakened test.\n\nI fixed two things in `Store.items` in `pantry/store.py`:\n- **Debug print:** I removed a leftover `print(\"items:\", ...)`. This breaks the standards rule \"No `print()` in `pantry/`\".\n- **Mysterious names:** I renamed `d` to `by_name` and `x` to `item`. This is the baseline smell, not the date-naming rule, because these aren't dates.\n\nI found no other issues.\n\n```xv-report\n{\"agent\": \"cleaner\", \"status\": \"done\", \"summary\": \"Removed leftover print and renamed mysterious names in Store.items; suite green\", \"commit\": \"2f59071\",\n \"applied\": [{\"rule\": \".xv/standards.md: No print() in pantry/; the API reports errors as JSON\", \"where\": \"pantry/store.py:42\"},\n             {\"rule\": \"baseline: mysterious name (d, x)\", \"where\": \"pantry/store.py:42\"}],\n \"moved_tests\": [], \"shape_proposals\": [],\n \"candidate_standards\": []}\n```"
+}
