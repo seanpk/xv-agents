@@ -104,13 +104,15 @@ RB_IMPORT = re.compile(r"""\brequire(?:_relative)?\s*\(?\s*['"]([^'"]+)['"]""")
 GO_IMPORT = re.compile(r'"([^"]+)"')
 
 
-def resolve(name, path, files, lang):
+def resolve(name, path, files, lang, roots=()):
     """A repo file an import name points at, or None for a third-party import."""
     if lang == "py":
         cand = name.replace(".", "/")
-        for c in (cand + ".py", cand + "/__init__.py"):
-            if c in files:
-                return c
+        prefixes = [""] + [r.strip("./") + "/" for r in roots if r.strip("./")] + [os.path.dirname(path) + "/"]
+        for pre in prefixes:
+            for c in (pre + cand + ".py", pre + cand + "/__init__.py"):
+                if c in files:
+                    return c
         return None
     base = os.path.dirname(path)
     if lang == "js" and name.startswith("."):
@@ -133,6 +135,7 @@ def graph(read, paths, config):
     """Edges between modules, and which modules call out of the process."""
     files = set(paths)
     src = source_files(paths, config)
+    roots = (config.get("source") or {}).get("roots") or []
     edges, outbound, modules = set(), set(), set()
     for p in src:
         text = read(p)
@@ -153,12 +156,12 @@ def graph(read, paths, config):
         flat = []
         for n in names:
             if isinstance(n, tuple):
-                subs = [x for x in n[0] if resolve(x, p, files, lang)]
+                subs = [x for x in n[0] if resolve(x, p, files, lang, roots)]
                 flat += subs or [n[1]]
             else:
                 flat.append(n)
         for n in flat:
-            target = resolve(n, p, files, lang)
+            target = resolve(n, p, files, lang, roots)
             if target and target in src:
                 tm = module_of(target, config)
                 if tm != m:
