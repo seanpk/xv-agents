@@ -86,6 +86,8 @@ XV repos share learnings as issues on the shared xv-agents repo (the `xv-promote
 
 Write the answers to `promote:` in `.xv/config.yml` (`include_name`, `name`, `description`, `stack`). `xv init` fills in its guesses; correct them with the person.
 
+If an assistant drafts the learnings, set `promote.attribution` to the line that names it, such as `🤖 Claude on behalf of <name>`. Every draft ends with that line. Empty adds none.
+
 ## 6. The first packet
 
 List the places where the outsider read and the pitch disagree and a person must decide. Write the list to `.xv/slices/packet-init.md`. It is the first packet, and the first evidence for whether a written picture loads a new person. Do not resolve the disagreements; they are for the people.
