@@ -2,6 +2,10 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
+## Unreleased
+
+- `xv promote draft` cuts a title at a word boundary, writes "Applies to: any" when no `--applies-to` is given, names the draft file with one date, and ends the draft with `promote.attribution` when it is set. The `xv-init` brief names the new setting; Sean decided it, solo ([#13](https://github.com/seanpk/xv-agents/issues/13)).
+
 ## 0.2.0, 2026-10-24
 
 The first changes from use: one `xv init --trial` on a large existing Rails app, reported in [#6](https://github.com/seanpk/xv-agents/issues/6). Built by Claude (Opus 5.5, with Sonnet subagents) on Sean Kennedy's direction of 2026-10-24. The change to the `xv-init` brief has not yet been agreed by two people.
