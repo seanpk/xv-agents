@@ -16,6 +16,20 @@ class FailingTestsTest(unittest.TestCase):
         self.assertEqual(failing_tests(out), ["TestZ", "test_api (tests.t.A.test_api)",
                                               "test_milk (tests.test_red.Red.test_milk)", "tests/test_x.py::test_y"])
 
+    def test_names_from_rspec_and_jasmine(self):
+        from run import failing_tests
+        rspec = "rspec ./spec/models/project_spec.rb:42 # Project does a thing\n"
+        jasmine = ("Failures:\n1) Clipboard pastes a copied item\n  Message:\n    Expected 1 to be 2.\n"
+                   "2) Clipboard clears\n  Message:\n    boom\n\n1) not a failure\n2 specs, 2 failures\n")
+        self.assertEqual(failing_tests(rspec), ["./spec/models/project_spec.rb:42"])
+        self.assertEqual(failing_tests(jasmine), ["Clipboard clears", "Clipboard pastes a copied item"])
+
+    def test_names_found_after_a_long_preamble(self):
+        from run import failing_tests, shell
+        script = "print('.' * 20000); print('rspec ./spec/a_spec.rb:1 # A'); print('1) B fails'); print('  Message:')"
+        code, out = shell(f"{sys.executable} -c \"{script}\"", HOME)
+        self.assertEqual(failing_tests(out), ["./spec/a_spec.rb:1", "B fails"])
+
 
 class WatchLoopTest(RepoCase):
     """The whole loop with a stand-in agent: the plumbing, not the briefs."""
