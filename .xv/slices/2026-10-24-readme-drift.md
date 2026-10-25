@@ -33,6 +33,8 @@ The README stop table names every order `scripts/orders.py` fires. The README St
 
 The red test for this slice is for this slice only: Sean removes it before the merge (decided 2026-10-24).
 
+Settled at the scenario stop, 2026-10-24, Sean: "names every order" means each order `scripts/orders.py` fires has a row in the README stop table that describes it in words. The README keeps its wording; it does not add order ids. The red, which is removed before the merge, may map each order id to words from its row.
+
 ## May ignore
 
 the generated block between the xv:method markers
