@@ -26,7 +26,7 @@
   "tests/test_wall.py": 13,
   "tests/test_xvlib.py": 27
  },
- "commit": "98cb292b59857fea2ff39a414b000d3c6187c84f",
+ "commit": "3abb00ae0806a590877ee5ceb1c97d63ce585efd",
  "files": {
   "tests/data/claude-result.json": "d97d2788e30ab2c1dcefc61594ffaaf6892217e088255672a7ead5be9747a331",
   "tests/data/claude-session.jsonl": "f334175619c11a34eabde629fe45e0def44aa43becec22059c9c9841ffccf073",
