@@ -110,6 +110,8 @@ flowchart TB
   ls -. "the packet from production" .-> chief
 ```
 
+`xv adapt claude|opencode` optionally writes a harness's own subagent files from the skills, for a step set to `session`; `xv step` does not need it.
+
 The person-facing skills: `xv-init` writes a starter project layer, `xv-slice` starts a slice, `xv-retro` turns misses into checks, `xv-check` reads the project layer against the core, `xv-promote` moves a learning toward these skills.
 
 ## How a slice runs
@@ -279,6 +281,10 @@ The standing orders are code, not prose. When the steps run through `xv step`, t
 | A worker ended with no report, or a read-only agent wrote | the person who set the work going |
 | An agent changed a file only people change: the config, the pitch, the picture, the estimation guide, the rules, the wall's hashes | the person who set the work going |
 | The maker ran in a context that had built a prototype | the person who set the work going |
+| The forecaster ran and the budget is not set | the person who set the work going |
+| An agent ended its step with a stop of its own: the forecaster, the scenario agent, the maker, the cleaner or the guardian asks a question | the person who set the work going; two people for a shape question |
+| The cleaner's pass left the suite not green | the person who set the work going |
+| The cleaner edited the standards file | the person who set the work going |
 | `shape_change: yes` or `pitch_contradiction: yes` in the packet | two people |
 | A budget raised past the team's limit, or a shape change wider than forecast | two people |
 | Prototypes ready to pick from | two people |
@@ -386,7 +392,7 @@ Grok always loads the person's own home rules and skills, so its baseline ran on
 
 ## Status
 
-v0.1, built 2026-10-21 and 2026-10-22, not yet used on a real slice. No brief or standing order in it has been agreed by two people. What is untested is listed in [`docs/harness-notes.md`](docs/harness-notes.md); every choice the plan left open is in [`docs/decisions.md`](docs/decisions.md); the positions Sean took while it was built are in [`docs/positions.md`](docs/positions.md).
+v0.1, built 2026-10-21 and 2026-10-22; 0.2.0 came from a real init, on a real repo. Not yet used on a real slice end to end. No brief or standing order in it has been agreed by two people. What is untested is listed in [`docs/harness-notes.md`](docs/harness-notes.md); every choice the plan left open is in [`docs/decisions.md`](docs/decisions.md); the positions Sean took while it was built are in [`docs/positions.md`](docs/positions.md).
 
 ## Credits and license
 
