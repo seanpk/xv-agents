@@ -1,0 +1,88 @@
+# The project layer's settings. Committed, shared by everyone on the project
+# and every harness they use. Add-only against the core: `xv check` reports any
+# line here that relaxes a stop, the wall, or the contexts kept apart.
+version: 1
+
+# Where slice records live. `file` is .xv/slices/<id>.md. A team that keeps the
+# record in its pull requests renders it with `xv record export <id>`.
+record_home: file
+
+# Where the watch makes each slice's worktree. .xv/.gitignore keeps it out of
+# the repo. Not under .git/: Claude Code refuses writes there. If your test
+# runner scans hidden directories, add .xv/worktrees to its ignore list.
+worktrees: .xv/worktrees
+
+tests:
+  # What the wall hashes. Every file matching one of these is a test file.
+  paths: ["tests/**"]
+  # The whole suite. Must return in minutes; a skipped or timed-out suite is a failed build.
+  # A big suite can meet that with a script that picks suites from the changed
+  # files. XV_BASE (the slice's base commit) and XV_SLICE (its id) are set in
+  # the command's environment, so `git diff --name-only $XV_BASE` finds them.
+  command: "cd tests && python3 -m unittest -q"
+  timeout: 900
+
+source:
+  roots: ["scripts", "evals"]
+  exclude: ["node_modules/**", "vendor/**", ".git/**", ".xv/**", "evals/fixture/**", "evals/setups/**"]
+
+# The agent CLI for each step, as a list of arguments. {prompt} is replaced by the
+# whole prompt. Name the model per step; a token count only means something within
+# one model, and the estimation guide is keyed by harness and model.
+# Set a step to `session` to run it in the person's own harness instead of a CLI.
+agents:
+  default: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "sonnet", "{prompt}"]
+  forecaster: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "haiku", "{prompt}"]
+  guardian: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "opus", "{prompt}"]
+  # A local model through opencode:
+  # maker: ["opencode", "run", "--auto", "--format", "json", "--model", "ollama/gpt-oss:20b", "{prompt}"]
+  # Grok (its home rules and skills load into every run; see docs/harness-notes.md):
+  # guardian: ["grok", "--output-format", "json", "-m", "grok-4.7", "--no-subagents", "--permission-mode", "bypassPermissions", "-p", "{prompt}"]
+
+# Who sits in each seat. The person who set the work going is named in each slice record.
+# A one-person team sets two_people to solo: the two-person stops still fire and
+# wait, one person answers them, and each answer is written down. `xv check`
+# lists it, so it stays a choice the team made on purpose.
+seats:
+  chief_engineer: "Sean Kennedy"
+  two_people: solo
+
+limits:
+  # How far one person may raise a budget before it takes two people, in percent. 0: no limit agreed.
+  budget_raise_pct: 0
+  # Lines of diff past which the watch reports a growing diff. 0: off.
+  max_diff_lines: 0
+  # A rule that people override more often than this is proposed for retirement.
+  override_rate: 0.25
+
+# Where the listener gathers the packet from production. Leave it out until the
+# repo has users. Tokens come from the environment, never from this file.
+# listener:
+#   sentry:
+#     org: my-org
+#     project: my-project
+#     token_env: SENTRY_AUTH_TOKEN
+#   posthog:
+#     host: "https://us.posthog.com"
+#     project_id: 1234
+#     key_env: POSTHOG_API_KEY
+#   feedback: ["support/exports/*.txt"]
+#   days: 7
+
+# What this repo says about itself when it shares a learning on the shared
+# xv-agents repo (the xv-promote skill). Nothing is posted without a person's
+# approval. xv-init asks these.
+promote:
+  shared_repo: seanpk/xv-agents
+  include_name: true
+  name: "seanpk/xv-agents"
+  description: "Skills that make the Xtreme Vibing agents real"
+  stack: ["python"]
+
+# How a person is reached on a stop, as a command with {seat} {question} {record}.
+# Empty: the watch says it in the session, or `xv run` exits with it.
+reach:
+  command: []
+
+wall:
+  require_record: true

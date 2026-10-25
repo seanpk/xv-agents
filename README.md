@@ -38,7 +38,7 @@ XV has its own words. This README and the method use them from here on.
 Generated from the same source as the site. It states the method's positions; the agents here are the first attempt to hold them, and none of it has run on a real change yet.
 
 <!-- xv:method begin -->
-<!-- Generated on 2026-10-21 from map.md, the source of xtremevibing.com/map/. Edits here are overwritten at the next publish; say what is wrong in an issue on this repo. -->
+<!-- Generated on 2026-10-21 from the map at https://xtremevibing.com/map/. Edits here are overwritten at the next publish; say what is wrong in an issue on this repo. -->
 
 The method is written up at [xtremevibing.com](https://xtremevibing.com/): [the summary](https://xtremevibing.com/), [the map](https://xtremevibing.com/map/) of values, principles and practices, [the loop](https://xtremevibing.com/loop/) one turn of delivery runs through, and [the agents](https://xtremevibing.com/agents/). This is the map in brief, as of 2026-10-21.
 

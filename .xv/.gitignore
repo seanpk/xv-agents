@@ -1,0 +1,5 @@
+# Kept out of the repo: slice worktrees, the raw data the listener gathers,
+# and the whole-repo boundary output xv-init writes for the outsider read.
+worktrees/
+listen/
+boundary-all.md
