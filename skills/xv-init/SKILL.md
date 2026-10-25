@@ -23,7 +23,7 @@ copies the starter files from this repo's `defaults/` into `.xv/`, fills in `.xv
 **A trial.** If the person wants to try XV before the team commits to it, offer:
 
 - `xv init --trial`: `.xv/` goes into `.git/info/exclude`, so none of it enters the repo's history. Slices still run.
-- `xv init --trial --repo`: the same, and `.xv/` becomes its own git repo, so the layer keeps its history. Pushed to a private remote, teammates can clone it into their own `.xv/` to opt in. Suggest it when the person wants a history of the pitch and the picture, or wants teammates in the trial.
+- `xv init --trial --repo`: the same, and `.xv/` becomes its own git repo, so the layer keeps its history. Pushed to a private remote, teammates can opt in: clone it into `.xv/` in their own checkout, then run `xv init --trial` there, which keeps their copy out of the app's history and keeps every file. Suggest it when the person wants a history of the pitch and the picture, or wants teammates in the trial.
 
 `xv init --adopt` ends a trial. If `.xv/` is its own repo, it refuses while that repo has uncommitted changes, then moves `.xv/.git` to `<git common dir>/xv-trial.git` and says where. It deletes nothing. Then the person commits `.xv/` in the app.
 
