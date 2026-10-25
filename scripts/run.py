@@ -56,17 +56,27 @@ def run_suite(root, config):
     return ("green" if code == 0 else "red"), out
 
 
-FAILING = re.compile(r"^(?:FAIL|ERROR): (\S+(?: \([^)]*\))?)|^FAILED (\S+)|^\s*[✕×] (.+?)(?: \(\d+ ?ms\))?$"
-                     r"|^--- FAIL: (\S+)|^rspec (\S+)|^\d+\) (.+)\n[ \t]+Message:", re.M)
+FAILING = re.compile(r"^(?:FAIL|ERROR): (\S+(?: \([^)]*\))?)|^FAILED (\S+)"
+                     r"|^\s*[✕×] (.+?)(?: \(\d+ ?ms\)| \d+(?:\.\d+)? ?ms)?$|^ FAIL  \S+ > (.+)$"
+                     r"|^--- FAIL: (\S+)|^rspec (\S+)|^\d+\) (.+)\n[ \t]+Message:"
+                     r"|^\s*(?:\d+\) )?(?:Failure|Error):\n\s*([\w:]+#\w+)"
+                     r"|^test (\S+) \.\.\. FAILED$|^\s+\d+\) (\[[^\]]+\] › .+?)\s*─*$", re.M)
+# mocha prints a failure's title over several lines, one per describe, the last ending in a colon
+MOCHA = re.compile(r"^ +\d+\) (.+(?:\n +[^\n]+?)*?):$", re.M)
 
 
 def failing_tests(output):
-    """Names of failing tests from unittest, pytest, jest, go, RSpec or Jasmine output.
+    """Names of failing tests from unittest, pytest, jest, vitest, go, RSpec, Jasmine,
+    minitest, mocha, cargo or Playwright output.
 
     RSpec is named by its rerun handle, ./spec/x_spec.rb:42, which is unique where
     descriptions repeat. Jasmine's numbered entries count only when a Message: line follows.
+    Vitest names a test in its tree and again in its summary; both read `suite > test`.
     """
-    return sorted({next(g for g in m if g) for m in FAILING.findall(output)})
+    names = {next(g for g in m if g) for m in FAILING.findall(output)}
+    if re.search(r"^ +\d+ failing$", output, re.M):
+        names |= {" ".join(part.strip() for part in m.split("\n")) for m in MOCHA.findall(output)}
+    return sorted(names)
 
 
 def changed_files(root, since):

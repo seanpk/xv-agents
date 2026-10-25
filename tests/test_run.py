@@ -24,6 +24,25 @@ class FailingTestsTest(unittest.TestCase):
         self.assertEqual(failing_tests(rspec), ["./spec/models/project_spec.rb:42"])
         self.assertEqual(failing_tests(jasmine), ["Clipboard clears", "Clipboard pastes a copied item"])
 
+    def test_names_from_vitest_minitest_mocha_cargo_and_playwright(self):
+        from run import failing_tests
+        vitest = (" ❯ src/clip.test.ts (2 tests | 1 failed) 6ms\n   × Clipboard > pastes a copied item 3ms\n"
+                  "   ✓ Clipboard > copies 1ms\n\n⎯⎯ Failed Tests 1 ⎯⎯\n\n"
+                  " FAIL  src/clip.test.ts > Clipboard > pastes a copied item\nAssertionError: expected 1 to be 2\n")
+        minitest = ("Failure:\nProjectTest#test_does_a_thing [test/models/project_test.rb:42]:\nExpected false\n\n"
+                    "  1) Error:\nApi::ItemsTest#test_lists:\nNameError: boom\n")
+        mocha = ("  Array\n    #indexOf()\n      1) should return -1\n      ✔ finds 0\n\n  1 passing (5ms)\n"
+                 "  1 failing\n\n  1) Array\n       #indexOf()\n         should return -1:\n"
+                 "     AssertionError: expected 0 to equal -1\n")
+        cargo = "test store::tests::adds ... ok\ntest store::tests::uses ... FAILED\n"
+        playwright = ("  1) [chromium] › tests/pantry.spec.ts:3:5 › pantry › shows today ─────────────────\n\n"
+                      "    Error: expect(received).toBe(expected)\n")
+        self.assertEqual(failing_tests(vitest), ["Clipboard > pastes a copied item"])
+        self.assertEqual(failing_tests(minitest), ["Api::ItemsTest#test_lists", "ProjectTest#test_does_a_thing"])
+        self.assertEqual(failing_tests(mocha), ["Array #indexOf() should return -1"])
+        self.assertEqual(failing_tests(cargo), ["store::tests::uses"])
+        self.assertEqual(failing_tests(playwright), ["[chromium] › tests/pantry.spec.ts:3:5 › pantry › shows today"])
+
     def test_names_found_after_a_long_preamble(self):
         from run import failing_tests, shell
         script = "print('.' * 20000); print('rspec ./spec/a_spec.rb:1 # A'); print('1) B fails'); print('  Message:')"
