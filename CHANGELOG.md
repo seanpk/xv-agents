@@ -13,6 +13,14 @@ Every change to a brief, a may-not list, a standing order, or a check an agent i
 - `tests.command` runs with `XV_BASE` (the slice's base commit) and `XV_SLICE` (its id) in the environment, for a script that picks suites from the changed files.
 - A trial whose `.xv/` is its own git repo no longer copies that repo into each slice's worktree.
 - `xv init --trial --repo` makes `.xv/` its own repo for the trial; `xv init --adopt` refuses while it has uncommitted changes, then moves it to `<git dir>/xv-trial.git` and says where.
+A draft change to the `xv-init` brief and the outsider brief, by Claude (Opus 5.5) on Sean Kennedy's direction of 2026-10-24, from the first `xv init` on a large existing app ([#6](https://github.com/seanpk/xv-agents/issues/6)). Not yet agreed by two people.
+
+- `defaults/pitch.md`: the one-sentence pitch under the title, then "The page" with "Why it exists", "Who uses it" and "Who it is not for, and what it will never do". `xv-init` asks for the sentence on its own and holds the person to one sentence ([#3](https://github.com/seanpk/xv-agents/issues/3)).
+- `xv-init` checks the setup with the person before the outsider read: which test runners to use, a script for a suite too big to run in minutes, the source roots against `.xv/boundary-all.md`, and the trial choices (`--trial`, `--trial --repo`, `--adopt`).
+- `xv-init` says what the picture is for, who the outsider is, which agents load the picture, and what "in motion" is for. It drafts the binding decisions from the repo's own agent files and docs for the person to cut and add to.
+- The outsider read uses the repo's docs (`docs/`, AGENTS.md, CLAUDE.md, generated architecture docs) as claims to check, and lists where the code and the docs disagree.
+- The first packet raises a gap only when settling it would change what a slice may do. Supporting surfaces go on one "Noted, not raised" line.
+- `xv-init` ends with a review of the init: the questions the person asked, the work outside the skill, the wall-clock time, drafted as learnings through `xv-promote` and posted only with the person's approval.
 
 ## 0.1.0, 2026-10-22
 
