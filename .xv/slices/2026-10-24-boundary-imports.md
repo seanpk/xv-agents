@@ -31,6 +31,8 @@ checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "No gu
 
 In a `src/` layout and in flat scripts that import each other by bare name, `xv boundary` shows an edge for every import between modules. On this repo, `.xv/boundary-all.md` shows `run` -> `agentcli`, `orders`, `prompt`, `record`, `spend`. (seanpk/xv-agents#12)
 
+Settled at the guardian's accept stop, 2026-10-25, Sean: when resolving a bare Python import, try the importing file's own folder first, as Python does after `sys.path.insert(0, dirname(__file__))`, then the repo root, then each source root. So `import run` inside `evals/` resolves to `evals/run.py`, not `scripts/run.py`. Add a test for that case.
+
 ## May ignore
 
 JavaScript, Ruby and Go imports; dependency-cruiser
