@@ -705,6 +705,35 @@ def adopt_trial_repo(root):
     return {"moved_to": dest, "origin": origin or None}
 
 
+FIXTURE_NAMES = ("fixture", "fixtures", "examples", "setups")
+CODE_EXTS = (".py", ".js", ".ts", ".jsx", ".tsx", ".rb", ".go", ".rs", ".java", ".sh", ".php", ".c", ".cc", ".cpp", ".cs")
+
+
+def fixture_folders(root, exclude):
+    found = []
+    for dirpath, dirs, _ in os.walk(root):
+        rel_dir = os.path.relpath(dirpath, root)
+        dirs[:] = sorted(d for d in dirs if d not in (".git", XV_DIR)
+                         and not match_any(os.path.normpath(os.path.join(rel_dir, d)) + "/x", exclude))
+        if dirpath != root and os.path.basename(dirpath).lower() in FIXTURE_NAMES:
+            if any(f.endswith(CODE_EXTS) for _, _, fs in os.walk(dirpath) for f in fs):
+                found.append(rel_dir)
+    return found
+
+
+def try_test_command(root, tests):
+    command = (tests or {}).get("command") or ""
+    if not command:
+        return None
+    timeout = int(tests.get("timeout") or 900)
+    code, text = shell(command, root, timeout)
+    if code == 124 and text.startswith("timed out"):
+        return {"result": "timed out", "after_s": timeout}
+    if code == 0:
+        return {"result": "passed"}
+    return {"result": "failed", "exit": code, "tail": text.strip().splitlines()[-15:]}
+
+
 def cmd_init(a):
     root = repo_root()
     if a.repo and not a.trial:
@@ -764,7 +793,14 @@ def cmd_init(a):
         written.append("boundary-all.md")
     except ImportError:
         pass
-    out = {"written": written, "kept": kept, "tests": load_config(root).get("tests")}
+    config = load_config(root)
+    tests = config.get("tests") or {}
+    out = {"written": written, "kept": kept, "tests": {k: v for k, v in tests.items() if k != "timeout"}}
+    out["test_run"] = try_test_command(root, tests)
+    bpath = os.path.join(dst, "boundary-all.md")
+    if os.path.exists(bpath):
+        out["modules"] = len([l for l in open(bpath).read().splitlines() if l.startswith("- ")])
+    out["fixture_folders"] = fixture_folders(root, (config.get("source") or {}).get("exclude") or [])
     if len(runners) > 1:
         out["runners"] = runners
     if a.repo:
