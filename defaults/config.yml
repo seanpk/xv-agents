@@ -78,6 +78,7 @@ promote:
   name: ""
   description: ""
   stack: []
+  attribution: ""
 
 # How a person is reached on a stop, as a command with {seat} {question} {record}.
 # Empty: the watch says it in the session, or `xv run` exits with it.
