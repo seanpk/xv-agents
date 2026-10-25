@@ -52,7 +52,8 @@ def settings(root):
             "include_name": p.get("include_name", True) is not False,
             "name": p.get("name") or os.path.basename(main_root(root)),
             "description": p.get("description") or "",
-            "stack": p.get("stack") or []}
+            "stack": p.get("stack") or [],
+            "attribution": p.get("attribution") or ""}
 
 
 def repo_id(root):
@@ -112,7 +113,15 @@ def candidates(root):
 
 # ---------------------------------------------------------------- drafts and posting
 
+def cut_title(text, limit=90):
+    if len(text) <= limit or text[limit].isspace():
+        return text[:limit].rstrip()
+    head = text[:limit]
+    return head.rsplit(None, 1)[0] if len(head.split()) > 1 else head
+
+
 def slug(text):
+    text = re.sub(r"^\d{4}-\d{2}-\d{2}:?\s*", "", text)
     return "-".join(re.findall(r"[a-z0-9]+", text.lower())[:6]) or "learning"
 
 
@@ -134,15 +143,16 @@ def draft(root, entry, rule, example, issue=None, kind="standard", applies=None)
     c = found[0]
     if not rule or not example:
         raise XVError("a sighting needs the rule in general words (--rule) and one concrete example (--example)")
-    applies = applies or ", ".join(s["stack"])
     block = sighting_block(s, repo_id(root), rule, example, kind, applies, c["file"], entry)
     if issue:
         meta = {"action": "sighting", "shared_repo": s["shared_repo"], "issue": int(issue)}
         body = block
     else:
-        meta = {"action": "new", "shared_repo": s["shared_repo"], "title": TITLE_PREFIX + rule[:90]}
+        meta = {"action": "new", "shared_repo": s["shared_repo"], "title": TITLE_PREFIX + cut_title(rule)}
         body = (f"## The rule\n\n{rule}\n\n## Kind\n\n{kind}\n\n## Applies to\n\n{applies or 'any'}\n\n"
                 f"## Sightings\n\n{block}")
+    if s["attribution"]:
+        body = body.rstrip("\n") + "\n\n" + s["attribution"] + "\n"
     meta.update({"entry_file": c["file"], "entry": entry, "status": "draft", "drafted": today()})
     d = os.path.join(root, XV_DIR, "promote", "drafts")
     os.makedirs(d, exist_ok=True)
