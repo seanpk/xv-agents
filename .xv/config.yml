@@ -78,7 +78,6 @@ promote:
   name: "seanpk/xv-agents"
   description: "Skills that make the Xtreme Vibing agents real"
   stack: ["python"]
-  attribution: "🤖 Claude on behalf of Sean"
 
 # How a person is reached on a stop, as a command with {seat} {question} {record}.
 # Empty: the watch says it in the session, or `xv run` exits with it.
