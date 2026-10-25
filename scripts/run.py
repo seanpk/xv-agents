@@ -57,11 +57,15 @@ def run_suite(root, config):
 
 
 FAILING = re.compile(r"^(?:FAIL|ERROR): (\S+(?: \([^)]*\))?)|^FAILED (\S+)|^\s*[✕×] (.+?)(?: \(\d+ ?ms\))?$"
-                     r"|^--- FAIL: (\S+)", re.M)
+                     r"|^--- FAIL: (\S+)|^rspec (\S+)|^\d+\) (.+)\n[ \t]+Message:", re.M)
 
 
 def failing_tests(output):
-    """Names of failing tests from unittest, pytest, jest or go output."""
+    """Names of failing tests from unittest, pytest, jest, go, RSpec or Jasmine output.
+
+    RSpec is named by its rerun handle, ./spec/x_spec.rb:42, which is unique where
+    descriptions repeat. Jasmine's numbered entries count only when a Message: line follows.
+    """
     return sorted({next(g for g in m if g) for m in FAILING.findall(output)})
 
 

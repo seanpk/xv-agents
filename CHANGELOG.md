@@ -2,6 +2,10 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
+## Unreleased
+
+- `failing_tests` reads RSpec and Jasmine failures, so the record names them when the suite is red ([#5](https://github.com/seanpk/xv-agents/issues/5)).
+
 ## 0.1.0, 2026-10-22
 
 The first build of the agents, from the plan of 2026-10-21, all nine increments. Built by Claude (Opus 5.5) in one session on Sean Kennedy's direction of 2026-10-21. No brief or standing order in this version has been agreed by two people yet; v0.1 is the draft that use will correct.
