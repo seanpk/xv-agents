@@ -4,6 +4,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 from helpers import HOME, XV, RepoCase, sh
 
@@ -37,20 +38,26 @@ class UserInstallTest(unittest.TestCase):
 
 
 class ProjectInstallTest(RepoCase):
+    def overrides(self, home):
+        # check reads this person's own skills from HOME; the test's home has none
+        env = {k: v for k, v in os.environ.items() if k != "CLAUDE_CONFIG_DIR"}
+        with mock.patch.dict(os.environ, dict(env, HOME=home), clear=True):
+            return {o["file"]: o["kind"] for o in check.overrides(self.repo)}
+
     def test_copies_are_marked_replaced_when_unedited_and_kept_when_edited(self):
         home = tempfile.mkdtemp(prefix="xv-home-")
         code, res, err = run_xv(["install", "--scope", "project"], self.repo, home)
         self.assertEqual(code, 0, err)
         watch = os.path.join(self.repo, ".agents", "skills", "watch")
         self.assertTrue(os.path.exists(os.path.join(watch, ".xv-installed")))
-        kinds = {o["file"]: o["kind"] for o in check.overrides(self.repo)}
+        kinds = self.overrides(home)
         self.assertEqual(kinds[".agents/skills/watch/SKILL.md"], "installed copy, current")
         with open(os.path.join(watch, "SKILL.md"), "a") as f:
             f.write("\nlocal edit\n")
         code, res, _ = run_xv(["install", "--scope", "project"], self.repo, home)
         self.assertTrue(any("edited in this repo" in s for s in res["skipped"]))
         self.assertIn("local edit", open(os.path.join(watch, "SKILL.md")).read())
-        kinds = {o["file"]: o["kind"] for o in check.overrides(self.repo)}
+        kinds = self.overrides(home)
         self.assertTrue(kinds[".agents/skills/watch/SKILL.md"].startswith("installed copy, edited"))
 
 
