@@ -109,7 +109,8 @@ def resolve(name, path, files, lang, roots=()):
     if lang == "py":
         cand = name.replace(".", "/")
         root_dirs = [r.strip("./") for r in roots]
-        prefixes = [""] + [d + "/" for d in root_dirs if d] + [os.path.dirname(path) + "/"]
+        here = os.path.dirname(path)
+        prefixes = [here + "/" if here else "", ""] + [d + "/" for d in root_dirs if d]
         for pre in prefixes:
             for c in (pre + cand + ".py", pre + cand + "/__init__.py"):
                 if c in files:
