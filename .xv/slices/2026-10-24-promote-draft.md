@@ -31,6 +31,8 @@ checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "No gu
 
 `xv promote draft` gives a title cut at a word boundary, "Applies to: any" when no `--applies-to` is passed, a draft file name with one date, and a body that ends with the assistant's attribution line. (seanpk/xv-agents#13)
 
+Settled at the scenario stop, 2026-10-24, Sean: a new setting `promote.attribution` in `.xv/config.yml`, empty by default. When it is set, every draft body ends with that line. When it is empty, no line is added. This repo sets it to `🤖 Claude on behalf of Sean`.
+
 ## May ignore
 
 the post and tally commands
