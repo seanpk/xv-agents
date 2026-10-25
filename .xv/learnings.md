@@ -21,6 +21,7 @@ An entry with three or more sightings that still splits people is marked `(watch
 - said: "ImportError: Start directory is not importable"
 - rule: xv init writes a guessed setting the agents depend on -> it tries the setting once (runs the test command, counts the modules) and shows what failed or looks thin before the interview
 - seen: [seanpk/xv-agents@2026-10-24]
+- shared: seanpk/xv-agents#14
 
 ### 2026-10-24: in a tool repo, binding decisions are about changes to its code
 - from: init, the interview, decisions that bind and the pitch's "never"
