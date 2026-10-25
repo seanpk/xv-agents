@@ -28,6 +28,13 @@ def fire(order, seat, question, blocking=True):
     return {"order": order, "seat": seat, "question": question, "blocking": blocking}
 
 
+def failing_step(checks):
+    """The first failing step in the suite output, as a sentence to append to a question."""
+    lines = [l.strip() for l in (checks.get("suite_output") or "").splitlines() if l.strip()]
+    step = next((l for l in lines if l.startswith(("FAIL:", "ERROR:"))), lines[-1] if lines else "")
+    return f" Failing: {step}" if step else ""
+
+
 def last_report(data, step):
     for r in reversed((data.get("checks") or {}).get("reports", [])):
         if r.get("agent") == step:
@@ -95,7 +102,8 @@ def evaluate(data, after, config):
         state = budget_state(data)
         if state["spent_out"] and checks.get("suite") != "green":
             out.append(fire("budget_spent", "originator",
-                            f"The budget is spent ({', '.join(state['over'])}) and the suite is not green. "
+                            f"The budget is spent ({', '.join(state['over'])}) and the suite is not green."
+                            f"{failing_step(checks)} "
                             "Continue with a new budget, reshape, or set it aside."))
         fails = checks.get("failing_history") or []
         if len(fails) >= 2 and fails[-1] and fails[-1] == fails[-2]:
@@ -127,7 +135,7 @@ def evaluate(data, after, config):
 
     if after == "cleaner":
         if checks.get("suite") not in (None, "green"):
-            out.append(fire("cleaner_broke_suite", "originator", "The suite is not green after the cleaner's pass."))
+            out.append(fire("cleaner_broke_suite", "originator", "The suite is not green after the cleaner's pass." + failing_step(checks)))
         if checks.get("standards_touched"):
             out.append(fire("cleaner_touched_standards", "originator",
                             "The cleaner edited .xv/standards.md. A standard enters only when a person accepts it."))
