@@ -366,7 +366,8 @@ def post_step(agent, root, data, config, head_before, pre, report):
         prior = (data.get("checks") or {}).get(agent) or {}
         checks["failing_history"] = (prior.get("failing_history") or []) + [checks["failing"]]
         data["suite"] = suite
-        stat = git(["diff", "--numstat", data.get("base") or head_before], root)
+        stat = git(["diff", "--numstat", data.get("base") or head_before,
+                    "--", ".", f":(exclude){XV_DIR}"], root)
         checks["diff_lines"] = sum(int(x) for line in stat.splitlines()
                                    for x in line.split("\t")[:2] if x.isdigit())
         before = (data.get("checks") or {}).get(agent) or {}
