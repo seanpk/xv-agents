@@ -21,7 +21,7 @@ class InitTest(RepoCase):
         self.assertTrue(config["promote"]["include_name"])
         for name in ("pitch.md", "picture.md", "standards.md", "estimation.md", "learnings.md", "rules.md"):
             self.assertTrue(os.path.exists(os.path.join(self.repo, ".xv", name)), name)
-        self.assertIn("- api: pantry/api.py", open(os.path.join(self.repo, ".xv", "boundary-all.md")).read())
+        self.assertIn("- pantry/api: pantry/api.py", open(os.path.join(self.repo, ".xv", "boundary-all.md")).read())
         status = sh(["git", "status", "--porcelain", "--ignored", ".xv/boundary-all.md"], self.repo).stdout
         self.assertTrue(status.startswith("!!"), "the outsider read's input stays out of the repo")
 

@@ -6,7 +6,8 @@ outbound calls; tables and surface paths the diff adds or removes. Generated
 so it can be wrong in a way someone can check.
 
 A module is the first path component under a source root (or the file's stem,
-for a file directly in the root). Imports come from Python's own parser for
+for a file directly in the root). Under a root other than ".", the name starts
+with the root: app/controllers, not controllers. Imports come from Python's own parser for
 .py files, and a regex for JavaScript and TypeScript (import, require), Ruby
 (require, require_relative) and Go (import blocks). The picture of a change
 uses that parser on both sides, so the before and the after are comparable.
@@ -69,8 +70,12 @@ def module_of(path, config):
         parts = rel.split("/")
         if len(parts) == 1:
             stem = os.path.splitext(parts[0])[0]
-            return stem if stem not in ("__init__", "index", "main") else (r or "root")
-        return parts[0]
+            if stem in ("__init__", "index", "main"):
+                return r or "root"
+            return f"{r}/{stem}" if r else stem
+        # under a root other than ".", the root is part of the name, so app/controllers
+        # and app/javascript/controllers stay two modules
+        return f"{r}/{parts[0]}" if r else parts[0]
     return path.split("/")[0]
 
 
