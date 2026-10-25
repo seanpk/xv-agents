@@ -108,7 +108,8 @@ def resolve(name, path, files, lang, roots=()):
     """A repo file an import name points at, or None for a third-party import."""
     if lang == "py":
         cand = name.replace(".", "/")
-        prefixes = [""] + [r.strip("./") + "/" for r in roots if r.strip("./")] + [os.path.dirname(path) + "/"]
+        root_dirs = [r.strip("./") for r in roots]
+        prefixes = [""] + [d + "/" for d in root_dirs if d] + [os.path.dirname(path) + "/"]
         for pre in prefixes:
             for c in (pre + cand + ".py", pre + cand + "/__init__.py"):
                 if c in files:
