@@ -12,7 +12,8 @@ Every change to a brief, a may-not list, a standing order, or a check an agent i
 - `xv init` sets `promote.include_name: false` when GitHub says the repo is private.
 - `tests.command` runs with `XV_BASE` (the slice's base commit) and `XV_SLICE` (its id) in the environment, for a script that picks suites from the changed files.
 - A trial whose `.xv/` is its own git repo no longer copies that repo into each slice's worktree.
-- `xv init --trial --repo` makes `.xv/` its own repo for the trial; `xv init --adopt` refuses while it has uncommitted changes, then moves it to `<git dir>/xv-trial.git` and says where.
+- `xv init --trial --repo` makes `.xv/` its own repo for the trial; `xv init --adopt` refuses while it has uncommitted changes, then moves it to `<git dir>/xv-trial.git` and says where ([#6](https://github.com/seanpk/xv-agents/issues/6)).
+
 A draft change to the `xv-init` brief and the outsider brief, by Claude (Opus 5.5) on Sean Kennedy's direction of 2026-10-24, from the first `xv init` on a large existing app ([#6](https://github.com/seanpk/xv-agents/issues/6)). Not yet agreed by two people.
 
 - `defaults/pitch.md`: the one-sentence pitch under the title, then "The page" with "Why it exists", "Who uses it" and "Who it is not for, and what it will never do". `xv-init` asks for the sentence on its own and holds the person to one sentence ([#3](https://github.com/seanpk/xv-agents/issues/3)).
