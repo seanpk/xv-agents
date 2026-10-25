@@ -30,7 +30,7 @@ import prompt as promptlib  # noqa: E402
 import record  # noqa: E402
 import spend as spendlib  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, git, load_config, match_any, now,  # noqa: E402
-                   record_path, repo_root, slice_root, worktrees_dir)
+                   record_path, repo_root, slice_root, today, worktrees_dir)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 XV_HOME = os.path.dirname(HERE)
@@ -217,6 +217,25 @@ def cmd_slice_new(a):
     record.save(path, data, body)
     commit(wt, f"xv({a.id}): open slice")
     print(wt)
+
+
+def cmd_slice_amend(a):
+    root = repo_root()
+    with open(a.scenario_file, encoding="utf-8") as f:
+        text = f.read().strip()
+    if not text:
+        raise XVError("the amendment is empty")
+    path, data, body = record.load(root, a.id)
+    marker = "\n## May ignore"
+    at = body.find(marker)
+    if at < 0:
+        raise XVError("the record has no '## May ignore' heading to amend above")
+    note = f"\n\n### Amended {today()} by {a.by}\n\n{text}\n"
+    body = body[:at].rstrip("\n") + note + body[at:]
+    data["red"] = None
+    data["next"] = "scenario"
+    body = record.log_line(body, a.by, "amended the scenario")
+    record.save(path, data, body)
 
 
 # ---------------------------------------------------------------- one step
@@ -833,6 +852,11 @@ def main(argv=None):
     n.add_argument("--branch")
     n.add_argument("--axis", help="for a prototype slice: the one axis the three differ on")
     n.set_defaults(fn=cmd_slice_new)
+    m = ss.add_parser("amend")
+    m.add_argument("id")
+    m.add_argument("--by", required=True)
+    m.add_argument("--scenario-file", required=True)
+    m.set_defaults(fn=cmd_slice_amend)
 
     s = sub.add_parser("step")
     s.add_argument("agent")

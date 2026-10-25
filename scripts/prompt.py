@@ -98,6 +98,17 @@ def new_guide_rows(root, slice_id):
     return [r for r in guide_rows(open(path).read()) if r.split("|")[1].strip() not in listed]
 
 
+def answer_section(data):
+    """The latest answered stop, word for word, so the agent need not dig it out of the log."""
+    answered = [s for s in (data or {}).get("stops") or [] if s.get("answer")]
+    if not answered:
+        return ""
+    st = answered[-1]
+    who = ", ".join(st.get("answered_by") or [])
+    return (f"\n## The person's answer\n\n{who} answered the stop `{st.get('order')}` "
+            f"({st.get('question', '')}):\n\n{st['answer']}\n")
+
+
 def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
     root = root or repo_root()
     config = load_config(root)
@@ -124,7 +135,7 @@ def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
         bpath = os.path.join(root, ".xv", "boundary-all.md")
         if os.path.exists(bpath):
             extra.insert(0, f"Boundary output: `.xv/boundary-all.md`.")
-    return brief(agent) + "\n" + pointers(agent, root, config, data, extra) + "\n"
+    return brief(agent) + "\n" + answer_section(data) + pointers(agent, root, config, data, extra) + "\n"
 
 
 def main(argv=None):
