@@ -4,7 +4,7 @@ Every change to a brief, a may-not list, a standing order, or a check an agent i
 
 ## Unreleased
 
-- `failing_tests` reads RSpec and Jasmine failures, so the record names them when the suite is red ([#5](https://github.com/seanpk/xv-agents/issues/5)).
+- `failing_tests` reads RSpec, Jasmine, vitest, minitest, mocha, cargo and Playwright failures, so the record names them when the suite is red ([#5](https://github.com/seanpk/xv-agents/issues/5)).
 
 ## 0.1.0, 2026-10-22
 
