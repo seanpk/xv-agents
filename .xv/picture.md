@@ -38,9 +38,7 @@ The people who use xv-agents directly are the team XV describes: people building
 
 ## Where the code and the docs disagree
 Settled with Sean on 2026-10-24. The code is right in each case; the README is behind.
-- README "Status" and line 38 say the method has not run on a real slice. 0.2.0 came from a real init, and a first slice is running in a trial repo.
-- The README stop table leaves out `cleaner_broke_suite`, `cleaner_touched_standards` and `budget_not_set`, which `scripts/orders.py` fires.
-- The README does not mention `xv adapt`.
+- README line 38 says the method has not run on a real change; 0.2.0 came from a real init, and a first slice is running in a trial repo. The Status section was brought up to date by slice 2026-10-24-readme-drift.
 - The README's generated block is written from https://xtremevibing.com/map/ by `bin/publish-readme.py` in seanpk/xtremevibing.com. Edit it there, not here.
 
 ## Questions an outsider would ask
