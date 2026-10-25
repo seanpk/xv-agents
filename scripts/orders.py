@@ -30,8 +30,8 @@ def fire(order, seat, question, blocking=True):
 
 def failing_step(checks):
     """The first failing step in the suite output, as a sentence to append to a question."""
-    lines = [l.strip() for l in (checks.get("suite_output") or "").splitlines() if l.strip()]
-    step = next((l for l in lines if l.startswith(("FAIL:", "ERROR:"))), lines[-1] if lines else "")
+    lines = [line.strip() for line in (checks.get("suite_output") or "").splitlines() if line.strip()]
+    step = next((line for line in lines if line.startswith(("FAIL:", "ERROR:"))), lines[-1] if lines else "")
     return f" Failing: {step}" if step else ""
 
 
