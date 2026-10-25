@@ -50,6 +50,35 @@ class FailingTestsTest(unittest.TestCase):
         self.assertEqual(failing_tests(out), ["./spec/a_spec.rb:1", "B fails"])
 
 
+class RunSuiteTest(RepoCase):
+    def test_the_command_sees_the_slice_base_and_id(self):
+        from run import run_suite, LAYER_SKIP
+        config = {"tests": {"command": 'test "$XV_BASE" = abc123 && test "$XV_SLICE" = s9'}}
+        self.assertEqual(run_suite(self.repo, config, "abc123", "s9")[0], "green")
+        self.assertEqual(run_suite(self.repo, config)[0], "red")
+        self.assertIn(".git", LAYER_SKIP)
+
+    def test_the_watch_passes_them_from_the_record(self):
+        wt = self.new_slice("s1")
+        base = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["base"]
+        self.assertTrue(base)
+        from run import run_suite
+        config = {"tests": {"command": "echo $XV_BASE $XV_SLICE"}}
+        self.assertIn(f"{base} s1", run_suite(wt, config, base, "s1")[1])
+
+
+class NestedRepoTest(RepoCase):
+    def test_a_trial_that_is_its_own_repo_is_not_copied_into_the_worktree(self):
+        sh(["git", "rm", "-rq", "--cached", ".xv"], self.repo)
+        sh(["git", "commit", "-qm", "trial"], self.repo)
+        with open(os.path.join(self.repo, ".git", "info", "exclude"), "a") as f:
+            f.write("/.xv/\n")
+        sh(["git", "init", "-q"], os.path.join(self.repo, ".xv"))
+        wt = self.new_slice("s1")
+        self.assertTrue(os.path.exists(os.path.join(wt, ".xv", "config.yml")))
+        self.assertFalse(os.path.exists(os.path.join(wt, ".xv", ".git")))
+
+
 class WatchLoopTest(RepoCase):
     """The whole loop with a stand-in agent: the plumbing, not the briefs."""
 
