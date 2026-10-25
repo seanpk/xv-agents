@@ -2,7 +2,9 @@
 """xv: the watch headless, and the scripts the agents and CI call.
 
   xv install                    link the skills into your agents, and xv onto PATH
-  xv init [--trial|--adopt]     write a starter .xv/ into this repo; --trial keeps it out of git
+  xv init [--trial [--repo]|--adopt]
+                                write a starter .xv/ into this repo; --trial keeps it out of git,
+                                --repo makes it its own repo, --adopt ends a trial
   xv slice new <id> ...         open a slice: record, branch, worktree
   xv run <id>                   run the slice to its first stop (exit 10 on a stop)
   xv step <agent> <id>          run one step

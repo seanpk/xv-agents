@@ -50,6 +50,35 @@ class ConfigTest(unittest.TestCase):
         self.assertIsNone(c["empty"])
         self.assertEqual(c["after"], "x")
 
+    def test_a_flow_list_and_map_split_across_lines(self):
+        c = xvlib.parse_config_text(
+            "source:\n"
+            "  roots: [\n"
+            "    \"app\",  # the code\n"
+            "    \"lib\",\n"
+            "  ]\n"
+            "  other: { \"a\": 1,\n"
+            "           \"b\": [2, 3] }\n"
+            "  bare: [a,\n"
+            "    b]\n"
+            "after: x\n")
+        self.assertEqual(c["source"]["roots"], ["app", "lib"])
+        self.assertEqual(c["source"]["other"], {"a": 1, "b": [2, 3]})
+        self.assertEqual(c["source"]["bare"], ["a", "b"])
+        self.assertEqual(c["after"], "x")
+
+    def test_a_bracket_inside_a_string_does_not_join_lines(self):
+        c = xvlib.parse_config_text('a: ["x[", "y"]\nb: 2\n')
+        self.assertEqual((c["a"], c["b"]), (["x[", "y"], 2))
+
+    def test_errors_in_a_split_list_name_the_keys_line(self):
+        with self.assertRaises(xvlib.XVError) as cm:
+            xvlib.parse_config_text("ok: 1\nroots: [\n  \"a\" \"b\"\n]\n")
+        self.assertIn("config line 2", str(cm.exception))
+        with self.assertRaises(xvlib.XVError) as cm:
+            xvlib.parse_config_text("ok: 1\nroots: [\n  \"a\",\n")
+        self.assertIn("config line 2", str(cm.exception))
+
     def test_the_default_config_parses(self):
         import os
         with open(os.path.join(HOME, "defaults", "config.yml")) as f:

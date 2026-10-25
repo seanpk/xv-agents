@@ -16,6 +16,9 @@ tests:
   # What the wall hashes. Every file matching one of these is a test file.
   paths: ["tests/**"]
   # The whole suite. Must return in minutes; a skipped or timed-out suite is a failed build.
+  # A big suite can meet that with a script that picks suites from the changed
+  # files. XV_BASE (the slice's base commit) and XV_SLICE (its id) are set in
+  # the command's environment, so `git diff --name-only $XV_BASE` finds them.
   command: ""
   timeout: 900
 

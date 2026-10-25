@@ -6,6 +6,13 @@ Every change to a brief, a may-not list, a standing order, or a check an agent i
 
 - `failing_tests` reads RSpec, Jasmine, vitest, minitest, mocha, cargo and Playwright failures, so the record names them when the suite is red ([#5](https://github.com/seanpk/xv-agents/issues/5)).
 - `xv boundary` names a module under a source root other than `.` with the root, `app/controllers` and `app/javascript/controllers` instead of both `controllers`, so imports between them are edges. This renames modules in any repo with such roots; accepted, since v0.1.0 has one known user ([#4](https://github.com/seanpk/xv-agents/issues/4)).
+- `xv init` checks every test marker, not the first: a Rails app with a `package.json` gets `bundle exec rspec` (or `rake test`), the test paths of every runner, and a `runners` list in its output when there is more than one.
+- `xv init` proposes `app`, `lib` and `app/javascript` as the source roots of a Rails layout.
+- `.xv/config.yml` accepts a flow list or map split across lines.
+- `xv init` sets `promote.include_name: false` when GitHub says the repo is private.
+- `tests.command` runs with `XV_BASE` (the slice's base commit) and `XV_SLICE` (its id) in the environment, for a script that picks suites from the changed files.
+- A trial whose `.xv/` is its own git repo no longer copies that repo into each slice's worktree.
+- `xv init --trial --repo` makes `.xv/` its own repo for the trial; `xv init --adopt` refuses while it has uncommitted changes, then moves it to `<git dir>/xv-trial.git` and says where.
 
 ## 0.1.0, 2026-10-22
 

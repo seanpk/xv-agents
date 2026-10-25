@@ -6,8 +6,9 @@ Two small formats live here, because the standard library has no YAML parser:
   that starts with `[`, `{` or `"` is JSON. Anything else is a bare scalar. Every
   file written this way is valid YAML, so other tools can read it.
 - `.xv/config.yml`: the same scalars, plus nesting by two-space indent and block
-  lists (`- item`). Anchors, multi-line strings and flow maps without JSON
-  quoting are not supported; `load_config` fails loudly on what it cannot read.
+  lists (`- item`). A flow list or map may span lines. Anchors, multi-line strings
+  and flow maps without JSON quoting are not supported; `load_config` fails loudly
+  on what it cannot read.
 """
 
 import datetime as _dt
@@ -130,8 +131,11 @@ def parse_config_text(text):
     stack = [(-1, root)]
     pending_key = None  # key whose value is an indented block, not yet typed
     lines = text.splitlines()
+    skip_to = 0  # lines already joined into a flow value above
     for n, raw in enumerate(lines, 1):
-        line = raw.split(" #", 1)[0].rstrip() if not raw.lstrip().startswith("#") else ""
+        if n <= skip_to:
+            continue
+        line = _uncomment(raw)
         if not line.strip():
             continue
         indent = len(line) - len(line.lstrip(" "))
@@ -163,9 +167,49 @@ def parse_config_text(text):
         if value.strip() == "":
             parent[key] = None
             pending_key = (parent, key, indent)
+        elif value.strip()[0] in "[{" and _open_brackets(value) > 0:
+            # a flow list or map split across lines: join until the brackets balance
+            joined, end = value.strip(), n
+            while _open_brackets(joined) > 0 and end < len(lines):
+                joined += " " + _uncomment(lines[end]).strip()
+                end += 1
+            if _open_brackets(joined) > 0:
+                raise XVError(f"config line {n}: `{key}` opens a bracket that is never closed")
+            skip_to = end
+            try:
+                parent[key] = parse_scalar(joined)
+            except XVError:
+                try:
+                    parent[key] = parse_scalar(re.sub(r",\s*([\]}])", r"\1", joined))
+                except XVError as e:
+                    raise XVError(f"config line {n}: {e}")
         else:
             parent[key] = parse_scalar(value)
     return root
+
+
+def _uncomment(raw):
+    return raw.split(" #", 1)[0].rstrip() if not raw.lstrip().startswith("#") else ""
+
+
+def _open_brackets(text):
+    """How many `[` and `{` are still open, not counting any inside a double-quoted string."""
+    depth, quoted, i = 0, False, 0
+    while i < len(text):
+        c = text[i]
+        if quoted:
+            if c == "\\":
+                i += 1
+            elif c == '"':
+                quoted = False
+        elif c == '"':
+            quoted = True
+        elif c in "[{":
+            depth += 1
+        elif c in "]}":
+            depth -= 1
+        i += 1
+    return depth
 
 
 DEFAULT_CONFIG = {

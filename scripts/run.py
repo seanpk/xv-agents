@@ -12,7 +12,7 @@ Usage:
   xv step outsider --init    the outsider read for xv-init
   xv run <id>                steps from `next` to the first stop; exit 10 on a stop
   xv close <id>              the forecaster's line on the gap, the guide row, status closed
-  xv init                    write a starter .xv/ into this repo
+  xv init [--trial [--repo]|--adopt]   write a starter .xv/ into this repo
 """
 
 import argparse
@@ -40,19 +40,22 @@ EXIT_STOP = 10
 
 # ---------------------------------------------------------------- helpers
 
-def shell(cmd, cwd, timeout=900):
+def shell(cmd, cwd, timeout=900, env=None):
     try:
-        p = subprocess.run(cmd, shell=True, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+        p = subprocess.run(cmd, shell=True, cwd=cwd, capture_output=True, text=True, timeout=timeout,
+                           env={**os.environ, **env} if env else None)
         return p.returncode, (p.stdout + p.stderr)[-4000:]
     except subprocess.TimeoutExpired:
         return 124, f"timed out after {timeout}s"
 
 
-def run_suite(root, config):
+def run_suite(root, config, base=None, slice_id=None):
+    """Run tests.command. XV_BASE and XV_SLICE tell a script that picks suites from the changed files where to diff from."""
     cmd = (config.get("tests") or {}).get("command")
     if not cmd:
         return None, "no tests.command in .xv/config.yml"
-    code, out = shell(cmd, root, int((config.get("tests") or {}).get("timeout") or 900))
+    env = {k: v for k, v in (("XV_BASE", base), ("XV_SLICE", slice_id)) if v}
+    code, out = shell(cmd, root, int((config.get("tests") or {}).get("timeout") or 900), env)
     return ("green" if code == 0 else "red"), out
 
 
@@ -126,7 +129,8 @@ def exclude_path(root):
     return os.path.join(common, "info", "exclude")
 
 
-LAYER_SKIP = ("slices", "worktrees", "listen", "boundary-all.md", "retro", "promote")
+# .git: a trial's .xv/ may be its own repo (`xv init --trial --repo`); its history stays out of each slice's copy.
+LAYER_SKIP = ("slices", "worktrees", "listen", "boundary-all.md", "retro", "promote", ".git")
 
 
 def copy_layer(src_root, dst_root):
@@ -356,7 +360,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
     if agent == "maker" and data.get("prototype_sessions"):
         checks["reused_prototype_context"] = (data["spend"][-1].get("session") in data["prototype_sessions"])
     if agent in ("maker", "cleaner"):
-        suite, out = run_suite(root, config)
+        suite, out = run_suite(root, config, data.get("base"), data.get("id"))
         checks["suite"], checks["suite_output"] = suite, (out or "")[-800:]
         checks["failing"] = failing_tests(out or "") if suite == "red" else []
         prior = (data.get("checks") or {}).get(agent) or {}
@@ -599,29 +603,49 @@ def cmd_guard(a):
 
 # ---------------------------------------------------------------- init
 
+# marker, command, test paths, folders that mean the runner has tests here (none: always).
+# Backend runners come first: when several qualify, the first one is tests.command.
 DETECT = [
-    ("package.json", "npm test", ["tests/**", "test/**", "**/*.test.*", "**/*.spec.*", "e2e/**"]),
-    ("Gemfile", "bundle exec rake test", ["test/**", "spec/**"]),
-    ("go.mod", "go test ./...", ["**/*_test.go"]),
-    ("Cargo.toml", "cargo test", ["tests/**"]),
-    ("pyproject.toml", "python3 -m pytest -q", ["tests/**", "test/**", "**/test_*.py", "**/*_test.py"]),
-    ("setup.py", "python3 -m pytest -q", ["tests/**", "test/**", "**/test_*.py", "**/*_test.py"]),
+    ("Gemfile", "bundle exec rake test", ["test/**", "spec/**"], ("spec", "test")),
+    ("go.mod", "go test ./...", ["**/*_test.go"], ()),
+    ("Cargo.toml", "cargo test", ["tests/**"], ("tests",)),
+    ("pyproject.toml", "python3 -m pytest -q", ["tests/**", "test/**", "**/test_*.py", "**/*_test.py"], ()),
+    ("setup.py", "python3 -m pytest -q", ["tests/**", "test/**", "**/test_*.py", "**/*_test.py"], ()),
+    ("package.json", "npm test", ["tests/**", "test/**", "**/*.test.*", "**/*.spec.*", "e2e/**"],
+     ("tests", "test", "e2e")),
 ]
 
 
 def detect_tests(root):
+    """Check every marker, not just the first: a Rails app has a Gemfile and a package.json.
+
+    Returns (command, paths, runners). The paths are the union over every runner found.
+    The command is the first runner, backend first, whose test folder exists; if none
+    has one, the first runner found. `runners` lists each one found, for the person to choose.
+    """
     # a src layout needs src on the path for the tests to import the package
     src = "PYTHONPATH=src " if os.path.isdir(os.path.join(root, "src")) else ""
-    for marker, command, paths in DETECT:
-        if os.path.exists(os.path.join(root, marker)):
-            if marker in ("pyproject.toml", "setup.py") and shutil.which("pytest") is None:
-                command = "python3 -m unittest discover -s tests -t ."
-            if command.startswith("python3"):
-                command = src + command
-            return command, paths
+    runners, paths, has_dir = [], [], []
+    for marker, command, marker_paths, dirs in DETECT:
+        if not os.path.exists(os.path.join(root, marker)):
+            continue
+        if marker == "Gemfile" and os.path.isdir(os.path.join(root, "spec")):
+            command = "bundle exec rspec"
+        if marker in ("pyproject.toml", "setup.py") and shutil.which("pytest") is None:
+            command = "python3 -m unittest discover -s tests -t ."
+        if command.startswith("python3"):
+            command = src + command
+        if any(r["command"] == command for r in runners):
+            continue
+        runners.append({"marker": marker, "command": command, "paths": marker_paths})
+        has_dir.append(not dirs or any(os.path.isdir(os.path.join(root, d)) for d in dirs))
+        paths += [x for x in marker_paths if x not in paths]
+    if runners:
+        pick = runners[has_dir.index(True)] if True in has_dir else runners[0]
+        return pick["command"], paths, runners
     if os.path.isdir(os.path.join(root, "tests")):
-        return src + "python3 -m unittest discover -s tests -t .", ["tests/**"]
-    return "", ["tests/**", "test/**", "spec/**"]
+        return src + "python3 -m unittest discover -s tests -t .", ["tests/**"], []
+    return "", ["tests/**", "test/**", "spec/**"], []
 
 
 def source_roots(root, test_paths):
@@ -631,6 +655,9 @@ def source_roots(root, test_paths):
            "tests": {"paths": test_paths}}
     from xvlib import tracked_files
     files = b.source_files(tracked_files(root), cfg)
+    if os.path.isdir(os.path.join(root, "app")) and os.path.exists(os.path.join(root, "config", "routes.rb")):
+        # a Rails layout: app is the code, lib and app/javascript are code beside it
+        return ["app"] + [d for d in ("lib", "app/javascript") if os.path.isdir(os.path.join(root, d))]
     tops = {f.split("/")[0] for f in files if "/" in f}
     if len(tops) == 1 and all("/" in f for f in files):
         return [tops.pop()]
@@ -640,31 +667,59 @@ def source_roots(root, test_paths):
 
 
 def repo_identity(root):
-    """The repo's name and GitHub description, for what it shares. Read-only."""
+    """The repo's name, GitHub description, and whether it is private (None: unknown). Read-only."""
     try:
-        p = subprocess.run(["gh", "repo", "view", "--json", "nameWithOwner,description"], cwd=root,
+        p = subprocess.run(["gh", "repo", "view", "--json", "nameWithOwner,description,isPrivate"], cwd=root,
                            capture_output=True, text=True, timeout=20)
         if p.returncode == 0:
             d = json.loads(p.stdout)
-            return d.get("nameWithOwner") or "", d.get("description") or ""
+            return d.get("nameWithOwner") or "", d.get("description") or "", d.get("isPrivate")
     except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
         pass
     url = git(["config", "--get", "remote.origin.url"], root, check=False).strip()
     m = __import__("re").search(r"[:/]([^/:]+/[^/]+?)(?:\.git)?$", url)
-    return (m.group(1) if m else os.path.basename(root)), ""
+    return (m.group(1) if m else os.path.basename(root)), "", None
+
+
+def adopt_trial_repo(root):
+    """Ending a trial whose .xv/ is its own repo: move that repo out of the way, never delete it.
+
+    With no remote it is the only copy of the trial's history, so it goes to
+    <git common dir>/xv-trial.git, where `git --git-dir` can still read it.
+    """
+    inner = os.path.join(root, XV_DIR, ".git")
+    if not os.path.exists(inner):
+        return None
+    if git(["status", "--porcelain"], os.path.join(root, XV_DIR)).strip():
+        raise XVError(f"{XV_DIR}/ is its own git repo and has changes not committed there. "
+                      f"Commit them (git -C {XV_DIR} commit -am ...) or discard them, then adopt again.")
+    common = git(["rev-parse", "--path-format=absolute", "--git-common-dir"], root).strip()
+    dest = os.path.join(common, "xv-trial.git")
+    if os.path.exists(dest):
+        raise XVError(f"{dest} already exists: an earlier trial's history is there. "
+                      "Move it aside yourself; xv will not overwrite it.")
+    shutil.move(inner, dest)
+    origin = git(["--git-dir", dest, "config", "--get", "remote.origin.url"], root, check=False).strip()
+    return {"moved_to": dest, "origin": origin or None}
 
 
 def cmd_init(a):
     root = repo_root()
+    if a.repo and not a.trial:
+        raise XVError("--repo goes with --trial: it makes .xv/ its own git repo while it is kept out of this one.")
     if a.adopt:
+        moved = adopt_trial_repo(root)
         path = exclude_path(root)
         lines = open(path).read().splitlines() if os.path.exists(path) else []
         kept = [line for line in lines if line.strip() not in (f"{XV_DIR}/", f"/{XV_DIR}/", XV_DIR, f"/{XV_DIR}")]
         with open(path, "w") as f:
             f.write("\n".join(kept) + ("\n" if kept else ""))
         still = is_trial(root)
-        print(json.dumps({"trial": still, "next": "a .gitignore still lists .xv/; remove it there" if still
-                          else "commit .xv/; the project layer is now part of the repo"}, indent=2))
+        out = {"trial": still, "next": "a .gitignore still lists .xv/; remove it there" if still
+               else "commit .xv/; the project layer is now part of the repo"}
+        if moved:
+            out["trial_repo"] = moved
+        print(json.dumps(out, indent=2))
         return
     if a.trial:
         path = exclude_path(root)
@@ -689,14 +744,16 @@ def cmd_init(a):
             written.append(rel)
     cfg = os.path.join(dst, "config.yml")
     if "config.yml" in written:
-        command, paths = detect_tests(root)
-        name, description = repo_identity(root)
+        command, paths, runners = detect_tests(root)
+        name, description, private = repo_identity(root)
         text = open(cfg).read()
         text = text.replace('  command: ""', f"  command: {json.dumps(command)}", 1)
         text = text.replace('paths: ["tests/**"]', f"paths: {json.dumps(paths)}")
         text = text.replace('  roots: ["."]', f"  roots: {json.dumps(source_roots(root, paths))}", 1)
         text = text.replace('  name: ""', f"  name: {json.dumps(name)}", 1)
         text = text.replace('  description: ""', f"  description: {json.dumps(description)}", 1)
+        if private:
+            text = text.replace("  include_name: true", "  include_name: false", 1)
         open(cfg, "w").write(text)
     try:
         import boundary as b
@@ -705,8 +762,16 @@ def cmd_init(a):
         written.append("boundary-all.md")
     except ImportError:
         pass
-    print(json.dumps({"written": written, "kept": kept,
-                      "tests": load_config(root).get("tests")}, indent=2))
+    out = {"written": written, "kept": kept, "tests": load_config(root).get("tests")}
+    if len(runners) > 1:
+        out["runners"] = runners
+    if a.repo:
+        if not os.path.exists(os.path.join(dst, ".git")):
+            git(["init", "-q"], dst)
+        out["next"] = (f"{XV_DIR}/ is now its own git repo, with no commit yet. Commit inside it "
+                       f"(git -C {XV_DIR} add -A && git -C {XV_DIR} commit -m ...). To let teammates opt in, "
+                       f"push it to a private remote. `xv init --adopt` moves it aside later.")
+    print(json.dumps(out, indent=2))
 
 
 # ---------------------------------------------------------------- main
@@ -749,7 +814,10 @@ def main(argv=None):
     s = sub.add_parser("init")
     s.add_argument("--trial", action="store_true",
                    help="keep .xv/ out of git (in .git/info/exclude), to try XV before committing to it")
-    s.add_argument("--adopt", action="store_true", help="end a trial: let git see .xv/ again")
+    s.add_argument("--repo", action="store_true",
+                   help="with --trial: make .xv/ its own git repo (no commit), so the trial keeps history")
+    s.add_argument("--adopt", action="store_true",
+                   help="end a trial: let git see .xv/ again; a nested .xv/.git moves to <git dir>/xv-trial.git")
     s.set_defaults(fn=cmd_init)
 
     s = sub.add_parser("guard", help="the guardian on a pull request, for CI")
