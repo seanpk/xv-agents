@@ -754,6 +754,25 @@ def try_test_command(root, tests):
     return {"result": "failed", "exit": code, "tail": text.strip().splitlines()[-15:]}
 
 
+READ_ONLY_TOOLS = ["cat", "head", "tail", "ls", "grep", "git diff", "git log", "git status", "git show"]
+MAKER_TOOLS = ["git rm", "git mv", "xv record move"]
+
+
+def allow_lists(text, command):
+    """Give each Claude Code agent line a starter --allowedTools list; the forecaster's is read-only."""
+    test = [command] if command else []
+    seats = {"default": READ_ONLY_TOOLS + MAKER_TOOLS + test, "forecaster": READ_ONLY_TOOLS,
+             "guardian": READ_ONLY_TOOLS + test}
+    out = []
+    for line in text.split("\n"):
+        seat = line.split(":", 1)[0].strip()
+        if seat in seats and line.startswith(f'  {seat}: ["claude"') and "--allowedTools" not in line:
+            tools = ",".join(f"Bash({t}:*)" for t in seats[seat])
+            line = line.replace('"acceptEdits", ', f'"acceptEdits", "--allowedTools", {json.dumps(tools)}, ', 1)
+        out.append(line)
+    return "\n".join(out)
+
+
 def cmd_init(a):
     root = repo_root()
     if a.repo and not a.trial:
@@ -803,6 +822,7 @@ def cmd_init(a):
         text = text.replace('  roots: ["."]', f"  roots: {json.dumps(source_roots(root, paths))}", 1)
         text = text.replace('  name: ""', f"  name: {json.dumps(name)}", 1)
         text = text.replace('  description: ""', f"  description: {json.dumps(description)}", 1)
+        text = allow_lists(text, command)
         if private:
             text = text.replace("  include_name: true", "  include_name: false", 1)
         open(cfg, "w").write(text)
