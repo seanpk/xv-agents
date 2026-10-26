@@ -362,6 +362,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
     if agent in ("maker", "cleaner"):
         suite, out = run_suite(root, config, data.get("base"), data.get("id"))
         checks["suite"], checks["suite_output"] = suite, (out or "")[-800:]
+        checks["failing_step"] = orders.first_failing_step(out) if suite == "red" else ""
         checks["failing"] = failing_tests(out or "") if suite == "red" else []
         prior = (data.get("checks") or {}).get(agent) or {}
         checks["failing_history"] = (prior.get("failing_history") or []) + [checks["failing"]]
