@@ -65,7 +65,8 @@ def from_claude_result(text, model=None):
 def from_grok_result(text, model=None):
     """The JSON `grok -p ... --output-format json` prints. Its input_tokens are
     uncached only, and its output_tokens include reasoning, so the four counts
-    add up to its own total_tokens. Dollars only when Grok reports a complete cost."""
+    add up to its own total_tokens. The item's tokens leave out cache reads, as
+    every reader's do. Dollars only when Grok reports a complete cost."""
     try:
         d = json.loads(text)
     except json.JSONDecodeError:
