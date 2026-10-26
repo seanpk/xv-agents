@@ -34,10 +34,11 @@
   "tests/test_spend.py": 9,
   "tests/test_suite_red_quote.py": 7,
   "tests/test_token_cap.py": 3,
+  "tests/test_token_cap_one_count.py": 3,
   "tests/test_wall.py": 13,
   "tests/test_xvlib.py": 27
  },
- "commit": "add75fe8041a8fc0dcefac4d095d4c3d51ea03f1",
+ "commit": "d61e06ccfebe9935726b54b067b23310d7473b8b",
  "files": {
   "tests/data/claude-result.json": "d97d2788e30ab2c1dcefc61594ffaaf6892217e088255672a7ead5be9747a331",
   "tests/data/claude-session.jsonl": "f334175619c11a34eabde629fe45e0def44aa43becec22059c9c9841ffccf073",
@@ -73,6 +74,7 @@
   "tests/test_spend.py": "068abcfdca997f6608f9f4f41ca8e342817f6b1a2a3e2b9cca6b87228bf008da",
   "tests/test_suite_red_quote.py": "f920a670c696b5300ee665f20f7d25394edd17ce802fbda197ab1ae2f07f7435",
   "tests/test_token_cap.py": "0a3ec20650a1c7417dbdee06ddea8eac8cd6c34e8bdcf99738f3073475732192",
+  "tests/test_token_cap_one_count.py": "49c1161723b530622c364a83cc4799cc7e051de29a8d276cbb880a81f7744243",
   "tests/test_wall.py": "75aeb81d6b89c048dc18a1811aa0fcc51bd7b883f81578c7f49cd5f383fe1c93",
   "tests/test_xvlib.py": "78f3d5794f196b0e56ce18d3f8d28acb9f084bd5a4c67eb595c9477bb5c9505d"
  },
