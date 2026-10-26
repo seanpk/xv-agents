@@ -293,9 +293,15 @@ def main_root(root):
     return os.path.dirname(common) if os.path.basename(common) == ".git" else root
 
 
+def worktrees_config(config):
+    """`worktrees:` is a path, or a block with path, base, setup and teardown."""
+    w = config.get("worktrees")
+    return w if isinstance(w, dict) else {"path": w}
+
+
 def worktrees_dir(root, config=None):
     config = config or load_config(root)
-    rel = config.get("worktrees") or ".xv/worktrees"
+    rel = worktrees_config(config).get("path") or ".xv/worktrees"
     if rel.startswith(".git/"):
         common = git(["rev-parse", "--path-format=absolute", "--git-common-dir"], root).strip()
         return os.path.join(common, rel[len(".git/"):])
