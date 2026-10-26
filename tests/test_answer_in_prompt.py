@@ -41,6 +41,30 @@ class AnswerReachesOnlyTheNextAgentTest(RepoCase):
         later = self.xv("prompt", "cleaner", "s1", cwd=wt).stdout
         self.assertNotIn(ANSWER, later)
 
+    def test_an_answer_given_in_the_same_second_as_the_last_report_still_reaches_the_next_agent(self):
+        wt = self.new_slice("s1")
+        out = ('done.\n```xv-report\n{"agent": "forecaster", "status": "done", "summary": "ok"}\n```\n')
+        path = os.path.join(self.tmp, "forecaster-out.txt")
+        with open(path, "w") as fh:
+            fh.write(json.dumps({"result": out}))
+        self.xv("record", "report", "s1", "forecaster", path, cwd=wt)
+        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+                "--question", "Which attribution line?", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", ANSWER, cwd=wt)
+        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+        stamp = "2026-10-25T04:26:16+00:00"
+        record = os.path.join(wt, ".xv", "slices", "s1.md")
+        with open(record) as fh:
+            text = fh.read()
+        for old in (data["stops"][-1]["answered_at"], data["checks"]["reports"][-1]["at"]):
+            text = text.replace(f'"{old}"', f'"{stamp}"')
+        with open(record, "w") as fh:
+            fh.write(text)
+        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+        self.assertEqual(data["stops"][-1]["answered_at"], data["checks"]["reports"][-1]["at"])
+        # the report came first in the record, the answer after it: order decides, not the clock
+        self.assertIn(ANSWER, self.xv("prompt", "maker", "s1", cwd=wt).stdout)
+
 
 class SliceAmendTest(RepoCase):
     def amend(self, wt, text, by="pat"):
