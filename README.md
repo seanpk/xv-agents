@@ -208,7 +208,7 @@ To try XV before your team commits to it, start with `xv init --trial`. It lists
 
 ### A brief is the whole prompt
 
-Each agent runs in a context that has never seen the others. `xv prompt <agent> <id>` builds that context's entire input: the skill's body, then pointers to this slice (the record, the base commit, the budget, the project files). Nothing is restated that the agent can read itself. The same text goes to a CLI run or to a harness's own subagent.
+Each agent runs in a context that has never seen the others. `xv prompt <agent> <id>` builds that context's entire input: the skill's body, then pointers to this slice (the record, the base commit, the budget, the project files). Nothing is restated that the agent can read itself, with one exception: after a person answers a stop, the next agent's prompt carries that answer word for word. The same text goes to a CLI run or to a harness's own subagent.
 
 The CLI for each step is a line in `.xv/config.yml`, a list of arguments with `{prompt}` where the text goes. The default is Claude Code in print mode with the person's own customisations off (`claude -p --safe-mode --disable-slash-commands`), so the brief is the whole user prompt. Claude Code's own system prompt stays, as opencode's does; what is gone is everything the person or the project added. A step may name a different CLI and model: Haiku for the forecaster, Opus for the guardian, a local model through opencode for the maker. A step set to `session` runs in the person's own harness as a subagent instead, with the same text.
 
