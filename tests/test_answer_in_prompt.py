@@ -26,6 +26,22 @@ class AnswerInPromptTest(RepoCase):
         self.assertNotIn(ANSWER, prompt)
 
 
+class AnswerReachesOnlyTheNextAgentTest(RepoCase):
+    def test_the_agent_after_the_one_that_got_the_answer_does_not_get_it(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+                "--question", "Which attribution line?", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", ANSWER, cwd=wt)
+        self.assertIn(ANSWER, self.xv("prompt", "maker", "s1", cwd=wt).stdout)
+        out = ('done.\n```xv-report\n{"agent": "maker", "status": "green", "summary": "ok"}\n```\n')
+        path = os.path.join(self.tmp, "maker-out.txt")
+        with open(path, "w") as fh:
+            fh.write(json.dumps({"result": out}))
+        self.xv("record", "report", "s1", "maker", path, cwd=wt)
+        later = self.xv("prompt", "cleaner", "s1", cwd=wt).stdout
+        self.assertNotIn(ANSWER, later)
+
+
 class SliceAmendTest(RepoCase):
     def amend(self, wt, text, by="pat"):
         f = os.path.join(self.tmp, "amend.md")
