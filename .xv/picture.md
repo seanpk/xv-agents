@@ -18,9 +18,9 @@ The people who use xv-agents directly are the team XV describes: people building
 
 ## The shape
 - Runs on agent harnesses: Claude Code, opencode, Grok. Codex and Cursor read the same skill format and have not been run (README). `xv init` gives Claude Code agent lines a starter Bash allow list; other harnesses' lines are left as written.
-- 22 modules, all flat Python files: `scripts/*.py` (19) and `evals/{run,grade,report}.py`. `.xv/boundary-all.md` shows 54 edges between them. `run` reaches most of the others: `agentcli`, `boundary`, `orders`, `packet`, `prompt`, `prototypes`, `record`, `retro`, `spend`, `wall` and `xvlib`. `orders` reaches `spend` and `xvlib`.
+- 22 modules, all flat Python files: `scripts/*.py` (19) and `evals/{run,grade,report}.py`. `.xv/boundary-all.md` shows 56 edges between them. `run` reaches most of the others: `agentcli`, `boundary`, `orders`, `packet`, `prompt`, `prototypes`, `record`, `retro`, `spend`, `wall` and `xvlib`. `orders` reaches `spend` and `xvlib`. `record` and `evals/report` reach `spend`.
 - `bin/xv` is the only entry point. It maps each command name to one script and runs it. `init`, `slice`, `run`, `step`, `close` and `guard` all land in `run.py`, the largest script.
-- Roughly: `xvlib` is the shared base (config, git, record paths). `record` owns the slice record. `orders` holds the stop rules. `wall` holds the test hash check. `spend` reads harness logs. `agentcli` and `prompt` build and run the agent calls. `boundary`, `packet` and `check` are the guardian's checks. `listen`, `retro`, `promote` and `prototypes` are the side loops. `recording` and `playwright_agents` serve the scenario agent. `install` and `adapt` handle distribution.
+- Roughly: `xvlib` is the shared base (config, git, record paths). `record` owns the slice record. `orders` holds the stop rules. `wall` holds the test hash check. `spend` reads harness logs and owns the one per-row token count (`row_tokens`) that the budget, the guide, the retro and the eval report use. `agentcli` and `prompt` build and run the agent calls. `boundary`, `packet` and `check` are the guardian's checks. `listen`, `retro`, `promote` and `prototypes` are the side loops. `recording` and `playwright_agents` serve the scenario agent. `install` and `adapt` handle distribution.
 - Outbound calls: `evals/grade`, `boundary`, `check`, `listen`, `recording`. The docs add the agent CLIs, `gh`, and the fetched harness doc pages.
 - `defaults/` is the starter `.xv/` that `xv init` copies into every adopting repo. A change there reaches every new adopter. `xv init` also writes a starter Claude Code `--allowedTools` list onto the default, forecaster and guardian lines, built from the test command it chose, so the written `config.yml` differs from `defaults/config.yml`. Changing the test command later does not change the list.
 - No database. State is files: `.xv/slices/<id>.md` (front matter plus log), `.xv/decisions/`, `estimation.md`, `learnings.md`, `config.yml`. Each slice has a git branch `xv/<id>` and a worktree under `.xv/worktrees/`.
@@ -35,6 +35,7 @@ The people who use xv-agents directly are the team XV describes: people building
 - "Skill" and "agent" are used almost interchangeably. A skill is the file. An agent is a fresh context running it.
 - Hyphen means skill and space means command (`xv-init` and `xv init`). The README states this.
 - "Seat": `originator`, `two_people`, `chief_engineer`.
+- "Tokens" in a budget, forecast, guide row or retro means input + output + cache write, with no cache reads, since 2026-10-26 (#28). Guide rows from before then counted cache reads and are not rewritten.
 
 ## Where the code and the docs disagree
 Settled with Sean on 2026-10-24. The code is right in each case; the README is behind.
