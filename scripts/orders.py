@@ -34,7 +34,7 @@ def first_failing_step(output):
     return next((line for line in lines if line.startswith(("FAIL:", "ERROR:"))), lines[-1] if lines else "")
 
 
-def failing_step(checks):
+def failing_clause(checks):
     """The first failing step in the suite output, as a sentence to append to a question."""
     step = checks.get("failing_step") or first_failing_step(checks.get("suite_output"))
     return f" Failing: {step}" if step else ""
@@ -108,7 +108,7 @@ def evaluate(data, after, config):
         if state["spent_out"] and checks.get("suite") != "green":
             out.append(fire("budget_spent", "originator",
                             f"The budget is spent ({', '.join(state['over'])}) and the suite is not green."
-                            f"{failing_step(checks)} "
+                            f"{failing_clause(checks)} "
                             "Continue with a new budget, reshape, or set it aside."))
         fails = checks.get("failing_history") or []
         if len(fails) >= 2 and fails[-1] and fails[-1] == fails[-2]:
@@ -140,7 +140,8 @@ def evaluate(data, after, config):
 
     if after == "cleaner":
         if checks.get("suite") not in (None, "green"):
-            out.append(fire("cleaner_broke_suite", "originator", "The suite is not green after the cleaner's pass." + failing_step(checks)))
+            out.append(fire("cleaner_broke_suite", "originator",
+                            "The suite is not green after the cleaner's pass." + failing_clause(checks)))
         if checks.get("standards_touched"):
             out.append(fire("cleaner_touched_standards", "originator",
                             "The cleaner edited .xv/standards.md. A standard enters only when a person accepts it."))
