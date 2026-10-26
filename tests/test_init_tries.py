@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import shutil
@@ -25,9 +26,12 @@ class InitTriesGuessesTest(RepoCase):
         sh(["git", "commit", "-qm", "more"], self.repo)
 
     def test_a_passing_command_is_reported_as_passed(self):
-        out = self.xv("init").stdout.lower()
-        self.assertRegex(out, r"pass")
-        self.assertNotRegex(out, r"fail|timed out|timeout")
+        run = json.dumps(json.loads(self.xv("init").stdout)["test_run"]).lower()
+        self.assertRegex(run, r"pass")
+        self.assertNotRegex(run, r"fail|timed out")
+
+    def test_the_output_still_gives_the_tests_timeout(self):
+        self.assertIn("timeout", json.loads(self.xv("init").stdout)["tests"])
 
     def test_a_failing_command_is_reported_as_failed_with_the_last_lines(self):
         self.write("tests/test_zz_broken.py",
@@ -58,6 +62,15 @@ class InitTriesGuessesTest(RepoCase):
         self.assertIn("examples", out)
         self.assertIn("fixtures", out)
         self.assertNotIn("setups", out, "a folder with no code is not a fixture folder")
+
+    def test_a_fixture_folder_git_ignores_is_not_listed(self):
+        self.write(".gitignore", ".venv/\n")
+        self.write(".venv/examples/lib.py", "X = 1\n")
+        self.write("examples/demo.py", "print('hi')\n")
+        self.commit()
+        out = self.xv("init").stdout
+        self.assertIn("examples", out)
+        self.assertNotIn(".venv", out, "an ignored folder is never listed")
 
     def test_a_repo_with_no_fixture_folder_lists_none(self):
         out = self.xv("init").stdout
