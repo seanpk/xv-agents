@@ -4,6 +4,7 @@ Every change to a brief, a may-not list, a standing order, or a check an agent i
 
 ## Unreleased
 
+- The maker's and the cleaner's briefs say green means the suite command exited 0, and the `cleaner_broke_suite` and budget stops quote the first failing step of the whole suite output, kept in the record before its 800-character tail is cut. Two briefs and two stop questions changed; Sean decided it, solo ([#19](https://github.com/seanpk/xv-agents/issues/19)).
 - `xv promote draft` cuts a title at a word boundary, writes "Applies to: any" when no `--applies-to` is given, names the draft file with one date, and ends the draft with `promote.attribution` when it is set. The `xv-init` brief names the new setting; Sean decided it, solo ([#13](https://github.com/seanpk/xv-agents/issues/13)).
 - `xv boundary` resolves a bare Python import from the importing file's own folder, then the repo root, then each source root, so a `src/` layout and flat scripts that import each other by name get their edges. This changes one of the guardian's checks; Sean decided it, solo ([#12](https://github.com/seanpk/xv-agents/issues/12)).
 - The `diff_growing` stop and `limits.max_diff_lines` count only files outside `.xv/`, so a packet or boundary file the guardian writes no longer makes the diff look like it grew. This changes a standing order's measure; Sean decided it, solo ([#24](https://github.com/seanpk/xv-agents/issues/24)).
