@@ -764,15 +764,19 @@ def test_rules(command):
     """One rule per part of the test command, each cut before its arguments, so a single file runs too."""
     rules = []
     for part in re.split(r"\s*(?:&&|\|\||;)\s*", command or ""):
-        words, keep = part.split(), []
-        for i, w in enumerate(words):
-            is_arg = w.startswith("-") and not (i and words[i - 1] == "-m")
-            if keep and not re.match(r"\w+=", keep[-1]) and (is_arg or "/" in w or w in (".", "discover")):
+        words = part.split()
+        lead = []
+        while words and re.match(r"\w+=", words[0]):
+            lead.append(words.pop(0))
+        keep = []
+        for w in words:
+            is_arg = w.startswith("-") and w != "-m"
+            if keep and (is_arg or "/" in w or w in (".", "discover")):
                 break
             keep.append(w)
-        rule = " ".join(keep)
-        if rule and rule not in rules:
-            rules.append(rule)
+        for rule in (" ".join(lead + keep), " ".join(keep)) if keep else ():
+            if rule not in rules:
+                rules.append(rule)
     return rules
 
 
@@ -843,8 +847,7 @@ def cmd_init(a):
         text = text.replace('  roots: ["."]', f"  roots: {json.dumps(source_roots(root, paths))}", 1)
         text = text.replace('  name: ""', f"  name: {json.dumps(name)}", 1)
         text = text.replace('  description: ""', f"  description: {json.dumps(description)}", 1)
-        fallback = ["python3 -m unittest"] if os.path.isdir(os.path.join(root, "tests")) else []
-        text = allow_lists(text, [command] + [r["command"] for r in runners] + fallback)
+        text = allow_lists(text, [command])
         if private:
             text = text.replace("  include_name: true", "  include_name: false", 1)
         open(cfg, "w").write(text)
