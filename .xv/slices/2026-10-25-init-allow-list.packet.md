@@ -1,79 +1,122 @@
 ---
+slice: 2026-10-25-init-allow-list
 shape_change: no
 pitch_contradiction: no
+picture_change: yes
+shape_breadth: narrow
+moved_tests: 0
+door: two-way
+blast_radius: adopters
 ---
 
 # Packet: xv init writes a starter allow list
 
+No stop for two people. The merge is Sean's. Three findings need Sean's decision first. The first one matters most: the starter list gives the default seat and the guardian `Bash(python3:*)` in any repo with a `tests/` folder.
+
 ## Needs a decision (the person who set the work going)
 
-1. **The scenario's last sentence has no test, and the change only partly meets it.** The scenario says "A headless agent with the starter config can run the test command as `xv prompt` gives it." `xv prompt` gives an agent two commands: the whole suite (`scripts/prompt.py:71`) and the red (`scripts/prompt.py:64`). The allow list covers only the suite command, as one literal prefix:
-   `scripts/run.py:712` `test = [command] if command else []`
-   `scripts/run.py:717` `tools = ",".join(f"Bash({t}:*)" for t in seats[seat])`
-   The red command is written by the scenario agent and need not start with the suite command. This slice's own red, `cd tests && python3 -m unittest test_init_allow_list`, would not match `Bash(python3 -m unittest discover -s tests -t .:*)`. Narrower runs fail too: `go test ./pkg/x` does not match `Bash(go test ./...:*)`. The tests check this with a string-prefix helper (`tests/test_init_allow_list.py:22-29`, `covers`). Claude Code matches a rule against each part of a compound command, so a string-prefix check proves nothing about what a headless agent can actually run. This repo's own hand-made config allows `Bash(cd tests:*)` and `Bash(python3 -m unittest:*)` as two separate rules (`.xv/config.yml:34`). The watch's `watch_first_green` asked exactly this question ("Check that the test command is allowed in a form a headless agent could actually run"). Nobody tested it.
-   - Not tested (plausible): with a `src/` layout, the detected command starts with `PYTHONPATH=src ` (`scripts/run.py:627,637`). The rule becomes `Bash(PYTHONPATH=src python3 -m unittest discover -s tests -t .:*)`. Whether Claude Code matches a rule that starts with an env-var assignment was not checked.
-2. **The guardian's starter list leaves out commands its own brief tells it to run.** The guardian seat gets `READ_ONLY_TOOLS + test` (`scripts/run.py:713-714`). The guardian brief tells it to run `xv wall diff <id>`, and `xv boundary` and `xv packet lint` are the guardian's checks (`.xv/picture.md:23`). This repo's own config adds `Bash(xv wall diff:*)` and `Bash(xv boundary:*)` to the guardian (`.xv/config.yml:36`). This guardian run was itself refused `xv wall diff`. The scenario asked for "only the read-only part, plus the test command", so the maker followed the words. The gap is in the scenario, not the code.
-3. **The read-only list is shorter than the one this repo uses.** `READ_ONLY_TOOLS` (`scripts/run.py:706`) leaves out `rg`, `wc`, `sed -n`, `diff`, `git ls-files`, `git grep` and `git rev-parse`, which `.xv/config.yml:34-36` allows. In a headless run, each missing command is a refused tool call.
+1. **The test rule is cut at `python3`, not at `python3 -m unittest`.** The scenario asks for rules "as this repo's `.xv/config.yml` does (`Bash(cd tests:*)`, `Bash(python3 -m unittest:*)`)". The cut in `test_rules`:
+   `scripts/run.py:718` `is_arg = w.startswith("-") and not (i and words[i - 1] == "-m")`
+   `scripts/run.py:719` `if keep and not re.match(r"\w+=", keep[-1]) and (is_arg or "/" in w or w in (".", "discover")):`
+   Traced by hand, on `python3 -m unittest`: the word `-m` counts as an argument because the word before it is `python3`, so the loop stops after `python3`. The results:
+   - `python3 -m unittest` and `python3 -m pytest -q` give `python3`.
+   - `PYTHONPATH=src python3 -m unittest discover …` gives `PYTHONPATH=src python3`.
+   - `go test ./...` gives `go test`.
 
-None of these stops the change for two people.
+   The fallback adds `python3 -m unittest` to every repo with a `tests/` folder, whatever its language (`scripts/run.py:795-796`). So a Go or npm repo with `tests/` also gets the rule. The default seat and the guardian both get it (`scripts/run.py:734`). `Bash(python3:*)` allows `python3 -c …`, which can run anything. For the guardian, that cancels the read-only list. That works against `.xv/picture.md:69`: "Read-only agents are checked, not trusted."
 
-## The scenario in words
+   The suite does not catch this. It checks that each part of a command is covered (`tests/test_init_allow_list_split.py:21-33`, `rule_allows` and `unallowed_parts`). Nothing checks that a rule is narrow. I could not run `xv init` in a scratch repo in this session, because ad-hoc Python was refused. The trace is from the code; replay it with the steps below.
+2. **The `PYTHONPATH=src` case is neither split into its own rule nor handed to the person.** The scenario says: "Cover a leading `PYTHONPATH=src` the same way, or say in the skill that the person checks it." The code keeps the variable glued to the next word: `keep[-1]` matching `\w+=` never cuts (`scripts/run.py:719`). The result is one rule, `Bash(PYTHONPATH=src python3:*)`. No skill changed: the diff touches no `skills/` file. The test comment says "a leading VAR=value … is a part of its own" (`tests/test_init_allow_list_split.py:52`), but its splitter splits only on `&&`, `||` and `;` (`:33`). Whether Claude Code matches a rule that starts with a variable assignment is still unchecked, as in the last packet.
+3. **Rules come from every detected runner and the fallback, not only the chosen command.** The call is `allow_lists(text, [command] + [r["command"] for r in runners] + fallback)` (`scripts/run.py:796`). The scenario says "the test command it detected". This widening is what lets finding 1 reach repos that are not Python.
 
-`xv init` writes a starter `--allowedTools` list into each Claude Code agent line of `.xv/config.yml`:
-- the default seat gets read-only shell and git commands, `git rm`, `git mv`, `xv record move` and the detected test command;
-- the forecaster gets the read-only part only;
-- the guardian gets the read-only part plus the test command.
+Smaller, for Sean:
+- The old red's closing comment is now untrue: "the guardian's adds only the test command" (`tests/test_init_allow_list.py:97`). The guardian now also gets the three `xv` commands. No assertion is wrong.
+- The cleaner proposed sharing the parsing and matching helpers duplicated between the two test files (`allowed`/`covers` at `tests/test_init_allow_list.py:15-29`, `entries_of`/`rule_allows` at `tests/test_init_allow_list_split.py:14-28`) in `tests/helpers.py`. It left this for the packet because it is a new shared piece.
 
-Out of scope: other harnesses, and lint and type commands. (seanpk/xv-agents#16)
+## The scenario
 
-## Recording / replay
+`xv init` writes a starter `--allowedTools` list into each Claude Code agent line of `.xv/config.yml`. The default seat gets read-only shell and git commands, `git rm`, `git mv`, `xv record move` and the test command. The forecaster gets the read-only part only. The guardian gets the read-only part plus the test command.
 
-There is no recording; the scenario is written in words. To replay: in a scratch repo with no `.xv/`, run `xv init`, then read lines 34-36 of `.xv/config.yml`. To see the gap in finding 1, try running the red command form (`cd tests && python3 -m unittest <file>`) under `claude -p` with that config.
+Sean widened it on 2026-10-26:
+1. Split the test command into parts, one rule each, so a single file runs as well as the suite. Cover `PYTHONPATH=src`, or say in the skill that the person checks it.
+2. The guardian also gets `xv wall diff`, `xv boundary` and `xv packet lint`.
+3. Add `rg`, `wc`, `sed -n`, `diff`, `git ls-files`, `git grep` and `git rev-parse` to the read-only list.
+4. Add a CHANGELOG line, Sean, solo.
 
-## Boundary picture
+May ignore: other harnesses, and lint and type commands. (#16)
 
-`.xv/slices/2026-10-25-init-allow-list.boundary.md` (from `xv boundary`): one module touched, `scripts/run`. Modules, edges, outbound calls, tables and surface paths: none added or removed. Shape hints: none.
+## The recording
 
-## What the suite asserts after the change
+None; this is a feature from words. To replay the red: `cd tests && python3 -m unittest test_init_allow_list_split`. It was red at `7f5bafa` and is green now: 5 tests OK, run in this session. To replay finding 1: in a scratch git repo with a `tests/` folder, run the worktree's `bin/xv init`, then read `.xv/config.yml` lines 34-36 and look for `Bash(python3:*)`.
 
-- The default agent line has `--allowedTools` with each read-only and maker entry as `Bash(<prefix>:*)`, and some entry is a string prefix of the detected test command.
-- The forecaster's list has the read-only entries, no maker entries, and no entry covering the test command.
-- The guardian's list has the read-only entries, no maker entries, and covers the test command.
-- With a `Gemfile` and `spec/`, the detected command is `bundle exec rspec`, and both the default and guardian lists cover it.
-- Commented-out non-Claude example lines get no `--allowedTools`.
-- Nothing asserts that a real Claude Code permission check accepts the command, or that the red command is covered (finding 1).
+## The boundary picture
 
-The suite was green in the watch's runs (131 tests, maker and cleaner steps in the record). I could not run it myself: the command was refused in this session.
+From `.xv/slices/2026-10-25-init-allow-list.boundary.md`, as given:
+- Touched: `scripts/run`.
+- Added or removed: no modules, edges, outbound calls, tables or surface paths.
+- Shape hints: none.
 
-## Moved tests
+## What the suite asserts after
 
-None. `git diff --stat f452d43..HEAD` under `tests/` shows one new file, `tests/test_init_allow_list.py`, and `git diff c8b8006..HEAD -- tests` is empty, so the red was not touched after it was written. The record's wall check from both the maker and the cleaner reports `changed: [] deleted: [] fewer_assertions: [] unrecorded: []` and `ok: true`. `moved_tests: []` in the record. The forecast expected moved init tests; none moved.
+Whole suite: 136 tests, OK, run in this session.
+- Every part of a `PYTHONPATH=src` command, split on `&&`, `||` and `;`, is covered by some rule for the default seat and the guardian.
+- `bundle exec rspec spec/a_spec.rb`, `go test ./pkg` and `python3 -m unittest tests.test_a` are covered.
+- All three seats carry the seven added read-only rules.
+- Only the guardian carries `xv wall diff`, `xv boundary` and `xv packet lint`.
+- `CHANGELOG.md` has an Unreleased line naming the allow list, Sean, and solo.
+- The earlier file still asserts the base read-only and move rules, that the forecaster has no move or test rule, and that commented-out lines get no list.
+- Nothing asserts that a rule is narrow (finding 1) or that Claude Code accepts any rule (finding 2).
 
-## The four checks
+## 1. Shape
 
-**1. Shape: no. Breadth: narrow (matches the forecast's `narrow`).**
-- The boundary picture shows no new module, edge, table, outbound call or surface path, and no shape hints. The diff adds two constants and a function to `scripts/run.py` (`scripts/run.py:706-722`) and one call in `cmd_init` (`scripts/run.py:774`). `.xv/picture.md:22` already places `init` in `run.py`.
-- The written config is something adopters read, but the picture's surfaces list (`.xv/picture.md:27`) names the CLI, the skills and CI, not the config's contents. Adding a flag inside the existing agent lines stays inside the current shape.
-- Reach: the change touches every new adopter's starter config, the same reach as `defaults/` (`.xv/picture.md:25`). It applies only when `config.yml` is freshly written (`scripts/run.py:765`), so existing configs are left alone.
+shape_change: no. Breadth: narrow, as forecast.
+- The code adds three constants and two functions (`scripts/run.py:706-743`) and two lines in `cmd_init` (`:795-796`). `.xv/picture.md:22` already puts `init` in `run.py`.
 
-**2. Pitch: no contradiction.**
-- Checked against `.xv/pitch.md:7` ("makes it easy … to vibe with discipline"), `.xv/pitch.md:21` (teams and non-technical people) and `.xv/pitch.md:25` (not for people who will not trust agents to write production code). Narrowing what headless agents may run serves discipline and contradicts no line.
-- Also checked the binding decisions: `.xv/picture.md:60` (standard library only: the change uses only `json`, already imported), `.xv/picture.md:66` (values stay JSON in YAML: `json.dumps(tools)` at `scripts/run.py:718`), and `.xv/picture.md:47` (any harness must stay possible: lines that are not Claude are skipped, `scripts/run.py:716`).
+## 2. Pitch
 
-**3. Moved tests:** none (see above).
+pitch_contradiction: no.
+- I checked `.xv/pitch.md:7` ("to vibe with discipline"), `:21` (teams and non-technical people) and `:25` ("not for people or projects that will not trust agents to write production code").
 
-**4. The picture: needs a small edit.**
-- `.xv/picture.md:25` says `defaults/` is the starter `.xv/` that `xv init` copies. Proposed addition: "`xv init` also writes a starter Claude Code `--allowedTools` list onto the default, forecaster and guardian agent lines, built from the detected test command, so the written `config.yml` differs from `defaults/config.yml`."
-- `.xv/picture.md:20` could note: "Claude Code seats start with a narrow Bash allow list. Other harnesses' lines are left as written."
+## 3. Moved tests
 
-## The door
+None.
 
-Two-way door: a revert removes the writer. Configs already written by `xv init` keep their lines, and adopters can edit them. Blast radius: **adopters** (new inits only).
+| File | Before | After | Why (the maker's record) | Forced by the scenario? |
+| --- | --- | --- | --- | --- |
+| none | | | | |
+
+- Under `tests/`, `git log f452d43..HEAD` shows two commits, both "red": `c8b8006` adds `test_init_allow_list.py` and `7f5bafa` adds `test_init_allow_list_split.py`. Neither file is touched after its red commit.
+- Their sha256 today matches the wall baseline in `.xv/slices/2026-10-25-init-allow-list.wall.json`: `05867476…` and `c50ed098…`.
+
+## 4. The picture
+
+- `.xv/picture.md:25` says "`defaults/` is the starter `.xv/` that `xv init` copies". It is now incomplete. Proposed addition: "`xv init` also writes a starter Claude Code `--allowedTools` list onto the default, forecaster and guardian lines, built from the detected test commands, so the written `config.yml` differs from `defaults/config.yml`." This was proposed last time and picked at the accept stop. It is not in the worktree's picture yet.
+- `.xv/picture.md:20`, proposed addition: "Claude Code seats start with a Bash allow list; other harnesses' lines are left as written."
+- `.xv/picture.md:69` ("Read-only agents are checked, not trusted") stays true as written. Finding 1 is where the change strains it.
+
+## Door
+
+**Door:** two-way. A revert removes the writer, but configs already written by `xv init` keep their lists until someone edits them. **Blast radius:** adopters.
 
 ## Raw data
 
-- Diff: `git diff f452d430f44f6c01e611f705f5b709b80231291b..HEAD`. Code is in `scripts/run.py` only.
+- Slice record: `.xv/slices/2026-10-25-init-allow-list.md`
+- Diff: `git diff f452d430f44f6c01e611f705f5b709b80231291b..HEAD`. The code is all in `scripts/run.py`; the CHANGELOG line is `CHANGELOG.md:7`.
+- Wall: `.xv/slices/2026-10-25-init-allow-list.wall.json` and `checks.maker.wall` and `checks.cleaner.wall` in the record. `xv wall diff 2026-10-25-init-allow-list` was refused here.
 - Boundary: `.xv/slices/2026-10-25-init-allow-list.boundary.md`
-- Wall: `.xv/slices/2026-10-25-init-allow-list.wall.json`, plus the `checks.maker.wall` and `checks.cleaner.wall` fields in the record. `xv wall diff` was refused in this session.
-- Red and suite output: `checks.scenario.red_output`, `checks.maker.suite_output` and `checks.cleaner.suite_output` in the record.
 - Run logs: `.git/xv/runs/2026-10-25-init-allow-list/`
+
+## Dropped by the evidence rule
+
+These findings cite no line, rule or hunk, so they do not count.
+
+- The boundary picture has no shape hints. Its only touched module is `scripts/run`, and it adds or removes no edge, table or surface.
+- The diff grew from 227 to 829 lines (the record's `diff_growing` stop). Most of that is slice files under `.xv/slices/`. Code and tests are 244 lines (`checks.cleaner.diff_lines`).
+- The forecast expected moved init tests. None moved.
+- A starter permission list serves discipline. The pitch is silent on how wide the list may be. Finding 1 cuts against a binding decision in the picture, not against the pitch.
+- The maker's and the cleaner's wall checks in the record show `changed: []`, `fewer_assertions: []` and `unrecorded: []`.
+- `xv wall diff` was refused in this session, the same as last time.
+
+## From the cleaner
+
+- Shape proposal, for people: tests/test_init_allow_list.py and tests/test_init_allow_list_split.py duplicate the allowed-tools parsing and rule-matching helpers (allowed/entries_of, covers/rule_allows); a shared helper in tests/helpers.py would remove it, but it is a new shared piece, so it is left for the packet.
