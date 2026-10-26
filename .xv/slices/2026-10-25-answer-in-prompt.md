@@ -2,12 +2,12 @@
 id: 2026-10-25-answer-in-prompt
 title: "The next agent sees the person's answer; xv slice amend"
 kind: defect
-status: stopped
+status: working
 set_by: Sean Kennedy
 created: 2026-10-25
 branch: xv/2026-10-25-answer-in-prompt
 base: f452d430f44f6c01e611f705f5b709b80231291b
-next: close
+next: scenario
 forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 700000, "turns": null, "usd": 0.48, "basis": ["2026-10-24-readme-drift", "2026-10-24-promote-draft"], "note": "scenario, maker, cleaner; mean of actual tokens 720529 and 673101; guide has no turns column"}, {"harness": "claude", "model": "opus", "tokens": 450000, "turns": null, "usd": 0.59, "basis": ["2026-10-24-readme-drift", "2026-10-24-promote-draft"], "note": "guardian; mean of actual tokens 420999 and 474723; guide has no turns column"}], "wall_s": 290, "shape": "narrow", "breadth": "Expect the prompt assembly and a new slice amend path to move, and a possible extra scenario round if the amend's red is rejected; the earlier slices each had one scenario stop that cost a round."}
 budget: {"tokens": 1500000, "usd": 5, "turns": 60, "set_by": "Sean Kennedy"}
 red: {"files": ["tests/test_answer_in_prompt.py"], "command": "cd tests && python3 -m unittest test_answer_in_prompt", "failure": "AssertionError: '2 ok (the pick: a promote.attribution setting, empty by default)' not found in the maker prompt; xv slice: error: argument sub: invalid choice: 'amend' (choose from 'new')", "watch_first_green": "Answer a stop with a plain sentence, then run `xv prompt maker <id>`: the sentence appears word for word under its own heading. Run `xv slice amend <id> --by <name> --scenario-file <f>`: the slice's scenario gains the new text with today's date and your name, red is empty, next is scenario."}
@@ -19,7 +19,7 @@ packet: .xv/slices/2026-10-25-answer-in-prompt.packet.md
 shape_change: no
 pitch_contradiction: no
 spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 3123, "cache_read": 25037, "cache_write": 5735, "tokens": 33899, "usd": 0.003, "turns": 3, "wall_s": 18.3, "session": "8c9f0dd5-d2cd-4971-b2d2-9147de0ca2f9", "step": "forecaster", "at": "2026-10-25T04:26:16+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-25-answer-in-prompt/01-forecaster.out"}, {"harness": "claude", "model": "sonnet", "model_id": "claude-sonnet-5-5", "tokens_in": 22, "tokens_out": 6227, "cache_read": 322996, "cache_write": 37104, "tokens": 366349, "usd": 0.243, "turns": 13, "wall_s": 44.3, "session": "bd114c6c-ede6-407b-94a4-774d35cbfd31", "step": "scenario", "at": "2026-10-25T04:27:00+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-25-answer-in-prompt/02-scenario.out"}, {"harness": "claude", "model": "sonnet", "model_id": "claude-sonnet-5-5", "tokens_in": 28, "tokens_out": 4762, "cache_read": 394135, "cache_write": 27288, "tokens": 426213, "usd": 0.1962, "turns": 23, "wall_s": 89.0, "session": "3d0bc856-be84-4045-b93a-22d6979307fa", "step": "maker", "at": "2026-10-25T04:28:30+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-25-answer-in-prompt/03-maker.out"}, {"harness": "claude", "model": "sonnet", "model_id": "claude-sonnet-5-5", "tokens_in": 10, "tokens_out": 929, "cache_read": 93698, "cache_write": 18404, "tokens": 113041, "usd": 0.0923, "turns": 6, "wall_s": 61.8, "session": "6b4738e6-8bbf-48f0-8e61-ace64db626fa", "step": "cleaner", "at": "2026-10-25T04:29:57+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-25-answer-in-prompt/04-cleaner.out"}, {"harness": "claude", "model": "opus", "model_id": "claude-opus-5-5", "tokens_in": 22, "tokens_out": 8710, "cache_read": 336746, "cache_write": 36229, "tokens": 381707, "usd": 0.5315, "turns": 16, "wall_s": 82.5, "session": "fcd6dc10-5d97-488f-a89f-3ed48d7f15fd", "step": "guardian", "at": "2026-10-25T04:31:46+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-25-answer-in-prompt/05-guardian.out"}]
-stops: [{"at": "2026-10-25T04:26:16+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-25-answer-in-prompt budget ... --by <name>`).", "answered_by": ["Sean Kennedy"], "answer": "yes, run them (the same budget as before: 1,500,000 tokens, $5, 60 turns)", "also": [], "answered_at": "2026-10-25T04:26:16+00:00"}, {"at": "2026-10-25T04:31:46+00:00", "step": "guardian", "order": "accept_moves", "seat": "originator", "question": "The picture changed; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.", "answered_by": [], "answer": null, "also": []}]
+stops: [{"at": "2026-10-25T04:26:16+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-25-answer-in-prompt budget ... --by <name>`).", "answered_by": ["Sean Kennedy"], "answer": "yes, run them (the same budget as before: 1,500,000 tokens, $5, 60 turns)", "also": [], "answered_at": "2026-10-25T04:26:16+00:00"}, {"at": "2026-10-25T04:31:46+00:00", "step": "guardian", "order": "accept_moves", "seat": "originator", "question": "The picture changed; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.", "answered_by": ["Sean Kennedy"], "answer": "24: merge\n19: find the root, yes\n18: agreed\n16: ok\n14: agreed\n\nso, as I understand you,  all picks", "also": [], "answered_at": "2026-10-26T14:03:10+00:00"}]
 decisions: []
 prototypes: []
 overrides: []
@@ -30,6 +30,8 @@ checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forec
 ## Scenario
 
 After a person answers a stop, the next agent's prompt (`xv prompt`) includes that answer word for word, under its own heading, so the agent acts on it without having to find it in the record's log. `xv slice amend <id> --scenario-file <file>` appends the change to the slice's scenario with the date and who made it, clears `red`, and sets `next` to `scenario`, so the scenario agent writes a red for the new part. (seanpk/xv-agents#18; Sean approves any brief change, solo.)
+
+Settled at the guardian's accept stop, 2026-10-26, Sean: (1) the answer goes only into the prompt of the next agent to run after it, not into every later agent's prompt (`scripts/prompt.py:103-106,138` today gives it to all). Add a test that the agent after that one does not get it. (2) Update README line 211, which says the prompt restates nothing the agent can read itself: it now restates the latest answer. With that, the picture needs no edit. (3) Add a line to `CHANGELOG.md` under Unreleased: every agent's input changed, Sean, solo.
 
 ## May ignore
 
@@ -50,3 +52,5 @@ None. A feature starts from words.
 - 2026-10-25T04:29:57+00:00 cleaner: done: Nothing to fix: diff is small and clear, suite green (131 tests), no commit
 - 2026-10-25T04:31:46+00:00 guardian: done: No shape change or pitch contradiction; originator to decide on the answer going to every later agent, a missing CHANGELOG line, and a picture/README note
 - 2026-10-25T04:31:46+00:00 watch: stop (accept_moves) for originator: The picture changed; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.
+- 2026-10-26T14:03:10+00:00 Sean Kennedy: answered accept_moves: 24: merge 19: find the root, yes 18: agreed 16: ok 14: agreed so, as I understand you, all picks
+- 2026-10-26T14:03:43+00:00 watch: set next
