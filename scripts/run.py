@@ -710,15 +710,16 @@ CODE_EXTS = (".py", ".js", ".ts", ".jsx", ".tsx", ".rb", ".go", ".rs", ".java", 
 
 
 def fixture_folders(root, exclude):
-    found = []
-    for dirpath, dirs, _ in os.walk(root):
-        rel_dir = os.path.relpath(dirpath, root)
-        dirs[:] = sorted(d for d in dirs if d not in (".git", XV_DIR)
-                         and not match_any(os.path.normpath(os.path.join(rel_dir, d)) + "/x", exclude))
-        if dirpath != root and os.path.basename(dirpath).lower() in FIXTURE_NAMES:
-            if any(f.endswith(CODE_EXTS) for _, _, fs in os.walk(dirpath) for f in fs):
-                found.append(rel_dir)
-    return found
+    from xvlib import tracked_files
+    found = set()
+    for path in tracked_files(root):
+        if not path.endswith(CODE_EXTS) or path.split("/")[0] == XV_DIR or match_any(path, exclude):
+            continue
+        parts = path.split("/")[:-1]
+        for i, part in enumerate(parts):
+            if part.lower() in FIXTURE_NAMES:
+                found.add("/".join(parts[:i + 1]))
+    return sorted(found)
 
 
 def try_test_command(root, tests):
@@ -795,7 +796,7 @@ def cmd_init(a):
         pass
     config = load_config(root)
     tests = config.get("tests") or {}
-    out = {"written": written, "kept": kept, "tests": {k: v for k, v in tests.items() if k != "timeout"}}
+    out = {"written": written, "kept": kept, "tests": tests}
     out["test_run"] = try_test_command(root, tests)
     bpath = os.path.join(dst, "boundary-all.md")
     if os.path.exists(bpath):
