@@ -23,11 +23,11 @@
   "tests/test_retro.py": 14,
   "tests/test_run.py": 36,
   "tests/test_spend.py": 9,
-  "tests/test_suite_red_quote.py": 5,
+  "tests/test_suite_red_quote.py": 7,
   "tests/test_wall.py": 13,
   "tests/test_xvlib.py": 27
  },
- "commit": "018c34498e0a7ffd4d7dc05608ec8452d321f8a5",
+ "commit": "e9aada2b3a0a97c05859f596497b388ff488e328",
  "files": {
   "tests/data/claude-result.json": "d97d2788e30ab2c1dcefc61594ffaaf6892217e088255672a7ead5be9747a331",
   "tests/data/claude-session.jsonl": "f334175619c11a34eabde629fe45e0def44aa43becec22059c9c9841ffccf073",
@@ -52,7 +52,7 @@
   "tests/test_retro.py": "fc883f817bdcf3e1c6e7631f1b2c97dc7f3f69c372552f8fb393b10ccbee1ef7",
   "tests/test_run.py": "1a6fb3a2301ac7e55dfe26d44efa92a5fca3b66b573b7ff2b709e4cdc52bc2ff",
   "tests/test_spend.py": "068abcfdca997f6608f9f4f41ca8e342817f6b1a2a3e2b9cca6b87228bf008da",
-  "tests/test_suite_red_quote.py": "748a13aa08a533b8dd06d76e1bfce816c377e14b1fef0ff75e3392be1a1a5eb2",
+  "tests/test_suite_red_quote.py": "f920a670c696b5300ee665f20f7d25394edd17ce802fbda197ab1ae2f07f7435",
   "tests/test_wall.py": "75aeb81d6b89c048dc18a1811aa0fcc51bd7b883f81578c7f49cd5f383fe1c93",
   "tests/test_xvlib.py": "78f3d5794f196b0e56ce18d3f8d28acb9f084bd5a4c67eb595c9477bb5c9505d"
  },
