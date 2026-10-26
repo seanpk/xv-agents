@@ -780,12 +780,9 @@ def test_rules(command):
     return rules
 
 
-def allow_lists(text, commands):
+def allow_lists(text, command):
     """Give each Claude Code agent line a starter --allowedTools list; the forecaster's is read-only."""
-    test = []
-    for rule in (r for c in commands for r in test_rules(c)):
-        if rule not in test:
-            test.append(rule)
+    test = test_rules(command)
     seats = {"default": READ_ONLY_TOOLS + MAKER_TOOLS + test, "forecaster": READ_ONLY_TOOLS,
              "guardian": READ_ONLY_TOOLS + GUARDIAN_TOOLS + test}
     out = []
@@ -847,7 +844,7 @@ def cmd_init(a):
         text = text.replace('  roots: ["."]', f"  roots: {json.dumps(source_roots(root, paths))}", 1)
         text = text.replace('  name: ""', f"  name: {json.dumps(name)}", 1)
         text = text.replace('  description: ""', f"  description: {json.dumps(description)}", 1)
-        text = allow_lists(text, [command])
+        text = allow_lists(text, command)
         if private:
             text = text.replace("  include_name: true", "  include_name: false", 1)
         open(cfg, "w").write(text)
