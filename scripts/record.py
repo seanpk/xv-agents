@@ -15,6 +15,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from spend import row_tokens  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, emit, git, load_config, now, read_doc, solo,  # noqa: E402
                    record_path, repo_root, slice_root, today, write_doc)
 
@@ -379,7 +380,7 @@ def actual_by_key(spend):
     for s in spend:
         key = (s.get("harness") or "?", s.get("model") or "?")
         k = keys.setdefault(key, {"tokens": 0, "usd": 0.0, "wall_s": 0.0})
-        k["tokens"] += int(s.get("tokens") or 0)  # input, output, cache read and cache write, as everywhere
+        k["tokens"] += row_tokens(s)
         k["usd"] += float(s.get("usd") or 0)
         k["wall_s"] += float(s.get("wall_s") or 0)
     return keys
