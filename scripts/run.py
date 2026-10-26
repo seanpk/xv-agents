@@ -50,13 +50,17 @@ def shell(cmd, cwd, timeout=900, env=None):
         return 124, f"timed out after {timeout}s"
 
 
+def tests_timeout(config):
+    return int((config.get("tests") or {}).get("timeout") or 900)
+
+
 def run_suite(root, config, base=None, slice_id=None):
     """Run tests.command. XV_BASE and XV_SLICE tell a script that picks suites from the changed files where to diff from."""
     cmd = (config.get("tests") or {}).get("command")
     if not cmd:
         return None, "no tests.command in .xv/config.yml"
     env = {k: v for k, v in (("XV_BASE", base), ("XV_SLICE", slice_id)) if v}
-    code, out = shell(cmd, root, int((config.get("tests") or {}).get("timeout") or 900), env)
+    code, out = shell(cmd, root, tests_timeout(config), env)
     return ("green" if code == 0 else "red"), out
 
 
@@ -185,7 +189,7 @@ def run_worktree_command(command, wt, config):
     if not command:
         return None
     command = command.replace("{worktree}", shlex.quote(wt))
-    code, out = shell(command, wt, int((config.get("tests") or {}).get("timeout") or 900))
+    code, out = shell(command, wt, tests_timeout(config))
     if code == 0:
         return None
     last = "\n".join(out.strip().splitlines()[-10:])
