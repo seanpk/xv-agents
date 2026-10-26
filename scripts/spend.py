@@ -9,7 +9,7 @@ Readers:
 
 Each reader returns one spend item: harness, model (as the config names it),
 model_id (as the harness reports it), tokens_in, tokens_out, cache_read,
-cache_write, tokens (all four summed), usd (null where the harness does not
+cache_write, tokens (input + output + cache write, no cache reads), usd (null where the harness does not
 report dollars), turns, wall_s.
 
 Usage:
@@ -34,7 +34,7 @@ def item(harness, model, model_id=None, tokens_in=0, tokens_out=0, cache_read=0,
     return {"harness": harness, "model": model, "model_id": model_id or model,
             "tokens_in": tokens_in, "tokens_out": tokens_out,
             "cache_read": cache_read, "cache_write": cache_write,
-            "tokens": tokens_in + tokens_out + cache_read + cache_write,
+            "tokens": tokens_in + tokens_out + cache_write,
             "usd": None if usd is None else round(float(usd), 4),
             "turns": turns, "wall_s": wall_s, "session": session}
 
