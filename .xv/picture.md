@@ -17,12 +17,12 @@ The people who use xv-agents directly are the team XV describes: people building
 - The end users of an adopting system are indirect, reached only through the listener (Sentry, PostHog, feedback files).
 
 ## The shape
-- Runs on agent harnesses: Claude Code, opencode, Grok. Codex and Cursor read the same skill format and have not been run (README).
+- Runs on agent harnesses: Claude Code, opencode, Grok. Codex and Cursor read the same skill format and have not been run (README). `xv init` gives Claude Code agent lines a starter Bash allow list; other harnesses' lines are left as written.
 - 22 modules, all flat Python files: `scripts/*.py` (19) and `evals/{run,grade,report}.py`. `xv boundary` does not resolve bare imports (`from xvlib import ...` after a `sys.path.insert`), so `.xv/boundary-all.md` shows no edges for this repo until that is fixed. The real edges include `run` → `agentcli`, `orders`, `prompt`, `record`, `spend`, and `orders` → `spend`, `xvlib`.
 - `bin/xv` is the only entry point. It maps each command name to one script and runs it. `init`, `slice`, `run`, `step`, `close` and `guard` all land in `run.py`, the largest script.
 - Roughly: `xvlib` is the shared base (config, git, record paths). `record` owns the slice record. `orders` holds the stop rules. `wall` holds the test hash check. `spend` reads harness logs. `agentcli` and `prompt` build and run the agent calls. `boundary`, `packet` and `check` are the guardian's checks. `listen`, `retro`, `promote` and `prototypes` are the side loops. `recording` and `playwright_agents` serve the scenario agent. `install` and `adapt` handle distribution.
 - Outbound calls: `evals/grade`, `boundary`, `check`, `listen`, `recording`. The docs add the agent CLIs, `gh`, and the fetched harness doc pages.
-- `defaults/` is the starter `.xv/` that `xv init` copies into every adopting repo. A change there reaches every new adopter.
+- `defaults/` is the starter `.xv/` that `xv init` copies into every adopting repo. A change there reaches every new adopter. `xv init` also writes a starter Claude Code `--allowedTools` list onto the default, forecaster and guardian lines, built from the test command it chose, so the written `config.yml` differs from `defaults/config.yml`. Changing the test command later does not change the list.
 - No database. State is files: `.xv/slices/<id>.md` (front matter plus log), `.xv/decisions/`, `estimation.md`, `learnings.md`, `config.yml`. Each slice has a git branch `xv/<id>` and a worktree under `.xv/worktrees/`.
 - Surfaces: the `xv` CLI, `skills/*/SKILL.md`, three GitHub Actions examples in `ci/github/`, and `.github/workflows/` (tests, weekly drift check).
 - `evals/` holds a small "pantry" fixture app, scenarios, and recorded runs on three harnesses.
