@@ -754,15 +754,36 @@ def try_test_command(root, tests):
     return {"result": "failed", "exit": code, "tail": text.strip().splitlines()[-15:]}
 
 
-READ_ONLY_TOOLS = ["cat", "head", "tail", "ls", "grep", "git diff", "git log", "git status", "git show"]
+READ_ONLY_TOOLS = ["cat", "head", "tail", "ls", "grep", "git diff", "git log", "git status", "git show",
+                   "rg", "wc", "sed -n", "diff", "git ls-files", "git grep", "git rev-parse"]
 MAKER_TOOLS = ["git rm", "git mv", "xv record move"]
+GUARDIAN_TOOLS = ["xv wall diff", "xv boundary", "xv packet lint"]
 
 
-def allow_lists(text, command):
+def test_rules(command):
+    """One rule per part of the test command, each cut before its arguments, so a single file runs too."""
+    rules = []
+    for part in re.split(r"\s*(?:&&|\|\||;)\s*", command or ""):
+        words, keep = part.split(), []
+        for i, w in enumerate(words):
+            is_arg = w.startswith("-") and not (i and words[i - 1] == "-m")
+            if keep and not re.match(r"\w+=", keep[-1]) and (is_arg or "/" in w or w in (".", "discover")):
+                break
+            keep.append(w)
+        rule = " ".join(keep)
+        if rule and rule not in rules:
+            rules.append(rule)
+    return rules
+
+
+def allow_lists(text, commands):
     """Give each Claude Code agent line a starter --allowedTools list; the forecaster's is read-only."""
-    test = [command] if command else []
+    test = []
+    for rule in (r for c in commands for r in test_rules(c)):
+        if rule not in test:
+            test.append(rule)
     seats = {"default": READ_ONLY_TOOLS + MAKER_TOOLS + test, "forecaster": READ_ONLY_TOOLS,
-             "guardian": READ_ONLY_TOOLS + test}
+             "guardian": READ_ONLY_TOOLS + GUARDIAN_TOOLS + test}
     out = []
     for line in text.split("\n"):
         seat = line.split(":", 1)[0].strip()
@@ -822,7 +843,8 @@ def cmd_init(a):
         text = text.replace('  roots: ["."]', f"  roots: {json.dumps(source_roots(root, paths))}", 1)
         text = text.replace('  name: ""', f"  name: {json.dumps(name)}", 1)
         text = text.replace('  description: ""', f"  description: {json.dumps(description)}", 1)
-        text = allow_lists(text, command)
+        fallback = ["python3 -m unittest"] if os.path.isdir(os.path.join(root, "tests")) else []
+        text = allow_lists(text, [command] + [r["command"] for r in runners] + fallback)
         if private:
             text = text.replace("  include_name: true", "  include_name: false", 1)
         open(cfg, "w").write(text)
