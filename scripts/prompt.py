@@ -98,7 +98,7 @@ def new_guide_rows(root, slice_id):
     return [r for r in guide_rows(open(path).read()) if r.split("|")[1].strip() not in listed]
 
 
-def answer_section(data):
+def answer_section(data, body=""):
     """The latest answered stop, word for word, for the next agent only: once an agent reports after it, it is gone."""
     data = data or {}
     answered = [s for s in data.get("stops") or [] if s.get("answer")]
@@ -106,8 +106,15 @@ def answer_section(data):
         return ""
     st = answered[-1]
     since = st.get("answered_at") or ""
-    if any((r.get("at") or "") >= since for r in (data.get("checks") or {}).get("reports") or []):
-        return ""
+    log = [ln for ln in (body or "").splitlines() if ln.startswith("- ")]
+    given = max((i for i, ln in enumerate(log) if f" answered {st.get('order')}: " in ln), default=-1)
+    for r in (data.get("checks") or {}).get("reports") or []:
+        at = r.get("at") or ""
+        if at > since:
+            return ""
+        if at == since and any(i > given and ln.startswith(f"- {at} {r.get('agent')}: ")
+                               for i, ln in enumerate(log)):
+            return ""
     who = ", ".join(st.get("answered_by") or [])
     return (f"\n## The person's answer\n\n{who} answered the stop `{st.get('order')}` "
             f"({st.get('question', '')}):\n\n{st['answer']}\n")
@@ -116,11 +123,11 @@ def answer_section(data):
 def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
     root = root or repo_root()
     config = load_config(root)
-    data = None
+    data = body = None
     if slice_id:
         path = record_path(root, slice_id)
         root = slice_root(path)
-        data, _ = read_doc(path)
+        data, body = read_doc(path)
     extra = list(extra or [])
     if close:
         extra.insert(0, "Mode: close. The slice is done; write the one line on the gap.")
@@ -139,7 +146,7 @@ def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
         bpath = os.path.join(root, ".xv", "boundary-all.md")
         if os.path.exists(bpath):
             extra.insert(0, f"Boundary output: `.xv/boundary-all.md`.")
-    return brief(agent) + "\n" + answer_section(data) + pointers(agent, root, config, data, extra) + "\n"
+    return brief(agent) + "\n" + answer_section(data, body) + pointers(agent, root, config, data, extra) + "\n"
 
 
 def main(argv=None):
