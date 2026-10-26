@@ -99,11 +99,14 @@ def new_guide_rows(root, slice_id):
 
 
 def answer_section(data):
-    """The latest answered stop, word for word, so the agent need not dig it out of the log."""
+    """The latest answered stop, word for word, for the next agent only: once an agent reports after it, it is gone."""
     answered = [s for s in (data or {}).get("stops") or [] if s.get("answer")]
     if not answered:
         return ""
     st = answered[-1]
+    since = st.get("answered_at") or ""
+    if any((r.get("at") or "") >= since for r in ((data or {}).get("checks") or {}).get("reports") or []):
+        return ""
     who = ", ".join(st.get("answered_by") or [])
     return (f"\n## The person's answer\n\n{who} answered the stop `{st.get('order')}` "
             f"({st.get('question', '')}):\n\n{st['answer']}\n")
