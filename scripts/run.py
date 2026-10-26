@@ -19,6 +19,7 @@ import argparse
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -178,17 +179,17 @@ def resolve_base(root, ref):
     return git(["rev-parse", "--verify", ref + "^{commit}"], root).strip()
 
 
-def run_worktree_command(command, wt):
+def run_worktree_command(command, wt, config):
     """Run a worktrees.setup or teardown command in the worktree. None when it passed or is unset;
     otherwise (command, exit code, its last lines)."""
     if not command:
         return None
-    command = command.replace("{worktree}", wt)
-    p = subprocess.run(command, shell=True, cwd=wt, capture_output=True, text=True)
-    if p.returncode == 0:
+    command = command.replace("{worktree}", shlex.quote(wt))
+    code, out = shell(command, wt, int((config.get("tests") or {}).get("timeout") or 900))
+    if code == 0:
         return None
-    last = "\n".join((p.stdout + p.stderr).strip().splitlines()[-10:])
-    return command, p.returncode, last
+    last = "\n".join(out.strip().splitlines()[-10:])
+    return command, code, last
 
 
 def cmd_slice_new(a):
@@ -202,12 +203,18 @@ def cmd_slice_new(a):
                       "against it. Write it with the xv-init skill, or by hand and set `status: written` in its "
                       "front matter; commit it, then start the slice")
     if not is_trial(root) and git(["status", "--porcelain", "--", XV_DIR], root).strip():
-        raise XVError("commit the project layer (.xv/) first; the slice branch starts from HEAD "
+        raise XVError("commit the project layer (.xv/) first "
                       "(or try XV without committing it: xv init --trial)")
     wt = os.path.join(worktrees_dir(root, config), a.id)
     branch = a.branch or f"xv/{a.id}"
     wcfg = worktrees_config(config)
     base = resolve_base(root, a.base or wcfg.get("base"))
+    if not is_trial(root):
+        for name in ("config.yml", "pitch.md", "picture.md"):
+            if subprocess.run(["git", "cat-file", "-e", f"{base}:{XV_DIR}/{name}"], cwd=root,
+                              capture_output=True).returncode != 0:
+                raise XVError(f"the base {base[:10]} has no committed {XV_DIR}/{name}: push .xv/ so the "
+                              "remote's default branch has it, or pass --base HEAD")
     os.makedirs(os.path.dirname(wt), exist_ok=True)
     git(["worktree", "add", "-q", "-b", branch, wt, base], root)
     trial = is_trial(root)
@@ -240,7 +247,7 @@ def cmd_slice_new(a):
     record.save(path, data, body)
     commit(wt, f"xv({a.id}): open slice")
     print(wt)
-    failed = run_worktree_command(wcfg.get("setup"), wt)
+    failed = run_worktree_command(wcfg.get("setup"), wt, config)
     if failed:
         command, code, last = failed
         path, data, body = record.load(wt, a.id)
@@ -580,7 +587,7 @@ def close(slice_id, why=None, shape=None):
     body = record.log_line(body, "watch", "closed" + ("" if p.returncode == 0 else f"; guide: {p.stderr.strip()}"))
     record.save(path, data, body)
     commit(root, f"xv({slice_id}): close")
-    failed = run_worktree_command(worktrees_config(config).get("teardown"), root)
+    failed = run_worktree_command(worktrees_config(config).get("teardown"), root, config)
     if failed:
         command, code, last = failed
         print(f"xv: worktree teardown `{command}` failed ({code}): {last}", file=sys.stderr)
