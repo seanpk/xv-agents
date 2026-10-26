@@ -4,23 +4,28 @@ shape_change: no
 pitch_contradiction: no
 picture_change: no
 shape_breadth: narrow
-moved_tests: 0
+moved_tests: 1
 door: two-way
 blast_radius: init
 ---
 
 # Packet: xv init tries its guessed test command and roots
 
-Nothing stops this for two people. Four findings go to Sean, who set the work going and decides on the merge. They are listed from most to least needing a decision:
+Nothing here needs two people. The four orders Sean gave at the last merge stop are all in the diff. The merge is Sean's. Two small findings are for Sean:
 
-1. **Does `xv-init` count as a brief?** The skill gains a may-not line, "do not fix it yourself" (`skills/xv-init/SKILL.md:32`). Decision 1 says "A change to a brief, a may-not list, a standing order, or a check an agent is judged by needs two people and a line in `CHANGELOG.md`" (`.xv/picture.md:58`). The diff does not touch `CHANGELOG.md`. The picture lists `xv-init` among the five person-facing skills, not the seven agents (`.xv/picture.md:11`). If you count it as a brief, it needs a CHANGELOG line.
-2. **The fixture scan walks the disk, not git.** It can list folders that git ignores, such as `.venv` or a nested `node_modules`.
-3. **A test assertion caused a field to be dropped.** `tests.timeout` no longer appears in init's output, and the scenario did not ask for that.
-4. **The skill does not cover two outcomes:** `test_run: null`, and a run that blocks for up to 900 seconds.
+1. **The CHANGELOG line and the may-not list do not match.** The CHANGELOG says "`xv-init` gained a may-not line" (`CHANGELOG.md:8`). The new prohibition, "do not fix it yourself", sits inline at `skills/xv-init/SKILL.md:32`. The brief's `## May not` list (`skills/xv-init/SKILL.md:115-121`) is unchanged. Decision 13 says every brief "ends with its may-not list" (`.xv/picture.md:70`). Either add the line to that list or leave it inline. The CHANGELOG wording is the one Sean dictated (record, Scenario, order 4).
+2. **The CHANGELOG line names only the may-not line.** The same brief also gained instructions for `test_run`, `modules` and `fixture_folders` (`skills/xv-init/SKILL.md:32,34`). The CHANGELOG opens with "Every change to a brief" (`CHANGELOG.md:3`). The #13 line next to it does describe its brief change (`CHANGELOG.md:7`).
 
 ## The scenario
 
-`xv init` runs the test command it chose once, with a time limit. Its output says whether the command passed, failed (with the last lines of its output), or timed out. The output also gives the number of modules in `.xv/boundary-all.md` and lists any folder that looks like a fixture (named `fixture`, `fixtures`, `examples` or `setups`, and holding code). The skill tells the person about each. (seanpk/xv-agents#14)
+`xv init` runs the test command it chose once, with a time limit. Its output says whether the command passed, failed (with the last lines of its output), or timed out. The output also gives the number of modules in `.xv/boundary-all.md` and lists the folders that look like fixtures and hold code. The skill tells the person about each. (#14)
+
+Sean settled four points at the 2026-10-26 merge stop:
+
+1. The fixture scan uses git's file list, so ignored folders are never listed. Add a test with an ignored folder.
+2. Put `tests.timeout` back in the output, and narrow the pass assertion to `test_run`.
+3. The skill covers a null `test_run` and warns about the run time.
+4. Add a CHANGELOG line.
 
 May ignore: fixing a failed command automatically.
 
@@ -28,10 +33,10 @@ May ignore: fixing a failed command automatically.
 
 This is a feature, so there is no recording. To replay:
 
-- Red at `5f42e9e`, green at `HEAD`: `cd tests && python3 -m unittest test_init_tries`.
-- At `HEAD` it ran 5 tests and all passed (run by the guardian).
-- The record's red failure: `Regex didn't match: 'fail' not found in '{ "written": [...], "kept": [], "tests": {...} }'`.
-- The timed-out outcome is not covered by any test. The scenario names no way to shorten the limit (record, `watch_first_green`).
+- Red at `51f0321`, green at `HEAD` (`0ec9693`): `cd tests && python3 -m unittest test_init_tries`. The guardian ran it at `HEAD`: 7 tests, OK.
+- The record's red failure: `'.venv' unexpectedly found in '{ ... "fixture_folders": [".venv/examples", "examples"] }'`, and `'timeout' not found in {'paths': ..., 'command': ..., 'file_command': ''}`.
+- The cleaner's whole-suite run: 133 tests, OK (record, `checks.cleaner`).
+- No test covers the timed-out outcome. The scenario names no way to shorten the limit (`tests/test_init_tries.py:83-86`).
 
 ## The boundary picture
 
@@ -39,95 +44,77 @@ From `.xv/slices/2026-10-25-init-tries-guesses.boundary.md`, as given:
 
 - **Modules touched:** `scripts/run`. None added or removed.
 - **Edges:** none added, none removed. **Outbound added:** none.
-- **Tables:** none.
-- **Surface paths:** added `/x`. None removed.
-- **Shape hint:** "a surface path was added or removed". Check 1 explains why this is not a real surface.
+- **Tables:** none. **Surface paths:** none added, none removed.
+- **Shape hints:** none.
 
 ## What the suite asserts after
 
-All five tests are new, in `tests/test_init_tries.py`:
+All 7 tests are in `tests/test_init_tries.py`. The file is new against base `f452d43`.
 
-- When the guessed command passes, the output says "pass" and contains none of `fail`, `timed out` or `timeout`.
-- When one test fails, `xv init` still exits 0. The output says "fail" and contains the failing test's marker text, which comes from the tail.
-- The output gives a number next to "module", and it equals the count of `- ` lines in `.xv/boundary-all.md`.
-- `examples/` and `fixtures/` folders that hold `.py` files are named. A `setups/` folder that holds only `.txt` is not named.
-- A repo with no fixture-like folder names none.
-
-No old assertion moved.
+- **A passing command:** the output's `test_run` says pass, and says neither fail nor timed out (`:28-31`).
+- **The timeout:** the output's `tests` still has a `timeout` key (`:33-34`).
+- **A failing command:** one broken test makes `xv init` report the failure. Init still exits 0, the output says fail, and the tail carries the failing test's marker text (`:36-45`).
+- **The module count:** the output gives a number next to "module". It equals the count of `- ` lines in `.xv/boundary-all.md` (`:47-52`).
+- **Fixture folders:** `examples/` and `fixtures/` with `.py` files are named. `setups/` with only a `.txt` is not (`:54-64`).
+- **An ignored folder:** a git-ignored `.venv/examples/lib.py` is not listed, and a tracked `examples/` still is (`:66-73`).
+- **No fixture folders:** a repo without them names none (`:75-77`).
 
 ## 1. Shape
 
-shape_change: no. shape_breadth: narrow, which matches the forecast's `"shape": "narrow"` (record front matter).
+shape_change: no. shape_breadth: narrow, the same as the forecast (`"shape": "narrow"`, record front matter).
 
-- **Hint "a surface path was added", `/x`:** this does not change the shape. It is a false positive from a string literal used for glob matching, not a route: `scripts/run.py:714-715` `dirs[:] = sorted(d for d in dirs if d not in (".git", XV_DIR)` / `and not match_any(os.path.normpath(os.path.join(rel_dir, d)) + "/x", exclude))`.
-- **Modules and edges:** only `scripts/run` is touched, and no edges or outbound calls were added (boundary picture). Running a shell command from `run.py` is not new: `scripts/run.py:43` `def shell(cmd, cwd, timeout=900, env=None)` already backs `run_suite`. "`init` ... all land in `run.py`" (`.xv/picture.md:22`) stays true.
-- **Surfaces:** `xv init`'s JSON gains `test_run`, `modules` and `fixture_folders`, and `tests` loses `timeout` (`scripts/run.py:796-801`). `skills/xv-init/SKILL.md:32,34` change wording. Both are existing surfaces, "the `xv` CLI, `skills/*/SKILL.md`" (`.xv/picture.md:27`), so this is within the current shape. `defaults/` is untouched (`.xv/picture.md:25`).
-- **Possible brief change, for Sean (see finding 1 above):** `skills/xv-init/SKILL.md:32` adds "if it failed or timed out, show the tail and ask about the command, and do not fix it yourself". Decision 1 (`.xv/picture.md:58`) requires two people and a `CHANGELOG.md` line for a change to "a brief, a may-not list". The diff has no `CHANGELOG.md` change (`git diff --stat` lists 5 files, and `CHANGELOG.md` is not one).
-  - `scripts/run.py:712` `for dirpath, dirs, _ in os.walk(root):` and `:717` `if any(f.endswith(CODE_EXTS) for _, _, fs in os.walk(dirpath) for f in fs):` walk every folder on disk.
-  - The boundary lists files with `git ls-files ... --exclude-standard` (`scripts/boundary.py:194`), so it never sees folders that git ignores.
-  - The default exclude is `["node_modules/**", "vendor/**", ".git/**", ".xv/**"]` (`defaults/config.yml:27`). It has no `.venv`, `build` or `dist`. `match_any` is plain `fnmatch` (`scripts/xvlib.py:328`), so `node_modules/**` does not match `packages/web/node_modules/...`.
-  - Failure case: a Python repo with a `.venv/`, or a monorepo with nested `node_modules`. Any installed package that has an `examples/` or `fixtures/` folder with code shows up in `fixture_folders`. The skill then says "tell the person about each and ask whether it belongs in `source.exclude`" (`skills/xv-init/SKILL.md:34`), which asks about folders the boundary already ignores. No test covers an ignored folder.
+  - The new import is `scripts/run.py:711` `from xvlib import tracked_files`. It uses the existing `run` → `xvlib` edge.
+  - The test run calls `shell` (`scripts/run.py:728`), which already backs `run_suite` (`scripts/run.py:43-57`).
+  - "`init` ... all land in `run.py`" (`.xv/picture.md:22`) still holds.
+- **The fixture scan now matches the boundary's view.** `scripts/run.py:713` `for path in tracked_files(root):` reads `git ls-files -z --cached --others --exclude-standard` (`scripts/xvlib.py:322`). Last round's `os.walk` is gone.
+- **Surfaces:** the JSON from `xv init` gains `test_run`, `modules` and `fixture_folders`, and `tests` is printed whole again (`scripts/run.py:797-802`). The skill text changes at `skills/xv-init/SKILL.md:32,34`. Both are existing surfaces, "the `xv` CLI, `skills/*/SKILL.md`" (`.xv/picture.md:27`).
+- **`defaults/`** is untouched (`.xv/picture.md:25`).
 
 ## 2. Pitch
 
 pitch_contradiction: no.
 
-The pitch says "xv-agents makes it easy for a team or an individual to adopt Xtreme Vibing in a repo" (`.xv/pitch.md:7`). Checking the guessed command and roots at init serves that. Nothing in the change touches who it is for (`.xv/pitch.md:21`) or what it will never do (`.xv/pitch.md:25`).
+"xv-agents makes it easy for a team or an individual to adopt Xtreme Vibing in a repo" (`.xv/pitch.md:7`). Checking the guessed command and roots at init serves that. Nothing in the diff touches who it is for (`.xv/pitch.md:21`) or what it will never do (`.xv/pitch.md:25`).
 
 ## 3. Moved tests
 
 | File | Before | After | Why (the maker's record) | Forced by the scenario? |
 | --- | --- | --- | --- | --- |
-| none | | | | |
+| `tests/test_init_tries.py:28-31` | `assertNotRegex(<whole output>, r"fail\|timed out\|timeout")` | `assertNotRegex(<test_run only>, r"fail\|timed out")` | Sean's order 2 at the merge stop: "Narrow the assertion ... to the test-run outcome, not the whole output" (record, Scenario). The scenario agent made the change in red `51f0321`, not the maker. | Yes. It asserts less on purpose. The broad version forced `tests.timeout` out of the output in the last round. |
 
-  - `tests/test_init_tries.py` hashes to `c1bf0848…`, the same as in `.xv/slices/2026-10-25-init-tries-guesses.wall.json:43`.
-  - `tests/test_init_tries.py:30` `self.assertNotRegex(out, r"fail|timed out|timeout")` also matches the config key `"timeout": 900` that init used to print.
-  - To pass it, the maker stopped printing it: `scripts/run.py:796` `out = {..., "tests": {k: v for k, v in tests.items() if k != "timeout"}}`.
-  - The scenario asks for nothing to be removed from the output. No other test or skill reads `tests.timeout` from init's output (grep of `tests/*.py`, `skills/*/SKILL.md` and `README.md` found none). So the cost is small, but the output lost a field because an assertion was too broad.
+  - `.xv/slices/2026-10-25-init-tries-guesses.wall.json:43` is `fdc9e9e0…`, the same hash as the file at `HEAD`.
+  - The file at `e3d4b25`, the baseline's `commit` field (`wall.json:30`), hashes to `c1bf0848…`.
 
 ## 4. The picture
 
-No edit proposed.
+No edit proposed. What I checked:
 
-  - The module count and list (`.xv/picture.md:21`) are unchanged: no module was added.
-  - "`init` ... land in `run.py`" (`.xv/picture.md:22`) is still true.
-  - Outbound calls (`.xv/picture.md:24`): the boundary shows none added.
-  - `defaults/` (`.xv/picture.md:25`) is untouched.
-  - Surfaces (`.xv/picture.md:27`) are the same set.
-  - Names, users and decisions (`.xv/picture.md:13-17, 30-37, 55-74`) are not made untrue.
-- **Optional:** if Sean wants the picture to record that `xv init` now runs the adopter's test command once, it would fit as a clause on `.xv/picture.md:22`. Nothing currently in the picture is wrong without it.
+- The module count and layout (`.xv/picture.md:21-23`): no module was added.
+- Outbound calls (`.xv/picture.md:24`): none added.
+- `defaults/` (`.xv/picture.md:25`): untouched.
+- Surfaces (`.xv/picture.md:27`): the same set.
+- Names, users and the decisions that bind (`.xv/picture.md:13-17, 30-37, 55-74`): none made untrue.
 
-## 5. Usability (not requested; same evidence rule)
-
-  - `scripts/run.py:726-727` `timeout = int(tests.get("timeout") or 900)` / `code, text = shell(command, root, timeout)`, with `timeout: 900` the default (`defaults/config.yml:23`).
-  - The run happens on every `xv init`, including a re-run where `config.yml` was kept.
-  - On a repo whose suite is slow, a person waits up to 15 minutes in silence. The skill's advice for that case ("A big suite", `skills/xv-init/SKILL.md:33`) only comes after init returns.
-  - `scripts/run.py:723-725` returns `None` when no command was guessed.
-  - The skill names only "`passed`, `failed` ... or `timed out`" (`skills/xv-init/SKILL.md:32`), so an agent running the skill has no instruction for null.
-  - Decision 12 says a check that cannot run "stops for a person; it never passes" (`.xv/picture.md:69`). Null does not pass, but nothing tells the agent to raise it.
+Decision 1 (`.xv/picture.md:58`) is met. The brief change carries a CHANGELOG line, and "two people" is `solo` for this repo (`.xv/picture.md:50`).
 
 ## Door
 
-**Door:** two-way. Reverting the commit removes the output fields and the skill text, and no data is migrated. **Blast radius:** init.
+**Door:** two-way. A revert removes the three output fields, the skill text and the CHANGELOG line. No data is migrated and nothing is sent to users. **Blast radius:** init.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-10-25-init-tries-guesses.md`
-- Diff: `git diff f452d430f44f6c01e611f705f5b709b80231291b..HEAD` (5 files: `scripts/run.py`, `skills/xv-init/SKILL.md`, `tests/test_init_tries.py`, and the record and wall files)
-- Wall: `xv wall diff 2026-10-25-init-tries-guesses` (baseline in `.xv/slices/2026-10-25-init-tries-guesses.wall.json`)
+- Diff: `git diff f452d430f44f6c01e611f705f5b709b80231291b..HEAD`. The code is in `scripts/run.py`, `skills/xv-init/SKILL.md`, `tests/test_init_tries.py` and `CHANGELOG.md`.
+- Wall: `xv wall diff 2026-10-25-init-tries-guesses` (baseline `.xv/slices/2026-10-25-init-tries-guesses.wall.json`)
 - Boundary: `.xv/slices/2026-10-25-init-tries-guesses.boundary.md` (`xv boundary --base f452d430f44f`)
 
 ## Dropped by the evidence rule
 
 These findings cite no line, rule or hunk, so they do not count.
 
-- The fixture scan does not match how the boundary sees the repo.**
-- What I compared:**
-- The record has `moved_tests: []`.
-- The maker's and cleaner's wall checks show `changed: []`, `deleted: []`, `added: []`, `fewer_assertions: []`, `unrecorded: []` against baseline `dae3f44`.
-- `git diff --stat 5f42e9e..HEAD -- tests` is empty.
-- I could not run `xv wall diff` myself because the command needed approval. The comparison above uses the watch's recorded wall checks and the hash instead.
-- A new test that shaped the code beyond the scenario, for Sean:**
-- What I looked at:**
-- `xv init` can block for up to `tests.timeout` before printing anything.**
-- `test_run: null` is not covered by the skill.**
+- Modules, edges and outbound calls:** only `scripts/run` is touched, and nothing is added (boundary picture).
+- The diff's 772 lines (record, `diff_history`)** are mostly the slice's own files: the boundary, the packet, the record and the wall. Code, skill, tests and CHANGELOG come to about 130 lines (`git diff --stat`).
+- This is the only change to a test. It is a test this slice wrote in its first round, not an old test from `main`. That is why the record has `moved_tests: []`.
+- `xv wall diff` will not show it, because the wall's hash for the file is the post-red one:
+- The maker's and cleaner's wall checks show `changed: []` and `fewer_assertions: []` (record, `checks`).
+- The guardian could not run `xv wall diff` itself; the command needed approval.
