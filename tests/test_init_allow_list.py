@@ -94,5 +94,6 @@ class InitAllowListTest(RepoCase):
 
 # Watch first: run `xv init` in a scratch repo and read the agents block of .xv/config.yml.
 # The default line lists read-only shell and git commands, git rm/mv, xv record move and your
-# test command; the forecaster's list is shorter; the guardian's adds only the test command.
+# test command, one rule per part; the forecaster's list is read-only; the guardian's adds the
+# test command's rules and xv wall diff, xv boundary and xv packet lint.
 # Look for a test command that is allowed in a form a headless agent could not actually run.
