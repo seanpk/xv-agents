@@ -11,44 +11,51 @@ blast_radius: small
 
 # Packet: The next agent sees the person's answer; xv slice amend
 
-Nothing here stops the change for two people. Sean, as the person who set the work going, has three things to decide: (a) the answer is carried to every later agent, not only the next one; (b) no `CHANGELOG.md` line, though every agent's prompt input changed; (c) an edit to the picture. The merge is Sean's.
+Nothing here needs two people. Sean, as the person who set the work going, has three things to decide. Two of the three items settled at the last accept stop are not in the diff: the README line 211 edit and the `CHANGELOG.md` line. An answer given in the same second as the last report never reaches any agent. The merge is Sean's.
 
 ## The scenario
 
-After a person answers a stop, the next agent's prompt (`xv prompt`) carries that answer word for word, under its own heading. `xv slice amend <id> --by <name> --scenario-file <f>` appends the text to the scenario with the date and the name, clears `red`, and sets `next` to `scenario`. (seanpk/xv-agents#18; Sean approves any brief change, solo.)
+After a person answers a stop, the next agent's prompt (`xv prompt`) includes that answer word for word, under its own heading. `xv slice amend <id> --by <name> --scenario-file <f>` appends the text to the scenario with the date and the name, clears `red`, and sets `next` to `scenario`. Settled by Sean on 2026-10-26: (1) the answer goes only to the next agent, and a test shows the agent after that one does not get it; (2) update README line 211; (3) add a `CHANGELOG.md` line under Unreleased.
 
 May ignore: amending may-ignore, the budget, or the kind.
 
 ## The recording
 
-None, because a feature starts from words. Replay: `cd tests && python3 -m unittest test_answer_in_prompt`. Before the change, 4 of 5 tests fail (`'2 ok (…)' not found in the maker prompt`; `invalid choice: 'amend'`). After it, all 5 pass. I re-ran this and got `Ran 5 tests … OK`. The cleaner recorded the whole suite green: 131 tests.
+None, because a feature starts from words. Replay: `cd tests && python3 -m unittest test_answer_in_prompt`. Red (record): `'2 ok (…)' unexpectedly found in the cleaner prompt`. I re-ran it now: `Ran 6 tests … OK`. Whole suite: `Ran 132 tests … OK`.
 
 ## The boundary picture
 
-From `xv boundary` (`.xv/slices/2026-10-25-answer-in-prompt.boundary.md`), as given: touched `scripts/prompt`, `scripts/run`. No modules added or removed, no edges added or removed, no new outbound calls, no tables, no surface paths. No shape hints.
+From `.xv/slices/2026-10-25-answer-in-prompt.boundary.md`, as given: it touches `scripts/prompt` and `scripts/run`. No modules, edges, outbound calls, tables or surface paths were added or removed, and there are no shape hints.
 
 ## What the suite asserts after
 
-- After a stop is answered, `xv prompt maker` contains the answer verbatim, with a heading containing "answer" above it.
+- After a stop is answered, `xv prompt maker` contains the answer verbatim, under a heading containing "answer".
 - With no answered stop, the prompt has no answer.
-- `xv slice amend` keeps the old scenario text and puts the new text after it, with today's date and the amender's name within 200 characters. It sets `red` to null and `next` to `scenario`.
-- Amend leaves `kind`, `budget` and `title` alone, and leaves exactly one `## May ignore` heading.
-- Amend without `--by` fails, and not with "invalid choice".
+- After the maker reports, `xv prompt cleaner` no longer carries the answer (new this round, `tests/test_answer_in_prompt.py:29-42`).
+- `xv slice amend` keeps the old scenario text and puts the new text after it, with today's date and the amender's name nearby. It sets `red` to null and `next` to `scenario`. It leaves `kind`, `budget`, `title` and the single `## May ignore` alone. It fails without `--by`.
+
+## For Sean (not stops)
+
+1. **The README line was not changed.** Item (2) of the settled scenario asks for an edit to `README.md:211`: "Nothing is restated that the agent can read itself." `git diff --stat f452d430..HEAD -- README.md` is empty. The line is now untrue: `scripts/prompt.py:142` puts `answer_section(data)` into every prompt, and that section restates `stops[].answer` from the record.
+2. **There is no `CHANGELOG.md` line.** Item (3) asks for one, and `.xv/picture.md:58` requires one: "A change to a brief, … needs two people and a line in `CHANGELOG.md`." `git diff --stat f452d430..HEAD -- CHANGELOG.md` is empty, and `CHANGELOG.md:5-7` (Unreleased) still has only the promote entry.
+3. **An answer in the same second as a report is lost.** `scripts/prompt.py:109`: `if any((r.get("at") or "") >= since for r in …reports…): return ""`. Both timestamps are to the second, and `>=` treats a report from the same second as coming after the answer. This slice's own record shows the case: the forecaster reported at `2026-10-25T04:26:16+00:00`, and Sean answered `budget_not_set` at `2026-10-25T04:26:16+00:00`. Under this code, the scenario agent, which ran next, would not get "yes, run them …". The scenario says the next agent gets the answer. The new test (`tests/test_answer_in_prompt.py:29-42`) uses timestamps far apart, so it does not catch this.
+
+Also noted, with no decision needed: the cleaner reported that its commit was refused (`checks.reports[-1]`, `cleaner_commit: null`). Its edit to `scripts/prompt.py:103-109` is nonetheless in HEAD, in `b14d42b` ("record the cleaner's pass"), and the worktree is clean. The record and the diff agree on the code.
 
 ## 1. Shape
 
 shape_change: no. shape_breadth: narrow (the forecast expected `narrow`).
 
-- `scripts/run.py:813-820` adds a subcommand, `xv slice amend`. It goes to `run.py`, where `slice` already lands (`.xv/picture.md:22`: "`init`, `slice`, `run`, `step`, `close` and `guard` all land in `run.py`"). The `xv` CLI is already a surface (`.xv/picture.md:27`). This adds a verb to an existing surface, not a new surface.
-- `scripts/run.py:33` adds an import of `today` from `xvlib`. The `run` → `xvlib` edge already exists.
-- `scripts/prompt.py:101-109`: `answer_section` reads `data["stops"]`, the record data `prompt` already loads. No new dependency.
+- `scripts/prompt.py:101-114` adds `answer_section`, which reads `stops` and `checks.reports` from the record data `build` already loads. It adds no new import and no new edge.
+- `scripts/run.py:816-820` adds the verb `xv slice amend`. Per `.xv/picture.md:22`, "`init`, `slice`, `run`, … all land in `run.py`", and the `xv` CLI is already a surface (`.xv/picture.md:27`). This is a new verb on an existing surface.
+- `scripts/run.py:33` adds an import of `today` from `xvlib`, an edge that already exists.
 
 ## 2. Pitch
 
 pitch_contradiction: no.
 
-- `.xv/pitch.md:7`: "makes it easy for a team or an individual to adopt Xtreme Vibing in a repo: to vibe with discipline." Putting the person's answer in front of the agent, and giving people a recorded way to change scope, serves this line.
-- `.xv/pitch.md:25` ("not for people or projects that will not trust agents to write production code") does not bear on this change.
+- `.xv/pitch.md:7`: "makes it easy for a team or an individual to adopt Xtreme Vibing in a repo: to vibe with discipline." Putting a person's answer in front of the agent that has to act on it, and giving people a recorded way to change scope, both serve this line.
+- `.xv/pitch.md:25` ("not for people or projects that will not trust agents to write production code. It will never be a teapot.") does not bear on this change.
 
 ## 3. Moved tests
 
@@ -57,39 +64,30 @@ pitch_contradiction: no.
 | none | | | | |
 
 What I looked at:
-- `git diff --stat 0950a03..HEAD -- tests`: only `tests/test_answer_in_prompt.py` (new, +78). That file is the red.
-
-I could not run `xv wall diff` in this session: permission was denied.
-
-### For Sean (not stops)
-
-- **The answer goes to every later agent, not only the next one.** At `scripts/prompt.py:103-106`, `answered = [s for s in … if s.get("answer")]` … `st = answered[-1]`. Nothing checks whether a step has run since the answer, and `scripts/prompt.py:138` adds the section to every agent's prompt. In this slice, the `budget_not_set` answer ("yes, run them (the same budget as before …)") would go into the scenario, maker, cleaner and guardian prompts. The scenario says "the next agent's prompt". The test only checks the maker right after the answer, so the suite does not pin this either way.
-- **No `CHANGELOG.md` line.** `.xv/picture.md:58`: "A change to a brief, a may-not list, a standing order, or a check an agent is judged by needs two people and a line in `CHANGELOG.md`." `scripts/prompt.py:138` changes the input every agent gets, though not any `SKILL.md`. The scenario says "Sean approves any brief change, solo", which reads as if Sean expected it to count. The diff touches no `CHANGELOG.md`.
-- **`amend` does not check status.** `scripts/run.py:222-238` sets `next` to `scenario` on any slice, including a `closed` one. The scenario does not ask for a guard.
-- **No docs updated.** `docs/slice-record.md:17` says `next` is set by "the watch", and `:20` says `red` is set by "the scenario agent". `xv slice amend` now sets both. `skills/xv-slice/SKILL.md` and the README do not mention `amend`.
+- `git diff 272b369..HEAD --stat -- tests` (the wall baseline): `tests/test_answer_in_prompt.py | 16 +++`, with 0 lines removed. That is the new class `AnswerReachesOnlyTheNextAgentTest`, the red.
 
 ## 4. The picture
 
-Nothing in `.xv/picture.md` becomes untrue. The diff makes two places incomplete. Proposed edits, for Sean to accept:
+Sean's settled scenario says the picture needs no edit once README line 211 is updated. That README edit is not in the diff (finding 1 above), so the picture is incomplete as things stand:
 
-- `.xv/picture.md:39-42` ("Where the code and the docs disagree"): add "README line 211 says `xv prompt` builds the agent's input from the skill's body and pointers, and 'Nothing is restated that the agent can read itself.' Since 2026-10-25-answer-in-prompt, the prompt also restates the latest answered stop word for word (`scripts/prompt.py:101`)." Or, if Sean prefers, fix the README in a later slice and leave the picture as it is.
-- `.xv/picture.md:22`: optionally name `slice new` and `slice amend` as the two `slice` verbs, so readers know a person can change a running slice's scope.
+- `.xv/picture.md:39-40`, "Where the code and the docs disagree … the README is behind": while `README.md:211` stays as it is, add "README line 211 says the prompt restates nothing the agent can read itself. Since 2026-10-25-answer-in-prompt, `xv prompt` also restates the latest answered stop, until an agent reports after it (`scripts/prompt.py:101`)." Fixing the README instead makes this edit unnecessary.
+- `.xv/picture.md:70`, decision 13 ("points to files rather than restating them"): this decision is about briefs, and the answer section belongs to the prompt's pointers, not the brief. If Sean wants that boundary on record, add "the prompt may carry the latest answer to a stop, for the next agent only."
 
 ## Door
 
-**Door:** two-way. A revert removes the prompt section and the subcommand. No data is migrated, and records amended before a revert keep valid Markdown. **Blast radius:** small.
+**Door:** two-way. A revert removes the prompt section and the `amend` verb. No data is migrated, and a record amended before a revert stays valid Markdown. **Blast radius:** small.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-10-25-answer-in-prompt.md`
-- Diff: `git diff f452d430f44f6c01e611f705f5b709b80231291b..HEAD`
-- Wall: `xv wall diff 2026-10-25-answer-in-prompt` (baseline `0950a037`, 26 files)
+- Diff: `git diff f452d430f44f6c01e611f705f5b709b80231291b..b14d42b`
+- Wall: `xv wall diff 2026-10-25-answer-in-prompt` (baseline `272b369`, 26 files)
 - Boundary: `xv boundary --base f452d430f44f6c01e611f705f5b709b80231291b`, saved at `.xv/slices/2026-10-25-answer-in-prompt.boundary.md`
 
 ## Dropped by the evidence rule
 
 These findings cite no line, rule or hunk, so they do not count.
 
-- `xv boundary` reports no added edges, modules, tables or surfaces, and no shape hints.
-- The record's `moved_tests: []`.
-- The wall check after the maker and after the cleaner: `changed: [], deleted: [], added: [], fewer_assertions: [], unrecorded: [], ok: true`.
+- The watch's diff-growth stop (226 to 737 lines) counted record, boundary and packet files. Under `scripts/` the code diff is +41/−2 (`git diff --stat`).
+- The record's wall checks after the maker and after the cleaner: `changed: [], deleted: [], fewer_assertions: [], unrecorded: [], ok: true`. The record has `moved_tests: []`.
+- I could not run `xv wall diff 2026-10-25-answer-in-prompt` in this session because permission was refused.
