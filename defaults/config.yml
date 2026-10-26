@@ -21,7 +21,7 @@ worktrees: .xv/worktrees
 #   # A non-zero exit is a stop for the person who set the work going.
 #   setup: "npm ci"
 #   # Run the same way when the slice closes.
-#   teardown: "docker compose -p {worktree} down"
+#   teardown: "rm -rf {worktree}/node_modules"
 
 tests:
   # What the wall hashes. Every file matching one of these is a test file.
