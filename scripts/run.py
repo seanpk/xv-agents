@@ -242,8 +242,9 @@ def cmd_slice_new(a):
     print(wt)
     failed = run_worktree_command(wcfg.get("setup"), wt)
     if failed:
+        command, code, last = failed
         path, data, body = record.load(wt, a.id)
-        question = f"the worktree setup `{failed[0]}` failed ({failed[1]}); its last output:\n{failed[2]}"
+        question = f"the worktree setup `{command}` failed ({code}); its last output:\n{last}"
         data["stops"].append({"at": now(), "step": "setup", "order": "setup_failed", "seat": "originator",
                               "question": question, "answered_by": [], "answer": None})
         data["status"] = "stopped"
@@ -581,7 +582,8 @@ def close(slice_id, why=None, shape=None):
     commit(root, f"xv({slice_id}): close")
     failed = run_worktree_command(worktrees_config(config).get("teardown"), root)
     if failed:
-        print(f"xv: worktree teardown `{failed[0]}` failed ({failed[1]}): {failed[2]}", file=sys.stderr)
+        command, code, last = failed
+        print(f"xv: worktree teardown `{command}` failed ({code}): {last}", file=sys.stderr)
     if data.get("trial"):
         from xvlib import main_root
         if main_root(root) != root:
