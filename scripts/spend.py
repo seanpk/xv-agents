@@ -162,13 +162,17 @@ def from_run(result):
 
 # ---------------------------------------------------------------- budget
 
+def row_tokens(s):
+    """A row's tokens: input + output + cache write when it keeps the raw counts, else its stored total."""
+    if "cache_read" in s:
+        return sum(int(s.get(k) or 0) for k in ("tokens_in", "tokens_out", "cache_write"))
+    return int(s.get("tokens") or 0)
+
+
 def totals(spend):
     t = {"tokens": 0, "usd": 0.0, "turns": 0, "wall_s": 0.0, "usd_known": True}
     for s in spend:
-        if "cache_read" in s:
-            t["tokens"] += sum(int(s.get(k) or 0) for k in ("tokens_in", "tokens_out", "cache_write"))
-        else:
-            t["tokens"] += int(s.get("tokens") or 0)
+        t["tokens"] += row_tokens(s)
         t["turns"] += int(s.get("turns") or 0)
         t["wall_s"] += float(s.get("wall_s") or 0)
         if s.get("usd") is None:
