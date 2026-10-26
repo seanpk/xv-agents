@@ -2,12 +2,12 @@
 id: 2026-10-25-init-tries-guesses
 title: xv init tries its guessed test command and roots
 kind: defect
-status: ready
+status: working
 set_by: Sean Kennedy
 created: 2026-10-25
 branch: xv/2026-10-25-init-tries-guesses
 base: f452d430f44f6c01e611f705f5b709b80231291b
-next: close
+next: scenario
 forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 700000, "turns": null, "usd": 0.48, "basis": ["2026-10-24-readme-drift", "2026-10-24-promote-draft"]}, {"harness": "claude", "model": "opus", "tokens": 450000, "turns": null, "usd": 0.59, "basis": ["2026-10-24-readme-drift", "2026-10-24-promote-draft"]}], "wall_s": 290, "shape": "narrow", "breadth": "One init step (timeout, pass/fail/timeout, output tail), module count and fixture scan in output, and the skill text that explains them; scenario and maker carry most tokens."}
 budget: {"tokens": 1500000, "usd": 5, "turns": 60, "set_by": "Sean Kennedy"}
 red: {"files": ["tests/test_init_tries.py"], "command": "cd tests && python3 -m unittest test_init_tries", "failure": "AssertionError: Regex didn't match: 'fail' not found in '{ \"written\": [...], \"kept\": [], \"tests\": {...} }'", "watch_first_green": "init prints \"passed\" for the guessed test command; break one test and see \"failed\" with the last lines of its output; the module count matches the lines of .xv/boundary-all.md; a code file under examples/ makes that folder named. A timeout is not covered: the scenario names no way to shorten the limit."}
@@ -19,7 +19,7 @@ packet: .xv/slices/2026-10-25-init-tries-guesses.packet.md
 shape_change: no
 pitch_contradiction: no
 spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 3263, "cache_read": 25039, "cache_write": 5601, "tokens": 33907, "usd": 0.003, "turns": 3, "wall_s": 17.1, "session": "05e280a6-6762-4122-ab45-7fdfa005b03b", "step": "forecaster", "at": "2026-10-25T04:26:15+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-25-init-tries-guesses/01-forecaster.out"}, {"harness": "claude", "model": "sonnet", "model_id": "claude-sonnet-5-5", "tokens_in": 20, "tokens_out": 4604, "cache_read": 200489, "cache_write": 21989, "tokens": 227102, "usd": 0.1541, "turns": 13, "wall_s": 38.2, "session": "a36fede9-3160-4559-aa2a-6edcbae62b4b", "step": "scenario", "at": "2026-10-25T04:26:53+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-25-init-tries-guesses/02-scenario.out"}, {"harness": "claude", "model": "sonnet", "model_id": "claude-sonnet-5-5", "tokens_in": 34, "tokens_out": 6167, "cache_read": 434128, "cache_write": 28028, "tokens": 468357, "usd": 0.2173, "turns": 21, "wall_s": 112.9, "session": "985f6271-da9e-431a-a4eb-c2cad62fea8c", "step": "maker", "at": "2026-10-25T04:28:46+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-25-init-tries-guesses/03-maker.out"}, {"harness": "claude", "model": "sonnet", "model_id": "claude-sonnet-5-5", "tokens_in": 14, "tokens_out": 1248, "cache_read": 107940, "cache_write": 8939, "tokens": 118141, "usd": 0.0591, "turns": 8, "wall_s": 131.8, "session": "c60ef00f-3c89-4e5e-91eb-54b21d1ceee0", "step": "cleaner", "at": "2026-10-25T04:31:56+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-25-init-tries-guesses/04-cleaner.out"}, {"harness": "claude", "model": "opus", "model_id": "claude-opus-5-5", "tokens_in": 26, "tokens_out": 13798, "cache_read": 446972, "cache_write": 40978, "tokens": 501774, "usd": 0.6933, "turns": 20, "wall_s": 138.7, "session": "06041c1a-a6e7-41e7-8a39-7ea3583eb009", "step": "guardian", "at": "2026-10-25T04:35:13+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-25-init-tries-guesses/05-guardian.out"}]
-stops: [{"at": "2026-10-25T04:26:15+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-25-init-tries-guesses budget ... --by <name>`).", "answered_by": ["Sean Kennedy"], "answer": "yes, run them (the same budget as before: 1,500,000 tokens, $5, 60 turns)", "also": [], "answered_at": "2026-10-25T04:26:15+00:00"}, {"at": "2026-10-25T04:35:13+00:00", "step": "guardian", "order": "ready_to_merge", "seat": "originator", "question": "The suite is green and nothing stopped. The merge is yours.", "answered_by": [], "answer": null, "also": []}]
+stops: [{"at": "2026-10-25T04:26:15+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-25-init-tries-guesses budget ... --by <name>`).", "answered_by": ["Sean Kennedy"], "answer": "yes, run them (the same budget as before: 1,500,000 tokens, $5, 60 turns)", "also": [], "answered_at": "2026-10-25T04:26:15+00:00"}, {"at": "2026-10-25T04:35:13+00:00", "step": "guardian", "order": "ready_to_merge", "seat": "originator", "question": "The suite is green and nothing stopped. The merge is yours.", "answered_by": ["Sean Kennedy"], "answer": "24: merge\n19: find the root, yes\n18: agreed\n16: ok\n14: agreed\n\nso, as I understand you,  all picks", "also": [], "answered_at": "2026-10-26T14:03:10+00:00"}]
 decisions: []
 prototypes: []
 overrides: []
@@ -30,6 +30,8 @@ checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forec
 ## Scenario
 
 `xv init` runs the test command it chose once, with a time limit, and its output says whether the command passed, failed (with the last lines of its output), or timed out. The output also gives the number of modules in `.xv/boundary-all.md` and lists any folder that looks like a fixture (a name such as `fixture`, `fixtures`, `examples` or `setups`, holding code). The skill tells the person about each. (seanpk/xv-agents#14)
+
+Settled at the guardian's merge stop, 2026-10-26, Sean: (1) the fixture scan looks only at folders that hold files git tracks (as `xv boundary` does, with `git ls-files --exclude-standard`), so `.venv` or a nested `node_modules` is never listed. Add a test with an ignored folder. (2) Put `tests.timeout` back in init's output. Narrow the assertion in `tests/test_init_tries.py:30` to the test-run outcome, not the whole output. (3) The skill says what to do when `test_run` is null (no command guessed: ask the person for one) and warns that the run can take up to `tests.timeout` seconds. (4) Add a line to `CHANGELOG.md` under Unreleased: `xv-init` gained a may-not line, Sean, solo.
 
 ## May ignore
 
@@ -50,3 +52,5 @@ None. A feature starts from words.
 - 2026-10-25T04:31:56+00:00 cleaner: done: Nothing to fix; diff matches surrounding style, suite green (131 tests), no commit
 - 2026-10-25T04:35:13+00:00 guardian: done: Narrow, in-shape change; no pitch contradiction, no moved tests; originator to rule on xv-init 'do not fix it yourself' vs decision 1 (no CHANGELOG line), fixture scan walking git-ignored dirs, test-forced drop of tests.timeout, and null/long-run cases the skill omits
 - 2026-10-25T04:35:13+00:00 watch: stop (ready_to_merge) for originator: The suite is green and nothing stopped. The merge is yours.
+- 2026-10-26T14:03:10+00:00 Sean Kennedy: answered ready_to_merge: 24: merge 19: find the root, yes 18: agreed 16: ok 14: agreed so, as I understand you, all picks
+- 2026-10-26T14:03:43+00:00 watch: set next
