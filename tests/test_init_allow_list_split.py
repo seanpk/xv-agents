@@ -68,6 +68,7 @@ class InitAllowListSplitTest(RepoCase):
         for files, red in cases:
             with self.subTest(red=red):
                 shutil.rmtree(os.path.join(self.repo, ".xv"), ignore_errors=True)
+                sh(["git", "clean", "-fdxq"], self.repo)
                 for f in files:
                     self.touch(*f)
                 config = self.init()
