@@ -11,6 +11,17 @@ record_home: file
 # the repo. Not under .git/: Claude Code refuses writes there. If your test
 # runner scans hidden directories, add .xv/worktrees to its ignore list.
 worktrees: .xv/worktrees
+# Or a block, to start slices from the right base and set each worktree up:
+# worktrees:
+#   path: .xv/worktrees
+#   # The ref a slice branch starts from. Without it: the remote's default
+#   # branch (origin/HEAD), or HEAD when there is no remote. `xv slice new --base` beats it.
+#   base: origin/main
+#   # Run in the new worktree before the forecaster; {worktree} is its path.
+#   # A non-zero exit is a stop for the person who set the work going.
+#   setup: "npm ci"
+#   # Run the same way when the slice closes.
+#   teardown: "docker compose -p {worktree} down"
 
 tests:
   # What the wall hashes. Every file matching one of these is a test file.

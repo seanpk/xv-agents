@@ -30,7 +30,7 @@ import prompt as promptlib  # noqa: E402
 import record  # noqa: E402
 import spend as spendlib  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, git, load_config, match_any, now,  # noqa: E402
-                   record_path, repo_root, slice_root, today, worktrees_dir)
+                   record_path, repo_root, slice_root, today, worktrees_config, worktrees_dir)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 XV_HOME = os.path.dirname(HERE)
@@ -169,6 +169,28 @@ def bring_back(slice_root_dir, main, slice_id):
 
 # ---------------------------------------------------------------- slice new
 
+def resolve_base(root, ref):
+    """The commit a slice starts from: the ref given, else the remote's default branch, else HEAD."""
+    if not ref:
+        p = subprocess.run(["git", "rev-parse", "--verify", "-q", "refs/remotes/origin/HEAD^{commit}"],
+                           cwd=root, capture_output=True, text=True)
+        ref = "refs/remotes/origin/HEAD" if p.returncode == 0 else "HEAD"
+    return git(["rev-parse", "--verify", ref + "^{commit}"], root).strip()
+
+
+def run_worktree_command(command, wt):
+    """Run a worktrees.setup or teardown command in the worktree. None when it passed or is unset;
+    otherwise (command, exit code, its last lines)."""
+    if not command:
+        return None
+    command = command.replace("{worktree}", wt)
+    p = subprocess.run(command, shell=True, cwd=wt, capture_output=True, text=True)
+    if p.returncode == 0:
+        return None
+    last = "\n".join((p.stdout + p.stderr).strip().splitlines()[-10:])
+    return command, p.returncode, last
+
+
 def cmd_slice_new(a):
     root = repo_root()
     config = load_config(root)
@@ -184,7 +206,8 @@ def cmd_slice_new(a):
                       "(or try XV without committing it: xv init --trial)")
     wt = os.path.join(worktrees_dir(root, config), a.id)
     branch = a.branch or f"xv/{a.id}"
-    base = git(["rev-parse", "HEAD"], root).strip()
+    wcfg = worktrees_config(config)
+    base = resolve_base(root, a.base or wcfg.get("base"))
     os.makedirs(os.path.dirname(wt), exist_ok=True)
     git(["worktree", "add", "-q", "-b", branch, wt, base], root)
     trial = is_trial(root)
@@ -217,6 +240,17 @@ def cmd_slice_new(a):
     record.save(path, data, body)
     commit(wt, f"xv({a.id}): open slice")
     print(wt)
+    failed = run_worktree_command(wcfg.get("setup"), wt)
+    if failed:
+        path, data, body = record.load(wt, a.id)
+        question = f"the worktree setup `{failed[0]}` failed ({failed[1]}); its last output:\n{failed[2]}"
+        data["stops"].append({"at": now(), "step": "setup", "order": "setup_failed", "seat": "originator",
+                              "question": question, "answered_by": [], "answer": None})
+        data["status"] = "stopped"
+        body = record.log_line(body, "watch", f"stop (setup_failed) for originator: {question}")
+        record.save(path, data, body)
+        commit(wt, f"xv({a.id}): setup failed")
+        sys.exit(EXIT_STOP)
 
 
 def cmd_slice_amend(a):
@@ -545,6 +579,9 @@ def close(slice_id, why=None, shape=None):
     body = record.log_line(body, "watch", "closed" + ("" if p.returncode == 0 else f"; guide: {p.stderr.strip()}"))
     record.save(path, data, body)
     commit(root, f"xv({slice_id}): close")
+    failed = run_worktree_command(worktrees_config(config).get("teardown"), root)
+    if failed:
+        print(f"xv: worktree teardown `{failed[0]}` failed ({failed[1]}): {failed[2]}", file=sys.stderr)
     if data.get("trial"):
         from xvlib import main_root
         if main_root(root) != root:
@@ -892,6 +929,7 @@ def main(argv=None):
     n.add_argument("--ignore")
     n.add_argument("--recording")
     n.add_argument("--branch")
+    n.add_argument("--base", help="the ref the slice branch starts from (default: worktrees.base, then origin/HEAD, then HEAD)")
     n.add_argument("--axis", help="for a prototype slice: the one axis the three differ on")
     n.set_defaults(fn=cmd_slice_new)
     m = ss.add_parser("amend")

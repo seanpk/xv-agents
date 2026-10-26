@@ -21,7 +21,7 @@ import sys
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from xvlib import XV_DIR, XVError, die, load_config, repo_root  # noqa: E402
+from xvlib import XV_DIR, XVError, die, load_config, repo_root, worktrees_config  # noqa: E402
 
 XV_HOME = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AGENTS = ["watch", "forecaster", "scenario", "maker", "cleaner", "guardian", "listener"]
@@ -70,6 +70,11 @@ def relaxations(root):
     if ((config.get("seats") or {}).get("two_people") or "") == "solo":
         hits.append({"where": f"{XV_DIR}/config.yml", "line": "seats.two_people: solo", "declared": True,
                      "why": "solo: one person answers the two-person stops (declared, and allowed)"})
+    for key in ("setup", "teardown"):
+        cmd = worktrees_config(config).get(key)
+        if cmd:
+            hits.append({"where": f"{XV_DIR}/config.yml", "line": f"worktrees.{key}: {cmd}", "declared": True,
+                         "why": f"runs a command in each slice's worktree ({key}; declared, and allowed)"})
     agents = config.get("agents") or {}
     if agents.get("scenario") == "session" and agents.get("maker") == "session":
         hits.append({"where": f"{XV_DIR}/config.yml", "line": "agents.scenario and agents.maker: session",
