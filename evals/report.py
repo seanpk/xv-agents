@@ -9,6 +9,10 @@ import argparse
 import glob
 import json
 import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+from spend import row_tokens  # noqa: E402
 
 
 def load(d):
@@ -49,7 +53,7 @@ def details(runs):
         for a in r["assertions"]:
             out.append(f"- {'pass' if a['pass'] else 'FAIL'} `{a['name']}`: {a['detail']}")
         spend = r.get("spend") or []
-        tok = sum(int(s.get("tokens") or 0) for s in spend)
+        tok = sum(row_tokens(s) for s in spend)
         usd = sum(float(s.get("usd") or 0) for s in spend)
         wall = sum(float(s.get("wall_s") or 0) for s in spend)
         out.append(f"- spend: {tok} tokens, ${usd:.2f}, {wall:.0f} s")
