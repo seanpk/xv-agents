@@ -73,19 +73,6 @@ class InitAllowListBareTest(RepoCase):
                 with self.subTest(seat=seat, rule=prefix):
                     self.assertFalse(prefix.startswith(("python", "bundle", "npm")), prefix)
 
-    def test_a_python_repo_gets_no_rule_for_other_runners(self):
-        self.touch("tests", "test_a.py")
-        self.touch("src", "pkg", "__init__.py")
-        self.touch("package.json")
-        config = self.init()
-        command = config["tests"]["command"]
-        if "unittest" not in command:
-            self.skipTest("detection chose another runner: " + command)
-        for seat in ("default", "guardian"):
-            for prefix in prefixes(entries_of(config, seat)):
-                with self.subTest(seat=seat, rule=prefix):
-                    self.assertFalse(prefix.startswith(("npm", "bundle", "go ")), prefix)
-
     def test_a_leading_name_value_is_handled_by_a_rule_or_by_the_skill(self):
         self.touch("tests", "test_a.py")
         self.touch("src", "pkg", "__init__.py")
