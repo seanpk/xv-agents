@@ -9,8 +9,8 @@ Readers:
 
 Each reader returns one spend item: harness, model (as the config names it),
 model_id (as the harness reports it), tokens_in, tokens_out, cache_read,
-cache_write, tokens (input + output + cache write, no cache reads), usd (null where the harness does not
-report dollars), turns, wall_s.
+cache_write, tokens (input + output + cache write, no cache reads), usd (null
+where the harness does not report dollars), turns, wall_s.
 
 Usage:
   xv spend read <reader> <file-or-session-id> [--model NAME]
