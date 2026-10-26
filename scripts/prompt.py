@@ -75,7 +75,7 @@ def pointers(agent, root, config, data=None, extra=None):
         keys = [f"{a} on {'/'.join(agent_key(config, a))}"
                 for a in ("scenario", "maker", "cleaner", "guardian")]
         lines.append(f"- Agents on this slice: {'; '.join(keys)}.")
-    xv = shutil.which("xv") or os.path.join(XV_HOME, "bin", "xv")
+    xv = "xv" if shutil.which("xv") else os.path.join(XV_HOME, "bin", "xv")
     lines.append(f"- The `xv` command: `{xv}`.")
     for line in extra or []:
         lines.append(f"- {line}")
