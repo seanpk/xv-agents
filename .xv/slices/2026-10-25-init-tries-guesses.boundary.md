@@ -4,7 +4,7 @@ From `f452d430f44f` to the working tree. Source: xv boundary (ast and regex). Ge
 
 ## Shape hints
 
-- a surface path was added or removed
+- none
 
 ## Modules
 
@@ -105,7 +105,7 @@ flowchart LR
 
 ## Surface paths
 
-- added: /x
+- added: none
 - removed: none
 
 <details><summary>JSON</summary>
@@ -126,9 +126,7 @@ flowchart LR
   "removed": []
  },
  "surfaces": {
-  "added": [
-   "/x"
-  ],
+  "added": [],
   "removed": []
  },
  "after": {
@@ -383,9 +381,7 @@ flowchart LR
   ]
  },
  "source": "xv boundary (ast and regex)",
- "shape_hints": [
-  "a surface path was added or removed"
- ]
+ "shape_hints": []
 }
 ```
 </details>
