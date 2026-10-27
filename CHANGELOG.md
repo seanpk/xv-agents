@@ -2,6 +2,10 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
+## Unreleased
+
+- The wall sees old tests in a red file. A red file that existed at the base is covered only for the tests the slice added: a changed or deleted line in it is `unrecorded` in the CI form (`xv wall check --base`) unless a recorded move names the file. A red file new in the slice is covered whole, as before. This changes a check; Sean decided it, solo ([#53](https://github.com/seanpk/xv-agents/issues/53)).
+
 ## 0.3.0, 2026-10-27
 
 The first changes from slices: this repo's own, each run by the watch and decided by Sean solo, and the first trial slices on a large existing Rails and TypeScript app, reported in issues. Built by Claude (Opus 5.5, with Haiku, Sonnet and Opus agents in each slice) on Sean Kennedy's direction of 2026-10-25 to 2026-10-27. Every brief, check and standing order change below was decided by one person; none has yet been agreed by two.

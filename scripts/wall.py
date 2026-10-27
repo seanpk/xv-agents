@@ -117,6 +117,13 @@ def check(root, slice_id, config=None):
     return d
 
 
+def removed_lines(root, base, rel):
+    """The lines `rel` lost or changed since `base`: for a red file that existed at
+    the base, only added tests are the red."""
+    out = git(["diff", "--unified=0", "--no-renames", f"{base}...HEAD", "--", rel], root)
+    return [l for l in out.splitlines() if l.startswith("-") and not l.startswith("---")]
+
+
 def check_against_base(root, base, config=None):
     """The CI form. Test files that existed at `base` and changed must be either the
     scenario agent's red (changed before the wall baseline) or a recorded move."""
@@ -140,7 +147,7 @@ def check_against_base(root, base, config=None):
             c = check(root, sid, config)
             res["unrecorded_since_baseline"] = c["unrecorded"]
             out["unrecorded"] += c["unrecorded"]
-        covered |= red | recorded
+        covered |= {f for f in red if f not in in_base or not removed_lines(root, base, f)} | recorded
         out["slices"].append(res)
     if records:
         out["unrecorded"] += [f for f in tests_moved if f not in covered]
