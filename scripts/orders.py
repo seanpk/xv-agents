@@ -95,6 +95,10 @@ def evaluate(data, after, config):
             out.append(fire("scenario_touched_source", "originator",
                             "The scenario agent changed files outside the test paths: "
                             + ", ".join(checks["outside_tests"])))
+        if checks.get("red_joined"):
+            out.append(fire("scenario_stopped", "originator",
+                            f"The red command `{checks['red_joined']}` joins its runners with `;` or `||`, "
+                            "so only the last one's exit code counts. Join the runners with `&&`."))
         if checks.get("setup_failed"):
             out.append(fire("setup_failed", "originator", checks["setup_failed"]))
         if checks.get("red_fails") is False:

@@ -26,6 +26,7 @@ The one rule: an agent may stop. It may not decide.
 5. **Run it and watch it fail** for the reason the scenario names, not for a typo, a missing import, or a server that did not start. Then it is red.
 6. Write the new tests in the existing test file for the code under test; make a new test file only when none exists. Do not change an assertion that is already there. Mark each test that only proves the slice did its job and has no value after it (for example, "this file is `.ts`, not `.js`"), and list them in your report as `slice_only`: `[{"file", "test", "why"}]`.
 7. **After the maker, report the whole red.** When the slice has been through the maker and you are sent to fix a test, your `red` lists every file in the record's `red.files` plus any you added, and one command that runs all of them. The record keeps every old file.
+8. **Join several runners with `&&`.** When the red runs more than one test runner, join them in `command` with `&&`, so the first failing runner fails the whole command. Never join them with `;` or `||`: only the last part's exit code would count, and xv refuses such a command.
 
 ### With Playwright
 

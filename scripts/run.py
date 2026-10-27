@@ -432,7 +432,10 @@ def post_step(agent, root, data, config, head_before, pre, report):
         files = [f for f in files if not f.startswith(XV_DIR + "/")]
         checks["outside_tests"] = [f for f in files if not match_any(f, tests)]
         red = data.get("red") or {}
-        if red.get("command"):
+        if red.get("command") and joined_unsafely(red["command"]):
+            checks["red_fails"] = None
+            checks["red_joined"] = red["command"]
+        elif red.get("command"):
             code, out = red_run(root, data, red, config)
             checks["red_fails"] = None if code is None else code != 0
             checks["red_output"] = out[-800:]
@@ -522,6 +525,27 @@ def commit_step(agent, root, slice_id, checks):
 
 # The wall and the boundary picture arrive with their own scripts; until a repo
 # has them, these steps are no-ops so the loop still runs and a person reads.
+
+def joined_unsafely(command):
+    """True when the command joins parts with a top-level ; or || (outside quotes): only the last part's exit code counts."""
+    quote = None
+    i = 0
+    while i < len(command):
+        c = command[i]
+        if quote:
+            if c == "\\" and quote == '"':
+                i += 1
+            elif c == quote:
+                quote = None
+        elif c == "\\":
+            i += 1
+        elif c in "'\"":
+            quote = c
+        elif c == ";" or command.startswith("||", i):
+            return True
+        i += 1
+    return False
+
 
 def red_run(root, data, red, config):
     """Run the red command. Once the maker has run, run it on the code from before the maker's first change."""
