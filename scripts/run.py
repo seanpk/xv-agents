@@ -356,7 +356,7 @@ def step(agent, slice_id, review_again=False):
     pre = pre_step(agent, root, data, config)
     text = promptlib.build(agent, slice_id, root=root)
     argv = agentcli.argv_for(config, agent)
-    spent = spendlib.totals([x for x in data.get("spend") or [] if not str(x.get("step") or "").startswith("prototype-")])
+    spent = orders.slice_spend(data)
     argv = agentcli.with_caps(argv, data.get("budget"), spent["usd"], spent["turns"])
     n = len(data.get("spend") or []) + 1
     log = os.path.join(runs_dir(root, slice_id), f"{n:02d}-{agent}.out")
