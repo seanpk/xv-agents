@@ -139,6 +139,38 @@ class WatchLoopTest(RepoCase):
         self.assertNotIn("scenario_stopped", p.stdout)
         self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
 
+    def test_a_refused_red_is_not_kept_as_the_slice_red(self):
+        before = self.record().get("red")
+        p = self.scenario_with_red("false ; false ; true")
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "scenario_stopped")
+        self.assertEqual(self.record().get("red"), before)
+
+    def assert_refused(self, command):
+        p = self.scenario_with_red(command)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["order"], "scenario_stopped")
+        self.assertIn("&&", stop["question"])
+        self.assertIsNot(self.record()["checks"]["scenario"].get("red_fails"), True)
+
+    def test_a_red_joined_with_a_newline_is_refused(self):
+        self.assert_refused("false\ntrue")
+
+    def test_a_red_joined_with_a_pipe_is_refused(self):
+        self.assert_refused("false | true")
+
+    def test_a_red_joined_with_a_single_ampersand_is_refused(self):
+        self.assert_refused("false & true")
+
+    def test_a_newline_inside_quotes_is_not_a_join(self):
+        p = self.scenario_with_red("python3 -c 'import sys\nsys.exit(1)'")
+        self.assertNotIn("scenario_stopped", p.stdout)
+        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
+
+    def test_a_pipe_inside_quotes_is_not_a_join(self):
+        p = self.scenario_with_red("python3 -c 'import sys; a = 1 | 0; sys.exit(1)'")
+        self.assertNotIn("scenario_stopped", p.stdout)
+        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
+
     def test_a_semicolon_inside_quotes_is_not_a_join(self):
         p = self.scenario_with_red("python3 -c 'import sys; sys.exit(1)'")
         self.assertNotIn("scenario_stopped", p.stdout)
