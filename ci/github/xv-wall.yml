@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: seanpk/xv-agents
-          ref: v0.2.0          # pin a tag; upgrade by changing it
+          ref: v0.3.0          # pin a tag; upgrade by changing it
           path: .xv-agents
 
       - name: Put xv on PATH

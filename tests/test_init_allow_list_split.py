@@ -3,7 +3,7 @@ import re
 import shutil
 import unittest
 
-from helpers import HOME, RepoCase, sh
+from helpers import RepoCase, sh
 
 from xvlib import load_config
 
@@ -90,14 +90,6 @@ class InitAllowListSplitTest(RepoCase):
         for seat in ("default", "forecaster"):
             for prefix in GUARDIAN_ONLY:
                 self.assertNotIn(f"Bash({prefix}:*)", entries_of(config, seat), f"{seat}: {prefix}")
-
-    def test_the_changelog_names_the_allow_list_under_unreleased(self):
-        text = open(os.path.join(HOME, "CHANGELOG.md")).read()
-        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        line = next((l for l in unreleased.splitlines() if "allowedTools" in l or "allow list" in l), None)
-        self.assertIsNotNone(line, "no line about the starter allow list under Unreleased")
-        self.assertIn("Sean", line)
-        self.assertIn("solo", line)
 
 
 # Watch first: run `xv init` in a scratch repo with a src/ folder and a tests/ folder, and read
