@@ -215,6 +215,12 @@ class ScenarioBriefTest(RepoCase):
         self.assertIn("existing test file", step6)
         self.assertIn("slice_only", text)
 
+    def test_the_brief_asks_for_the_whole_red_after_the_maker(self):
+        text = open(os.path.join(HOME, "skills", "scenario", "SKILL.md")).read()
+        self.assertIn("after the maker", text.lower())
+        self.assertIn("every file in the record's `red.files`", text)
+        self.assertIn("one command that runs all of them", text)
+
 
 BARE = {"files": ["tests/test_x.py", "tests/test_y.py"],
         "command": "cd tests && python3 -m unittest test_x test_y",
