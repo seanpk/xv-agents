@@ -33,6 +33,8 @@ The budget caps the whole slice, red or green. Before each step, the watch compa
 
 Settled at the guardian's stop, 2026-10-27, Sean: (1) One count everywhere: the before-step check and the after-maker `budget_spent` check both count every step's spend, for tokens, dollars and turns. A turns budget caps the whole slice; each step gets `--max-turns` set to the turns left, as it gets the dollars left. (2) Steps marked `session` get the same before-step check (`scripts/run.py:339-343`). (3) In Sean's words: "I think 3 prototypes should have their own budgets - meaning budgets that are independent and can be completely different numbers". So a prototype slice takes one budget per variant (a, b, c), each set by the person and free to differ. Each variant's agent is capped at its own budget less its own spend, and a variant that spends its budget stops alone, without stopping the others. The prototype budgets do not count against the slice budget, which covers the steps after the pick. (4) `docs/decisions.md` decision 49, `README.md:247` and the retro's budget count (`scripts/retro.py:63-64`) say what the code does. The picture edit is the watch's at the merge.
 
+Settled at the scenario's stop, 2026-10-27, Sean: the person sets the prototype budgets with `xv record set <id> prototype_budgets '{"a": {...}, "b": {...}, "c": {...}}' --by <name>`, the same command as the slice budget, one budget for each variant in the same shape as `budget`. The record keeps them as `prototype_budgets`. `xv prototype start` stops for the person who set the work going when they are not set, as `budget_not_set` does for the slice budget.
+
 ## May ignore
 
 Nothing stated.
