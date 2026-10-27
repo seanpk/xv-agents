@@ -341,16 +341,16 @@ def step(agent, slice_id, review_again=False):
         raise XVError(f"{agent} runs in the session: use `xv prompt {agent} {slice_id}`, then "
                       f"`xv record report {slice_id} {agent} -` and `xv orders {slice_id} --after {agent}`")
 
-    spent_out = orders.budget_before(data)
-    if spent_out:
-        st = {"at": now(), "step": agent, "order": spent_out["order"], "seat": spent_out["seat"],
-              "question": spent_out["question"], "answered_by": [], "answer": None, "also": []}
+    budget_stop = orders.budget_before(data)
+    if budget_stop:
+        st = {"at": now(), "step": agent, "order": budget_stop["order"], "seat": budget_stop["seat"],
+              "question": budget_stop["question"], "answered_by": [], "answer": None, "also": []}
         data["stops"].append(st)
         data["status"] = "stopped"
         body = record.log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
         record.save(path, data, body)
         reach(config, st["seat"], st["question"], os.path.relpath(path, root))
-        return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": st, "fired": [spent_out]}
+        return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": st, "fired": [budget_stop]}
 
     head_before = git(["rev-parse", "HEAD"], root).strip()
     pre = pre_step(agent, root, data, config)
