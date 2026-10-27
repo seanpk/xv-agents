@@ -267,6 +267,8 @@ class SliceOnlyMoveTest(RepoCase):
 
     def test_a_move_with_slice_only_keeps_the_marker_and_a_plain_move_does_not(self):
         wt = self.new_slice("s1")
+        self.xv("record", "add", "s1", "slice_only", json.dumps(
+            {"file": "tests/test_x.py", "test": "a", "why": "w"}), cwd=wt)
         self.assertIs(self.move("s1", wt, "--slice-only")["moved_tests"][0]["slice_only"], True)
         wt = self.new_slice("s2")
         self.assertFalse(self.move("s2", wt)["moved_tests"][0].get("slice_only"))

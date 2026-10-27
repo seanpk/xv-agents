@@ -172,7 +172,8 @@ def cmd_move(a):
         if not getattr(a, name):
             raise XVError(f"a moved test names its {name}")
     entry = {"file": a.file, "assertion": a.assertion, "why": a.why, "by": a.by or "maker", "at": now()}
-    if a.slice_only:
+    if a.slice_only and any(s.get("file") == a.file and s.get("test") and s["test"] in a.assertion
+                            for s in data.get("slice_only") or [] if isinstance(s, dict)):
         entry["slice_only"] = True
     data["moved_tests"].append(entry)
     body = log_line(body, a.by or "maker", f"moved a test in {a.file}: {a.why}")
@@ -318,7 +319,13 @@ def apply_report(data, body, agent, text):
             if mv not in data["moved_tests"]:
                 data["moved_tests"].append(mv)
     if agent == "scenario" and report.get("red"):
-        data["red"] = report["red"]
+        old = data.get("red")
+        if old and any(s.get("step") == "maker" for s in data.get("spend") or []):
+            files = list(old.get("files") or [])
+            files += [f for f in report["red"].get("files") or [] if f not in files]
+            data["red"] = {**report["red"], "files": files}
+        else:
+            data["red"] = report["red"]
     if agent == "scenario" and isinstance(report.get("slice_only"), list):
         data["slice_only"] = report["slice_only"]
     if agent == "forecaster" and report.get("forecast") and not data.get("forecast"):

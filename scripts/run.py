@@ -23,6 +23,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import agentcli  # noqa: E402
@@ -417,7 +418,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
         checks["outside_tests"] = [f for f in files if not match_any(f, tests)]
         red = data.get("red") or {}
         if red.get("command"):
-            code, out = shell(red["command"], root, 600)
+            code, out = red_run(root, data, red)
             checks["red_fails"] = code != 0
             checks["red_output"] = out[-800:]
         else:
@@ -504,6 +505,25 @@ def commit_step(agent, root, slice_id, checks):
 
 # The wall and the boundary picture arrive with their own scripts; until a repo
 # has them, these steps are no-ops so the loop still runs and a person reads.
+
+def red_run(root, data, red):
+    """Run the red command. Once the maker has run, run it on the code from before the maker's first change."""
+    commit = (data.get("wall_baseline") or {}).get("commit")
+    if not commit or not any(s.get("step") == "maker" for s in data.get("spend") or []):
+        return shell(red["command"], root, 600)
+    tmp = tempfile.mkdtemp(prefix="xv-red-")
+    try:
+        subprocess.run(["git", "worktree", "add", "--detach", tmp, commit], cwd=root, capture_output=True, check=True)
+        for f in red.get("files") or []:
+            src = os.path.join(root, f)
+            if os.path.isfile(src):
+                os.makedirs(os.path.dirname(os.path.join(tmp, f)), exist_ok=True)
+                shutil.copyfile(src, os.path.join(tmp, f))
+        return shell(red["command"], tmp, 600)
+    finally:
+        subprocess.run(["git", "worktree", "remove", "--force", tmp], cwd=root, capture_output=True)
+        shutil.rmtree(tmp, ignore_errors=True)
+
 
 def wall_baseline(root, data, config):
     try:
