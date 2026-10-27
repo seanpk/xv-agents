@@ -120,7 +120,7 @@ def start(slice_id, axis=None, positions=None, serial=False):
     stopped = {n for n in NAMES if n not in kept and over[n]}
     ran = [n for n in NAMES if n not in stopped and n not in kept]
     jobs = [threading.Thread(target=run_one, args=(n, axis, p, slice_id, root, config, budgets[n], spent[n], out))
-            for n, p in zip(NAMES, positions) if n not in stopped and n not in kept]
+            for n, p in zip(NAMES, positions) if n in ran]
     for j in jobs:
         j.start()
         if serial:
