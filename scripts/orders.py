@@ -208,7 +208,18 @@ def evaluate(data, after, config):
                         f"{owner}: set a budget for each variant, free to differ "
                         f"(`xv record set {data['id']} prototype_budgets '{{\"a\": {{\"usd\": 1}}, ...}}' --by <name>`)."))
 
-    if after == "prototype" and checks.get("prototypes_ready") is not None:
+    ran_out = checks.get("ran_out") or {}
+    if after == "prototype" and ran_out:
+        what = "; ".join(f"variant {n} spent {spent} and was not run" for n, spent in sorted(ran_out.items()))
+        pickable = checks.get("prototypes_ready") or 0
+        pick = (f"pick one of the {pickable} that finished, or pick none to end the exploration"
+                if pickable else "pick none to end the exploration, the only pick left")
+        out.append(fire("prototype_budget_spent", "originator",
+                        f"{owner}: {what}. Raise a budget (`xv record set {data['id']} prototype_budgets ... --by <name>`) "
+                        f"and run `xv prototype start {data['id']}` again, which runs only the variants that ran out "
+                        f"and keeps the rest; or {pick}. A variant that ran out cannot be picked."))
+
+    if after == "prototype" and checks.get("prototypes_ready") is not None and not ran_out:
         n = checks["prototypes_ready"]
         out.append(fire("prototypes_ready", "two_people",
                         f"{n} prototype(s) are ready to pick from, or none. Two people pick, with a user "

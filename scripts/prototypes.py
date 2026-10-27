@@ -90,12 +90,10 @@ def start(slice_id, axis=None, positions=None, serial=False):
         record.save(path, data, body)
         return EXIT_STOP, {"slice": slice_id, "stop": data["stops"][-1]}
     budgets = data.get("prototype_budgets") or {}
-    if not all(budgets.get(n) for n in NAMES):
-        example = "'{\"a\": {\"usd\": 1}, \"b\": {\"usd\": 2}, \"c\": {\"usd\": 1}}'"
-        data["stops"].append({"at": now(), "step": "prototype", "order": "prototype_budgets_not_set",
-                              "seat": "originator",
-                              "question": "Set a budget for each variant, free to differ "
-                                          f"(`xv record set {slice_id} prototype_budgets {example} --by <name>`).",
+    missing = [f for f in orders.evaluate(data, "prototype", config) if f["order"] == "prototype_budgets_not_set"]
+    if missing:
+        data["stops"].append({"at": now(), "step": "prototype", "order": missing[0]["order"],
+                              "seat": missing[0]["seat"], "question": missing[0]["question"],
                               "answered_by": [], "answer": None})
         data["status"] = "stopped"
         record.save(path, data, body)
@@ -113,10 +111,13 @@ def start(slice_id, axis=None, positions=None, serial=False):
     spent = {n: spendlib.totals([s for s in data.get("spend") or [] if s.get("step") == f"prototype-{n}"])
              for n in NAMES}
     # a variant that has spent its own budget stops alone; the others still run
-    stopped = {n for n in NAMES if any(budgets[n].get(k) and spent[n][k] >= budgets[n][k]
-                                       for k in ("tokens", "usd", "turns"))}
+    # a second start keeps the variants that finished and runs only those that ran out, on their raised budgets
+    prev = {e["name"]: e for e in data.get("prototypes") or []}
+    kept = {n for n in NAMES if (prev.get(n) or {}).get("branch")}
+    stopped = {n for n in NAMES if n not in kept and
+               any(budgets[n].get(k) and spent[n][k] >= budgets[n][k] for k in ("tokens", "usd", "turns"))}
     jobs = [threading.Thread(target=run_one, args=(n, axis, p, slice_id, root, config, budgets[n], spent[n], out))
-            for n, p in zip(NAMES, positions) if n not in stopped]
+            for n, p in zip(NAMES, positions) if n not in stopped and n not in kept]
     for j in jobs:
         j.start()
         if serial:
@@ -129,6 +130,13 @@ def start(slice_id, axis=None, positions=None, serial=False):
              f"Three running versions on one axis: **{axis}**. Each was built in its own context with no wall. "
              "All three are discarded at the pick; the pick is restated as the scenario and built behind the wall.",
              "", "| | Position on the axis | What it refuses | What it costs | Try it |", "| --- | --- | --- | --- | --- |"]
+    for n in kept:
+        e = prev[n]
+        out[n] = {"name": n, "branch": e["branch"], "axis_position": e.get("axis_position"),
+                  "report": {"refuses": e.get("refuses"), "costs": e.get("costs"), "run": e.get("run")},
+                  "session": e.get("session"), "recording": bool(e.get("recording")), "kept": True,
+                  "recording_path": os.path.join(root, XV_DIR, "prototypes", slice_id, n, "recording.md")}
+    data["prototypes"] = []
     for n in NAMES:
         p = out.get(n) or {}
         r = p.get("report") or {}
@@ -139,27 +147,32 @@ def start(slice_id, axis=None, positions=None, serial=False):
     for n in NAMES:
         p = out.get(n) or {}
         lines += ["", f"## {n}: {p.get('axis_position', '')}", ""]
-        if p.get("recording"):
+        if p.get("recording") and p.get("kept"):
+            lines.append(open(p["recording_path"]).read().strip())
+        elif p.get("recording"):
             dest = os.path.join(root, XV_DIR, "prototypes", slice_id, n)
             os.makedirs(dest, exist_ok=True)
             shutil.copy(p["recording_path"], os.path.join(dest, "recording.md"))
             lines.append(open(p["recording_path"]).read().strip())
         else:
             lines.append("No recording. This prototype cannot be compared with the others.")
-        if p:
+        if p and not p.get("kept"):
             s = p.get("spend") or {}
             s.update(step=f"prototype-{n}", at=now())
             data["spend"].append(s)
         data["prototypes"].append({"name": n, "branch": p.get("branch"), "axis_position": p.get("axis_position"),
                                    "refuses": (p.get("report") or {}).get("refuses"),
                                    "costs": (p.get("report") or {}).get("costs"),
+                                   "run": (p.get("report") or {}).get("run"),
                                    "recording": f"{XV_DIR}/prototypes/{slice_id}/{n}/recording.md" if p.get("recording") else None,
                                    "session": p.get("session")})
     packet = os.path.join(root, XV_DIR, "slices", f"{slice_id}.prototypes.md")
     with open(packet, "w") as f:
         f.write("\n".join(lines) + "\n")
     ready = sum(1 for n in NAMES if (out.get(n) or {}).get("recording"))
-    data["checks"]["prototype"] = {"prototypes_ready": ready, "at": now()}
+    ran_out = {n: ", ".join(f"{k} {spent[n][k]} of {budgets[n][k]}" for k in ("tokens", "usd", "turns")
+                            if budgets[n].get(k) and spent[n][k] >= budgets[n][k]) for n in sorted(stopped)}
+    data["checks"]["prototype"] = {"prototypes_ready": ready, "ran_out": ran_out, "at": now()}
     data["checks"].setdefault("reports", []).append({"agent": "prototype", "status": "done", "at": now(),
                                                      "summary": f"{ready} of 3 with a recording"})
     v = orders.verdict(data, "prototype", config)
@@ -208,7 +221,7 @@ def pick(slice_id, variant, by, with_user=None, scenario_file=None):
     answer = (f"picked {variant}" if variant != "none" else "picked none") + \
              (f", with {with_user}" if with_user else ", with no user")
     for s in data["stops"]:
-        if s.get("answer") is None and s["order"] == "prototypes_ready":
+        if s.get("answer") is None and s["order"] in ("prototypes_ready", "prototype_budget_spent"):
             s.update(answered_by=who, answer=answer, answered_at=now())
     stop = {"order": "prototypes_ready", "question": f"Which prototype on the axis {data.get('axis')}, or none?"}
     rec = record.write_decision(root, slice_id, who + ([f"{with_user} (user)"] if with_user else []), stop,
