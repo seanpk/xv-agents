@@ -48,10 +48,11 @@ def last_report(data, step):
 
 
 def budget_before(data):
-    """The stop that keeps a step from running when the slice's whole spend has reached the budget."""
+    """The stop that keeps a step from running when the slice's whole spend has reached the budget.
+    Each prototype variant has its own budget, so its spend is not the slice's."""
     budget = data.get("budget") or {}
-    spent = totals(data.get("spend") or [])
-    over = [k for k in ("tokens", "usd") if budget.get(k) and spent[k] >= budget[k]]
+    spent = totals([s for s in data.get("spend") or [] if not str(s.get("step") or "").startswith("prototype-")])
+    over = [k for k in ("tokens", "usd", "turns") if budget.get(k) and spent[k] >= budget[k]]
     if not over:
         return None
     what = ", ".join(f"{k} {spent[k]} of {budget[k]}" for k in over)

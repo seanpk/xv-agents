@@ -26,6 +26,8 @@ class PrototypesTest(RepoCase):
         return json.loads(self.xv("record", "show", "p1", "--json", cwd=self.wt).stdout)
 
     def test_three_prototypes_side_by_side_then_a_pick_by_two_people(self):
+        self.xv("record", "set", "p1", "prototype_budgets", json.dumps({n: {"usd": 1} for n in "abc"}),
+                "--by", "pat", cwd=self.wt)
         p = self.xv("run", "p1", cwd=self.wt, check=False)
         self.assertEqual(p.returncode, 10, p.stderr)
         v = json.loads(p.stdout)

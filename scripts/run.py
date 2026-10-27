@@ -337,10 +337,6 @@ def step(agent, slice_id, review_again=False):
     if open_stops:
         return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": open_stops[-1], "fired": [],
                            "note": "an earlier stop is unanswered"}
-    if (config.get("agents") or {}).get(agent) == "session":
-        raise XVError(f"{agent} runs in the session: use `xv prompt {agent} {slice_id}`, then "
-                      f"`xv record report {slice_id} {agent} -` and `xv orders {slice_id} --after {agent}`")
-
     budget_stop = orders.budget_before(data)
     if budget_stop:
         st = {"at": now(), "step": agent, "order": budget_stop["order"], "seat": budget_stop["seat"],
@@ -352,11 +348,16 @@ def step(agent, slice_id, review_again=False):
         reach(config, st["seat"], st["question"], os.path.relpath(path, root))
         return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": st, "fired": [budget_stop]}
 
+    if (config.get("agents") or {}).get(agent) == "session":
+        raise XVError(f"{agent} runs in the session: use `xv prompt {agent} {slice_id}`, then "
+                      f"`xv record report {slice_id} {agent} -` and `xv orders {slice_id} --after {agent}`")
+
     head_before = git(["rev-parse", "HEAD"], root).strip()
     pre = pre_step(agent, root, data, config)
     text = promptlib.build(agent, slice_id, root=root)
     argv = agentcli.argv_for(config, agent)
-    argv = agentcli.with_caps(argv, data.get("budget"), spendlib.totals(data.get("spend") or [])["usd"])
+    spent = spendlib.totals([x for x in data.get("spend") or [] if not str(x.get("step") or "").startswith("prototype-")])
+    argv = agentcli.with_caps(argv, data.get("budget"), spent["usd"], spent["turns"])
     n = len(data.get("spend") or []) + 1
     log = os.path.join(runs_dir(root, slice_id), f"{n:02d}-{agent}.out")
     result = agentcli.run(argv, text, root, log, int(config.get("step_timeout") or 3600))
