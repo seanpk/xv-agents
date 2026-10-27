@@ -86,6 +86,31 @@ class WorktreeSettledTest(RepoCase):
         self.assertEqual(open_stops[0]["seat"], "originator")
         self.assertEqual(data["status"], "stopped")
 
+    def open_stop(self):
+        data = self.record()
+        open_stops = [s for s in data["stops"] if s.get("answer") is None]
+        self.assertEqual(len(open_stops), 1, data["stops"])
+        return open_stops[0]
+
+    def test_setup_runs_the_bases_config_not_the_main_checkouts(self):
+        self.edit_config("worktrees: .xv/worktrees\n", 'worktrees:\n  setup: "touch BASE-SETUP"\n')
+        base = sh(["git", "rev-parse", "HEAD"], self.repo).stdout.strip()
+        self.edit_config("touch BASE-SETUP", "touch MAIN-SETUP")
+        out = self.xv("slice", "new", "s1", "--by", "pat", "--scenario", "X.", "--base", base).stdout
+        wt = out.strip().splitlines()[-1]
+        self.assertTrue(os.path.exists(os.path.join(wt, "BASE-SETUP")))
+        self.assertFalse(os.path.exists(os.path.join(wt, "MAIN-SETUP")))
+
+    def test_a_setup_that_times_out_keeps_its_output_in_the_stop(self):
+        self.edit_config("timeout: 300", "timeout: 1")
+        self.edit_config("worktrees: .xv/worktrees\n",
+                         'worktrees:\n  setup: "printf SLOW-%s 9921; sleep 5"\n')
+        self.xv("slice", "new", "s1", "--by", "pat", "--scenario", "X.", check=False)
+        stop = self.open_stop()
+        self.assertEqual(stop["order"], "setup_failed")
+        self.assertIn("timed out", stop["question"])
+        self.assertIn("SLOW-9921", stop["question"].split("its last output:")[-1])
+
 
 if __name__ == "__main__":
     unittest.main()
