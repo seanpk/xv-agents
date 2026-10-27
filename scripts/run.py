@@ -341,12 +341,22 @@ def step(agent, slice_id, review_again=False):
         raise XVError(f"{agent} runs in the session: use `xv prompt {agent} {slice_id}`, then "
                       f"`xv record report {slice_id} {agent} -` and `xv orders {slice_id} --after {agent}`")
 
+    spent_out = orders.budget_before(data)
+    if spent_out:
+        st = {"at": now(), "step": agent, "order": spent_out["order"], "seat": spent_out["seat"],
+              "question": spent_out["question"], "answered_by": [], "answer": None, "also": []}
+        data["stops"].append(st)
+        data["status"] = "stopped"
+        body = record.log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
+        record.save(path, data, body)
+        reach(config, st["seat"], st["question"], os.path.relpath(path, root))
+        return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": st, "fired": [spent_out]}
+
     head_before = git(["rev-parse", "HEAD"], root).strip()
     pre = pre_step(agent, root, data, config)
     text = promptlib.build(agent, slice_id, root=root)
     argv = agentcli.argv_for(config, agent)
-    if agent == "maker":
-        argv = agentcli.with_caps(argv, data.get("budget"))
+    argv = agentcli.with_caps(argv, data.get("budget"), spendlib.totals(data.get("spend") or [])["usd"])
     n = len(data.get("spend") or []) + 1
     log = os.path.join(runs_dir(root, slice_id), f"{n:02d}-{agent}.out")
     result = agentcli.run(argv, text, root, log, int(config.get("step_timeout") or 3600))

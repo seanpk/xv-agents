@@ -44,15 +44,15 @@ def model_of(argv):
     return "default"
 
 
-def with_caps(argv, budget):
-    """Add the harness's own budget cap where it has one: dollars and turns on
+def with_caps(argv, budget, spent_usd=0):
+    """Add the harness's own budget cap where it has one: the dollars left and turns on
     Claude Code, turns on Grok. Elsewhere the watch's check after the step is the cap."""
     h = harness_of(argv)
     if not budget or h not in ("claude", "grok"):
         return argv
     caps = []
     if h == "claude" and budget.get("usd") and "--max-budget-usd" not in argv:
-        caps += ["--max-budget-usd", str(budget["usd"])]
+        caps += ["--max-budget-usd", str(round(budget["usd"] - spent_usd, 6))]
     if budget.get("turns") and "--max-turns" not in argv:
         caps += ["--max-turns", str(budget["turns"])]
     i = argv.index("{prompt}") if "{prompt}" in argv else len(argv)
