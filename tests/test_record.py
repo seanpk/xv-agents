@@ -307,3 +307,79 @@ class BriefsTest(RepoCase):
 
     def test_the_guardian_lists_removed_slice_only_tests_and_names_kept_ones_with_a_reason(self):
         self.assertIn("slice-only", self.skill("guardian"))
+
+
+class ScenarioRerunMergeTest(RepoCase):
+    """A scenario run after the maker adds to the red; before the maker it replaces it."""
+
+    def setUp(self):
+        super().setUp()
+        self.wt = self.new_slice("s1")
+
+    def report(self, red):
+        path = os.path.join(self.tmp, "out.txt")
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps(
+                {"agent": "scenario", "status": "red", "summary": "r", "red": red}) + "\n```\n")
+        self.xv("record", "report", "s1", "scenario", path, cwd=self.wt)
+
+    def show(self):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+
+    def through_the_maker(self):
+        self.xv("record", "add", "s1", "spend", json.dumps({"step": "maker", "agent": "maker"}), cwd=self.wt)
+        path = os.path.join(self.tmp, "maker.txt")
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps(
+                {"agent": "maker", "status": "done", "summary": "made"}) + "\n```\n")
+        self.xv("record", "report", "s1", "maker", path, cwd=self.wt)
+
+    def test_before_the_maker_a_report_replaces_the_red(self):
+        self.report(RED)
+        one = {"files": ["tests/test_z.py"], "command": "python3 -m unittest tests.test_z",
+               "failure": "f2", "watch_first_green": None}
+        self.report(one)
+        self.assertEqual(self.show()["red"]["files"], ["tests/test_z.py"])
+
+    def test_after_the_maker_a_report_adds_its_files_and_the_rest_stay(self):
+        self.report(RED)
+        self.through_the_maker()
+        self.report({"files": ["tests/test_z.py"], "command": "python3 -m unittest tests.test_z",
+                     "failure": "f2", "watch_first_green": None})
+        files = self.show()["red"]["files"]
+        self.assertEqual(sorted(files), ["tests/test_x.py", "tests/test_y.py", "tests/test_z.py"])
+
+    def test_after_the_maker_a_file_named_twice_is_listed_once(self):
+        self.report(RED)
+        self.through_the_maker()
+        self.report({"files": ["tests/test_y.py"], "command": "python3 -m unittest tests.test_y",
+                     "failure": "f2", "watch_first_green": None})
+        files = self.show()["red"]["files"]
+        self.assertEqual(sorted(files), ["tests/test_x.py", "tests/test_y.py"])
+
+
+class SliceOnlyGateTest(RepoCase):
+    """--slice-only counts only for a test the scenario listed in slice_only."""
+
+    def move(self, wt, f, test):
+        self.xv("record", "move", "s1", "--file", f, "--assertion", test, "--why", "w",
+                "--slice-only", cwd=wt)
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["moved_tests"][0]
+
+    def listed(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "add", "s1", "slice_only", json.dumps(
+            {"file": "tests/test_x.py", "test": "test_file_is_ts", "why": "w"}), cwd=wt)
+        return wt
+
+    def test_a_listed_test_keeps_the_marker(self):
+        wt = self.listed()
+        self.assertIs(self.move(wt, "tests/test_x.py", "test_file_is_ts").get("slice_only"), True)
+
+    def test_an_unlisted_test_is_a_plain_move(self):
+        wt = self.listed()
+        self.assertFalse(self.move(wt, "tests/test_other.py", "test_other").get("slice_only"))
+
+    def test_with_nothing_listed_it_is_a_plain_move(self):
+        wt = self.new_slice("s1")
+        self.assertFalse(self.move(wt, "tests/test_x.py", "test_file_is_ts").get("slice_only"))

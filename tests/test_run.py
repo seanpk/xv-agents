@@ -154,5 +154,37 @@ class WatchLoopTest(RepoCase):
         self.assertIn("an earlier stop is unanswered", p.stdout)
 
 
+class RedFailsAfterTheMakerTest(RepoCase):
+    """After the maker, the red must fail on the code from before the maker, not at HEAD."""
+
+    def setUp(self):
+        super().setUp()
+        self.wt = self.new_slice("s1")
+        self.baseline = sh(["git", "rev-parse", "HEAD"], self.wt).stdout.strip()
+        with open(os.path.join(self.wt, "fix.txt"), "w") as f:
+            f.write("the maker's fix\n")
+        sh(["git", "add", "fix.txt"], self.wt)
+        sh(["git", "commit", "-qm", "the maker's fix"], self.wt)
+        self.head = sh(["git", "rev-parse", "HEAD"], self.wt).stdout.strip()
+
+    def red_fails(self, command, through_maker=True):
+        from run import post_step
+        data = {"id": "s1", "base": self.baseline, "wall_baseline": {"commit": self.baseline},
+                "red": {"files": ["tests/test_new.py"], "command": command, "failure": "f"},
+                "spend": [{"step": "maker"}] if through_maker else [],
+                "checks": {"reports": [{"agent": "maker", "status": "done"}] if through_maker else []}}
+        config = {"tests": {"paths": ["tests/**"]}}
+        return post_step("scenario", self.wt, data, config, self.head, {}, {})["red_fails"]
+
+    def test_a_red_that_fails_before_the_fix_and_passes_at_head_is_red(self):
+        self.assertIs(self.red_fails("test -f fix.txt"), True)
+
+    def test_a_red_that_passes_before_the_fix_is_not_red(self):
+        self.assertIs(self.red_fails("true"), False)
+
+    def test_before_the_maker_the_red_is_still_run_at_head(self):
+        self.assertIs(self.red_fails("test -f fix.txt", through_maker=False), False)
+
+
 if __name__ == "__main__":
     unittest.main()
