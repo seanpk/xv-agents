@@ -273,7 +273,7 @@ class SliceOnlyMoveTest(RepoCase):
         wt = self.new_slice("s2")
         self.assertFalse(self.move("s2", wt)["moved_tests"][0].get("slice_only"))
 
-    def test_removing_one_slice_only_test_from_a_file_that_stays_leaves_red_alone(self):
+    def test_a_plain_move_of_a_test_in_a_red_file_leaves_red_alone(self):
         wt = self.new_slice("s1")
         path = os.path.join(self.tmp, "out.txt")
         with open(path, "w") as f:
@@ -385,3 +385,11 @@ class SliceOnlyGateTest(RepoCase):
     def test_with_nothing_listed_it_is_a_plain_move(self):
         wt = self.new_slice("s1")
         self.assertFalse(self.move(wt, "tests/test_x.py", "test_file_is_ts").get("slice_only"))
+
+    def test_a_longer_assertion_that_contains_the_listed_name_is_a_plain_move(self):
+        wt = self.listed()
+        self.assertFalse(self.move(wt, "tests/test_x.py", "test_file_is_ts_and_more").get("slice_only"))
+
+    def test_the_listed_name_in_another_file_is_a_plain_move(self):
+        wt = self.listed()
+        self.assertFalse(self.move(wt, "tests/test_y.py", "test_file_is_ts").get("slice_only"))

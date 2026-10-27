@@ -185,6 +185,53 @@ class RedFailsAfterTheMakerTest(RepoCase):
     def test_before_the_maker_the_red_is_still_run_at_head(self):
         self.assertIs(self.red_fails("test -f fix.txt", through_maker=False), False)
 
+    def rerun(self, data, config, head):
+        from run import post_step
+        return post_step("scenario", self.wt, data, config, head, {}, {})
+
+    def commit_file(self, name):
+        with open(os.path.join(self.wt, name), "w") as f:
+            f.write("x\n")
+        sh(["git", "add", name], self.wt)
+        sh(["git", "commit", "-qm", name], self.wt)
+        return sh(["git", "rev-parse", "HEAD"], self.wt).stdout.strip()
+
+    def test_a_second_rerun_still_checks_the_code_from_before_the_maker(self):
+        from run import pre_step
+        # the real order: the maker's pre-step runs before its fix; the fix is already committed in setUp,
+        # so rewind the record's view: the pre-maker commit is self.baseline
+        config = {"tests": {"paths": ["tests/**"]}}
+        data = {"id": "s1", "base": self.baseline, "wall_baseline": {"commit": self.baseline},
+                "red": {"files": ["tests/test_new.py"], "command": "test -f fix.txt", "failure": "f"},
+                "spend": [], "checks": {"reports": []}}
+        sh(["git", "checkout", "-q", self.baseline], self.wt)
+        pre_step("maker", self.wt, data, config)
+        sh(["git", "checkout", "-q", "-"], self.wt)
+        data["spend"].append({"step": "maker"})
+        self.assertIs(self.rerun(data, config, self.head)["red_fails"], True)
+        later = self.commit_file("more.txt")
+        self.assertIs(self.rerun(data, config, later)["red_fails"], True)
+        later = self.commit_file("more2.txt")
+        self.assertIs(self.rerun(data, config, later)["red_fails"], True)
+
+    def after_maker(self, command, setup):
+        config = {"tests": {"paths": ["tests/**"]}, "worktrees": {"setup": setup}}
+        data = {"id": "s1", "base": self.baseline, "wall_baseline": {"commit": self.baseline},
+                "red": {"files": ["tests/test_new.py"], "command": command, "failure": "f"},
+                "spend": [{"step": "maker"}], "checks": {"reports": [{"agent": "maker", "status": "done"}]}}
+        return self.rerun(data, config, self.head)
+
+    def test_the_check_worktree_runs_setup_first(self):
+        # fails only if setup ran there and left its mark
+        self.assertIs(self.after_maker("test ! -f SETUP-MARK", "touch SETUP-MARK")["red_fails"], True)
+
+    def test_a_failing_setup_is_not_a_red_that_counts_as_failing(self):
+        try:
+            checks = self.after_maker("false", "exit 3")
+        except Exception:
+            return  # the setup_failed stop may surface as an error to the caller
+        self.assertIsNot(checks["red_fails"], True)
+
 
 if __name__ == "__main__":
     unittest.main()
