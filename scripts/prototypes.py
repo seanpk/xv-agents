@@ -113,10 +113,12 @@ def start(slice_id, axis=None, positions=None, serial=False):
     # a variant that has spent its own budget stops alone; the others still run
     # a second start keeps the variants that finished and runs only those that ran out, on their raised budgets
     prev = {e["name"]: e for e in data.get("prototypes") or []}
-    kept = {n for n in NAMES if (prev.get(n) or {}).get("branch")}
+    prev_out = set(((data.get("checks") or {}).get("prototype") or {}).get("ran_out") or {})
+    kept = {n for n in NAMES if (prev.get(n) or {}).get("branch") and n not in prev_out}
     over = {n: [k for k in ("tokens", "usd", "turns") if budgets[n].get(k) and spent[n][k] >= budgets[n][k]]
             for n in NAMES}
     stopped = {n for n in NAMES if n not in kept and over[n]}
+    ran = [n for n in NAMES if n not in stopped and n not in kept]
     jobs = [threading.Thread(target=run_one, args=(n, axis, p, slice_id, root, config, budgets[n], spent[n], out))
             for n, p in zip(NAMES, positions) if n not in stopped and n not in kept]
     for j in jobs:
@@ -131,7 +133,9 @@ def start(slice_id, axis=None, positions=None, serial=False):
              f"Three running versions on one axis: **{axis}**. Each was built in its own context with no wall. "
              "All three are discarded at the pick; the pick is restated as the scenario and built behind the wall.",
              "", "| | Position on the axis | What it refuses | What it costs | Try it |", "| --- | --- | --- | --- | --- |"]
-    for n in kept:
+    for n in NAMES:
+        if n not in kept and not (n in stopped and (prev.get(n) or {}).get("branch")):
+            continue
         e = prev[n]
         out[n] = {"name": n, "branch": e["branch"], "axis_position": e.get("axis_position"),
                   "report": {"refuses": e.get("refuses"), "costs": e.get("costs"), "run": e.get("run")},
@@ -170,7 +174,16 @@ def start(slice_id, axis=None, positions=None, serial=False):
     packet = os.path.join(root, XV_DIR, "slices", f"{slice_id}.prototypes.md")
     with open(packet, "w") as f:
         f.write("\n".join(lines) + "\n")
-    ready = sum(1 for n in NAMES if (out.get(n) or {}).get("recording"))
+    # a variant whose own run passed its budget is out too, though it has a branch
+    for n in ran:
+        if n not in out:
+            continue
+        run_spent = spendlib.totals([out[n].get("spend") or {}])
+        spent[n] = {k: spent[n][k] + run_spent[k] for k in ("tokens", "usd", "turns")}
+        over[n] = [k for k in ("tokens", "usd", "turns") if budgets[n].get(k) and spent[n][k] >= budgets[n][k]]
+        if over[n]:
+            stopped.add(n)
+    ready = sum(1 for n in NAMES if (out.get(n) or {}).get("recording") and n not in stopped)
     ran_out = {n: ", ".join(f"{k} {spent[n][k]} of {budgets[n][k]}" for k in over[n]) for n in sorted(stopped)}
     data["checks"]["prototype"] = {"prototypes_ready": ready, "ran_out": ran_out, "at": now()}
     data["checks"].setdefault("reports", []).append({"agent": "prototype", "status": "done", "at": now(),
@@ -209,7 +222,9 @@ def pick(slice_id, variant, by, with_user=None, scenario_file=None):
     names = {p["name"] for p in data.get("prototypes") or []}
     if variant != "none" and variant not in names:
         raise XVError(f"no prototype {variant!r}; one of {sorted(names)} or none")
-    if variant != "none" and not next(p for p in data["prototypes"] if p["name"] == variant).get("branch"):
+    ran_out = ((data.get("checks") or {}).get("prototype") or {}).get("ran_out") or {}
+    if variant != "none" and (variant in ran_out or
+                              not next(p for p in data["prototypes"] if p["name"] == variant).get("branch")):
         raise XVError(f"prototype {variant} stopped at its budget and has nothing to pick")
     # discard every prototype, the pick too: the context that built it never builds the pick
     for p in data.get("prototypes") or []:
