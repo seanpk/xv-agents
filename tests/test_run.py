@@ -232,6 +232,17 @@ class RedFailsAfterTheMakerTest(RepoCase):
             return  # the setup_failed stop may surface as an error to the caller
         self.assertIsNot(checks["red_fails"], True)
 
+    def test_a_failing_setup_in_the_check_worktree_is_the_setup_failed_stop(self):
+        import orders
+        checks = self.after_maker("false", "echo SETUP-BOOM; exit 3")
+        data = {"id": "s1", "set_by": "pat", "budget": {"usd": 2}, "spend": [{"step": "maker"}], "stops": [],
+                "checks": {"reports": [{"agent": "scenario", "status": "red"}], "scenario": checks}}
+        verdict = orders.verdict(data, "scenario", {"tests": {"paths": ["tests/**"]}})
+        fired = {f["order"]: f for f in verdict["fired"]}
+        self.assertIn("setup_failed", fired)
+        self.assertEqual(fired["setup_failed"]["seat"], "originator")
+        self.assertIn("SETUP-BOOM", fired["setup_failed"]["question"])
+
 
 if __name__ == "__main__":
     unittest.main()
