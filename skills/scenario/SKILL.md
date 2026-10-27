@@ -46,7 +46,8 @@ End your final message with one report block. `files` are the test files you wro
 ```xv-report
 {"agent": "scenario", "status": "red", "summary": "<one line>",
  "red": {"files": ["tests/test_expiring.py"], "command": "python3 -m unittest tests.test_expiring", "failure": "<the failing assertion, one line>",
-         "watch_first_green": "<for a feature: what a person should watch; null for a defect>"}}
+         "watch_first_green": "<for a feature: what a person should watch; null for a defect>"},
+ "slice_only": [{"file": "tests/test_expiring.py", "test": "test_file_is_ts", "why": "<why it has no value after the slice>"}]}
 ```
 
 ## Stop and report when

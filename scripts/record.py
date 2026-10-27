@@ -179,21 +179,24 @@ def cmd_move(a):
     red = data.get("red")
     if (a.to or a.deleted) and red and a.file in (red.get("files") or []):
         module_of = lambda f: f[:-3].replace("/", ".") if f.endswith(".py") else f
+        bare_of = lambda f: module_of(os.path.basename(f))
         files, cmd = list(red["files"]), red.get("command")
+        old_cmd = cmd
         if a.deleted:
             files.remove(a.file)
             if cmd:
-                cmd = " ".join(t for t in cmd.split(" ") if t not in (a.file, module_of(a.file))) if files else None
+                gone = (a.file, module_of(a.file), bare_of(a.file))
+                cmd = " ".join(t for t in cmd.split(" ") if t not in gone) if files else None
         else:
             files = [a.to if f == a.file else f for f in files]
             if cmd:
-                cmd = " ".join(a.to if t == a.file else module_of(a.to) if t == module_of(a.file) else t
-                               for t in cmd.split(" "))
+                swap = {a.file: a.to, module_of(a.file): module_of(a.to), bare_of(a.file): bare_of(a.to)}
+                cmd = " ".join(swap.get(t, t) for t in cmd.split(" "))
         red["files"], red["command"] = files, cmd
         body = log_line(body, a.by or "maker",
                         f"red.files no longer names {a.file}" + (f", now {a.to}" if a.to else "")
                         + ("; red.command is now null: no red file is left" if cmd is None else
-                           "; red.command updated to match"))
+                           "; red.command updated to match" if cmd != old_cmd else ""))
     save(path, data, body)
 
 
