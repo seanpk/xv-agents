@@ -178,16 +178,16 @@ def cmd_move(a):
         raise XVError("a moved test goes --to a path or is --deleted, not both")
     red = data.get("red")
     if (a.to or a.deleted) and red and a.file in (red.get("files") or []):
-        mod = lambda f: f[:-3].replace("/", ".") if f.endswith(".py") else f
+        module_of = lambda f: f[:-3].replace("/", ".") if f.endswith(".py") else f
         files, cmd = list(red["files"]), red.get("command")
         if a.deleted:
             files.remove(a.file)
             if cmd:
-                cmd = " ".join(t for t in cmd.split(" ") if t not in (a.file, mod(a.file))) if files else None
+                cmd = " ".join(t for t in cmd.split(" ") if t not in (a.file, module_of(a.file))) if files else None
         else:
             files = [a.to if f == a.file else f for f in files]
             if cmd:
-                cmd = " ".join(a.to if t == a.file else mod(a.to) if t == mod(a.file) else t
+                cmd = " ".join(a.to if t == a.file else module_of(a.to) if t == module_of(a.file) else t
                                for t in cmd.split(" "))
         red["files"], red["command"] = files, cmd
         body = log_line(body, a.by or "maker",
