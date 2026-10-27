@@ -17,7 +17,8 @@ worktrees: .xv/worktrees
 #   # The ref a slice branch starts from. Without it: the remote's default
 #   # branch (origin/HEAD), or HEAD when there is no remote. `xv slice new --base` beats it.
 #   base: origin/main
-#   # Run in the new worktree before the forecaster; {worktree} is its path.
+#   # Run in the new worktree before the forecaster; {worktree} is its path,
+#   # already shell-quoted, so do not put quotes around it.
 #   # A non-zero exit is a stop for the person who set the work going.
 #   setup: "npm ci"
 #   # Run the same way when the slice closes.
