@@ -184,10 +184,15 @@ def totals(spend):
     return t
 
 
+def slice_spend(data):
+    """The slice's spend without the prototypes': each variant has its own budget."""
+    return totals([s for s in data.get("spend") or [] if not str(s.get("step") or "").startswith("prototype-")])
+
+
 def budget_state(data):
     """Is the budget spent? The budget covers every step after the pick, not the prototypes."""
     budget = data.get("budget") or {}
-    spent = totals([s for s in data.get("spend") or [] if not str(s.get("step") or "").startswith("prototype-")])
+    spent = slice_spend(data)
     over = []
     for k in ("tokens", "usd", "turns"):
         if budget.get(k) and spent.get(k, 0) >= budget[k]:
