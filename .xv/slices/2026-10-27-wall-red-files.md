@@ -35,6 +35,8 @@ The wall sees old tests in a red file. Today a file on `red.files` is covered wh
 
 Settled at the guardian's stop, 2026-10-27, Sean: (5.1) The slice's own run catches it too: after the scenario step, the same comparison of each red file that existed at the base runs, and an old test or assertion changed or removed there stops the slice for the person who set the work going, before the maker runs. (5.2) Only old test code and assertions count. A changed or removed line in an old red file that is blank, a comment, or an import or `require` line is not a move, so adding a new import for a new test passes. Test both: a new import passes, a changed assertion fails. (5.4) `test_a_red_file_new_in_the_slice_is_covered_whole` (`tests/test_wall.py:142-152`) is renamed or changed so it asserts what its name says.
 
+Settled at the guardian's second stop, 2026-10-27, Sean: (5.1) Import lines are matched per language, by file type, and a line is skipped only when the whole line is an import: Python `import x` and `from x import y`; JavaScript and TypeScript `import ... from ...`, `import "..."` and `const|let|var x = require(...)`; Ruby `require` and `require_relative`; Go `import`. A file type with no matchers skips nothing. A line that only contains the word `require`, such as `expect(() => require("./config")).toThrow("missing")`, is not an import and counts. Keep the matchers in one table that other checks can use later. Blank and comment lines are still skipped. (5.2) Record the change to `tests/fake_agent.py` as a move, or undo it. (5.4) When the scenario-step check cannot run (no `base` in the record, or the module cannot load), the slice stops for the person who set the work going; it never passes silently.
+
 ## May ignore
 
 Nothing stated.
