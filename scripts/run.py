@@ -510,7 +510,7 @@ def commit_step(agent, root, slice_id, checks):
 # The wall and the boundary picture arrive with their own scripts; until a repo
 # has them, these steps are no-ops so the loop still runs and a person reads.
 
-def red_run(root, data, red, config=None):
+def red_run(root, data, red, config):
     """Run the red command. Once the maker has run, run it on the code from before the maker's first change."""
     commit = data.get("pre_maker_commit") or (data.get("wall_baseline") or {}).get("commit")
     if not commit or not any(s.get("step") == "maker" for s in data.get("spend") or []):
@@ -523,7 +523,7 @@ def red_run(root, data, red, config=None):
             if os.path.isfile(src):
                 os.makedirs(os.path.dirname(os.path.join(tmp, f)), exist_ok=True)
                 shutil.copyfile(src, os.path.join(tmp, f))
-        failed = run_worktree_command(worktrees_config(config or {}).get("setup"), tmp, config or {})
+        failed = run_worktree_command(worktrees_config(config).get("setup"), tmp, config)
         if failed:
             return None, f"the worktree setup `{failed[0]}` failed ({failed[1]}); its last output:\n{failed[2]}"
         return shell(red["command"], tmp, 600)
