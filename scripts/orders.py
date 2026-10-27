@@ -192,6 +192,12 @@ def evaluate(data, after, config):
                                       "nobody wrote down, add it to the scenario and send the slice back to the "
                                       "scenario agent (--next scenario).")
 
+    if after == "prototype" and data.get("kind") == "prototype" and \
+            not all((data.get("prototype_budgets") or {}).get(n) for n in "abc"):
+        out.append(fire("prototype_budgets_not_set", "originator",
+                        f"{owner}: set a budget for each variant, free to differ "
+                        f"(`xv record set {data['id']} prototype_budgets '{{\"a\": {{\"usd\": 1}}, ...}}' --by <name>`)."))
+
     if after == "prototype" and checks.get("prototypes_ready") is not None:
         n = checks["prototypes_ready"]
         out.append(fire("prototypes_ready", "two_people",
