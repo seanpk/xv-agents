@@ -156,7 +156,7 @@ def evaluate(data, after, config):
         if fc in BREADTH and actual in BREADTH and BREADTH[actual] > BREADTH[fc]:
             out.append(fire("shape_wider_than_forecast", "two_people",
                             f"The shape change is {actual}; the forecast expected {fc}. Two people decide."))
-        moved = data.get("moved_tests") or []
+        moved = [m for m in data.get("moved_tests") or [] if not m.get("slice_only")]
         picture = checks.get("picture_change") == "yes"
         if not out and (moved or picture):
             parts = []
