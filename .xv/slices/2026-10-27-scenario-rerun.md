@@ -34,6 +34,8 @@ A scenario run after the maker, sent to fix a test, does not cost the person nee
 
 Settled at the guardian's stop, 2026-10-27, Sean: (a) The slice keeps the commit from before the maker's first run, saved once and never moved, and the after-maker check runs the red against that commit, not the wall baseline, which each scenario step moves to HEAD (`scripts/run.py:426-428`). Add a test with two reruns. (b) The temporary worktree for that check runs `worktrees.setup` first, as a slice worktree does; a setup that fails is the `setup_failed` stop, never a red that counts as failing. (c) After the maker, the scenario agent reports the whole red: every red file, and one command that runs all of them. The record keeps every old file in `red.files`. (d) A `--slice-only` move matches the record's `slice_only` list by the file and the test name exactly, not by a substring of `--assertion`. Rename `test_removing_one_slice_only_test_from_a_file_that_stays_leaves_red_alone` (`tests/test_record.py:276`) or make it list the test, so its name matches what it covers.
 
+Settled at the guardian's second stop, 2026-10-27, Sean: (b) When setup fails in the temporary worktree for the after-maker check, the slice stops at `setup_failed` for the person who set the work going, quoting the setup's output. `red_fails` is never left as `None` with no stop. (c) Change the scenario brief (`skills/scenario/SKILL.md`): after the maker, the agent reports the whole red, every file in the record's `red.files` plus any it added, and one command that runs all of them. The CHANGELOG lines and the move record for the renamed test are the watch's at the merge.
+
 ## May ignore
 
 Nothing stated.
