@@ -46,8 +46,10 @@ def shell(cmd, cwd, timeout=900, env=None):
         p = subprocess.run(cmd, shell=True, cwd=cwd, capture_output=True, text=True, timeout=timeout,
                            env={**os.environ, **env} if env else None)
         return p.returncode, (p.stdout + p.stderr)[-4000:]
-    except subprocess.TimeoutExpired:
-        return 124, f"timed out after {timeout}s"
+    except subprocess.TimeoutExpired as e:
+        written = "".join(x.decode(errors="replace") if isinstance(x, bytes) else x
+                          for x in (e.stdout, e.stderr) if x)
+        return 124, f"{written[-4000:]}\ntimed out after {timeout}s"
 
 
 def tests_timeout(config):
@@ -251,7 +253,8 @@ def cmd_slice_new(a):
     record.save(path, data, body)
     commit(wt, f"xv({a.id}): open slice")
     print(wt)
-    failed = run_worktree_command(wcfg.get("setup"), wt, config)
+    wt_config = load_config(wt)
+    failed = run_worktree_command(worktrees_config(wt_config).get("setup"), wt, wt_config)
     if failed:
         command, code, last = failed
         path, data, body = record.load(wt, a.id)
