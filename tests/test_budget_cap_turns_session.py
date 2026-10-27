@@ -1,11 +1,12 @@
 import json
 import os
+import sys
 import unittest
 
 from helpers import sh
 import orders
 from xvlib import DEFAULT_CONFIG
-from test_budget_cap import BudgetCapTest
+from test_budget_cap import BudgetCapTest, FAKE
 
 
 class TurnsAndSessionTest(BudgetCapTest):
@@ -249,6 +250,56 @@ class PrototypeBudgetsTest(BudgetCapTest):
         self.assertEqual(len(fired), 1)
         self.assertEqual(stop["question"], fired[0]["question"])
         self.assertEqual(self.calls(), [])
+
+    def costly_variant(self, name, usd):
+        """Swap in a claude that prints the JSON of `claude -p --output-format json`, with variant `name`
+        costing `usd` for its run and the others a tenth of a dollar."""
+        script = (f"#!{sys.executable}\n"
+                  "import json, os, subprocess, sys\n"
+                  "with open(os.environ['CAP_LOG'], 'a') as f:\n"
+                  "    f.write(json.dumps(sys.argv[1:]) + '\\n')\n"
+                  f"out = subprocess.run([{sys.executable!r}, {FAKE!r}, sys.argv[-1]],\n"
+                  "                     capture_output=True, text=True).stdout\n"
+                  f"cost = {usd!r} if 'Your variant: {name}' in sys.argv[-1] else 0.1\n"
+                  "print(json.dumps({'result': out, 'total_cost_usd': cost, 'num_turns': 1,\n"
+                  "                  'usage': {'input_tokens': 10, 'output_tokens': 10}, 'session_id': 'x'}))\n")
+        with open(self.claude, "w") as f:
+            f.write(script)
+
+    def test_a_variant_whose_run_passes_its_budget_sends_the_slice_back_to_the_person(self):
+        self.costly_variant("a", 1.2)
+        self.proto_budgets(a=1, b=2, c=3)
+        stop = self.stop_of(self.start())
+        self.assertEqual(sorted(self.caps_by_variant()), ["a", "b", "c"])
+        self.assertEqual(stop["order"], "prototype_budget_spent")
+        self.assertEqual(stop["seat"], "originator")
+        self.assertIn("a", stop["question"].split("Raise a budget")[0])
+        self.assertIn("1.2", stop["question"])
+        self.assertIn("none", stop["question"])
+
+    def test_a_variant_whose_run_passed_its_budget_cannot_be_picked_though_it_has_a_branch(self):
+        self.costly_variant("a", 1.2)
+        self.proto_budgets(a=1, b=2, c=3)
+        self.stop_of(self.start())
+        self.assertIn("xv/p1-proto-a", self.proto_branches())
+        p = self.xv(*self.pick_args("a"), cwd=self.pwt, check=False)
+        self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
+        self.assertIn("budget", p.stderr)
+        self.assertNotIn("Traceback", p.stderr)
+
+    def test_a_second_start_runs_again_a_variant_whose_run_passed_its_budget_once_raised(self):
+        self.costly_variant("a", 1.2)
+        self.proto_budgets(a=1, b=2, c=3)
+        self.stop_of(self.start())
+        self.clear_calls()
+        self.proto_budgets(a=3, b=2, c=3)
+        self.answer_raised()
+        self.start()
+        caps = self.caps_by_variant()
+        self.assertEqual(sorted(caps), ["a"], "only the variant that ran out runs again")
+        self.assertAlmostEqual(caps["a"], 1.8, places=6)
+        for n in "bc":
+            self.assertTrue(os.path.exists(os.path.join(self.pwt, ".xv", "prototypes", "p1", n, "recording.md")))
 
 
 # Importing BudgetCapTest reruns its four tests here too; the new cases are the three above.
