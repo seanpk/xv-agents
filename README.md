@@ -35,7 +35,7 @@ XV has its own words. This README and the method use them from here on.
 
 ## The method in brief
 
-Generated from the same source as the site. It states the method's positions; the agents here are the first attempt to hold them, and none of it has run on a real change yet.
+Generated from the same source as the site. It states the method's positions; the agents here are the first attempt to hold them. Since v0.3.0 they have run on real changes: this repo's own slices, decided by Sean solo, and trial slices on one large Rails and TypeScript app.
 
 <!-- xv:method begin -->
 <!-- Generated on 2026-10-27 from the map at https://xtremevibing.com/map/. Edits here are overwritten at the next publish; say what is wrong in an issue on this repo. -->
