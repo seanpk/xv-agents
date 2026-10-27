@@ -32,6 +32,8 @@ checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forec
 
 Each agent's prompt says which shell commands it may run. `xv prompt <agent> <id>` reads the Bash rules from that agent's own `--allowedTools` in `.xv/config.yml` (its line, or the default line) and lists them, for example `cd tests`, `python3 -m unittest`, `git diff`. It says to run each command in one of those forms, with no other command chained before it, no extra flags in front of a listed form (`python3 -W ignore -m unittest` is not `python3 -m unittest`), and no pipe to a program that is not listed, because any other form waits for an approval that a headless run never gets. An agent line with no `--allowedTools`, or a harness other than Claude Code, gets no such list. This changes what every agent is given; Sean decided it, solo, and it gets a CHANGELOG line. (seanpk/xv-agents#48)
 
+Settled at the guardian's stop, 2026-10-27, Sean: (1) The caution about chains says every part of a chain must be in a listed form, not that chains are forbidden; the suite command (`cd tests && python3 -m unittest -q`) and the red command are chains of listed forms and stay allowed (`scripts/prompt.py:91`). Test the wording against this repo's suite command. (2) A rule in the `Bash(cmd *)` form is listed without the `*`, as a `Bash(cmd:*)` rule is.
+
 ## May ignore
 
 Nothing stated.
