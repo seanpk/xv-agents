@@ -383,7 +383,7 @@ def step(agent, slice_id, review_again=False):
     checks = post_step(agent, root, data, config, head_before, pre, report or {})
     data["checks"][agent] = checks
     data["status"] = "working"
-    data["next"] = STEPS[STEPS.index(agent) + 1]
+    data["next"] = "scenario" if checks.get("red_joined") else STEPS[STEPS.index(agent) + 1]
     record.save(path, data, body)
 
     v = orders.verdict(data, agent, config)
