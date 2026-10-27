@@ -25,14 +25,13 @@ The one rule: an agent may stop. It may not decide.
 4. **Expected values come from an independent source**: the scenario, the recording, a worked example, a known-good literal. Never from running the code, and never by recomputing the answer the way the code does. A test that passes by construction is not a red. (This rule is Matt Pocock's, from `mattpocock/skills` `tdd`.)
 5. **Run it and watch it fail** for the reason the scenario names, not for a typo, a missing import, or a server that did not start. Then it is red.
 6. Write the new tests in the existing test file for the code under test; make a new test file only when none exists. Do not change an assertion that is already there. Mark each test that only proves the slice did its job and has no value after it (for example, "this file is `.ts`, not `.js`"), and list them in your report as `slice_only`: `[{"file", "test", "why"}]`.
+7. **After the maker, report the whole red.** When the slice has been through the maker and you are sent to fix a test, your `red` lists every file in the record's `red.files` plus any you added, and one command that runs all of them. The record keeps every old file.
 
 ### With Playwright
 
 Use the Playwright MCP tools or the harness's browser to explore the running app, then write the test the way Playwright's planner and generator agents do: a short plan in words, then a test that verifies each selector against the live page. `xv playwright install --loop <harness>` installs those two agents for a harness and removes the third, the healer. The healer edits tests until they pass, which is the move the test wall exists to stop. Never install or call it. Without a browser tool, `npx playwright codegen` and `npx playwright test` work from the shell.
 
 For a new feature, end the test file with a comment that says what a person should watch on the first green run.
-
-7. **After the maker, report the whole red.** When the slice has been through the maker and you are sent to fix a test, your `red` lists every file in the record's `red.files` plus any you added, and one command that runs all of them. The record keeps every old file.
 
 ## May not
 
@@ -43,7 +42,7 @@ For a new feature, end the test file with a comment that says what a person shou
 
 ## Writes to the slice record
 
-End your final message with one report block. `files` are the test files you wrote or added to; `command` runs exactly those; `failure` is the line of output that shows the red.
+End your final message with one report block. `files` are the test files you wrote or added to, and after the maker every red file (step 7); `command` runs exactly those; `failure` is the line of output that shows the red.
 
 ```xv-report
 {"agent": "scenario", "status": "red", "summary": "<one line>",
