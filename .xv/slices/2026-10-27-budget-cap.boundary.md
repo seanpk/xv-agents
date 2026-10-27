@@ -8,7 +8,7 @@ From `94cdf5f15f31` to the working tree. Source: xv boundary (ast and regex). Ge
 
 ## Modules
 
-- touched: scripts/agentcli, scripts/orders, scripts/run
+- touched: scripts/agentcli, scripts/orders, scripts/prototypes, scripts/run
 - added: none
 - removed: none
 - now calling out of the process: none
@@ -118,6 +118,7 @@ flowchart LR
  "touched": [
   "scripts/agentcli",
   "scripts/orders",
+  "scripts/prototypes",
   "scripts/run"
  ],
  "modules_added": [],
