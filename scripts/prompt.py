@@ -10,6 +10,7 @@ Usage: xv prompt <agent> <slice id> [--close] [--init]
 
 import argparse
 import os
+import re
 import shutil
 import sys
 
@@ -48,6 +49,48 @@ def agent_key(config, agent):
     from agentcli import argv_for, harness_of, model_of
     argv = argv_for(config, agent)
     return harness_of(argv), model_of(argv)
+
+
+def allowed_commands(config, agent):
+    """The Bash rules in this agent's --allowedTools, as plain commands; [] when it has none."""
+    from agentcli import argv_for, harness_of
+    try:
+        argv = argv_for(config, agent)
+    except XVError:
+        return []
+    if harness_of(argv) != "claude" or "--allowedTools" not in argv:
+        return []
+    i = argv.index("--allowedTools")
+    if i + 1 >= len(argv):
+        return []
+    commands = []
+    for rule in argv[i + 1].split(","):
+        m = re.fullmatch(r"\s*Bash\((.*?)(?::\*)?\)\s*", rule)
+        if m and m.group(1).strip() and m.group(1).strip() != "*":
+            commands.append(m.group(1).strip())
+    return commands
+
+
+def flag_example(commands):
+    """A worked example from the list itself, when it has a `python3 -m` form."""
+    for c in commands:
+        if c.startswith("python3 -m "):
+            return f": `python3 -W ignore {c[len('python3 '):]}` is not `{c}`"
+    return ""
+
+
+def commands_section(config, agent):
+    commands = allowed_commands(config, agent)
+    if not commands:
+        return ""
+    listed = ", ".join(f"`{c}`" for c in commands)
+    return ("\n## Commands you may run\n\n"
+            f"Shell commands you may run: {listed}.\n\n"
+            "Run each command in one of those forms, and in no other:\n\n"
+            "- Do not chain another command before it or after it (`&&`, `;`, `||`).\n"
+            f"- Do not add flags in front of a listed form{flag_example(commands)}.\n"
+            "- Do not pipe its output to a program that is not listed.\n\n"
+            "Any other form waits for an approval that a headless run never gets.\n")
 
 
 def pointers(agent, root, config, data=None, extra=None):
@@ -146,7 +189,8 @@ def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
         bpath = os.path.join(root, ".xv", "boundary-all.md")
         if os.path.exists(bpath):
             extra.insert(0, f"Boundary output: `.xv/boundary-all.md`.")
-    return brief(agent) + "\n" + answer_section(data, body) + pointers(agent, root, config, data, extra) + "\n"
+    return (brief(agent) + "\n" + answer_section(data, body) + commands_section(config, agent)
+            + pointers(agent, root, config, data, extra) + "\n")
 
 
 def main(argv=None):
