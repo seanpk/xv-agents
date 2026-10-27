@@ -66,8 +66,9 @@ def allowed_commands(config, agent):
     commands = []
     for rule in argv[i + 1].split(","):
         m = re.fullmatch(r"\s*Bash\((.*?)(?::\*)?\)\s*", rule)
-        if m and m.group(1).strip() and m.group(1).strip() != "*":
-            commands.append(m.group(1).strip())
+        command = m.group(1).strip() if m else ""
+        if command and command != "*":
+            commands.append(command)
     return commands
 
 
