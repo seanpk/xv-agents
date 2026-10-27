@@ -14,8 +14,8 @@ Each entry is a heading and these lines:
 
 ## Entries
 
-### A change to a brief, a may-not list, a standing order, or a check gets a line in `CHANGELOG.md` under Unreleased, naming the issue and who decided
-- added: 2026-10-26 by Sean Kennedy
-- from: 2026-10-25-diff-count, -suite-red-quote, -answer-in-prompt, -init-tries-guesses, the guardian's packets
-- miss: four of five makers changed a brief or an order and wrote no CHANGELOG line; binding decision 1 asks for one, and the maker does not read the picture
+### A change to a brief, a may-not list, a standing order, or a check gets a line in `CHANGELOG.md` under Unreleased, naming the issue and who decided, and saying whether it moves a position on xtremevibing.com; if it does, the site changes first and the mechanism follows here
+- added: 2026-10-26 by Sean Kennedy; widened 2026-10-27 by Sean Kennedy
+- from: 2026-10-25-diff-count, -suite-red-quote, -answer-in-prompt, -init-tries-guesses, the guardian's packets; v0.3.0, three positions moved on the site
+- miss: four of five makers changed a brief or an order and wrote no CHANGELOG line; binding decision 1 asks for one, and the maker does not read the picture. In v0.3 the mechanism changed before the site's positions did, and no rule said which goes first
 - seen: [xv-agents@2026-10-26]
