@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import agentcli  # noqa: E402
 import prompt as promptlib  # noqa: E402
 from spend import totals  # noqa: E402
-from xvlib import (XV_DIR, XVError, die, emit, load_config, main_root, read_doc,  # noqa: E402
+from xvlib import (XV_DIR, XVError, die, emit, git, load_config, main_root, read_doc,  # noqa: E402
                    repo_root, today)
 
 QUIET_ORDERS = {"ready_to_merge", "accept_moves", "budget_not_set"}
@@ -195,10 +195,13 @@ def accept(root, packet, n, by):
     fname, heading = TARGET[kind]
     path = os.path.join(root, XV_DIR, fname)
     text = open(path).read() if os.path.exists(path) else f"# {fname}\n\n{heading}\n"
-    repo = os.path.basename(main_root(root))
+    url = git(["config", "--get", "remote.origin.url"], root, check=False).strip()
+    m = re.search(r"[:/]([^/:]+/[^/]+?)(?:\.git)?$", url)
+    repo = m.group(1) if m else os.path.basename(main_root(root))
     if kind == "open":
-        entry = (f"\n### {today()}: {c['title']}\n- from: {c.get('from', '')}\n- said: \"{c.get('miss', '')}\"\n"
-                 f"- rule: {c['title']}\n- seen: [{repo}@{today()}]\n")
+        entry = (f"\n### {today()}: {c['title']}\n- added: {today()} by {by}\n- from: {c.get('from', '')}\n"
+                 f"- miss: {c.get('miss', '')}\n- said: {c.get('said', '')}\n- rule: {c.get('rule', '')}\n"
+                 f"- seen: [{repo}@{today()}]\n")
     else:
         entry = (f"\n### {c['title']}\n- added: {today()} by {by}\n- from: {c.get('from', '')}\n"
                  f"- miss: {c.get('miss', '')}\n- seen: [{repo}@{today()}]\n")
