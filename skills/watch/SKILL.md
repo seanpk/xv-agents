@@ -51,12 +51,13 @@ They are scripts (`xv orders <id>`), not this text. You do not interpret them, r
 
 | The record shows | Seat |
 | --- | --- |
-| The budget is spent and the suite is not green | the person who set the work going |
+| The budget is spent, checked before every step whether the suite is green or not | the person who set the work going |
 | An old test moved with a record, or the picture changed, and the shape did not | the person who set the work going |
 | A test file changed with no record | the person who set the work going |
 | The same failure repeats, or the diff keeps growing | the person who set the work going; the shape conversation opens |
 | The scenario passed before the fix, or the scenario agent touched source | the person who set the work going |
 | A worker ended with no report | the person who set the work going |
+| The budget is not set, or a prototype slice has no `prototype_budgets` | the person who set the work going |
 | `shape_change: yes` or `pitch_contradiction: yes` in the packet | two people |
 | A budget raised past the team's limit, or a shape change wider than forecast | two people |
 | Prototypes ready to pick from | two people |
