@@ -24,7 +24,7 @@ The one rule: an agent may stop. It may not decide.
 3. **Test at the surface a user meets.** For a web app, a Playwright test against the running app. For an API, a sequence of requests and the responses. Not a unit test against an internal function, unless that function is the interface the scenario names.
 4. **Expected values come from an independent source**: the scenario, the recording, a worked example, a known-good literal. Never from running the code, and never by recomputing the answer the way the code does. A test that passes by construction is not a red. (This rule is Matt Pocock's, from `mattpocock/skills` `tdd`.)
 5. **Run it and watch it fail** for the reason the scenario names, not for a typo, a missing import, or a server that did not start. Then it is red.
-6. Write the new tests in new files where you can. If the scenario belongs in an existing test file, add to it; do not change an assertion that is already there.
+6. Write the new tests in the existing test file for the code under test; make a new test file only when none exists. Do not change an assertion that is already there. Mark each test that only proves the slice did its job and has no value after it (for example, "this file is `.ts`, not `.js`"), and list them in your report as `slice_only`: `[{"file", "test", "why"}]`.
 
 ### With Playwright
 

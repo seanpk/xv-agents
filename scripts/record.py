@@ -24,11 +24,11 @@ FIELDS = [
     ("id", None), ("title", ""), ("kind", "feature"), ("status", "open"),
     ("set_by", ""), ("created", None), ("branch", ""), ("base", None), ("next", "forecaster"),
     ("forecast", None), ("budget", None), ("red", None), ("wall_baseline", None),
-    ("moved_tests", []), ("suite", None), ("cleaner_commit", None),
+    ("moved_tests", []), ("slice_only", []), ("suite", None), ("cleaner_commit", None),
     ("packet", None), ("shape_change", None), ("pitch_contradiction", None),
     ("spend", []), ("stops", []), ("decisions", []), ("prototypes", []), ("overrides", []), ("checks", {}),
 ]
-LIST_FIELDS = {"moved_tests", "spend", "stops", "decisions", "prototypes", "overrides"}
+LIST_FIELDS = {"moved_tests", "slice_only", "spend", "stops", "decisions", "prototypes", "overrides"}
 STATUSES = {"open", "working", "stopped", "ready", "closed", "abandoned"}
 STEPS = ["forecaster", "scenario", "maker", "cleaner", "guardian", "close", "none"]
 SEATS = {"originator", "two_people", "chief_engineer"}
@@ -174,6 +174,26 @@ def cmd_move(a):
     data["moved_tests"].append({"file": a.file, "assertion": a.assertion, "why": a.why,
                                 "by": a.by or "maker", "at": now()})
     body = log_line(body, a.by or "maker", f"moved a test in {a.file}: {a.why}")
+    if a.to and a.deleted:
+        raise XVError("a moved test goes --to a path or is --deleted, not both")
+    red = data.get("red")
+    if (a.to or a.deleted) and red and a.file in (red.get("files") or []):
+        mod = lambda f: f[:-3].replace("/", ".") if f.endswith(".py") else f
+        files, cmd = list(red["files"]), red.get("command")
+        if a.deleted:
+            files.remove(a.file)
+            if cmd:
+                cmd = " ".join(t for t in cmd.split(" ") if t not in (a.file, mod(a.file))) if files else None
+        else:
+            files = [a.to if f == a.file else f for f in files]
+            if cmd:
+                cmd = " ".join(a.to if t == a.file else mod(a.to) if t == mod(a.file) else t
+                               for t in cmd.split(" "))
+        red["files"], red["command"] = files, cmd
+        body = log_line(body, a.by or "maker",
+                        f"red.files no longer names {a.file}" + (f", now {a.to}" if a.to else "")
+                        + ("; red.command is now null: no red file is left" if cmd is None else
+                           "; red.command updated to match"))
     save(path, data, body)
 
 
@@ -294,6 +314,8 @@ def apply_report(data, body, agent, text):
                 data["moved_tests"].append(mv)
     if agent == "scenario" and report.get("red"):
         data["red"] = report["red"]
+    if agent == "scenario" and isinstance(report.get("slice_only"), list):
+        data["slice_only"] = report["slice_only"]
     if agent == "forecaster" and report.get("forecast") and not data.get("forecast"):
         data["forecast"] = report["forecast"]
     if agent == "cleaner" and report.get("commit"):
@@ -495,6 +517,8 @@ def main(argv=None):
     s.add_argument("--file")
     s.add_argument("--assertion")
     s.add_argument("--why")
+    s.add_argument("--to", help="the new path of a file that moved")
+    s.add_argument("--deleted", action="store_true", help="the file was removed")
     s.add_argument("--by")
     s.set_defaults(fn=cmd_move)
 
