@@ -103,6 +103,8 @@ def evaluate(data, after, config):
             out.append(fire("unrecorded_move", "originator",
                             "The scenario agent changed or removed old tests or assertions in red files that existed at the base: "
                             + ", ".join(checks["old_red_changed"]) + ". Revert them, or record why the scenario forces it."))
+        if checks.get("old_red_unchecked"):
+            out.append(fire("setup_failed", "originator", checks["old_red_unchecked"]))
         if checks.get("setup_failed"):
             out.append(fire("setup_failed", "originator", checks["setup_failed"]))
         if checks.get("red_fails") is False:

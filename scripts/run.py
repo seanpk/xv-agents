@@ -448,7 +448,11 @@ def post_step(agent, root, data, config, head_before, pre, report):
                 checks["setup_failed"] = out
         else:
             checks["red_fails"] = None
-        checks["old_red_changed"] = old_red_changed(root, data, red)
+        changed = old_red_changed(root, data, red)
+        checks["old_red_changed"] = changed or []
+        if changed is None:
+            checks["old_red_unchecked"] = ("The check for old tests changed in red files could not run: "
+                                           "the record has no base, or the wall module did not load.")
         wb = wall_baseline(root, data, config)
         if wb:
             data["wall_baseline"] = wb
@@ -583,9 +587,9 @@ def old_red_changed(root, data, red):
     try:
         import wall
     except ImportError:
-        return []
+        return None
     moved = {m.get("file") for m in data.get("moved_tests") or []}
-    return wall.old_red_changed(root, data["base"], red.get("files") or [], moved) if data.get("base") else []
+    return wall.old_red_changed(root, data["base"], red.get("files") or [], moved) if data.get("base") else None
 
 
 def wall_baseline(root, data, config):

@@ -4,7 +4,7 @@ Every change to a brief, a may-not list, a standing order, or a check an agent i
 
 ## Unreleased
 
-- The wall sees old tests in a red file. A red file that existed at the base is covered only for the tests the slice added: a changed or deleted line in it is `unrecorded` in the CI form (`xv wall check --base`) unless a recorded move names the file. A red file new in the slice is covered whole, as before. A blank, comment, import or `require` line changed or removed there is not a move. The slice's own run makes the same comparison after the scenario step and stops for the person who set the work going (`unrecorded_move`) before the maker runs. This changes a check; Sean decided it, solo ([#53](https://github.com/seanpk/xv-agents/issues/53)).
+- The wall sees old tests in a red file. A red file that existed at the base is covered only for the tests the slice added: a changed or deleted line in it is `unrecorded` in the CI form (`xv wall check --base`) unless a recorded move names the file. A red file new in the slice is covered whole, as before. A blank, comment or import line changed or removed there is not a move; import lines are matched per file type in one table (`IMPORT_MATCHERS` in `scripts/wall.py`), a line that only contains the word `require` counts, and a file type with no matchers skips only blank and comment lines. The slice's own run makes the same comparison after the scenario step and stops for the person who set the work going (`unrecorded_move`) before the maker runs; when that check cannot run (no `base` in the record, or the wall module cannot load) the slice stops with `setup_failed` instead of passing. This changes a check; Sean decided it, solo ([#53](https://github.com/seanpk/xv-agents/issues/53)).
 
 ## 0.3.0, 2026-10-27
 
