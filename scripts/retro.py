@@ -21,7 +21,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import agentcli  # noqa: E402
 import prompt as promptlib  # noqa: E402
-from spend import totals  # noqa: E402
+from spend import slice_spend, totals  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, emit, git, load_config, main_root, read_doc,  # noqa: E402
                    repo_root, today)
 
@@ -61,7 +61,7 @@ def due(root):
         if hard:
             r.append("stopped: " + ", ".join(sorted({s["order"] for s in hard})))
         # the budget covers every step after the pick, not the prototypes, as the budget order counts it
-        spent = totals([s for s in d.get("spend") or [] if not str(s.get("step") or "").startswith("prototype-")])
+        spent = slice_spend(d)
         budget = dict(d.get("budget") or {})
         budget.update((budget.get("raised_from") or {}))  # a raise does not undo the overrun
         whole = totals(d.get("spend") or [])

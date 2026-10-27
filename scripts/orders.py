@@ -17,7 +17,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from spend import budget_state, totals  # noqa: E402
+from spend import budget_state  # noqa: E402
 from xvlib import XVError, die, emit, load_config, read_doc, record_path, repo_root, slice_root  # noqa: E402
 
 SEAT_RANK = {"chief_engineer": 0, "originator": 1, "two_people": 2}
@@ -47,19 +47,13 @@ def last_report(data, step):
     return None
 
 
-def slice_spend(data):
-    """The slice's spend without the prototypes': each variant has its own budget."""
-    return totals([s for s in data.get("spend") or [] if not str(s.get("step") or "").startswith("prototype-")])
-
-
 def budget_before(data):
     """The stop that keeps a step from running when the slice's whole spend has reached the budget."""
-    budget = data.get("budget") or {}
-    spent = slice_spend(data)
-    over = [k for k in ("tokens", "usd", "turns") if budget.get(k) and spent[k] >= budget[k]]
-    if not over:
+    state = budget_state(data)
+    if not state["spent_out"]:
         return None
-    what = ", ".join(f"{k} {spent[k]} of {budget[k]}" for k in over)
+    budget, spent = state["budget"], state["spent"]
+    what = ", ".join(f"{k} {spent[k]} of {budget[k]}" for k in state["over"])
     return fire("budget_spent", "originator",
                 f"The budget is spent ({what}), so the next step does not run. "
                 "Continue with a new budget, reshape, or set it aside.")
