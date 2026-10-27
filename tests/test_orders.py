@@ -69,6 +69,25 @@ class OrdersTest(unittest.TestCase):
         d["checks"]["guardian"] = {}
         self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
 
+    def test_slice_only_moves_alone_do_not_stop_for_accept_moves(self):
+        d = with_report(rec(shape_change="no", pitch_contradiction="no",
+                            moved_tests=[{"file": "tests/a.py", "slice_only": True}]), "guardian")
+        d["checks"]["guardian"] = {}
+        self.assertEqual(self.stop(d, "guardian")["order"], "ready_to_merge")
+
+    def test_a_slice_only_move_beside_a_plain_move_still_fires_accept_moves(self):
+        d = with_report(rec(shape_change="no", pitch_contradiction="no",
+                            moved_tests=[{"file": "tests/a.py", "slice_only": True},
+                                         {"file": "tests/b.py"}]), "guardian")
+        d["checks"]["guardian"] = {}
+        self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
+
+    def test_slice_only_moves_do_not_hide_a_picture_change(self):
+        d = with_report(rec(shape_change="no", pitch_contradiction="no",
+                            moved_tests=[{"file": "tests/a.py", "slice_only": True}]), "guardian")
+        d["checks"]["guardian"] = {"picture_change": "yes"}
+        self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
+
     def test_green_and_nothing_stopped_the_merge_is_theirs(self):
         d = with_report(rec(shape_change="no", pitch_contradiction="no"), "guardian")
         d["checks"]["guardian"] = {}
