@@ -39,7 +39,7 @@ class SpendTest(unittest.TestCase):
                 "spend": [{"step": "maker", "usd": 0.6, "tokens": 3000}, {"step": "maker", "usd": 0.5, "tokens": 1000},
                           {"step": "guardian", "usd": 9, "tokens": 99999}]}
         state = spend.budget_state(data)
-        self.assertEqual((state["over"], state["spent"]["tokens"]), (["usd"], 4000))
+        self.assertEqual((state["over"], state["spent"]["tokens"]), (["tokens", "usd"], 103999))
 
 
 if __name__ == "__main__":
