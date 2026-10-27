@@ -117,17 +117,33 @@ def check(root, slice_id, config=None):
     return d
 
 
-NOT_CODE = re.compile(r"^-\s*(#.*|//.*|import\b.*|from\s+\S+\s+import\b.*|.*\brequire\b.*|)$")
+COMMENT = r"#.*|//.*|"
+JS_IMPORT = r"import\b.*|(const|let|var)\s+\S+\s*=\s*require\(.*\);?"
+# Import lines skipped per file type; a type with no entry skips only blank and comment lines.
+IMPORT_MATCHERS = {
+    ".py": r"import\s+\S.*|from\s+\S+\s+import\b.*",
+    ".js": JS_IMPORT, ".jsx": JS_IMPORT, ".mjs": JS_IMPORT, ".cjs": JS_IMPORT,
+    ".ts": JS_IMPORT, ".tsx": JS_IMPORT,
+    ".rb": r"require(_relative)?\b.*",
+    ".go": r"import\b.*",
+}
+
+
+def not_code(rel, line):
+    """True when a removed diff line (with its leading -) is blank, a comment or an import in `rel`."""
+    body = line[1:].strip()
+    imports = IMPORT_MATCHERS.get(os.path.splitext(rel)[1])
+    return bool(re.fullmatch(COMMENT, body) or (imports and re.fullmatch(imports, body)))
 
 
 def removed_lines(root, base, rel, head="HEAD"):
     """The test code `rel` lost or changed since `base`: for a red file that existed at
-    the base, only added tests are the red. A blank, comment, import or `require` line
-    is not a move. `head` None compares the working tree."""
+    the base, only added tests are the red. A blank, comment or import line (matched per
+    file type) is not a move. `head` None compares the working tree."""
     span = f"{base}...{head}" if head else base
     out = git(["diff", "--unified=0", "--no-renames", span, "--", rel], root)
     return [l for l in out.splitlines()
-            if l.startswith("-") and not l.startswith("---") and not NOT_CODE.match(l)]
+            if l.startswith("-") and not l.startswith("---") and not not_code(rel, l)]
 
 
 def old_red_changed(root, base, files, recorded=()):
