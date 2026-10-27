@@ -111,6 +111,39 @@ class WatchLoopTest(RepoCase):
         self.assertEqual(data["status"], "ready")
         self.assertEqual(sh(["git", "rev-list", "--count", "main"], self.repo).stdout.strip(), "2")
 
+    def scenario_with_red(self, command):
+        os.environ["FAKE_RED_COMMAND"] = command
+        try:
+            self.xv("step", "forecaster", "s1", cwd=self.wt)
+            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        finally:
+            del os.environ["FAKE_RED_COMMAND"]
+
+    def test_a_red_joined_with_semicolons_is_refused_and_names_the_command(self):
+        command = "false ; false ; true"
+        p = self.scenario_with_red(command)
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["order"], "scenario_stopped")
+        self.assertEqual(stop["seat"], "originator")
+        self.assertIn(command, stop["question"])
+        self.assertIn("&&", stop["question"])
+        self.assertIsNot(self.record()["checks"]["scenario"].get("red_fails"), True)
+
+    def test_a_red_joined_with_or_is_refused(self):
+        p = self.scenario_with_red("false || true")
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "scenario_stopped")
+
+    def test_a_red_joined_with_and_is_not_refused_and_fails_when_the_first_runner_fails(self):
+        p = self.scenario_with_red("false && true")
+        self.assertNotIn("scenario_stopped", p.stdout)
+        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
+
+    def test_a_semicolon_inside_quotes_is_not_a_join(self):
+        p = self.scenario_with_red("python3 -c 'import sys; sys.exit(1)'")
+        self.assertNotIn("scenario_stopped", p.stdout)
+        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
+
     def test_a_stop_waits_for_an_answer_and_close_needs_the_merge_answered(self):
         self.xv("run", "s1", cwd=self.wt, check=False)
         p = self.xv("close", "s1", cwd=self.wt, check=False)
