@@ -30,7 +30,7 @@ elif title.startswith("# The scenario agent"):
                 "        s.add('milk', 1, date(2026, 10, 21))\n"
                 "        self.assertEqual([i.name for i in s.expiring(3, date(2026, 10, 21))], ['milk'])\n")
     report(agent="scenario", status="red", summary="red",
-           red={"files": ["tests/test_red.py"], "command": "python3 -m unittest tests.test_red",
+           red={"files": ["tests/test_red.py"], "command": os.environ.get("FAKE_RED_COMMAND") or "python3 -m unittest tests.test_red",
                 "failure": "Lists differ", "watch_first_green": None})
 elif title.startswith("# The maker") and "prototype" not in title:
     path = "pantry/store.py"
