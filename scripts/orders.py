@@ -99,6 +99,10 @@ def evaluate(data, after, config):
             out.append(fire("scenario_stopped", "originator",
                             f"The red command `{checks['red_joined']}` joins its runners with something other than `&&`, "
                             "so only the last one's exit code counts. The scenario agent will rewrite it, joining the runners with `&&`."))
+        if checks.get("old_red_changed"):
+            out.append(fire("unrecorded_move", "originator",
+                            "The scenario agent changed or removed old tests or assertions in red files that existed at the base: "
+                            + ", ".join(checks["old_red_changed"]) + ". Revert them, or record why the scenario forces it."))
         if checks.get("setup_failed"):
             out.append(fire("setup_failed", "originator", checks["setup_failed"]))
         if checks.get("red_fails") is False:

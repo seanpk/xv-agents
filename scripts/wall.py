@@ -117,11 +117,24 @@ def check(root, slice_id, config=None):
     return d
 
 
-def removed_lines(root, base, rel):
-    """The lines `rel` lost or changed since `base`: for a red file that existed at
-    the base, only added tests are the red."""
-    out = git(["diff", "--unified=0", "--no-renames", f"{base}...HEAD", "--", rel], root)
-    return [l for l in out.splitlines() if l.startswith("-") and not l.startswith("---")]
+NOT_CODE = re.compile(r"^-\s*(#.*|//.*|import\b.*|from\s+\S+\s+import\b.*|.*\brequire\b.*|)$")
+
+
+def removed_lines(root, base, rel, head="HEAD"):
+    """The test code `rel` lost or changed since `base`: for a red file that existed at
+    the base, only added tests are the red. A blank, comment, import or `require` line
+    is not a move. `head` None compares the working tree."""
+    span = f"{base}...{head}" if head else base
+    out = git(["diff", "--unified=0", "--no-renames", span, "--", rel], root)
+    return [l for l in out.splitlines()
+            if l.startswith("-") and not l.startswith("---") and not NOT_CODE.match(l)]
+
+
+def old_red_changed(root, base, files, recorded=()):
+    """The red files that existed at `base` and lost or changed old test code in the
+    working tree, with no recorded move naming them."""
+    in_base = set(git(["ls-tree", "-r", "--name-only", base], root).split())
+    return sorted(f for f in files if f in in_base and f not in recorded and removed_lines(root, base, f, None))
 
 
 def check_against_base(root, base, config=None):
