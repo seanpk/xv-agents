@@ -145,6 +145,20 @@ class WatchLoopTest(RepoCase):
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "scenario_stopped")
         self.assertEqual(self.record().get("red"), before)
 
+    def test_after_a_refused_red_the_next_step_is_the_scenario_not_the_maker(self):
+        p = self.scenario_with_red("false ; false ; true")
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["order"], "scenario_stopped")
+        self.assertIn("scenario agent", stop["question"])
+        self.assertIn("rewrite", stop["question"])
+        data = self.record()
+        self.assertEqual(data["next"], "scenario")
+        self.assertNotIn("maker", [s["step"] for s in data["spend"]])
+
+    def test_a_red_joined_with_and_goes_on_to_the_maker(self):
+        self.scenario_with_red("false && true")
+        self.assertEqual(self.record()["next"], "maker")
+
     def assert_refused(self, command):
         p = self.scenario_with_red(command)
         stop = json.loads(p.stdout)["stop"]
