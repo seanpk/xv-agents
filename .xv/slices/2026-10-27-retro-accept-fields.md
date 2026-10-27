@@ -31,6 +31,8 @@ checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forec
 
 `xv retro accept <packet> <n> --by <name>` writes an Open entry in `.xv/learnings.md` that keeps the candidate's own fields. Today (`scripts/retro.py`, the `kind == "open"` entry) `said:` gets the candidate's `miss`, `rule:` gets its title, the candidate's `said:` and `rule:` lines are dropped, and `--by` is not written. After the fix, the entry keeps `from`, `miss`, `said` and `rule` from the candidate, writes `seen:` as `owner/repo@date` (the same name `xv promote` uses, for example `seanpk/xv-agents@2026-10-27`, falling back to the folder name when the repo has no remote), and says who accepted it. A standard or a rule accepted the same way also writes `seen:` as `owner/repo@date`. (seanpk/xv-agents#43)
 
+Settled at the guardian's stop, 2026-10-27, Sean: a candidate in the retro brief's shape (`skills/xv-retro/retro-brief.md:42-50`) has no `said` or `rule`. An empty field is left out of the entry, not written as an empty line, and `rule:` falls back to the candidate's title. Add a test with a candidate in that shape, and check that `xv promote local --accept` on the entry keeps its miss. The learnings templates, `defaults/learnings.md` and `.xv/learnings.md`, show the `added:` and `miss:` lines that accept now writes.
+
 ## May ignore
 
 Nothing stated.
