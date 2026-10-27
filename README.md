@@ -273,7 +273,7 @@ The standing orders are code, not prose. When the steps run through `xv step`, t
 
 | The record shows | Seat |
 | --- | --- |
-| The budget is spent and the suite is not green | the person who set the work going |
+| The budget is spent, checked before every step whether the suite is green or not | the person who set the work going |
 | An old test moved with a record, or the picture changed, and the shape did not | the person who set the work going |
 | A test file changed with no record | the person who set the work going |
 | The same tests failed after two runs of the maker, or the diff more than doubled between two runs | the person who set the work going; the shape conversation opens |
@@ -282,6 +282,7 @@ The standing orders are code, not prose. When the steps run through `xv step`, t
 | An agent changed a file only people change: the config, the pitch, the picture, the estimation guide, the rules, the wall's hashes | the person who set the work going |
 | The maker ran in a context that had built a prototype | the person who set the work going |
 | The forecaster ran and the budget is not set | the person who set the work going |
+| A prototype slice has no `prototype_budgets` | the person who set the work going |
 | An agent ended its step with a stop of its own: the forecaster, the scenario agent, the maker, the cleaner or the guardian asks a question | the person who set the work going; two people for a shape question |
 | The cleaner's pass left the suite not green | the person who set the work going |
 | The cleaner edited the standards file | the person who set the work going |
@@ -303,7 +304,7 @@ The guardian writes `.xv/slices/<id>.packet.md`: four sections for its four chec
 
 ### The budget and the spend
 
-The forecaster reads `.xv/estimation.md`, a list of closed slices keyed by harness and model, and forecasts tokens, turns and dollars for each key that has rows. It does not read the source; the guide is its evidence, and where a key has no rows it says so and leaves the number null. The person sets the budget from the forecast, and the maker's run is capped by it. At close, the forecaster writes one line on the gap, and the watch appends one row to the guide with a script. `xv record guide-verify` fails a build where the guide was edited rather than appended.
+The forecaster reads `.xv/estimation.md`, a list of closed slices keyed by harness and model, and forecasts tokens, turns and dollars for each key that has rows. It does not read the source; the guide is its evidence, and where a key has no rows it says so and leaves the number null. The person sets the budget from the forecast, and every step is capped by what is left of it. At close, the forecaster writes one line on the gap, and the watch appends one row to the guide with a script. `xv record guide-verify` fails a build where the guide was edited rather than appended.
 
 ### Headless and in CI
 

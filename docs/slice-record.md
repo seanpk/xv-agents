@@ -17,6 +17,7 @@ Each value is a bare word or one line of JSON.
 | `next` | the watch | the step the slice resumes at: `forecaster`, `scenario`, `maker`, `cleaner`, `guardian`, `close`, `prototype`, `none` |
 | `forecast` | the forecaster | `{"keys": [{"harness", "model", "tokens", "turns", "usd", "basis"}], "wall_s", "shape", "breadth"}` |
 | `budget` | a person | `{"tokens", "usd", "turns", "set_by"}`; `raised_from` when raised |
+| `prototype_budgets` | a person | a prototype slice only: `{"a", "b", "c"}`, each in the shape of `budget` and free to differ |
 | `red` | the scenario agent | `{"files", "command", "failure", "watch_first_green"}` |
 | `wall_baseline` | `xv wall baseline` | `{"commit", "count", "digest", "file"}`; the hashes are in `.xv/slices/<id>.wall.json` |
 | `moved_tests` | the maker, the cleaner | one item per move: `{"file", "assertion", "why", "by", "at"}` |
