@@ -888,6 +888,7 @@ def cmd_init(a):
             shutil.copy(s, d)
             written.append(rel)
     cfg = os.path.join(dst, "config.yml")
+    runners = []
     if "config.yml" in written:
         command, paths, runners = detect_tests(root)
         name, description, private = repo_identity(root)
