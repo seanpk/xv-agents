@@ -105,6 +105,17 @@ class PrototypeBudgetsTest(BudgetCapTest):
         self.xv("prototype", "start", "p1", cwd=self.pwt, check=False)
         self.assertEqual(sorted(self.caps_by_variant()), ["b", "c"])
 
+    def test_the_stopped_variant_is_named_in_the_log_and_the_side_by_side_file(self):
+        self.proto_budgets(a=1, b=2, c=3)
+        self.proto_spent("a", 1.05)
+        self.xv("prototype", "start", "p1", cwd=self.pwt, check=False)
+        body = open(os.path.join(self.pwt, ".xv", "slices", "p1.md")).read()
+        log = [l for l in body.split("## Log")[1].splitlines() if "variant a" in l and "budget" in l]
+        self.assertTrue(log, "the log says variant a stopped and why: its budget is spent")
+        side = open(os.path.join(self.pwt, ".xv", "slices", "p1.prototypes.md")).read()
+        row = [l for l in side.splitlines() if l.startswith("| a ")]
+        self.assertTrue(row and "budget" in row[0], "the side-by-side file shows variant a stopped at its budget")
+
     def test_prototype_spend_does_not_count_against_the_slice_budget(self):
         # the slice budget is $0.50; variant a has spent $0.90 of its own $2
         self.proto_budgets(a=2, b=2, c=2)
