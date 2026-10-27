@@ -425,6 +425,8 @@ def post_step(agent, root, data, config, head_before, pre, report):
             code, out = red_run(root, data, red, config)
             checks["red_fails"] = None if code is None else code != 0
             checks["red_output"] = out[-800:]
+            if code is None:
+                checks["setup_failed"] = out
         else:
             checks["red_fails"] = None
         wb = wall_baseline(root, data, config)

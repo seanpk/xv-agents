@@ -32,6 +32,8 @@ Use the Playwright MCP tools or the harness's browser to explore the running app
 
 For a new feature, end the test file with a comment that says what a person should watch on the first green run.
 
+7. **After the maker, report the whole red.** When the slice has been through the maker and you are sent to fix a test, your `red` lists every file in the record's `red.files` plus any you added, and one command that runs all of them. The record keeps every old file.
+
 ## May not
 
 - Touch any file outside the test paths in `.xv/config.yml`. Not source, not config, not fixtures the app reads at runtime.
