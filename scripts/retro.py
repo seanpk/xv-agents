@@ -200,8 +200,10 @@ def accept(root, packet, n, by):
     repo = m.group(1) if m else os.path.basename(main_root(root))
     if kind == "open":
         entry = (f"\n### {today()}: {c['title']}\n- added: {today()} by {by}\n- from: {c.get('from', '')}\n"
-                 f"- miss: {c.get('miss', '')}\n- said: {c.get('said', '')}\n- rule: {c.get('rule', '')}\n"
-                 f"- seen: [{repo}@{today()}]\n")
+                 f"- miss: {c.get('miss', '')}\n")
+        if c.get("said"):
+            entry += f"- said: {c['said']}\n"
+        entry += f"- rule: {c.get('rule') or c['title']}\n- seen: [{repo}@{today()}]\n"
     else:
         entry = (f"\n### {c['title']}\n- added: {today()} by {by}\n- from: {c.get('from', '')}\n"
                  f"- miss: {c.get('miss', '')}\n- seen: [{repo}@{today()}]\n")
