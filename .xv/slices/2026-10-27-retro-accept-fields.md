@@ -35,6 +35,8 @@ Settled at the guardian's stop, 2026-10-27, Sean: a candidate in the retro brief
 
 Settled at the scenario's stop, 2026-10-27, Sean: run the red exactly as `cd tests && python3 -m unittest test_retro_accept_brief_shape`, with no extra flags, no other command chained before it, and no pipe. Only commands on the allowed list run without approval.
 
+Settled at the guardian's second stop, 2026-10-27, Sean: (1) Make the template change settled before: `defaults/learnings.md` and `.xv/learnings.md` show the `added:` and `miss:` lines that accept writes. (2) Every empty field is left out of the entry, `miss:` and `from:` included, not only `said:` and `rule:` (`scripts/retro.py:202-203`). (3) `xv promote local --accept` writes the entry's `miss:` as the promoted standard's miss when the entry has one, and falls back to `said:` only when it has none (`scripts/promote.py:241`). Add a test for each.
+
 ## May ignore
 
 Nothing stated.
