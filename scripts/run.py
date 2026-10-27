@@ -800,7 +800,7 @@ def try_test_command(root, tests):
         return None
     timeout = int(tests.get("timeout") or 900)
     code, text = shell(command, root, timeout)
-    if code == 124 and text.startswith("timed out"):
+    if code == 124 and text.endswith(f"timed out after {timeout}s"):
         return {"result": "timed out", "after_s": timeout}
     if code == 0:
         return {"result": "passed"}
