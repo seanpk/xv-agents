@@ -113,9 +113,10 @@ def start(slice_id, axis=None, positions=None, serial=False):
     spent = {n: spendlib.totals([s for s in data.get("spend") or [] if s.get("step") == f"prototype-{n}"])
              for n in NAMES}
     # a variant that has spent its own budget stops alone; the others still run
+    stopped = {n for n in NAMES if any(budgets[n].get(k) and spent[n][k] >= budgets[n][k]
+                                       for k in ("tokens", "usd", "turns"))}
     jobs = [threading.Thread(target=run_one, args=(n, axis, p, slice_id, root, config, budgets[n], spent[n], out))
-            for n, p in zip(NAMES, positions)
-            if not any(budgets[n].get(k) and spent[n][k] >= budgets[n][k] for k in ("tokens", "usd", "turns"))]
+            for n, p in zip(NAMES, positions) if n not in stopped]
     for j in jobs:
         j.start()
         if serial:
@@ -131,6 +132,8 @@ def start(slice_id, axis=None, positions=None, serial=False):
     for n in NAMES:
         p = out.get(n) or {}
         r = p.get("report") or {}
+        if n in stopped:
+            r = {"refuses": "stopped: its budget is spent"}
         lines.append(f"| {n} | {p.get('axis_position', '')} | {r.get('refuses', '')} | {r.get('costs', '')} | "
                      f"`{r.get('run', '')}` |")
     for n in NAMES:
@@ -167,6 +170,8 @@ def start(slice_id, axis=None, positions=None, serial=False):
                               "answered_by": [], "answer": None})
         data["status"] = "stopped"
     data["next"] = "prototype"
+    for n in sorted(stopped):
+        body = record.log_line(body, "watch", f"variant {n} stopped: its budget is spent")
     body = record.log_line(body, "watch", f"{ready} prototypes ready; the pick is for two people")
     record.save(path, data, body)
     git(["add", "-A"], root)

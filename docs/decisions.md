@@ -67,7 +67,7 @@ Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a t
 ## Increment 6: the forecaster
 
 48. **`spend.py` reads three sources**: the JSON `claude -p --output-format json` prints, a Claude Code session transcript with its subagent transcripts, and `opencode session export`. Codex is not read in v0.1; its tokens are recorded as zero and its dollars as null, never guessed.
-49. **The budget covers the maker's steps.** The other agents' spend is recorded but does not count against it: the budget is the engineer's limit on the work, and the work is the maker's. On Claude Code the watch passes the budget as `--max-budget-usd` and `--max-turns`; on opencode, which has no cap, the watch's check after the step is the cap.
+49. **The budget covers every step.** All the slice's spend counts against it, red or green; the prototypes have budgets of their own, one per variant. Before each step the watch checks it, and on Claude Code it passes what is left as `--max-budget-usd` and `--max-turns`; on opencode, which has no cap, the watch's check after the step is the cap.
 50. **Wall clock is the watch's own clock around each CLI call**, the same measure on every harness. It overwrites what a harness reports, so wall clock compares across all of them.
 51. **The read-only agents are checked, not trusted.** If the forecaster changes any file, or the guardian changes anything but its packet, the step stops for the person who set the work going.
 52. **New estimation rows ride in the next packet.** The guardian's prompt lists the rows appended since the slice's base, so a person sees them and can revert one.

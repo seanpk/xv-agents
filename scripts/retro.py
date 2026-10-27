@@ -60,8 +60,8 @@ def due(root):
         hard = [s for s in d.get("stops") or [] if s.get("order") not in QUIET_ORDERS]
         if hard:
             r.append("stopped: " + ", ".join(sorted({s["order"] for s in hard})))
-        # the budget covers the maker's steps, as the budget order counts it
-        spent = totals([s for s in d.get("spend") or [] if s.get("step") == "maker"])
+        # the budget covers every step after the pick, not the prototypes, as the budget order counts it
+        spent = totals([s for s in d.get("spend") or [] if not str(s.get("step") or "").startswith("prototype-")])
         budget = dict(d.get("budget") or {})
         budget.update((budget.get("raised_from") or {}))  # a raise does not undo the overrun
         whole = totals(d.get("spend") or [])

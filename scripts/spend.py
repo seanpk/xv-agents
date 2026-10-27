@@ -184,10 +184,10 @@ def totals(spend):
     return t
 
 
-def budget_state(data, steps=("maker",)):
-    """Is the budget spent? The budget covers the steps that do the work."""
+def budget_state(data):
+    """Is the budget spent? The budget covers every step after the pick, not the prototypes."""
     budget = data.get("budget") or {}
-    spent = totals([s for s in data.get("spend") or [] if s.get("step") in steps])
+    spent = totals([s for s in data.get("spend") or [] if not str(s.get("step") or "").startswith("prototype-")])
     over = []
     for k in ("tokens", "usd", "turns"):
         if budget.get(k) and spent.get(k, 0) >= budget[k]:

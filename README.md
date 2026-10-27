@@ -244,7 +244,7 @@ sequenceDiagram
 
 `xv step <agent> <id>` is the unit of work. It does, in order:
 
-1. Builds the prompt and runs the agent's CLI in the slice's worktree. The maker's run gets the budget as hard caps where the CLI has them (`--max-budget-usd` and `--max-turns` on Claude Code; the second is missing from `claude --help` in 2.1.308 and is documented and accepted).
+1. Builds the prompt and runs the agent's CLI in the slice's worktree. Every Claude step gets what is left of the budget as hard caps where the CLI has them (`--max-budget-usd` and `--max-turns` on Claude Code; the second is missing from `claude --help` in 2.1.308 and is documented and accepted).
 2. Reads the spend from the harness's own output (Claude's JSON result, an opencode session export) and appends it to the record: tokens in and out, cache reads and writes, dollars where the harness reports them, turns, wall time.
 3. Applies the report. A report that cannot be parsed is recorded as no report, which is a stop, not a crash.
 4. Runs the checks that follow that step. They are scripts, and the results go in the record:
