@@ -33,6 +33,8 @@ checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forec
 
 Settled at the guardian's stop, 2026-10-27, Sean: a candidate in the retro brief's shape (`skills/xv-retro/retro-brief.md:42-50`) has no `said` or `rule`. An empty field is left out of the entry, not written as an empty line, and `rule:` falls back to the candidate's title. Add a test with a candidate in that shape, and check that `xv promote local --accept` on the entry keeps its miss. The learnings templates, `defaults/learnings.md` and `.xv/learnings.md`, show the `added:` and `miss:` lines that accept now writes.
 
+Settled at the scenario's stop, 2026-10-27, Sean: run the red exactly as `cd tests && python3 -m unittest test_retro_accept_brief_shape`, with no extra flags, no other command chained before it, and no pipe. Only commands on the allowed list run without approval.
+
 ## May ignore
 
 Nothing stated.
