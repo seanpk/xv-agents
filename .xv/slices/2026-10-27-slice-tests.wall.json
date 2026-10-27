@@ -32,7 +32,7 @@
   "tests/test_recording.py": 9,
   "tests/test_retro.py": 14,
   "tests/test_run.py": 36,
-  "tests/test_slice_tests.py": 12,
+  "tests/test_slice_tests.py": 21,
   "tests/test_spend.py": 13,
   "tests/test_suite_red_quote.py": 7,
   "tests/test_token_cap.py": 3,
@@ -42,7 +42,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "4b14f249eb1823299af0953b5e6002b44d3a7df4",
+ "commit": "dcb038133d004b0b15a7731090aaf04f661a6812",
  "files": {
   "tests/data/claude-result.json": "d97d2788e30ab2c1dcefc61594ffaaf6892217e088255672a7ead5be9747a331",
   "tests/data/claude-session.jsonl": "f334175619c11a34eabde629fe45e0def44aa43becec22059c9c9841ffccf073",
@@ -76,7 +76,7 @@
   "tests/test_recording.py": "4eee96f7e371bfa10a9ca823684f7ad68619b7129654e6b91d4bab0fd39073f3",
   "tests/test_retro.py": "fc883f817bdcf3e1c6e7631f1b2c97dc7f3f69c372552f8fb393b10ccbee1ef7",
   "tests/test_run.py": "1a6fb3a2301ac7e55dfe26d44efa92a5fca3b66b573b7ff2b709e4cdc52bc2ff",
-  "tests/test_slice_tests.py": "c39f6830265685e12934f2d41550ab04da6953becc90df0ed90d80f33864c9d6",
+  "tests/test_slice_tests.py": "95b5c5ecbe8f0c1ab64272c4e30c3261e9f23d2eb786a5004ae6c31eede1ad4c",
   "tests/test_spend.py": "61491736b547a0bdd0514172c54be47d6a4b5a516612aa1b39702ec36c9e0f52",
   "tests/test_suite_red_quote.py": "f920a670c696b5300ee665f20f7d25394edd17ce802fbda197ab1ae2f07f7435",
   "tests/test_token_cap.py": "0a3ec20650a1c7417dbdee06ddea8eac8cd6c34e8bdcf99738f3073475732192",
