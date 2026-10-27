@@ -35,6 +35,14 @@ class OrdersTest(unittest.TestCase):
         d["checks"]["maker"] = {"suite": "red"}
         self.assertEqual(self.stop(d, "maker")["order"], "budget_spent")
 
+    def test_the_after_maker_check_counts_every_steps_spend(self):
+        # the maker spent $0.5 of a $2 budget; the steps around it spent $1.6 more
+        d = with_report(rec(spend=[{"step": "forecaster", "usd": 0.6, "tokens": 10},
+                                   {"step": "scenario", "usd": 1.0, "tokens": 10},
+                                   {"step": "maker", "usd": 0.5, "tokens": 10}]), "maker", "green")
+        d["checks"]["maker"] = {"suite": "red"}
+        self.assertEqual(self.stop(d, "maker")["order"], "budget_spent")
+
     def test_a_spent_budget_with_a_green_suite_goes_on(self):
         d = with_report(rec(spend=[{"step": "maker", "usd": 2.5}]), "maker", "green")
         d["checks"]["maker"] = {"suite": "green"}
