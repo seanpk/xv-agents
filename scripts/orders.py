@@ -98,7 +98,7 @@ def evaluate(data, after, config):
         if checks.get("red_joined"):
             out.append(fire("scenario_stopped", "originator",
                             f"The red command `{checks['red_joined']}` joins its runners with something other than `&&`, "
-                            "so only the last one's exit code counts. Join the runners with `&&`."))
+                            "so only the last one's exit code counts. The scenario agent will rewrite it, joining the runners with `&&`."))
         if checks.get("setup_failed"):
             out.append(fire("setup_failed", "originator", checks["setup_failed"]))
         if checks.get("red_fails") is False:
