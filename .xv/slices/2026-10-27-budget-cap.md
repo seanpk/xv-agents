@@ -36,6 +36,8 @@ Settled at the guardian's stop, 2026-10-27, Sean: (1) One count everywhere: the 
 
 Settled at the scenario's stop, 2026-10-27, Sean: the person sets the prototype budgets with `xv record set <id> prototype_budgets '{"a": {...}, "b": {...}, "c": {...}}' --by <name>`, the same command as the slice budget, one budget for each variant in the same shape as `budget`. The record keeps them as `prototype_budgets`. `xv prototype start` stops for the person who set the work going when they are not set, as `budget_not_set` does for the slice budget.
 
+Settled at the guardian's third stop, 2026-10-27, Sean: (1) Finish what was settled: the after-maker `budget_spent` check counts every step's spend, as the before-step check does (`budget_state` in `scripts/orders.py`). (2) `docs/decisions.md` decision 49, `README.md:247` and the retro's budget count (`scripts/retro.py:63-64`) say the budget covers every step. (3) A prototype variant that spends its budget stops alone and the others go on; the record's log says which variant stopped and why, and the side-by-side file (`.xv/slices/<id>.prototypes.md`) shows it. (4) The `prototype_budgets_not_set` stop lives in `scripts/orders.py`, as `budget_not_set` does. The picture edits are the watch's at the merge.
+
 ## May ignore
 
 Nothing stated.
