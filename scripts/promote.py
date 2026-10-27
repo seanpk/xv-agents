@@ -238,7 +238,7 @@ def local_accept(root, title, to, by):
     fields = dict(re.findall(r"^- (\w+):\s*(.+)$", block, re.M))
     rule = fields.get("rule") or re.sub(r"^\d{4}-\d{2}-\d{2}:\s*", "", title)
     entry = (f"\n### {rule}\n- added: {today()} by {by}\n- from: {fields.get('from', '')}\n"
-             f"- miss: {fields.get('said', fields.get('miss', ''))}\n- seen: {fields.get('seen', '')}\n")
+             f"- miss: {fields.get('miss', fields.get('said', ''))}\n- seen: {fields.get('seen', '')}\n")
     if to == "standards":
         entry += "- check: none: judgement\n"
     dst = os.path.join(root, XV_DIR, f"{to}.md")
