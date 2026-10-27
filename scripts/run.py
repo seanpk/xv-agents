@@ -352,6 +352,8 @@ def step(agent, slice_id, review_again=False):
     result = agentcli.run(argv, text, root, log, int(config.get("step_timeout") or 3600))
 
     data, body = record.load(root, slice_id)[1:]  # an agent may have run `xv record` itself
+    if pre.get("pre_maker_commit"):
+        data.setdefault("pre_maker_commit", pre["pre_maker_commit"])
     s = spendlib.from_run(result)
     s.update(step=agent, at=now(), exit=result["code"], log=log)
     data["spend"].append(s)
@@ -390,6 +392,8 @@ def step(agent, slice_id, review_again=False):
 
 def pre_step(agent, root, data, config):
     pre = {}
+    if agent == "maker" and not data.get("pre_maker_commit"):
+        pre["pre_maker_commit"] = data["pre_maker_commit"] = git(["rev-parse", "HEAD"], root).strip()
     if agent == "cleaner":
         sp = os.path.join(root, XV_DIR, "standards.md")
         pre["standards"] = open(sp).read() if os.path.exists(sp) else None
@@ -418,8 +422,8 @@ def post_step(agent, root, data, config, head_before, pre, report):
         checks["outside_tests"] = [f for f in files if not match_any(f, tests)]
         red = data.get("red") or {}
         if red.get("command"):
-            code, out = red_run(root, data, red)
-            checks["red_fails"] = code != 0
+            code, out = red_run(root, data, red, config)
+            checks["red_fails"] = None if code is None else code != 0
             checks["red_output"] = out[-800:]
         else:
             checks["red_fails"] = None
@@ -506,9 +510,9 @@ def commit_step(agent, root, slice_id, checks):
 # The wall and the boundary picture arrive with their own scripts; until a repo
 # has them, these steps are no-ops so the loop still runs and a person reads.
 
-def red_run(root, data, red):
+def red_run(root, data, red, config=None):
     """Run the red command. Once the maker has run, run it on the code from before the maker's first change."""
-    commit = (data.get("wall_baseline") or {}).get("commit")
+    commit = data.get("pre_maker_commit") or (data.get("wall_baseline") or {}).get("commit")
     if not commit or not any(s.get("step") == "maker" for s in data.get("spend") or []):
         return shell(red["command"], root, 600)
     tmp = tempfile.mkdtemp(prefix="xv-red-")
@@ -519,6 +523,9 @@ def red_run(root, data, red):
             if os.path.isfile(src):
                 os.makedirs(os.path.dirname(os.path.join(tmp, f)), exist_ok=True)
                 shutil.copyfile(src, os.path.join(tmp, f))
+        failed = run_worktree_command(worktrees_config(config or {}).get("setup"), tmp, config or {})
+        if failed:
+            return None, f"the worktree setup `{failed[0]}` failed ({failed[1]}); its last output:\n{failed[2]}"
         return shell(red["command"], tmp, 600)
     finally:
         subprocess.run(["git", "worktree", "remove", "--force", tmp], cwd=root, capture_output=True)
