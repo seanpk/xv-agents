@@ -19,6 +19,7 @@
   "tests/test_init_allow_list_bare.py": 5,
   "tests/test_init_allow_list_prompt.py": 6,
   "tests/test_init_allow_list_split.py": 9,
+  "tests/test_init_timeout.py": 2,
   "tests/test_init_tries.py": 14,
   "tests/test_install.py": 21,
   "tests/test_listen.py": 7,
@@ -38,7 +39,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "414064726aa87ce48f9d04a78a014260e60f07e3",
+ "commit": "18034d1cdc8137b58111faa138d1a6c57ad88673",
  "files": {
   "tests/data/claude-result.json": "d97d2788e30ab2c1dcefc61594ffaaf6892217e088255672a7ead5be9747a331",
   "tests/data/claude-session.jsonl": "f334175619c11a34eabde629fe45e0def44aa43becec22059c9c9841ffccf073",
@@ -59,6 +60,7 @@
   "tests/test_init_allow_list_bare.py": "9375963c3114bcffe8d1abbe4faa39a58cbd3088f1e9406ae6191f7921744a7d",
   "tests/test_init_allow_list_prompt.py": "cc6056cf12391801bf0bc7dccc588ef935c455b8e559692a5cb39b6002f47833",
   "tests/test_init_allow_list_split.py": "45b4517b43018ff02f16e35f1d305036318258d11a7c0ed0a351a4d940518ee2",
+  "tests/test_init_timeout.py": "49b77f261ffde6cf763e0622fa7c381432f83d8a8a34d7e05c0332f77f52b118",
   "tests/test_init_tries.py": "fdc9e9e092aa4b445ae129788978084d97085af64905b3893bf827add681f4a0",
   "tests/test_install.py": "29c93ee23b4f43e6a4e4c39673605434b3244c37e393f48ddcacf8f8cb23b59a",
   "tests/test_listen.py": "191b146fe181322cd23f730fc8e5149bbf29ce2c58abebe51c8d14d3f2adb01a",
