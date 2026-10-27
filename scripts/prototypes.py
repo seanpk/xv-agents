@@ -196,11 +196,14 @@ def pick(slice_id, variant, by, with_user=None, scenario_file=None):
     names = {p["name"] for p in data.get("prototypes") or []}
     if variant != "none" and variant not in names:
         raise XVError(f"no prototype {variant!r}; one of {sorted(names)} or none")
+    if variant != "none" and not next(p for p in data["prototypes"] if p["name"] == variant).get("branch"):
+        raise XVError(f"prototype {variant} stopped at its budget and has nothing to pick")
     # discard every prototype, the pick too: the context that built it never builds the pick
     for p in data.get("prototypes") or []:
         wt = os.path.join(worktrees_dir(root, config), f"{slice_id}-proto-{p['name']}")
         git(["worktree", "remove", "--force", wt], root, check=False)
-        git(["branch", "-D", p["branch"]], root, check=False)
+        if p.get("branch"):
+            git(["branch", "-D", p["branch"]], root, check=False)
         p["picked"] = p["name"] == variant
     answer = (f"picked {variant}" if variant != "none" else "picked none") + \
              (f", with {with_user}" if with_user else ", with no user")
