@@ -35,6 +35,8 @@ Settled at the guardian's accept stop, 2026-10-26, Sean: (1) `xv slice new` refu
 
 Settled at the guardian's second accept stop, 2026-10-27, Sean: (1) Setup and teardown read the same config: the worktree's `.xv/config.yml`, which comes from the base (`scripts/run.py:201,216-221,254,562-563,594`). Add a test where the main checkout's `worktrees.setup` differs from the base's and setup runs the base's. (2) A command that times out keeps its output: the `setup_failed` stop quotes the last lines the command wrote before the time limit, as well as saying it timed out (`scripts/run.py:49-50`). The same helper runs `tests.command`, so a timed-out test run quotes its output too. The CHANGELOG line and the note in `defaults/config.yml` that `{worktree}` is already quoted are the watch's at the merge.
 
+Settled at the guardian's third accept stop, 2026-10-27, Sean: `xv init` reports a test command that outlasts `tests.timeout` as `{"result": "timed out", "after_s": <limit>}`, as before this slice, now that `shell()`'s timeout text starts with the command's output (`scripts/run.py:49-52`, `:803-804`). Add a test for it (`tests/test_init_tries.py:86` says a timeout is not covered). The pitch check reading the main checkout's pitch is filed as its own issue, not this slice's.
+
 ## May ignore
 
 `worktrees.path` (where worktrees live); removing the worktree itself
