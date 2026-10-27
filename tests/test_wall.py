@@ -139,17 +139,26 @@ class WallRedFileTest(RepoCase):
         code, res = self.red_slice(lambda t: self.add_test(t).replace('("bread", 0)', "anything"), move=True)
         self.assertEqual((code, res["unrecorded"]), (0, []))
 
+    def test_a_new_import_for_a_new_test_in_a_red_file_passes(self):
+        code, res = self.red_slice(lambda t: self.add_test(t).replace(
+            "from datetime import date\n", "from datetime import date, timedelta\n"))
+        self.assertEqual((code, res["unrecorded"]), (0, []))
+
+    def test_a_removed_blank_line_in_a_red_file_passes(self):
+        code, res = self.red_slice(lambda t: self.add_test(t).replace("\n\n\nclass StoreTest", "\n\nclass StoreTest", 1))
+        self.assertEqual((code, res["unrecorded"]), (0, []))
+
     def test_a_red_file_new_in_the_slice_is_covered_whole(self):
         wt = self.new_slice("s1")
-        write(os.path.join(wt, "tests", "test_new.py"), "def test_x():\n    assert True\n")
+        write(os.path.join(wt, "tests", "test_new.py"),
+              "def test_x():\n    assert True\n\n\ndef test_y():\n    assert 1 == 1\n")
         self.xv("record", "set", "s1", "red", json.dumps({"files": ["tests/test_new.py"], "command": "x"}), cwd=wt)
         self.xv("wall", "baseline", "s1", cwd=wt)
-        write(os.path.join(wt, "tests", "test_new.py"), "def test_x():\n    assert 1 == 1\n")
-        self.xv("record", "move", "s1", "--file", "tests/test_new.py", "--assertion", "a", "--why", "b", cwd=wt)
         sh(["git", "add", "-A"], wt)
         sh(["git", "commit", "-qm", "work"], wt)
         p = self.xv("wall", "check", "--base", "main", "--json", cwd=wt, check=False)
-        self.assertEqual(p.returncode, 0, p.stdout)
+        res = json.loads(p.stdout)
+        self.assertEqual((p.returncode, res["unrecorded"], res["tests_moved"]), (0, [], []))
 
 
 if __name__ == "__main__":

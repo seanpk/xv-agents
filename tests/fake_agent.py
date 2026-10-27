@@ -29,8 +29,13 @@ elif title.startswith("# The scenario agent"):
                 "class Red(unittest.TestCase):\n    def test_milk_today(self):\n        s = Store()\n"
                 "        s.add('milk', 1, date(2026, 10, 21))\n"
                 "        self.assertEqual([i.name for i in s.expiring(3, date(2026, 10, 21))], ['milk'])\n")
+    red_files = ["tests/test_red.py"]
+    if os.environ.get("FAKE_SCENARIO_EDITS_OLD"):
+        t = open("tests/test_store.py").read().replace('["yogurt"]', '["yogurt"] or []')
+        open("tests/test_store.py", "w").write(t)
+        red_files = ["tests/test_store.py"]
     report(agent="scenario", status="red", summary="red",
-           red={"files": ["tests/test_red.py"], "command": os.environ.get("FAKE_RED_COMMAND") or "python3 -m unittest tests.test_red",
+           red={"files": red_files, "command": os.environ.get("FAKE_RED_COMMAND") or "python3 -m unittest tests.test_red",
                 "failure": "Lists differ", "watch_first_green": None})
 elif title.startswith("# The maker") and "prototype" not in title:
     path = "pantry/store.py"
