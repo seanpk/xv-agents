@@ -83,6 +83,8 @@ def evaluate(data, after, config):
             out.append(fire("scenario_touched_source", "originator",
                             "The scenario agent changed files outside the test paths: "
                             + ", ".join(checks["outside_tests"])))
+        if checks.get("setup_failed"):
+            out.append(fire("setup_failed", "originator", checks["setup_failed"]))
         if checks.get("red_fails") is False:
             out.append(fire("scenario_not_red", "originator",
                             "The scenario passes on the code as it is. The behaviour may exist already, "
