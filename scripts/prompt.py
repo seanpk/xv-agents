@@ -65,7 +65,7 @@ def allowed_commands(config, agent):
         return []
     commands = []
     for rule in argv[i + 1].split(","):
-        m = re.fullmatch(r"\s*Bash\((.*?)(?::\*)?\)\s*", rule)
+        m = re.fullmatch(r"\s*Bash\((.*?)(?::\*| \*)?\)\s*", rule)
         command = m.group(1).strip() if m else ""
         if command and command != "*":
             commands.append(command)
@@ -88,7 +88,7 @@ def commands_section(config, agent):
     return ("\n## Commands you may run\n\n"
             f"Shell commands you may run: {listed}.\n\n"
             "Run each command in one of those forms, and in no other:\n\n"
-            "- Do not chain another command before it or after it (`&&`, `;`, `||`).\n"
+            "- Chain commands (`&&`, `;`, `||`) only when every part of the chain is one of those forms.\n"
             f"- Do not add flags in front of a listed form{flag_example(commands)}.\n"
             "- Do not pipe its output to a program that is not listed.\n\n"
             "Any other form waits for an approval that a headless run never gets.\n")
