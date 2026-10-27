@@ -145,6 +145,16 @@ class OrdersTest(unittest.TestCase):
         d = with_report(rec(budget=None), "forecaster")
         self.assertEqual(self.stop(d, "forecaster")["order"], "budget_not_set")
 
+    def test_a_prototype_slice_without_prototype_budgets_asks_the_person_who_set_it_going(self):
+        d = rec(kind="prototype")
+        d = with_report(d, "prototype")
+        s = self.stop(d, "prototype")
+        self.assertEqual((s["order"], s["seat"]), ("prototype_budgets_not_set", "originator"))
+
+    def test_prototype_budgets_for_all_three_variants_do_not_stop_it(self):
+        d = with_report(rec(kind="prototype", prototype_budgets={n: {"usd": 1} for n in "abc"}), "prototype")
+        self.assertNotEqual((self.stop(d, "prototype") or {}).get("order"), "prototype_budgets_not_set")
+
 
 if __name__ == "__main__":
     unittest.main()

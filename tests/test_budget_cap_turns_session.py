@@ -116,6 +116,37 @@ class PrototypeBudgetsTest(BudgetCapTest):
         row = [l for l in side.splitlines() if l.startswith("| a ")]
         self.assertTrue(row and "budget" in row[0], "the side-by-side file shows variant a stopped at its budget")
 
+    def test_without_prototype_budgets_the_stop_is_named_prototype_budgets_not_set(self):
+        p = self.xv("prototype", "start", "p1", cwd=self.pwt, check=False)
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "prototype_budgets_not_set")
+
+    def pick_args(self, variant):
+        scen = os.path.join(self.tmp, "restated.md")
+        open(scen, "w").write("After a meal, the household marks a whole recipe's food used in one call.")
+        return ["prototype", "pick", "p1", "--variant", variant, "--by", "pat,sam", "--scenario-file", scen]
+
+    def test_a_stopped_variant_cannot_be_picked(self):
+        self.proto_budgets(a=1, b=2, c=3)
+        self.proto_spent("a", 1.05)
+        self.xv("prototype", "start", "p1", cwd=self.pwt, check=False)
+        p = self.xv(*self.pick_args("a"), cwd=self.pwt, check=False)
+        self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
+        self.assertIn("budget", p.stderr)
+        self.assertNotIn("Traceback", p.stderr)
+        data = json.loads(self.xv("record", "show", "p1", "--json", cwd=self.pwt).stdout)
+        self.assertEqual(data["kind"], "prototype")
+
+    def test_picking_another_variant_after_one_stopped_does_not_crash(self):
+        self.proto_budgets(a=1, b=2, c=3)
+        self.proto_spent("a", 1.05)
+        self.xv("prototype", "start", "p1", cwd=self.pwt, check=False)
+        p = self.xv(*self.pick_args("b"), cwd=self.pwt, check=False)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        data = json.loads(self.xv("record", "show", "p1", "--json", cwd=self.pwt).stdout)
+        self.assertEqual((data["kind"], data["next"]), ("feature", "forecaster"))
+        branches = sh(["git", "branch", "--list", "--format=%(refname:short)", "xv/p1-proto-*"], self.repo).stdout
+        self.assertEqual(branches.strip(), "")
+
     def test_prototype_spend_does_not_count_against_the_slice_budget(self):
         # the slice budget is $0.50; variant a has spent $0.90 of its own $2
         self.proto_budgets(a=2, b=2, c=2)
