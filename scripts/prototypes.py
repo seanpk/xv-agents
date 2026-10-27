@@ -114,8 +114,9 @@ def start(slice_id, axis=None, positions=None, serial=False):
     # a second start keeps the variants that finished and runs only those that ran out, on their raised budgets
     prev = {e["name"]: e for e in data.get("prototypes") or []}
     kept = {n for n in NAMES if (prev.get(n) or {}).get("branch")}
-    stopped = {n for n in NAMES if n not in kept and
-               any(budgets[n].get(k) and spent[n][k] >= budgets[n][k] for k in ("tokens", "usd", "turns"))}
+    over = {n: [k for k in ("tokens", "usd", "turns") if budgets[n].get(k) and spent[n][k] >= budgets[n][k]]
+            for n in NAMES}
+    stopped = {n for n in NAMES if n not in kept and over[n]}
     jobs = [threading.Thread(target=run_one, args=(n, axis, p, slice_id, root, config, budgets[n], spent[n], out))
             for n, p in zip(NAMES, positions) if n not in stopped and n not in kept]
     for j in jobs:
@@ -170,8 +171,7 @@ def start(slice_id, axis=None, positions=None, serial=False):
     with open(packet, "w") as f:
         f.write("\n".join(lines) + "\n")
     ready = sum(1 for n in NAMES if (out.get(n) or {}).get("recording"))
-    ran_out = {n: ", ".join(f"{k} {spent[n][k]} of {budgets[n][k]}" for k in ("tokens", "usd", "turns")
-                            if budgets[n].get(k) and spent[n][k] >= budgets[n][k]) for n in sorted(stopped)}
+    ran_out = {n: ", ".join(f"{k} {spent[n][k]} of {budgets[n][k]}" for k in over[n]) for n in sorted(stopped)}
     data["checks"]["prototype"] = {"prototypes_ready": ready, "ran_out": ran_out, "at": now()}
     data["checks"].setdefault("reports", []).append({"agent": "prototype", "status": "done", "at": now(),
                                                      "summary": f"{ready} of 3 with a recording"})
