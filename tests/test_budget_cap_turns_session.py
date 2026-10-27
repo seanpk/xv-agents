@@ -3,6 +3,8 @@ import os
 import unittest
 
 from helpers import sh
+import orders
+from xvlib import DEFAULT_CONFIG
 from test_budget_cap import BudgetCapTest
 
 
@@ -154,6 +156,99 @@ class PrototypeBudgetsTest(BudgetCapTest):
         self.xv("prototype", "start", "p1", cwd=self.pwt, check=False)
         self.assertEqual(sorted(self.caps_by_variant()), ["a", "b", "c"])
         self.assertAlmostEqual(self.caps_by_variant()["a"], 1.1, places=6)
+
+    def start(self):
+        return self.xv("prototype", "start", "p1", cwd=self.pwt, check=False)
+
+    def stop_of(self, p):
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        return json.loads(p.stdout)["stop"]
+
+    def answer_raised(self):
+        self.xv("record", "answer", "p1", "--by", "pat,sam", "--answer", "raised the budget", cwd=self.pwt)
+
+    def clear_calls(self):
+        os.remove(self.log)
+
+    def proto_branches(self):
+        out = sh(["git", "branch", "--list", "--format=%(refname:short)", "xv/p1-proto-*"], self.repo).stdout
+        return sorted(out.split())
+
+    def test_a_variant_that_ran_out_sends_the_slice_back_to_the_person_who_set_it_going(self):
+        self.proto_budgets(a=1, b=2, c=3)
+        self.proto_spent("a", 1.05)
+        stop = self.stop_of(self.start())
+        self.assertEqual(stop["seat"], "originator")
+        self.assertIn("1.05", stop["question"])
+        self.assertIn("prototype_budgets", stop["question"])
+        self.assertIn("none", stop["question"])
+        self.assertEqual(sorted(self.caps_by_variant()), ["b", "c"], "the others still ran")
+
+    def test_when_all_three_ran_out_none_is_the_only_pick(self):
+        self.proto_budgets(a=1, b=1, c=1)
+        for n in "abc":
+            self.proto_spent(n, 1.05)
+        stop = self.stop_of(self.start())
+        self.assertEqual(stop["seat"], "originator")
+        self.assertIn("none", stop["question"])
+        self.assertEqual(self.calls(), [])
+        p = self.xv(*self.pick_args("none"), cwd=self.pwt, check=False)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        data = json.loads(self.xv("record", "show", "p1", "--json", cwd=self.pwt).stdout)
+        self.assertEqual(data["status"], "abandoned")
+
+    def test_a_second_start_runs_only_the_variant_whose_budget_was_raised(self):
+        self.proto_budgets(a=1, b=2, c=3)
+        self.proto_spent("a", 1.05)
+        self.stop_of(self.start())
+        self.clear_calls()
+        self.proto_budgets(a=3, b=2, c=3)
+        self.answer_raised()
+        self.start()
+        caps = self.caps_by_variant()
+        self.assertEqual(sorted(caps), ["a"])
+        self.assertAlmostEqual(caps["a"], 1.95, places=6)
+
+    def test_a_second_start_keeps_the_variants_that_finished(self):
+        self.proto_budgets(a=1, b=2, c=3)
+        self.proto_spent("a", 1.05)
+        self.stop_of(self.start())
+        self.clear_calls()
+        self.proto_budgets(a=3, b=2, c=3)
+        self.answer_raised()
+        self.start()
+        self.assertEqual(self.proto_branches(), ["xv/p1-proto-a", "xv/p1-proto-b", "xv/p1-proto-c"])
+        for n in "bc":
+            self.assertTrue(os.path.exists(os.path.join(self.pwt, ".xv", "prototypes", "p1", n, "recording.md")))
+        data = json.loads(self.xv("record", "show", "p1", "--json", cwd=self.pwt).stdout)
+        self.assertEqual(sorted(p["name"] for p in data["prototypes"]), ["a", "b", "c"])
+        self.assertTrue(all(p["branch"] and p["recording"] for p in data["prototypes"]))
+        side = open(os.path.join(self.pwt, ".xv", "slices", "p1.prototypes.md")).read()
+        for n in "abc":
+            self.assertIn(f"variant {n}:", side)
+
+    def test_a_variant_whose_budget_was_not_raised_is_not_run_again_and_the_stop_says_so(self):
+        self.proto_budgets(a=1, b=1, c=3)
+        self.proto_spent("a", 1.05)
+        self.proto_spent("b", 1.05)
+        self.stop_of(self.start())
+        self.clear_calls()
+        self.proto_budgets(a=3, b=1, c=3)
+        self.answer_raised()
+        stop = self.stop_of(self.start())
+        self.assertEqual(sorted(self.caps_by_variant()), ["a"])
+        self.assertEqual(stop["seat"], "originator")
+        self.assertIn("1.05", stop["question"], "the stop names b and what it spent")
+
+    def test_prototype_start_leaves_the_missing_budgets_stop_to_the_standing_order(self):
+        stop = self.stop_of(self.start())
+        data = json.loads(self.xv("record", "show", "p1", "--json", cwd=self.pwt).stdout)
+        data["stops"] = []
+        fired = [f for f in orders.evaluate(data, "prototype", DEFAULT_CONFIG)
+                 if f["order"] == "prototype_budgets_not_set"]
+        self.assertEqual(len(fired), 1)
+        self.assertEqual(stop["question"], fired[0]["question"])
+        self.assertEqual(self.calls(), [])
 
 
 # Importing BudgetCapTest reruns its four tests here too; the new cases are the three above.
