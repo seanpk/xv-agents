@@ -448,6 +448,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
                 checks["setup_failed"] = out
         else:
             checks["red_fails"] = None
+        checks["old_red_changed"] = old_red_changed(root, data, red)
         wb = wall_baseline(root, data, config)
         if wb:
             data["wall_baseline"] = wb
@@ -575,6 +576,16 @@ def red_run(root, data, red, config):
     finally:
         subprocess.run(["git", "worktree", "remove", "--force", tmp], cwd=root, capture_output=True)
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def old_red_changed(root, data, red):
+    """Red files that existed at the base and lost or changed old test code."""
+    try:
+        import wall
+    except ImportError:
+        return []
+    moved = {m.get("file") for m in data.get("moved_tests") or []}
+    return wall.old_red_changed(root, data["base"], red.get("files") or [], moved) if data.get("base") else []
 
 
 def wall_baseline(root, data, config):
