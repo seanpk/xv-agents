@@ -44,9 +44,9 @@ def model_of(argv):
     return "default"
 
 
-def with_caps(argv, budget, spent_usd=0):
-    """Add the harness's own budget cap where it has one: the dollars left and turns on
-    Claude Code, turns on Grok. Elsewhere the watch's check after the step is the cap."""
+def with_caps(argv, budget, spent_usd=0, spent_turns=0):
+    """Add the harness's own budget cap where it has one: the dollars and turns left on
+    Claude Code, the turns left on Grok. Elsewhere the watch's check after the step is the cap."""
     h = harness_of(argv)
     if not budget or h not in ("claude", "grok"):
         return argv
@@ -54,7 +54,7 @@ def with_caps(argv, budget, spent_usd=0):
     if h == "claude" and budget.get("usd") and "--max-budget-usd" not in argv:
         caps += ["--max-budget-usd", str(round(budget["usd"] - spent_usd, 6))]
     if budget.get("turns") and "--max-turns" not in argv:
-        caps += ["--max-turns", str(budget["turns"])]
+        caps += ["--max-turns", str(budget["turns"] - spent_turns)]
     i = argv.index("{prompt}") if "{prompt}" in argv else len(argv)
     if 0 < i < len(argv) and argv[i - 1].startswith("-"):
         i -= 1  # the prompt is a flag's value (`grok -p <prompt>`): keep the pair together

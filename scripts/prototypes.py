@@ -41,7 +41,7 @@ DEFAULT_POSITIONS = [
 EXIT_STOP = 10
 
 
-def run_one(name, axis, position, slice_id, slice_wt, config, budget, out):
+def run_one(name, axis, position, slice_id, slice_wt, config, budget, spent, out):
     root = slice_wt
     branch = f"xv/{slice_id}-proto-{name}"
     wt = os.path.join(worktrees_dir(root, config), f"{slice_id}-proto-{name}")
@@ -56,7 +56,7 @@ def run_one(name, axis, position, slice_id, slice_wt, config, budget, out):
     text = promptlib.brief("prototype") + "\n" + promptlib.pointers("prototype", wt, config,
                                                                     read_doc(record_path(wt, slice_id))[0], extra)
     argv = agentcli.argv_for(config, "prototype")
-    argv = agentcli.with_caps(argv, budget)
+    argv = agentcli.with_caps(argv, budget, spent["usd"], spent["turns"])
     log = os.path.join(git(["rev-parse", "--path-format=absolute", "--git-common-dir"], root).strip(),
                        "xv", "runs", slice_id, f"prototype-{name}.out")
     result = agentcli.run(argv, text, wt, log, int(config.get("step_timeout") or 3600))
@@ -89,6 +89,17 @@ def start(slice_id, axis=None, positions=None, serial=False):
         data["status"] = "stopped"
         record.save(path, data, body)
         return EXIT_STOP, {"slice": slice_id, "stop": data["stops"][-1]}
+    budgets = data.get("prototype_budgets") or {}
+    if not all(budgets.get(n) for n in NAMES):
+        example = "'{\"a\": {\"usd\": 1}, \"b\": {\"usd\": 2}, \"c\": {\"usd\": 1}}'"
+        data["stops"].append({"at": now(), "step": "prototype", "order": "prototype_budgets_not_set",
+                              "seat": "originator",
+                              "question": "Set a budget for each variant, free to differ "
+                                          f"(`xv record set {slice_id} prototype_budgets {example} --by <name>`).",
+                              "answered_by": [], "answer": None})
+        data["status"] = "stopped"
+        record.save(path, data, body)
+        return EXIT_STOP, {"slice": slice_id, "stop": data["stops"][-1]}
     positions = positions or DEFAULT_POSITIONS
     if len(positions) != 3:
         raise XVError("three positions on the axis: more and people are reviewing a gallery")
@@ -99,8 +110,12 @@ def start(slice_id, axis=None, positions=None, serial=False):
 
     out = {}
     serial = serial or (config.get("prototypes") or {}).get("serial")
-    jobs = [threading.Thread(target=run_one, args=(n, axis, p, slice_id, root, config, data.get("budget"), out))
-            for n, p in zip(NAMES, positions)]
+    spent = {n: spendlib.totals([s for s in data.get("spend") or [] if s.get("step") == f"prototype-{n}"])
+             for n in NAMES}
+    # a variant that has spent its own budget stops alone; the others still run
+    jobs = [threading.Thread(target=run_one, args=(n, axis, p, slice_id, root, config, budgets[n], spent[n], out))
+            for n, p in zip(NAMES, positions)
+            if not any(budgets[n].get(k) and spent[n][k] >= budgets[n][k] for k in ("tokens", "usd", "turns"))]
     for j in jobs:
         j.start()
         if serial:
@@ -128,9 +143,10 @@ def start(slice_id, axis=None, positions=None, serial=False):
             lines.append(open(p["recording_path"]).read().strip())
         else:
             lines.append("No recording. This prototype cannot be compared with the others.")
-        s = p.get("spend") or {}
-        s.update(step=f"prototype-{n}", at=now())
-        data["spend"].append(s)
+        if p:
+            s = p.get("spend") or {}
+            s.update(step=f"prototype-{n}", at=now())
+            data["spend"].append(s)
         data["prototypes"].append({"name": n, "branch": p.get("branch"), "axis_position": p.get("axis_position"),
                                    "refuses": (p.get("report") or {}).get("refuses"),
                                    "costs": (p.get("report") or {}).get("costs"),
