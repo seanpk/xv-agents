@@ -35,10 +35,10 @@
   "tests/test_suite_red_quote.py": 7,
   "tests/test_wall.py": 13,
   "tests/test_worktree_setup.py": 21,
-  "tests/test_worktree_setup_settled.py": 15,
+  "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "39a7a33a4ae120189a16ccdaca879b3684a5f10a",
+ "commit": "414064726aa87ce48f9d04a78a014260e60f07e3",
  "files": {
   "tests/data/claude-result.json": "d97d2788e30ab2c1dcefc61594ffaaf6892217e088255672a7ead5be9747a331",
   "tests/data/claude-session.jsonl": "f334175619c11a34eabde629fe45e0def44aa43becec22059c9c9841ffccf073",
@@ -75,7 +75,7 @@
   "tests/test_suite_red_quote.py": "f920a670c696b5300ee665f20f7d25394edd17ce802fbda197ab1ae2f07f7435",
   "tests/test_wall.py": "75aeb81d6b89c048dc18a1811aa0fcc51bd7b883f81578c7f49cd5f383fe1c93",
   "tests/test_worktree_setup.py": "364dade624b46bd570e1f8f70d6f15100c976bad95e5b58c3782ed746184b75a",
-  "tests/test_worktree_setup_settled.py": "89876d3b761780d3031551f5b15a50d732adcd640202fa40f60d89efb162fa64",
+  "tests/test_worktree_setup_settled.py": "b4a3909fa772045a6e2abaa30887934da07fa5125d729f521667882dd78bab1d",
   "tests/test_xvlib.py": "78f3d5794f196b0e56ce18d3f8d28acb9f084bd5a4c67eb595c9477bb5c9505d"
  },
  "slice": "2026-10-26-worktree-setup"
