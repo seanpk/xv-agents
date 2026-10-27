@@ -130,6 +130,18 @@ class WatchLoopTest(RepoCase):
         self.assertIn("&&", stop["question"])
         self.assertIsNot(self.record()["checks"]["scenario"].get("red_fails"), True)
 
+    def test_an_old_assertion_changed_in_a_red_file_stops_before_the_maker(self):
+        os.environ["FAKE_SCENARIO_EDITS_OLD"] = "1"
+        try:
+            p = self.scenario_with_red("false")
+        finally:
+            del os.environ["FAKE_SCENARIO_EDITS_OLD"]
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["seat"], "originator")
+        self.assertIn("tests/test_store.py", stop["question"])
+        self.assertNotIn("maker", [s["step"] for s in self.record()["spend"]])
+
     def test_a_red_joined_with_or_is_refused(self):
         p = self.scenario_with_red("false || true")
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "scenario_stopped")
