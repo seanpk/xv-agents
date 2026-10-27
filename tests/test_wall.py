@@ -101,7 +101,11 @@ class WallRedFileTest(RepoCase):
                 "        self.store.add(\"tea\", 1, date(2027, 1, 1))\n"
                 "        self.assertEqual(self.store.items()[0].qty, 2)\n")
 
-    def red_slice(self, edit, files=("tests/test_store.py",), move=False):
+    def red_slice(self, edit, files=("tests/test_store.py",), move=False, base=None):
+        for rel, text in (base or {}).items():
+            write(os.path.join(self.repo, rel), text)
+            sh(["git", "add", "-A"], self.repo)
+            sh(["git", "commit", "-qm", "old test file"], self.repo)
         wt = self.new_slice("s1")
         for rel in files:
             path = os.path.join(wt, rel)
@@ -147,6 +151,53 @@ class WallRedFileTest(RepoCase):
     def test_a_removed_blank_line_in_a_red_file_passes(self):
         code, res = self.red_slice(lambda t: self.add_test(t).replace("\n\n\nclass StoreTest", "\n\nclass StoreTest", 1))
         self.assertEqual((code, res["unrecorded"]), (0, []))
+
+    JS_BASE = ('import { load } from "./config";\n'
+               'const fs = require("fs");\n\n'
+               'test("missing config", () => {\n'
+               '  expect(() => require("./config")).toThrow("missing");\n'
+               '});\n')
+
+    def js_red(self, old, new):
+        path = "tests/config.test.js"
+        return self.red_slice(lambda t: t.replace(old, new) + 'test("added", () => {});\n',
+                              files=(path,), base={path: self.JS_BASE})
+
+    def test_js_import_and_require_lines_changed_in_a_red_file_pass(self):
+        code, res = self.js_red('import { load } from "./config";', 'import { load, save } from "./config";')
+        self.assertEqual((code, res["unrecorded"]), (0, []))
+
+    def test_a_js_require_assignment_changed_in_a_red_file_passes(self):
+        code, res = self.js_red('const fs = require("fs");', 'const path = require("path");')
+        self.assertEqual((code, res["unrecorded"]), (0, []))
+
+    def test_a_line_that_only_contains_require_in_a_red_file_counts(self):
+        code, res = self.js_red('.toThrow("missing")', '.toThrow("gone")')
+        self.assertEqual((code, res["unrecorded"]), (1, ["tests/config.test.js"]))
+
+    def test_a_js_require_line_is_not_an_import_in_a_python_red_file(self):
+        base = ("import unittest\nrequire = lambda x: x\n\n\nclass T(unittest.TestCase):\n"
+                "    def test_a(self):\n        self.assertEqual(require(1), 1)\n")
+        code, res = self.red_slice(lambda t: t.replace("require = lambda x: x", "require = lambda x: x + 0"),
+                                   files=("tests/test_req.py",), base={"tests/test_req.py": base})
+        self.assertEqual((code, res["unrecorded"]), (1, ["tests/test_req.py"]))
+
+    def test_ruby_and_go_import_lines_changed_in_a_red_file_pass(self):
+        rb = 'require "json"\nrequire_relative "helper"\n\ndescribe "x" do\n  it "a" do\n    expect(1).to eq(1)\n  end\nend\n'
+        code, res = self.red_slice(lambda t: t.replace('require "json"', 'require "set"') + 'it "b" do\nend\n',
+                                   files=("tests/x_spec.rb",), base={"tests/x_spec.rb": rb})
+        self.assertEqual((code, res["unrecorded"]), (0, []))
+
+    def test_a_go_import_line_changed_in_a_red_file_passes(self):
+        go = 'package x\n\nimport "testing"\n\nfunc TestA(t *testing.T) {\n\tif 1 != 1 {\n\t\tt.Fatal("no")\n\t}\n}\n'
+        code, res = self.red_slice(lambda t: t.replace('import "testing"', 'import "os"') + "func TestB(t *testing.T) {}\n",
+                                   files=("tests/x_test.go",), base={"tests/x_test.go": go})
+        self.assertEqual((code, res["unrecorded"]), (0, []))
+
+    def test_a_file_type_with_no_import_matchers_skips_no_import_line(self):
+        code, res = self.red_slice(lambda t: t.replace("import foo", "import bar") + "run b\n",
+                                   files=("tests/cases.xyz",), base={"tests/cases.xyz": "import foo\nrun a\n"})
+        self.assertEqual((code, res["unrecorded"]), (1, ["tests/cases.xyz"]))
 
     def test_a_red_file_new_in_the_slice_is_covered_whole(self):
         wt = self.new_slice("s1")

@@ -142,6 +142,16 @@ class WatchLoopTest(RepoCase):
         self.assertIn("tests/test_store.py", stop["question"])
         self.assertNotIn("maker", [s["step"] for s in self.record()["spend"]])
 
+    def test_a_scenario_step_whose_old_red_check_cannot_run_stops_before_the_maker(self):
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.xv("record", "set", "s1", "base", "", cwd=self.wt)
+        p = self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["seat"], "originator")
+        self.assertIn("base", stop["question"])
+        self.assertNotIn("maker", [s["step"] for s in self.record()["spend"]])
+
     def test_a_red_joined_with_or_is_refused(self):
         p = self.scenario_with_red("false || true")
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "scenario_stopped")
