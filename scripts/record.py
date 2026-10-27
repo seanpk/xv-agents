@@ -171,8 +171,10 @@ def cmd_move(a):
     for name in ("file", "assertion", "why"):
         if not getattr(a, name):
             raise XVError(f"a moved test names its {name}")
-    data["moved_tests"].append({"file": a.file, "assertion": a.assertion, "why": a.why,
-                                "by": a.by or "maker", "at": now()})
+    entry = {"file": a.file, "assertion": a.assertion, "why": a.why, "by": a.by or "maker", "at": now()}
+    if a.slice_only:
+        entry["slice_only"] = True
+    data["moved_tests"].append(entry)
     body = log_line(body, a.by or "maker", f"moved a test in {a.file}: {a.why}")
     if a.to and a.deleted:
         raise XVError("a moved test goes --to a path or is --deleted, not both")
@@ -521,7 +523,8 @@ def main(argv=None):
     s.add_argument("--assertion")
     s.add_argument("--why")
     s.add_argument("--to", help="the new path of a file that moved")
-    s.add_argument("--deleted", action="store_true", help="the file was removed")
+    s.add_argument("--deleted", action="store_true", help="the whole file was removed")
+    s.add_argument("--slice-only", action="store_true", help="a slice-only test removed after green")
     s.add_argument("--by")
     s.set_defaults(fn=cmd_move)
 

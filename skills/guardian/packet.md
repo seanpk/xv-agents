@@ -42,6 +42,8 @@ pitch_contradiction: <yes|no>. <Each finding quotes the pitch line.>
 | File | Before | After | Why (the maker's record) | Forced by the scenario? |
 | --- | --- | --- | --- | --- |
 
+Slice-only tests removed: <the tests, on one line, or none>. Kept: <each kept slice-only test, with the reason to keep it, or none>.
+
 ## 4. The picture
 
 <Each line of `.xv/picture.md` this change makes untrue or incomplete, and the proposed edit.>
