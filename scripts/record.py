@@ -172,7 +172,7 @@ def cmd_move(a):
         if not getattr(a, name):
             raise XVError(f"a moved test names its {name}")
     entry = {"file": a.file, "assertion": a.assertion, "why": a.why, "by": a.by or "maker", "at": now()}
-    listed = any(s.get("file") == a.file and s.get("test") and s["test"] in a.assertion
+    listed = any(s.get("file") == a.file and s.get("test") and s["test"] == a.assertion
                  for s in data.get("slice_only") or [] if isinstance(s, dict))
     if a.slice_only and listed:
         entry["slice_only"] = True
