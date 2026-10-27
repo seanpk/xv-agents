@@ -38,6 +38,8 @@ Settled at the scenario's stop, 2026-10-27, Sean: the person sets the prototype 
 
 Settled at the guardian's third stop, 2026-10-27, Sean: (1) Finish what was settled: the after-maker `budget_spent` check counts every step's spend, as the before-step check does (`budget_state` in `scripts/orders.py`). (2) `docs/decisions.md` decision 49, `README.md:247` and the retro's budget count (`scripts/retro.py:63-64`) say the budget covers every step. (3) A prototype variant that spends its budget stops alone and the others go on; the record's log says which variant stopped and why, and the side-by-side file (`.xv/slices/<id>.prototypes.md`) shows it. (4) The `prototype_budgets_not_set` stop lives in `scripts/orders.py`, as `budget_not_set` does. The picture edits are the watch's at the merge.
 
+Settled at the guardian's fourth stop, 2026-10-27, Sean: (1) A variant stopped at its budget has no branch, and `xv prototype pick` must not crash on it: pick skips the branch delete for a variant with no branch (`scripts/prototypes.py:203`), and a stopped variant cannot be picked (`scripts/prototypes.py:196`); add a test that picks after one variant stopped. (2) Move the `prototype_budgets_not_set` stop into `scripts/orders.py`, as settled at the third stop, and assert its exact order name (`tests/test_budget_cap_turns_session.py:79` asserts only that "budget" is in it). (3) Rename `test_the_budget_covers_the_makers_steps` (`tests/test_spend.py:36`) to say what it asserts, as a recorded move. The doc and brief lines that still say the budget covers the maker (`docs/decisions.md` decision 77, `README.md:276,306`, `skills/watch/SKILL.md:54`, the field list and the stop tables) and the picture edits are the watch's at the merge.
+
 ## May ignore
 
 Nothing stated.
