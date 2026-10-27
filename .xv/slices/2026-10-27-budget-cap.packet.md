@@ -4,7 +4,7 @@ shape_change: no
 pitch_contradiction: no
 picture_change: yes
 shape_breadth: narrow
-moved_tests: 1
+moved_tests: 2
 door: two-way
 blast_radius: broad
 ---
@@ -13,109 +13,117 @@ blast_radius: broad
 
 Nothing here stops the change for two people. Sean has these to decide:
 
-- Two of the four things settled at the guardian's stop are not in the diff. The after-maker `budget_spent` check still counts only the maker. Decision 49, the README and the retro still say the budget covers the maker.
-- A prototype variant that has spent its budget is dropped without a stop or a log line.
-- `prototype_budgets_not_set` is a new stop raised outside `scripts/orders.py`.
-- One moved test.
-- Three picture edits.
+- **One settled point is still not in the diff.** `prototype_budgets_not_set` is still raised in `scripts/prototypes.py`, not `scripts/orders.py` (record line 39, part 4).
+- **A pick after a budget-stopped variant may crash.** The stopped variant is still listed as a prototype with no branch, and `xv prototype pick` deletes that branch by name.
+- **Four doc and brief lines still say the budget covers the maker only.** One of them is in the watch's brief.
+- **Two moved tests**, both forced by the scenario, neither asserting less. One test's name now says the opposite of what it asserts.
+- **Three picture edits.**
 
-The merge is Sean's.
+The other three points settled at the guardian's third stop are done: the after-maker count, decision 49 / `README.md:247` / the retro, and the log and side-by-side line. The merge is Sean's.
 
 ## The scenario
 
-Before each step, the watch compares the slice's spend with the budget. A Claude step gets the dollars left as `--max-budget-usd` and the turns left as `--max-turns`. When dollars, tokens or turns are used up, the step does not run, and `budget_spent` stops for the originator whatever the suite says. Steps marked `session` get the same check before they run. A raised budget lets the slice go on.
+Before each step, the watch compares the slice's spend with the budget. Prototype spend does not count. A Claude step gets the dollars left as `--max-budget-usd` and the turns left as `--max-turns`. When dollars, tokens or turns are used up, the step does not run, and `budget_spent` stops for the originator whatever the suite says. This applies to `session` steps too. The after-maker `budget_spent` check uses the same count. A raised budget lets the slice go on.
 
-A prototype slice takes one budget per variant, set with `xv record set <id> prototype_budgets '{"a":…,"b":…,"c":…}'`. Each variant is capped at its own budget less its own spend. A variant that has spent its budget stops alone. Prototype spend does not count against the slice budget. `xv prototype start` stops for the originator until the per-variant budgets are set.
+A prototype slice takes `prototype_budgets`, one budget for each of a, b and c, free to differ. Each variant is capped at its own budget less its own spend. A variant that has spent its budget does not run, and the others do. The log and the side-by-side file name the stopped variant. `xv prototype start` stops for the originator until the budgets are set.
 
-Settled by Sean, solo, at two stops (record lines 35 and 37). May ignore: nothing stated.
+Sean settled this solo at three stops (record lines 35, 37 and 39). May ignore: nothing stated.
 
 ## The recording
 
-None; this is a feature. To replay, run the red command in the record (`.xv/slices/2026-10-27-budget-cap.md:13`): 8 tests, all failing at `b8baebc`, all passing at HEAD. The whole suite (`cd tests && python3 -m unittest -q`) ran 222 tests, OK, rerun by the guardian on the working tree.
+None; this is a feature. To replay:
+
+- Run the red command (record line 13). At HEAD: 2 tests, OK.
+- Run the whole suite (`cd tests && python3 -m unittest -q`). At HEAD, rerun by the guardian: 224 tests, OK.
 
 ## The boundary picture
 
 From `.xv/slices/2026-10-27-budget-cap.boundary.md`, as given:
 
-- Modules touched: `scripts/agentcli`, `scripts/orders`, `scripts/prototypes`, `scripts/run`. None added or removed.
-- Edges added or removed: none. New outbound calls: none.
+- Modules touched: `agentcli`, `orders`, `prototypes`, `retro`, `run`, `spend`. None added or removed.
+- Edges: none added or removed. New outbound calls: none.
 - Tables: none. Surfaces: none added or removed.
 - Shape hints: none.
 
 ## What the suite asserts after
 
-`tests/test_budget_cap.py` has 4 tests, from the first pass. They check:
-
-- the dollars-left cap (0.2 of $1)
-- no step at $1.05 spent with the suite green
-- no step at the token cap
-- a raised budget going on with 0.95 left
-
-`tests/test_budget_cap_turns_session.py` has 8 tests, all new. Each uses a stand-in `claude` that logs its argv.
-
-- With a 30-turn budget and 12 turns spent, the next step gets `--max-turns 18`.
-- With all 30 turns spent, the step exits 10 at `budget_spent` and no agent is called.
-- A step marked `session` with the budget spent exits 10 at `budget_spent`, not with the "run it in the session" error.
-- With no `prototype_budgets`, `prototype start` exits 10 for `originator` and no agent is called. The order is only checked to contain "budget" (`tests/test_budget_cap_turns_session.py:79`).
-- Budgets of a $1, b $2.50 and c $0.75 give caps of 1.0, 2.5 and 0.75.
-- Each variant's cap is its budget less its own spend only.
-- A variant that has spent its budget gets no agent call, and b and c still run.
-- Slice-step spend does not shrink a variant's cap.
+- **`tests/test_budget_cap.py` (4 tests):**
+  - With $0.80 of $1 spent, the next step gets a 0.2 cap.
+  - With $1.05 spent and the suite green, no agent runs and `budget_spent` names 1.05.
+  - At the token cap, no agent runs.
+  - After a raise to $2, the step runs with 0.95.
+- **`tests/test_budget_cap_turns_session.py`, turns and session:**
+  - With 12 of 30 turns spent, the next step gets `--max-turns 18`.
+  - With all 30 spent, the step stops at `budget_spent`.
+  - A `session` step with the budget spent stops at `budget_spent`.
+- **The same file, prototypes:**
+  - With no budgets set, `prototype start` exits 10 for the originator.
+  - Each variant is capped at its own budget less its own spend.
+  - A variant at its budget gets no agent call.
+  - The log and the side-by-side row name the stopped variant.
+  - Slice spend does not shrink a variant's cap.
+- **`tests/test_orders.py:38-44`:** with $0.6, $1.0 and $0.5 spent across three steps of a $2 budget and the suite red, the after-maker check fires `budget_spent`.
 
 ## 1. Shape
 
 `shape_change: no`. `shape_breadth: narrow`.
 
-- **No new module, edge, table or surface.** The boundary picture lists none and has no shape hints. The 22 flat modules in `.xv/picture.md:21` still hold.
-- **The breadth is past the forecast's list but still narrow.** The forecast's breadth named three modules: watch/run, agentcli and orders (`.xv/slices/2026-10-27-budget-cap.md:11`). `scripts/prototypes` is a fourth (`scripts/prototypes.py:92-118`). It came in after the forecast, with Sean's answer at the guardian's stop (`.xv/slices/2026-10-27-budget-cap.md:35`, part 3). Sean answered `diff_growing` with "yes, all" (`.xv/slices/2026-10-27-budget-cap.md:23`). The forecast called it narrow, and it is still narrow.
-- **The new record field is not a new surface.** `prototype_budgets` is set with the existing `xv record set`. Surfaces are the `xv` CLI and the skills (`.xv/picture.md:27`), and no command was added.
-- **A new stop sits outside the orders file.** `scripts/prototypes.py:92-102` raises `prototype_budgets_not_set` inline. `.xv/picture.md:68` says "The standing orders all live in `scripts/orders.py` … A stop raised because an action failed (`setup_failed`, `axis_not_named`) is not a standing order; the command that failed raises it." The stop mirrors `budget_not_set`, which is a standing order at `scripts/orders.py:95-97`. It is raised beside `axis_not_named` (`scripts/prototypes.py:84-90`). Sean decides which kind it is. If it is the `axis_not_named` kind, the picture line names it (see 4).
-- **The standing-order rule is met.** `.xv/picture.md:59` asks for two people and a CHANGELOG line, and `.xv/picture.md:51` says `two_people: solo`. The lines are at `CHANGELOG.md:7-8`. The record's `decisions:` list is empty.
+- **No new module, edge, table or surface.** The boundary picture lists none and gives no shape hints. The flat-module shape at `.xv/picture.md:21` holds.
+- **The standing-order rule is met as the team works.** `.xv/picture.md:59` asks for two people and a CHANGELOG line; `.xv/picture.md:51` says solo. The lines are `CHANGELOG.md:7-9`.
 
 ### Findings inside the shape, for Sean
 
-- **"One count everywhere" is half done.** The record says: "the before-step check and the after-maker `budget_spent` check both count every step's spend" (`.xv/slices/2026-10-27-budget-cap.md:35`, part 1). The before-step check counts every step except prototypes (`scripts/orders.py:50-52`, `slice_spend`). The after-maker check is unchanged. It still calls `budget_state(data)` (`scripts/orders.py:125`), which defaults to `steps=("maker",)` (`scripts/spend.py:187-190`). So does `xv spend budget` (`scripts/spend.py:221`). Two checks fire the same order name with different counts. The maker's report does not claim this part.
-- **The docs and the retro were not brought into line.** The record says: "`docs/decisions.md` decision 49, `README.md:247` and the retro's budget count (`scripts/retro.py:63-64`) say what the code does" (`.xv/slices/2026-10-27-budget-cap.md:35`, part 4). None of the three is in the diff.
-  - `docs/decisions.md:70` still reads "The budget covers the maker's steps. The other agents' spend is recorded but does not count against it."
-  - `README.md:247` still reads "The maker's run gets the budget as hard caps."
-  - `README.md:276` still lists the order as "The budget is spent and the suite is not green".
-  - `README.md:306` still says "the maker's run is capped by it".
-  - `scripts/retro.py:63-64` still counts `step == "maker"` only, so a slice stopped by the new check is not reported as "overran its budget".
-- **A variant that spent its budget leaves no trace of why.** `scripts/prototypes.py:116-118` drops the variant's thread:
-  ```
-  +            if not any(budgets[n].get(k) and spent[n][k] >= budgets[n][k] for k in ("tokens", "usd", "turns"))]
-  ```
-  No stop is appended and no log line is written. The side-by-side table then shows "No recording. This prototype cannot be compared with the others." (`scripts/prototypes.py:144-145`), and `data["prototypes"]` gets a row with empty fields (`scripts/prototypes.py:150`). The pick still goes to two people with two prototypes, and nothing says one was cut for budget. The scenario says the variant "stops alone" (record line 35, part 3) but does not say who is told.
-- **The new stop is not in the field list or the stops table.** `prototype_budgets` is missing from `docs/slice-record.md`, which README.md:264 names as "The field list". `prototype_budgets_not_set` is missing from the stops table at `README.md:274-292`.
-- **One assertion is loose.** `tests/test_budget_cap_turns_session.py:79` asserts `assertIn("budget", stop["order"])`. It would also pass if the stop were `budget_spent` or `budget_not_set`. The scenario and `CHANGELOG.md:7` name the order `prototype_budgets_not_set`.
+- **`prototype_budgets_not_set` is not in `scripts/orders.py`.**
+  - Record line 39, part 4: "The `prototype_budgets_not_set` stop lives in `scripts/orders.py`, as `budget_not_set` does."
+  - It is still raised inline at `scripts/prototypes.py:92-102`. `scripts/orders.py` has no such order.
+  - `.xv/picture.md:68`: "The standing orders all live in `scripts/orders.py`."
+  - The stopped variant still gets a `data["prototypes"]` row, with `"branch": p.get("branch")`, which is `None` because it never ran (`scripts/prototypes.py:153`).
+  - `pick` runs `git(["branch", "-D", p["branch"]], root, check=False)` on every row (`scripts/prototypes.py:203`). A `None` in the argv is a `TypeError` inside `subprocess.run`, which `check=False` does not catch.
+  - The stopped variant is also a valid pick, because `names` is built from the same rows (`scripts/prototypes.py:196`).
+  - Not run by the guardian, and no test covers a pick after a stopped variant.
+- **When all three variants are stopped, the stop goes to two people, not the person who sets budgets.** No thread runs and `ready` is 0. `prototypes_ready` then fires for `two_people`: "0 prototype(s) are ready to pick from" (`scripts/orders.py:193-197`). Only the originator sets `prototype_budgets` (record line 37). The scenario is silent on this case.
+- **Doc and brief lines still say maker only, or "and not green".** Record line 39, part 2 asked only for decision 49, `README.md:247` and the retro, and those are done. These four are now untrue:
+  - `docs/decisions.md:114`, decision 77: "The retro's 'overran' compares the maker's spend with the budget, as the budget order does." `scripts/retro.py:64` now uses `slice_spend`.
+  - `README.md:306`: "the maker's run is capped by it."
+  - `README.md:276`: "The budget is spent and the suite is not green." `budget_spent` now also fires before any step, green or not (`scripts/orders.py:50-59`, `scripts/run.py:339`).
+  - `skills/watch/SKILL.md:54`: the same row in the watch's brief. A brief change needs two people and a CHANGELOG line (`.xv/picture.md:59`).
+  - `prototype_budgets` is missing from `docs/slice-record.md`, which `README.md:264` calls "The field list".
+  - `prototype_budgets_not_set` is missing from the stops tables at `README.md:274-292` and in `skills/watch/SKILL.md`.
+- **One assertion is loose.** `tests/test_budget_cap_turns_session.py:79` asserts `assertIn("budget", stop["order"])`, which `budget_spent` or `budget_not_set` would also pass. The order is named `prototype_budgets_not_set` in `CHANGELOG.md:7` and record line 37.
 
 ## 2. Pitch
 
-`pitch_contradiction: no`. I read `.xv/pitch.md:7`, `:17`, `:21` and `:25`. The change limits what agents spend and keeps a person on the choice to spend more, which fits "to vibe with discipline" (`.xv/pitch.md:7`). The pitch says nothing about budgets or prototypes.
+`pitch_contradiction: no`.
+
+- I read `.xv/pitch.md:7`, `:17`, `:21` and `:25`.
+- A cap on every step, with a person deciding to spend more, fits "to vibe with discipline" (`.xv/pitch.md:7`).
 
 ## 3. Moved tests
 
-`xv wall diff 2026-10-27-budget-cap` against baseline `4073674` lists one file changed, none deleted or added, and none with fewer assertions (12 before, 12 after). The record's `moved_tests` names the same file. `slice_only` is empty.
+`xv wall diff` against baseline `0b4adbd` lists one changed file, `tests/test_spend.py`: 13 assertions before, 13 after, none deleted, none added. The record's `moved_tests` has two entries. The `tests/test_prototypes.py` move came before the wall baseline was reset at `0b4adbd`, so the wall diff does not show it. The record has it. The scenario's own red files are `tests/test_orders.py` and `tests/test_budget_cap_turns_session.py`: they gained tests and are not moves.
 
-| File | Before | After | Why (the maker's record) | Forced by the scenario? |
+| Test | Before | After | Maker's reason | Forced? |
 | --- | --- | --- | --- | --- |
-| `tests/test_prototypes.py:28-30`, `test_three_prototypes_side_by_side_then_a_pick_by_two_people` | went straight to `xv run p1` | first runs `xv record set p1 prototype_budgets {a,b,c: {usd: 1}} --by pat`, then the same assertions | "`xv prototype start` stop[s] for the person until prototype_budgets are set" | Yes. Record line 37: "`xv prototype start` stops for the person … when they are not set." The test asserts no less. |
+| `tests/test_prototypes.py:29-30`, `test_three_prototypes_side_by_side_then_a_pick_by_two_people` | went straight to `xv run p1` | sets `prototype_budgets` {a,b,c: $1} first; the assertions are unchanged | `prototype start` stops until the budgets are set | Yes, record line 37. Asserts no less. |
+| `tests/test_spend.py:36-41`, `test_the_budget_covers_the_makers_steps` | `(["usd"], 4000)`: the guardian's row is left out | `(["tokens", "usd"], 103999)`: the guardian's row counts | the budget counts every step's spend | Yes, record line 35, part 1, and line 39, part 1. Asserts no less, and now also checks tokens. |
 
-Slice-only removals: none.
+- **The moved test's name is now wrong.** `tests/test_spend.py:36` is still called `test_the_budget_covers_the_makers_steps`, but it now asserts that the budget covers every step.
+
+Slice-only removals: none (`slice_only: []`).
 
 ## 4. The picture
 
-Three lines are now incomplete. The proposed edits are for Sean; the guardian does not write to the picture.
+Three edits are proposed for Sean. The guardian does not write to the picture.
 
-- `.xv/picture.md:23`, "`orders` holds the stop rules". Add: "One of them, `budget_before`, runs before every step from `run.step`, session steps too; the rest run after the step through `evaluate`. The slice budget counts every step's spend except the prototypes'."
-- `.xv/picture.md:26`, state is files. Add that the record holds `prototype_budgets`, one budget per variant (a, b, c), each with the same keys as `budget` and free to differ.
-- `.xv/picture.md:68`, decision 10. If Sean keeps `prototype_budgets_not_set` in `prototypes.py`, add it to the list after "(`setup_failed`, `axis_not_named`)". If not, the stop moves to `orders.py`; that change is code, not a picture edit.
+- **`.xv/picture.md:23`** says "`orders` holds the stop rules" and "`spend` … owns the one per-row token count". Add: "`spend.slice_spend` is the one count the slice budget uses: every step except the prototypes. `orders.budget_before` checks it before every step, `session` steps too. The after-maker check and the retro use the same count."
+- **`.xv/picture.md:26`** says state is files. Add: "The record holds `prototype_budgets`, one budget for each of a, b and c, in the shape of `budget` and free to differ. A variant's spend counts only against its own budget."
+- **`.xv/picture.md:38`**, under Names. Add: "'The budget' is the slice budget and covers every step after the pick. 'Prototype budgets' are the per-variant ones."
 
-Decision 49 is in `docs/decisions.md`. Per `.xv/picture.md:75` it does not bind, so it is not a picture edit (see Shape).
+`.xv/picture.md:68` (decision 10) needs no edit if the code follows Sean's answer and moves `prototype_budgets_not_set` into `orders.py`. That move is code, not a picture edit.
 
 ## Door
 
-**Door:** two-way. A revert restores the maker-only cap, and a `prototype_budgets` field left in a record is ignored. No data is migrated, and no public contract or exit code changes (`.xv/picture.md:69`). **Blast radius:** broad. Every step and every prototype run of every slice with a budget, in every repo that updates, can now stop before it runs.
+**Door:** two-way. A revert restores the maker-only cap, and a `prototype_budgets` field left in a record is ignored. No data is migrated, and no exit code changes (`.xv/picture.md:69`). **Blast radius:** broad. Every step and every prototype run, in every repo that takes the update, can now stop before it runs, and the retro's overrun count changes (`scripts/retro.py:64`).
 
 ## Raw data
 
@@ -124,10 +132,19 @@ Decision 49 is in `docs/decisions.md`. Per `.xv/picture.md:75` it does not bind,
 - Wall: `xv wall diff 2026-10-27-budget-cap`
 - Boundary: `.xv/slices/2026-10-27-budget-cap.boundary.md`
 
-## From the cleaner
+## Dropped by the evidence rule
 
-- Shape proposal, for people: extract a helper that appends a stop, sets status, logs and saves. The sequence repeats in `scripts/run.py:339-348`, the setup_failed block, the post-step stop block and `scripts/prototypes.py:84-102`.
-- Shape proposal, for people: one shared "budget reached" check. `scripts/prototypes.py:118` repeats the test in `scripts/orders.py:59`.
+These findings cite no line, rule or hunk, so they do not count.
+
+- Wider than the forecast's list of modules, still narrow.**
+- The forecast's breadth named run, agentcli and orders (record line 11).
+- `prototypes`, `retro` and `spend` came in with Sean's answers (record lines 35, 39).
+- Sean answered `diff_growing` with "yes, all" (record line 23).
+- Everything stays inside existing modules, so it is not wider than "narrow".
+- The maker's last report does not claim this part.
+- A budget-stopped variant can break the pick.**
+- The new field and the new stop are not documented.**
+- The pitch says nothing about budgets or prototypes.
 
 ## From the cleaner
 
