@@ -368,6 +368,7 @@ def step(agent, slice_id, review_again=False):
     s = spendlib.from_run(result)
     s.update(step=agent, at=now(), exit=result["code"], log=log)
     data["spend"].append(s)
+    red_before = data.get("red")
     try:
         body, report = record.apply_report(data, body, agent, result["stdout"])
     except Exception as e:  # a malformed report is a missing report, not a crash
@@ -375,6 +376,9 @@ def step(agent, slice_id, review_again=False):
         data["checks"].setdefault("reports", []).append(
             {"agent": agent, "status": "no-report", "summary": f"the report could not be applied: {e}", "at": now()})
         body = record.log_line(body, agent, f"the report could not be applied: {e}")
+    reported = ((report or {}).get("red") or {}).get("command") if agent == "scenario" else None
+    if reported and joined_unsafely(reported):
+        data["red"] = red_before  # a refused red is not kept: the maker is never handed it
     record.save(path, data, body)  # the wall reads moved_tests from disk: the report's moves must be there
     checks = post_step(agent, root, data, config, head_before, pre, report or {})
     data["checks"][agent] = checks
@@ -432,9 +436,10 @@ def post_step(agent, root, data, config, head_before, pre, report):
         files = [f for f in files if not f.startswith(XV_DIR + "/")]
         checks["outside_tests"] = [f for f in files if not match_any(f, tests)]
         red = data.get("red") or {}
-        if red.get("command") and joined_unsafely(red["command"]):
+        reported = (report.get("red") or {}).get("command")
+        if reported and joined_unsafely(reported):
             checks["red_fails"] = None
-            checks["red_joined"] = red["command"]
+            checks["red_joined"] = reported
         elif red.get("command"):
             code, out = red_run(root, data, red, config)
             checks["red_fails"] = None if code is None else code != 0
@@ -527,7 +532,8 @@ def commit_step(agent, root, slice_id, checks):
 # has them, these steps are no-ops so the loop still runs and a person reads.
 
 def joined_unsafely(command):
-    """True when the command joins parts with a top-level ; or || (outside quotes): only the last part's exit code counts."""
+    """True when the command joins parts other than with && at the top level (outside quotes): a ;, ||, |, &
+    or newline hides a failing exit code, as only the last part's counts."""
     quote = None
     i = 0
     while i < len(command):
@@ -541,7 +547,9 @@ def joined_unsafely(command):
             i += 1
         elif c in "'\"":
             quote = c
-        elif c == ";" or command.startswith("||", i):
+        elif command.startswith("&&", i):
+            i += 1
+        elif c in ";|\n" or (c == "&" and command[i - 1:i] != ">" and command[i + 1:i + 2] != ">"):
             return True
         i += 1
     return False
