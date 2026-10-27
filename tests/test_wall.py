@@ -94,5 +94,63 @@ class WallAgainstBaseTest(RepoCase):
         self.assertEqual(p.returncode, 0, p.stdout)
 
 
+class WallRedFileTest(RepoCase):
+    """A red file that existed at the base is covered only for the tests the slice added."""
+
+    NEW_TEST = ("\n    def test_renewal(self):\n"
+                "        self.store.add(\"tea\", 1, date(2027, 1, 1))\n"
+                "        self.assertEqual(self.store.items()[0].qty, 2)\n")
+
+    def red_slice(self, edit, files=("tests/test_store.py",), move=False):
+        wt = self.new_slice("s1")
+        for rel in files:
+            path = os.path.join(wt, rel)
+            write(path, edit(open(path).read()))
+        self.xv("record", "set", "s1", "red", json.dumps({"files": list(files), "command": "x"}), cwd=wt)
+        self.xv("wall", "baseline", "s1", cwd=wt)
+        if move:
+            self.xv("record", "move", "s1", "--file", "tests/test_store.py", "--assertion", "a", "--why", "b", cwd=wt)
+        sh(["git", "add", "-A"], wt)
+        sh(["git", "commit", "-qm", "work"], wt)
+        p = self.xv("wall", "check", "--base", "main", "--json", cwd=wt, check=False)
+        return p.returncode, json.loads(p.stdout)
+
+    def add_test(self, text):
+        marker = '\n\nif __name__ == "__main__":'
+        return text.replace(marker, self.NEW_TEST + marker)
+
+    def test_adding_a_test_to_a_red_file_passes(self):
+        code, res = self.red_slice(self.add_test)
+        self.assertEqual((code, res["unrecorded"]), (0, []))
+
+    def test_changing_an_old_assertion_in_a_red_file_fails(self):
+        code, res = self.red_slice(lambda t: self.add_test(t).replace('("bread", 0)', "anything"))
+        self.assertEqual((code, res["unrecorded"]), (1, ["tests/test_store.py"]))
+
+    def test_deleting_an_old_test_from_a_red_file_fails(self):
+        def edit(t):
+            start = t.index("    def test_use_refuses_more_than_there_is")
+            end = t.index("    def test_used_up_item_stays_listed")
+            return self.add_test(t[:start] + t[end:])
+        code, res = self.red_slice(edit)
+        self.assertEqual((code, res["unrecorded"]), (1, ["tests/test_store.py"]))
+
+    def test_a_recorded_move_covers_an_old_test_changed_in_a_red_file(self):
+        code, res = self.red_slice(lambda t: self.add_test(t).replace('("bread", 0)', "anything"), move=True)
+        self.assertEqual((code, res["unrecorded"]), (0, []))
+
+    def test_a_red_file_new_in_the_slice_is_covered_whole(self):
+        wt = self.new_slice("s1")
+        write(os.path.join(wt, "tests", "test_new.py"), "def test_x():\n    assert True\n")
+        self.xv("record", "set", "s1", "red", json.dumps({"files": ["tests/test_new.py"], "command": "x"}), cwd=wt)
+        self.xv("wall", "baseline", "s1", cwd=wt)
+        write(os.path.join(wt, "tests", "test_new.py"), "def test_x():\n    assert 1 == 1\n")
+        self.xv("record", "move", "s1", "--file", "tests/test_new.py", "--assertion", "a", "--why", "b", cwd=wt)
+        sh(["git", "add", "-A"], wt)
+        sh(["git", "commit", "-qm", "work"], wt)
+        p = self.xv("wall", "check", "--base", "main", "--json", cwd=wt, check=False)
+        self.assertEqual(p.returncode, 0, p.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()
