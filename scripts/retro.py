@@ -199,8 +199,11 @@ def accept(root, packet, n, by):
     m = re.search(r"[:/]([^/:]+/[^/]+?)(?:\.git)?$", url)
     repo = m.group(1) if m else os.path.basename(main_root(root))
     if kind == "open":
-        entry = (f"\n### {today()}: {c['title']}\n- added: {today()} by {by}\n- from: {c.get('from', '')}\n"
-                 f"- miss: {c.get('miss', '')}\n")
+        entry = f"\n### {today()}: {c['title']}\n- added: {today()} by {by}\n"
+        if c.get("from"):
+            entry += f"- from: {c['from']}\n"
+        if c.get("miss"):
+            entry += f"- miss: {c['miss']}\n"
         if c.get("said"):
             entry += f"- said: {c['said']}\n"
         entry += f"- rule: {c.get('rule') or c['title']}\n- seen: [{repo}@{today()}]\n"

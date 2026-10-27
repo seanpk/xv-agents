@@ -6,7 +6,9 @@ Open entries, newest first:
 
 ```
 ### <date>: <the pattern, named>
+- added: <date> by <name>
 - from: <slice id>, <the moment in the record>
+- miss: <what went wrong>
 - said: "<the words, verbatim>"
 - rule: <condition> -> <behaviour>, with no project facts in it
 - seen: [<repo>@<date>]
