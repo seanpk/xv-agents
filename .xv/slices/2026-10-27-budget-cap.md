@@ -2,28 +2,28 @@
 id: 2026-10-27-budget-cap
 title: "The budget caps the whole slice, red or green"
 kind: feature
-status: stopped
+status: working
 set_by: Sean Kennedy
 created: 2026-10-27
 branch: xv/2026-10-27-budget-cap
 base: 94cdf5f15f31c53d02fc8de787ce85889627e799
-next: scenario
+next: maker
 forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 600000, "turns": null, "usd": 0.4, "basis": ["2026-10-25-diff-count", "2026-10-24-promote-draft"], "note": "Clean one-pass rows only; the guide has no turns column. Reopen rows (suite-red-quote, init-tries-guesses, answer-in-prompt, init-allow-list, token-cap) ran 2-7x and are excluded."}, {"harness": "claude", "model": "opus", "tokens": 400000, "turns": null, "usd": 0.55, "basis": ["2025-10-25-diff-count", "2026-10-24-promote-draft"], "note": "Guardian rows from the same clean passes; no turns column in the guide. Reopen rows excluded, same as sonnet."}], "wall_s": 350, "shape": "narrow", "breadth": "Three modules named in the scenario (watch stop check before each step, agentcli with_caps per-step cap, orders.py budget_spent moved from after-maker to before-each-step), plus tests and a CHANGELOG line; no agent shape change expected."}
-budget: null
-red: null
-wall_baseline: null
+budget: {"tokens": 300000, "usd": 2, "set_by": "Sean Kennedy"}
+red: {"files": ["tests/test_budget_cap.py"], "command": "cd tests && python3 -m unittest test_budget_cap", "failure": "AssertionError: Tuples differ: ('ready_to_merge', 'originator') != ('budget_spent', 'originator')", "watch_first_green": "Set a $1 budget with $0.80 spent and watch the next Claude step start with --max-budget-usd 0.2. Then push spend past the budget on a green slice and watch the next step not run and the budget_spent stop name what is spent. Then raise the budget and watch the slice go on from that step."}
+wall_baseline: {"commit": "76d45a1fe8d945ce19b48883667447c77b6ce735", "count": 41, "digest": "90fa044ff193fdb4", "file": ".xv/slices/2026-10-27-budget-cap.wall.json"}
 moved_tests: []
 suite: null
 cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 4130, "cache_read": 25012, "cache_write": 10004, "tokens": 14138, "usd": 0.0043, "turns": 3, "wall_s": 23.0, "session": "4bed075b-4569-48e1-9fa0-4b15128b31dc", "step": "forecaster", "at": "2026-10-27T14:38:45+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-27-budget-cap/01-forecaster.out"}]
-stops: [{"at": "2026-10-27T14:38:45+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-27-budget-cap budget ... --by <name>`).", "answered_by": [], "answer": null, "also": []}]
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 4130, "cache_read": 25012, "cache_write": 10004, "tokens": 14138, "usd": 0.0043, "turns": 3, "wall_s": 23.0, "session": "4bed075b-4569-48e1-9fa0-4b15128b31dc", "step": "forecaster", "at": "2026-10-27T14:38:45+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-27-budget-cap/01-forecaster.out"}, {"harness": "claude", "model": "sonnet", "model_id": "claude-sonnet-5-5", "tokens_in": 22, "tokens_out": 7878, "cache_read": 292086, "cache_write": 35024, "tokens": 42924, "usd": 0.2481, "turns": 13, "wall_s": 55.4, "session": "f3081e36-da35-4a8d-8491-ad6a75d4d529", "step": "scenario", "at": "2026-10-27T15:10:41+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-27-budget-cap/02-scenario.out"}]
+stops: [{"at": "2026-10-27T14:38:45+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-27-budget-cap budget ... --by <name>`).", "answered_by": ["Sean Kennedy"], "answer": "your budget", "also": [], "answered_at": "2026-10-27T15:09:41+00:00"}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast sonnet ~600k tokens and opus ~400k tokens for a single pass; reopen risk named, not priced.", "at": "2026-10-27T14:38:45+00:00"}], "forecaster": {"at": "2026-10-27T14:38:45+00:00", "wrote": []}}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast sonnet ~600k tokens and opus ~400k tokens for a single pass; reopen risk named, not priced.", "at": "2026-10-27T14:38:45+00:00"}, {"agent": "scenario", "status": "red", "summary": "The budget is not checked before each step: no remaining-dollars cap on non-maker steps, no budget_spent stop before a step when green or at the token cap.", "at": "2026-10-27T15:10:41+00:00"}], "forecaster": {"at": "2026-10-27T14:38:45+00:00", "wrote": []}, "scenario": {"at": "2026-10-27T15:10:41+00:00", "protected_changed": [], "outside_tests": [], "red_fails": true, "red_output": "------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/sean/Making/Personal/xv-agents/.xv/worktrees/2026-10-27-budget-cap/tests/test_budget_cap.py\", line 74, in test_with_no_dollars_left_the_step_does_not_run_though_the_suite_is_green\n    self.assertEqual((stop[\"order\"], stop[\"seat\"]), (\"budget_spent\", \"originator\"))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Tuples differ: ('ready_to_merge', 'originator') != ('budget_spent', 'originator')\n\nFirst differing element 0:\n'ready_to_merge'\n'budget_spent'\n\n- ('ready_to_merge', 'originator')\n+ ('budget_spent', 'originator')\n\n----------------------------------------------------------------------\nRan 4 tests in 2.907s\n\nFAILED (failures=4)\n"}}
 ---
 # The budget caps the whole slice, red or green
 
@@ -43,3 +43,6 @@ None. A feature starts from words.
 - 2026-10-27T14:38:22+00:00 watch: slice opened by Sean Kennedy
 - 2026-10-27T14:38:45+00:00 forecaster: done: Forecast sonnet ~600k tokens and opus ~400k tokens for a single pass; reopen risk named, not priced.
 - 2026-10-27T14:38:45+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-27-budget-cap budget ... --by <name>`).
+- 2026-10-27T15:09:41+00:00 Sean Kennedy: set budget
+- 2026-10-27T15:09:41+00:00 Sean Kennedy: answered budget_not_set: your budget
+- 2026-10-27T15:10:41+00:00 scenario: red: The budget is not checked before each step: no remaining-dollars cap on non-maker steps, no budget_spent stop before a step when green or at the token cap.
