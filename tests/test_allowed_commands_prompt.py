@@ -57,6 +57,18 @@ class AllowedCommandsPromptTest(RepoCase):
         self.assertIn("pipe", low)
         self.assertIn("approval", low)
 
+    def test_a_chain_is_allowed_when_every_part_is_a_listed_form(self):
+        wt = self.slice_with(default=agent_line(TOOLS))
+        low = self.prompt(wt).lower()
+        self.assertIn("every part", low)
+        self.assertNotIn("do not chain", low)
+
+    def test_a_star_rule_is_listed_without_the_star(self):
+        wt = self.slice_with(default=agent_line("Bash(git status *),Bash(cat:*)"))
+        out = self.prompt(wt)
+        self.assertIn("`git status`", out)
+        self.assertNotIn("git status *", out)
+
     def test_a_seat_with_its_own_line_gets_its_own_list_not_the_default(self):
         wt = self.slice_with(default=agent_line(TOOLS), guardian=agent_line(GUARDIAN_TOOLS))
         guardian = self.prompt(wt, "guardian")
