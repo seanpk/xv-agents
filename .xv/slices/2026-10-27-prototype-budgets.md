@@ -2,13 +2,13 @@
 id: 2026-10-27-prototype-budgets
 title: A prototype that runs out of budget comes back to a person
 kind: feature
-status: open
+status: stopped
 set_by: Sean Kennedy
 created: 2026-10-27
 branch: xv/2026-10-27-prototype-budgets
 base: 23f8dd53788ee9f656f572e730e497e3b0a298bc
-next: forecaster
-forecast: null
+next: scenario
+forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 400000, "turns": null, "usd": 2.3, "basis": ["2026-10-27-budget-cap", "2026-10-27-red-joins", "2026-10-27-allowed-commands"]}, {"harness": "claude", "model": "opus", "tokens": 200000, "turns": null, "usd": 2.4, "basis": ["2026-10-27-budget-cap", "2026-10-27-red-joins", "2026-10-27-allowed-commands"]}], "wall_s": 1500, "shape": "wide", "breadth": "Expect the prototype start path, the variant stop and resume behaviour, the standing rule moving into scripts/orders.py, a CHANGELOG line and tests to move; the nearest feature row was narrow, so this is a judgement call."}
 budget: null
 red: null
 wall_baseline: null
@@ -19,12 +19,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: []
-stops: []
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 5160, "cache_read": 25222, "cache_write": 14862, "tokens": 20026, "usd": 0.0058, "turns": 3, "wall_s": 27.7, "session": "100d4415-672f-4437-927a-8b83fc51d44c", "step": "forecaster", "at": "2026-10-27T21:32:09+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-27-prototype-budgets/01-forecaster.out"}]
+stops: [{"at": "2026-10-27T21:32:09+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-27-prototype-budgets budget ... --by <name>`).", "answered_by": [], "answer": null, "also": []}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast sonnet 400k tokens and opus 200k tokens for prototype-budgets, priced with one reopen, from the nearest feature rows of the same keys.", "at": "2026-10-27T21:32:09+00:00"}], "forecaster": {"at": "2026-10-27T21:32:09+00:00", "wrote": []}}
 ---
 # A prototype that runs out of budget comes back to a person
 
@@ -42,3 +42,5 @@ None. A feature starts from words.
 
 ## Log
 - 2026-10-27T21:31:41+00:00 watch: slice opened by Sean Kennedy
+- 2026-10-27T21:32:09+00:00 forecaster: done: Forecast sonnet 400k tokens and opus 200k tokens for prototype-budgets, priced with one reopen, from the nearest feature rows of the same keys.
+- 2026-10-27T21:32:09+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-27-prototype-budgets budget ... --by <name>`).
