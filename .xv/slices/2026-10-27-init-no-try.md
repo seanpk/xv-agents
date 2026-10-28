@@ -2,16 +2,16 @@
 id: 2026-10-27-init-no-try
 title: "The suite skips xv init's test try where no test needs it"
 kind: feature
-status: stopped
+status: working
 set_by: Sean Kennedy
 created: 2026-10-27
 branch: xv/2026-10-27-init-no-try
 base: 8f9cdbee89d7193e0d5c675f4feabe11871a821d
-next: scenario
+next: maker
 forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 200000, "turns": null, "usd": 0.6, "basis": ["2026-10-27-init-rerun", "2026-10-27-package-imports", "2026-10-27-allowed-commands"], "note": "Clean passes ran 41k-53k tokens ($0.23-0.29); one send-back round ran 158k ($0.90). Guide has no turn column."}, {"harness": "claude", "model": "opus", "tokens": 120000, "turns": null, "usd": 1.0, "basis": ["2026-10-27-init-rerun", "2026-10-27-package-imports", "2026-10-27-allowed-commands"], "note": "Clean guardian passes ran 30k-36k tokens ($0.35-0.41); one send-back ran 90k ($1.07). Guide has no turn column."}], "wall_s": 900, "shape": "narrow", "breadth": "Source: one xv init flag that skips the test try. Tests: the helpers pass --no-try and the test_init_tries cases leave it off, so the scenario diff may spread across several test files; if the helper is not shared, it stays narrow, and if the call sites change, it widens."}
-budget: null
-red: null
-wall_baseline: null
+budget: {"tokens": 450000, "usd": 2.5, "set_by": "Sean Kennedy"}
+red: {"files": ["tests/test_init_tries.py"], "command": "cd tests && python3 -m unittest test_init_tries", "failure": "xv: error: unrecognized arguments: --no-try", "watch_first_green": "Run `xv init --no-try` on a repo whose tests write a marker file or fail: init writes the config and boundary-all.md, prints a tests timeout, and never runs the test command (no marker, no failure tail). Run plain `xv init` and see the test run reported as before. Then check the suite's helpers pass --no-try and the full suite time drops from ~130s."}
+wall_baseline: {"commit": "c0bae02df67f9685a8f0b015fb2f7473ea91c1a6", "count": 47, "digest": "6ea99d27ada3faed", "file": ".xv/slices/2026-10-27-init-no-try.wall.json"}
 moved_tests: []
 slice_only: []
 suite: null
@@ -19,12 +19,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 3897, "cache_read": 25223, "cache_write": 15306, "tokens": 19207, "usd": 0.0053, "turns": 3, "wall_s": 19.1, "session": "1e0f045c-dff1-4902-a75a-bfa75b27391e", "step": "forecaster", "at": "2026-10-28T02:34:33+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-27-init-no-try/01-forecaster.out"}]
-stops: [{"at": "2026-10-28T02:34:33+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-27-init-no-try budget ... --by <name>`).", "answered_by": [], "answer": null, "also": []}]
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 3897, "cache_read": 25223, "cache_write": 15306, "tokens": 19207, "usd": 0.0053, "turns": 3, "wall_s": 19.1, "session": "1e0f045c-dff1-4902-a75a-bfa75b27391e", "step": "forecaster", "at": "2026-10-28T02:34:33+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-27-init-no-try/01-forecaster.out"}, {"harness": "claude", "model": "sonnet", "model_id": "claude-sonnet-5-5", "tokens_in": 14, "tokens_out": 3241, "cache_read": 133653, "cache_write": 17949, "tokens": 21204, "usd": 0.1176, "turns": 9, "wall_s": 38.7, "session": "16a77fde-54f9-48f0-ae27-d04d77d95828", "step": "scenario", "at": "2026-10-28T02:52:14+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-27-init-no-try/02-scenario.out"}]
+stops: [{"at": "2026-10-28T02:34:33+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-27-init-no-try budget ... --by <name>`).", "answered_by": ["Sean Kennedy"], "answer": "38: 1", "also": [], "answered_at": "2026-10-28T02:42:49+00:00"}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast sonnet ~200k tokens and opus ~120k tokens for one pass plus one send-back round; wall 900s; shape narrow.", "at": "2026-10-28T02:34:33+00:00"}], "forecaster": {"at": "2026-10-28T02:34:33+00:00", "wrote": []}}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast sonnet ~200k tokens and opus ~120k tokens for one pass plus one send-back round; wall 900s; shape narrow.", "at": "2026-10-28T02:34:33+00:00"}, {"agent": "scenario", "status": "red", "summary": "Three tests in test_init_tries.py fail because xv init does not accept --no-try; a control test shows the try still runs without the flag.", "at": "2026-10-28T02:52:14+00:00"}], "forecaster": {"at": "2026-10-28T02:34:33+00:00", "wrote": []}, "scenario": {"at": "2026-10-28T02:52:14+00:00", "protected_changed": [], "outside_tests": [], "red_fails": true, "red_output": "^\n  File \"/home/sean/Making/Personal/xv-agents/.xv/worktrees/2026-10-27-init-no-try/tests/helpers.py\", line 42, in xv\n    return sh([sys.executable, XV] + list(args), cwd or self.repo, check)\n  File \"/home/sean/Making/Personal/xv-agents/.xv/worktrees/2026-10-27-init-no-try/tests/helpers.py\", line 16, in sh\n    raise AssertionError(f\"{cmd} failed {p.returncode}: {p.stderr}{p.stdout}\")\nAssertionError: ['/home/sean/.local/share/mise/installs/python/latest/bin/python3', '/home/sean/Making/Personal/xv-agents/.xv/worktrees/2026-10-27-init-no-try/bin/xv', 'init', '--no-try'] failed 2: usage: xv [-h] {slice,step,run,close,init,guard} ...\nxv: error: unrecognized arguments: --no-try\n\n\n----------------------------------------------------------------------\nRan 11 tests in 17.066s\n\nFAILED (failures=3)\n", "old_red_changed": []}}
 ---
 # The suite skips xv init's test try where no test needs it
 
@@ -44,3 +44,6 @@ None. A feature starts from words.
 - 2026-10-28T02:34:08+00:00 watch: slice opened by Sean Kennedy
 - 2026-10-28T02:34:33+00:00 forecaster: done: Forecast sonnet ~200k tokens and opus ~120k tokens for one pass plus one send-back round; wall 900s; shape narrow.
 - 2026-10-28T02:34:33+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-27-init-no-try budget ... --by <name>`).
+- 2026-10-28T02:42:49+00:00 Sean Kennedy: set budget
+- 2026-10-28T02:42:49+00:00 Sean Kennedy: answered budget_not_set: 38: 1
+- 2026-10-28T02:52:14+00:00 scenario: red: Three tests in test_init_tries.py fail because xv init does not accept --no-try; a control test shows the try still runs without the flag.
