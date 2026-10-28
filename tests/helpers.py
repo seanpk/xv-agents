@@ -21,6 +21,7 @@ class RepoCase(unittest.TestCase):
     """A fresh git repo with the fixture's project layer, per test."""
 
     fixture = True
+    no_try = True  # `xv init` skips its test try; the tests that check the try set this False
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="xv-test-")
@@ -39,7 +40,10 @@ class RepoCase(unittest.TestCase):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
     def xv(self, *args, cwd=None, check=True):
-        return sh([sys.executable, XV] + list(args), cwd or self.repo, check)
+        args = list(args)
+        if self.no_try and args[:1] == ["init"] and "--no-try" not in args:
+            args.append("--no-try")
+        return sh([sys.executable, XV] + args, cwd or self.repo, check)
 
     def new_slice(self, sid="s1", scenario="The household sees X."):
         out = self.xv("slice", "new", sid, "--by", "pat", "--scenario", scenario).stdout
