@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: seanpk/xv-agents
-          ref: v0.3.0
+          ref: v0.3.1
           path: .xv-agents
 
       - name: Put xv on PATH, and the agent CLI
