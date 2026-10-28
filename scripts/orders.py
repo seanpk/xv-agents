@@ -210,14 +210,19 @@ def evaluate(data, after, config):
 
     ran_out = checks.get("ran_out") or {}
     if after == "prototype" and ran_out:
-        what = "; ".join(f"variant {n} spent {spent} and was not run" for n, spent in sorted(ran_out.items()))
+        during = checks.get("ran_during") or []
+        what = "; ".join(f"variant {n} spent {spent} and " +
+                         ("ran out of its budget during its run" if n in during else "was not run")
+                         for n, spent in sorted(ran_out.items()))
         pickable = checks.get("prototypes_ready") or 0
         pick = (f"pick one of the {pickable} that finished, or pick none to end the exploration"
                 if pickable else "pick none to end the exploration, the only pick left")
         out.append(fire("prototype_budget_spent", "originator",
-                        f"{owner}: {what}. Raise a budget (`xv record set {data['id']} prototype_budgets ... --by <name>`) "
-                        f"and run `xv prototype start {data['id']}` again, which runs only the variants that ran out "
-                        f"and keeps the rest; or {pick}. A variant that ran out cannot be picked."))
+                        f"{owner}: {what}. Raise a budget (`xv record set {data['id']} prototype_budgets ... --by <name>`), "
+                        f"answer this stop, and then run `xv prototype start {data['id']}` again, which runs only the "
+                        f"variants that have not finished and keeps the rest; or {pick}. The person who set the work "
+                        "going answers a budget raise alone; a pick, including none, is for two people unless the "
+                        "repo runs solo. A variant that ran out cannot be picked."))
 
     if after == "prototype" and checks.get("prototypes_ready") is not None and not ran_out:
         n = checks["prototypes_ready"]
