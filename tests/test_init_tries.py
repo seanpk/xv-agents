@@ -2,9 +2,10 @@ import json
 import os
 import re
 import shutil
+import sys
 import unittest
 
-from helpers import RepoCase, sh
+from helpers import HOME, XV, RepoCase, sh
 
 
 class InitTriesGuessesTest(RepoCase):
@@ -61,6 +62,21 @@ class InitTriesGuessesTest(RepoCase):
         self.commit()
         out = self.xv("init", "--no-try").stdout
         self.assertNotIn("BOOM-MARKER-7431", out)
+
+    def test_no_try_output_says_the_try_was_skipped(self):
+        out = self.xv("init", "--no-try").stdout.lower()
+        self.assertRegex(out, r"skip", "a missing test_run must not read as 'no command was guessed'")
+
+    def test_without_the_flag_the_output_does_not_say_skipped(self):
+        self.assertNotRegex(self.xv("init").stdout.lower(), r"skip")
+
+    def test_the_usage_text_names_the_flag(self):
+        usage = sh([sys.executable, XV, "--help"], self.repo).stdout
+        init_lines = [l for l in usage.splitlines() if "xv init" in l]
+        self.assertTrue(any("--no-try" in l for l in init_lines), init_lines)
+        run_py = open(os.path.join(HOME, "scripts", "run.py")).read().split('"""')[1]
+        init_lines = [l for l in run_py.splitlines() if "xv init" in l]
+        self.assertTrue(any("--no-try" in l for l in init_lines), init_lines)
 
     def test_a_passing_command_is_reported_as_passed(self):
         run = json.dumps(json.loads(self.xv("init").stdout)["test_run"]).lower()
