@@ -37,6 +37,8 @@ Settled at the guardian's stop, 2026-10-27, Sean: the slice is not done until th
 
 Settled at the guardian's second stop, 2026-10-27, Sean: the move in `tests/helpers.py` and the picture edit are accepted. Two more things are in the slice. (1) The usage text names the flag: `bin/xv` and the usage line in `scripts/run.py` read `xv init [--trial [--repo]|--adopt] [--no-try]`, or the same with the flag in its right place. (2) With `--no-try`, the output of `xv init` says the try was skipped, so that no agent reads a missing `test_run` as "no command was guessed" (`skills/xv-init/SKILL.md`, where a null `test_run` means "ask the person for one"). Without the flag, the output is as before. A test covers each.
 
+Settled at the guardian's third stop, 2026-10-28, Sean: the picture edit is accepted, and the xv-init skill stays as it is. The test in `tests/test_install.py` that runs `xv init --trial` and checks that `git status --porcelain` is empty runs with the test try on (no `--no-try`), so it still checks that the try leaves the repo clean. Record the change as a test move.
+
 ## May ignore
 
 Nothing stated.
