@@ -301,7 +301,94 @@ class PrototypeBudgetsTest(BudgetCapTest):
         for n in "bc":
             self.assertTrue(os.path.exists(os.path.join(self.pwt, ".xv", "prototypes", "p1", n, "recording.md")))
 
+    def silent_variant(self, name):
+        """Swap in a claude that runs variant `name` within budget but leaves no recording; the others
+        do the fake agent's job."""
+        script = (f"#!{sys.executable}\n"
+                  "import json, os, subprocess, sys\n"
+                  "with open(os.environ['CAP_LOG'], 'a') as f:\n"
+                  "    f.write(json.dumps(sys.argv[1:]) + '\\n')\n"
+                  f"if 'Your variant: {name}' in sys.argv[-1]:\n"
+                  "    print('done')\n"
+                  "    sys.exit(0)\n"
+                  f"sys.exit(subprocess.call([{sys.executable!r}, {FAKE!r}, sys.argv[-1]]))\n")
+        with open(self.claude, "w") as f:
+            f.write(script)
 
-# Importing BudgetCapTest reruns its four tests here too; the new cases are the three above.
+    def test_a_second_start_reruns_a_variant_that_ran_within_budget_but_left_no_recording(self):
+        self.silent_variant("b")
+        self.proto_budgets(a=1, b=2, c=3)
+        self.proto_spent("a", 1.05)
+        self.stop_of(self.start())
+        self.clear_calls()
+        self.proto_budgets(a=3, b=2, c=3)
+        self.answer_raised()
+        self.start()
+        self.assertEqual(sorted(self.caps_by_variant()), ["a", "b"], "c finished and is kept")
+        self.assertTrue(os.path.exists(os.path.join(self.pwt, ".xv", "prototypes", "p1", "c", "recording.md")))
+
+    def test_a_second_start_with_a_new_axis_reruns_all_three_and_keeps_none(self):
+        self.proto_budgets(a=1, b=2, c=3)
+        self.proto_spent("a", 1.05)
+        self.stop_of(self.start())
+        self.clear_calls()
+        self.proto_budgets(a=3, b=2, c=3)
+        self.answer_raised()
+        p = self.xv("prototype", "start", "p1", "--axis", "what the household sees after a meal",
+                    cwd=self.pwt, check=False)
+        self.assertEqual(sorted(self.caps_by_variant()), ["a", "b", "c"], p.stdout + p.stderr)
+        data = json.loads(self.xv("record", "show", "p1", "--json", cwd=self.pwt).stdout)
+        self.assertEqual(sorted(p["name"] for p in data["prototypes"]), ["a", "b", "c"])
+
+    def test_the_stop_words_a_run_out_during_the_run_and_one_already_over_at_the_start_apart(self):
+        self.costly_variant("a", 1.2)
+        self.proto_budgets(a=1, b=2, c=3)
+        self.proto_spent("b", 2.05)
+        q = self.stop_of(self.start())["question"]
+        self.assertRegex(q, r"variant a spent [^;]*ran out of its budget during its run")
+        self.assertRegex(q, r"variant b spent [^;]*was not run")
+        self.assertNotRegex(q, r"variant a spent [^;]*was not run")
+        self.assertNotRegex(q, r"variant b spent [^;]*during its run")
+
+    def test_the_person_who_set_it_going_answers_a_budget_raise_alone(self):
+        self.proto_budgets(a=1, b=2, c=3)
+        self.proto_spent("a", 1.05)
+        self.stop_of(self.start())
+        self.proto_budgets(a=3, b=2, c=3)
+        p = self.xv("record", "answer", "p1", "--by", "pat", "--answer", "raised the budget",
+                    cwd=self.pwt, check=False)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+
+    def test_the_stop_says_a_pick_is_for_two_people_unless_the_repo_runs_solo(self):
+        self.proto_budgets(a=1, b=2, c=3)
+        self.proto_spent("a", 1.05)
+        q = self.stop_of(self.start())["question"]
+        self.assertIn("two people", q)
+        self.assertIn("solo", q)
+        args = self.pick_args("none")
+        args[args.index("--by") + 1] = "pat"
+        p = self.xv(*args, cwd=self.pwt, check=False)
+        self.assertNotEqual(p.returncode, 0, "pick keeps its two-people rule: " + p.stdout + p.stderr)
+
+    def test_the_stop_says_to_answer_it_before_running_start_again(self):
+        self.proto_budgets(a=1, b=2, c=3)
+        self.proto_spent("a", 1.05)
+        q = self.stop_of(self.start())["question"]
+        self.assertIn("answer", q)
+        self.assertIn("`xv prototype start", q)
+        self.assertLess(q.index("answer"), q.index("`xv prototype start"))
+
+    def test_the_log_line_says_who_the_pick_is_for_in_the_stops_terms(self):
+        self.proto_budgets(a=1, b=2, c=3)
+        self.proto_spent("a", 1.05)
+        self.stop_of(self.start())
+        body = open(os.path.join(self.pwt, ".xv", "slices", "p1.md")).read()
+        log = [l for l in body.split("## Log")[1].splitlines() if "prototypes ready" in l]
+        self.assertTrue(log)
+        self.assertIn("two people", log[0])
+        self.assertIn("solo", log[0])
+
+
+# Importing BudgetCapTest reruns its four tests here too; the new cases are the ones in PrototypeBudgetsTest.
 if __name__ == "__main__":
     unittest.main()
