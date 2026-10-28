@@ -18,6 +18,21 @@ An entry with three or more sightings that still splits people is marked `(watch
 
 ## Open
 
+### 2026-10-27: A test that asserts less can be found by a check, not only by judgement
+- added: 2026-10-27 by Sean Kennedy
+- from: no slice; a read of unclebob/ub-mode and its companion tool unclebob/mutator
+- miss: None yet. The cleaner finds a test that now asserts less by judgement only, and no check counts it. Mutation testing breaks the changed code on purpose and reports each break the tests do not catch. A trial in a cleaner step is the first sighting.
+- said: "it seems like it might be something we could leverage or use as reference"
+- rule: a slice changes code and its tests -> run mutation testing on the changed lines and report each surviving mutant as a test that asserts too little
+- seen: []
+
+### 2026-10-27: A forecast runs low when answers at a stop add work
+- added: 2026-10-27 by Sean Kennedy
+- from: 2026-10-27-wall-red-files, the `forecast` note and the three `accept_moves` stops (21:43, 21:58, 23:05)
+- miss: The forecast was 250,000 Sonnet tokens and $1.42, the mean of three slices that each took more than one pass. The slice used 317,628 tokens and $1.83, 27% over. The guardian stopped it three times, and each answer sent it back for a full pass. Two of those answers added work in `scripts/run.py` and `scripts/orders.py`, which the forecast said would not change. This is the first sighting.
+- rule: an answer at a stop adds work the forecast said would not change -> read the gap at close as added work, not as a forecast miss
+- seen: [seanpk/xv-agents@2026-10-27]
+
 ### 2026-10-24: init checks its own guesses before the person relies on them
 - from: init, the test command and the source roots in `.xv/config.yml`
 - said: "ImportError: Start directory is not importable"
