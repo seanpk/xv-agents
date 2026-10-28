@@ -12,7 +12,7 @@ Usage:
   xv step outsider --init    the outsider read for xv-init
   xv run <id>                steps from `next` to the first stop; exit 10 on a stop
   xv close <id>              the forecaster's line on the gap, the guide row, status closed
-  xv init [--trial [--repo]|--adopt]   write a starter .xv/ into this repo
+  xv init [--trial [--repo]|--adopt] [--no-try]   write a starter .xv/ into this repo
 """
 
 import argparse
@@ -999,7 +999,9 @@ def cmd_init(a):
     config = load_config(root)
     tests = config.get("tests") or {}
     out = {"written": written, "kept": kept, "tests": tests}
-    if not a.no_try:
+    if a.no_try:
+        out["test_run_skipped"] = "--no-try: the test command was not run; a missing test_run does not mean no command was guessed"
+    else:
         out["test_run"] = try_test_command(root, tests)
     bpath = os.path.join(dst, "boundary-all.md")
     if os.path.exists(bpath):
