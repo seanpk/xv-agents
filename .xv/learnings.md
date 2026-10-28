@@ -24,6 +24,8 @@ An entry with three or more sightings that still splits people is marked `(watch
 - miss: None yet. The cleaner finds a test that now asserts less by judgement only, and no check counts it. Mutation testing breaks the changed code on purpose and reports each break the tests do not catch. A trial in a cleaner step is the first sighting.
 - said: "it seems like it might be something we could leverage or use as reference"
 - rule: a slice changes code and its tests -> run mutation testing on the changed lines and report each surviving mutant as a test that asserts too little
+- trial: 2026-10-27, on slice 2026-10-27-prototype-budgets, with unclebob/mutator. It measured nothing. With coverage on, it found 0 tests and ran no mutant. With `--no-coverage` it ran 25.5 minutes: 5 of 234 mutants killed, 229 survived. Most tests run `bin/xv`, which follows `os.path.realpath` back to the real checkout, so the mutated copy in mutator's worker folder was never tested. It also installed `coverage` into the Python on PATH.
+- decided: 2026-10-27, Sean: "our conclusion is that the value of mutator is questionable. independent (not unclebob) praise for it is needed before we'll try it again". The next try, if any, is on a TypeScript slice in the Rails and TypeScript trial app.
 - seen: []
 
 ### 2026-10-27: A forecast runs low when answers at a stop add work
