@@ -25,6 +25,41 @@ class InitTriesGuessesTest(RepoCase):
         sh(["git", "add", "-A"], self.repo)
         sh(["git", "commit", "-qm", "more"], self.repo)
 
+    def sentinel_test(self):
+        marker = os.path.join(self.tmp, "ran-marker")
+        self.write("tests/test_zz_sentinel.py",
+                   "import unittest\n\n\nclass Sentinel(unittest.TestCase):\n"
+                   "    def test_it(self):\n"
+                   f"        open({marker!r}, 'w').write('ran')\n")
+        self.commit()
+        return marker
+
+    def test_without_the_flag_the_test_command_runs(self):
+        marker = self.sentinel_test()
+        self.xv("init")
+        self.assertTrue(os.path.exists(marker), "the try runs the test command")
+
+    def test_no_try_does_not_run_the_test_command(self):
+        marker = self.sentinel_test()
+        p = self.xv("init", "--no-try", check=False)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertFalse(os.path.exists(marker), "--no-try skips the test command")
+
+    def test_no_try_still_writes_the_project_layer(self):
+        out = json.loads(self.xv("init", "--no-try").stdout)
+        for name in ("config.yml", "boundary-all.md"):
+            self.assertTrue(os.path.exists(os.path.join(self.repo, ".xv", name)), name)
+        self.assertIn("timeout", out["tests"])
+
+    def test_no_try_does_not_run_a_failing_command(self):
+        self.write("tests/test_zz_broken.py",
+                   "import unittest\n\n\nclass Broken(unittest.TestCase):\n"
+                   "    def test_it(self):\n"
+                   "        self.fail('BOOM-MARKER-7431')\n")
+        self.commit()
+        out = self.xv("init", "--no-try").stdout
+        self.assertNotIn("BOOM-MARKER-7431", out)
+
     def test_a_passing_command_is_reported_as_passed(self):
         run = json.dumps(json.loads(self.xv("init").stdout)["test_run"]).lower()
         self.assertRegex(run, r"pass")
