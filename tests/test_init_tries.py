@@ -10,6 +10,8 @@ from helpers import RepoCase, sh
 class InitTriesGuessesTest(RepoCase):
     """`xv init` runs the test command it chose and reports the outcome, the module count, and fixture folders."""
 
+    no_try = False
+
     def setUp(self):
         super().setUp()
         shutil.rmtree(os.path.join(self.repo, ".xv"))
