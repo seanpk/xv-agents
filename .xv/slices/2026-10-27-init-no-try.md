@@ -33,6 +33,8 @@ pre_maker_commit: 6d20d524f64013d9524f9e4dae4cac731f78aeb9
 
 The suite runs about three times slower than it needs to (seanpk/xv-agents#38). Since #14, `xv init` runs the test command it guesses, once, to check it. Many tests call `xv init` on a copy of `evals/fixture`, so each one waits for a real test run, and only the tests in `tests/test_init_tries.py` check the result of that try. After the change, `xv init --no-try` does not run the test command. The test helpers pass `--no-try`, and the tests in `tests/test_init_tries.py` leave it off, so the real try is still tested. Without the flag, `xv init` works as it does today. On 176 tests, #38 measured 102 seconds with the try and 35 seconds without it. Today the suite takes about 130 seconds for 312 tests.
 
+Settled at the guardian's stop, 2026-10-27, Sean: the slice is not done until the suite uses the flag. The scenario agent changes the test helpers in `tests/helpers.py`, and any test that runs `xv init` on its own, to pass `--no-try`, and records each change as a test move (`xv record move`). The tests in `tests/test_init_tries.py`, and any other test that checks the result of the try, leave it off. The packet reports the suite time before and after.
+
 ## May ignore
 
 Nothing stated.
