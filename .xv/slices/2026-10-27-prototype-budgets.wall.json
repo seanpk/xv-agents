@@ -14,7 +14,7 @@
   "tests/test_boundary_python_edges.py": 3,
   "tests/test_boundary_python_order.py": 2,
   "tests/test_budget_cap.py": 11,
-  "tests/test_budget_cap_turns_session.py": 68,
+  "tests/test_budget_cap_turns_session.py": 86,
   "tests/test_check.py": 9,
   "tests/test_diff_count.py": 2,
   "tests/test_guard.py": 3,
@@ -48,7 +48,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "6054a6793f8eb0156e678fbaa115d7510023f825",
+ "commit": "68b2bffe6995f994b4561ba73d9c923058aa95c6",
  "files": {
   "tests/data/claude-result.json": "d97d2788e30ab2c1dcefc61594ffaaf6892217e088255672a7ead5be9747a331",
   "tests/data/claude-session.jsonl": "f334175619c11a34eabde629fe45e0def44aa43becec22059c9c9841ffccf073",
@@ -64,7 +64,7 @@
   "tests/test_boundary_python_edges.py": "822119c92ac40c3ac5e4b231ddde274b534c6d0fe25a44dd6cdd5218aa275d0a",
   "tests/test_boundary_python_order.py": "bb3520e6453c517f0564ed653e430aac02612ee2e1aaa4a8c367f5023979ca59",
   "tests/test_budget_cap.py": "dc5a758856dc8c008e08a266ab6715909cde8750c4922a375d51d1950a0bee55",
-  "tests/test_budget_cap_turns_session.py": "e8322e30c0ae751e27911a48c1de889f375cb3c9a07dcc819e164ada70721418",
+  "tests/test_budget_cap_turns_session.py": "7f47afdbe012e437e83bfb11e399830b30211250784f491dba4d83201aa02bbc",
   "tests/test_check.py": "e36ead458d3a62021c2c8c5e2b89f47479ef0ada7a3cb4c2f983d88ef6c14d12",
   "tests/test_diff_count.py": "79d1bc6da40541430d4e4e4e10e04e2f1734e789850fb716440da468dd18f301",
   "tests/test_guard.py": "ca4addd31074c2086571e3515fff74f8edf1ce2e97cabbc4170a93c2776b9ad2",
