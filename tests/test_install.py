@@ -69,6 +69,7 @@ class TrialTest(RepoCase):
         sh(["git", "commit", "-qam", "no layer"], self.repo)
 
     def test_a_trial_keeps_xv_out_of_git_and_still_runs_a_slice(self):
+        self.no_try = False  # the clean-tree check covers the test try too
         self.xv("init", "--trial")
         self.assertEqual(sh(["git", "status", "--porcelain"], self.repo).stdout.strip(), "")
         with open(os.path.join(self.repo, ".xv", "pitch.md"), "w") as f:
