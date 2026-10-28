@@ -80,6 +80,7 @@ def start(slice_id, axis=None, positions=None, serial=False):
     if waiting:
         return EXIT_STOP, {"slice": slice_id, "stop": waiting[-1],
                            "note": "an earlier stop is unanswered; the prototypes are not rebuilt"}
+    new_axis = bool(axis) and axis != data.get("axis")
     axis = axis or data.get("axis")
     if not axis:
         data["stops"].append({"at": now(), "step": "prototype", "order": "axis_not_named", "seat": "originator",
@@ -112,9 +113,10 @@ def start(slice_id, axis=None, positions=None, serial=False):
              for n in NAMES}
     # a variant that has spent its own budget stops alone; the others still run
     # a second start keeps the variants that finished and runs only those that ran out, on their raised budgets
-    prev = {e["name"]: e for e in data.get("prototypes") or []}
-    prev_out = set(((data.get("checks") or {}).get("prototype") or {}).get("ran_out") or {})
-    kept = {n for n in NAMES if (prev.get(n) or {}).get("branch") and n not in prev_out}
+    # a variant has finished when it has a recording and did not run out; a new axis keeps none
+    prev = {} if new_axis else {e["name"]: e for e in data.get("prototypes") or []}
+    prev_out = set() if new_axis else set(((data.get("checks") or {}).get("prototype") or {}).get("ran_out") or {})
+    kept = {n for n in NAMES if (prev.get(n) or {}).get("recording") and n not in prev_out}
     over = {n: [k for k in ("tokens", "usd", "turns") if budgets[n].get(k) and spent[n][k] >= budgets[n][k]]
             for n in NAMES}
     stopped = {n for n in NAMES if n not in kept and over[n]}
@@ -184,8 +186,9 @@ def start(slice_id, axis=None, positions=None, serial=False):
         if over[n]:
             stopped.add(n)
     ready = sum(1 for n in NAMES if (out.get(n) or {}).get("recording") and n not in stopped)
+    ran_during = sorted(n for n in stopped if n in ran)
     ran_out = {n: ", ".join(f"{k} {spent[n][k]} of {budgets[n][k]}" for k in over[n]) for n in sorted(stopped)}
-    data["checks"]["prototype"] = {"prototypes_ready": ready, "ran_out": ran_out, "at": now()}
+    data["checks"]["prototype"] = {"prototypes_ready": ready, "ran_out": ran_out, "ran_during": ran_during, "at": now()}
     data["checks"].setdefault("reports", []).append({"agent": "prototype", "status": "done", "at": now(),
                                                      "summary": f"{ready} of 3 with a recording"})
     v = orders.verdict(data, "prototype", config)
@@ -198,7 +201,7 @@ def start(slice_id, axis=None, positions=None, serial=False):
     data["next"] = "prototype"
     for n in sorted(stopped):
         body = record.log_line(body, "watch", f"variant {n} stopped: its budget is spent")
-    body = record.log_line(body, "watch", f"{ready} prototypes ready; the pick is for two people")
+    body = record.log_line(body, "watch", f"{ready} prototypes ready; a pick is for two people unless the repo runs solo")
     record.save(path, data, body)
     git(["add", "-A"], root)
     subprocess.run(["git", "commit", "-q", "--no-verify", "-m", f"xv({slice_id}): three prototypes, side by side"],
