@@ -9,59 +9,59 @@ door: two-way
 blast_radius: prototypes
 ---
 
-# Packet: A prototype that runs out of budget comes back to a person (second pass)
+# Packet: A prototype that runs out of budget comes back to a person (third pass)
 
-This is the second pass. The first packet's finding A, a variant that runs out during its own run, is fixed (`scripts/prototypes.py:177-185`), and three new tests cover it. There is no shape change and no pitch contradiction, so nothing here goes to two people. Sean decides four things:
+This is the third pass. Everything Sean settled at the second stop (B, C, D and the small points) is in the code, and a test covers each one. There is no shape change and no pitch contradiction, so nothing here goes to two people. Sean decides two things:
 
-- **B. A second start now never reruns a variant that has a branch and did not run out.** `scripts/prototypes.py:117` gives `kept = {n for n in NAMES if (prev.get(n) or {}).get("branch") and n not in prev_out}`, and `:121-123` run only the variants that are neither kept nor stopped. `run_one` makes the branch before the agent runs (`scripts/prototypes.py:51`). So a variant that ran within its budget but left no recording is kept on every later start. It shows "No recording" (`:163`), can never be rebuilt, and still counts as pickable by `pick` (`:226-227` check only `ran_out` and the branch). The same holds for `xv prototype start <id> --axis "<new axis>"` after the prototypes are built: no variant reruns, and the kept rows keep their old `axis_position` (`:140`) under the new axis heading (`:133`). Before the slice, a second start rebuilt every variant that was not over budget (base `for n, p in zip(NAMES, positions) if n not in stopped`). The scenario says "keeps the variants that finished". It does not say whether a variant with no recording finished, or what a new axis does. No test covers either case.
-- **C. The stop says a variant "was not run" when it did run.** `scripts/orders.py:207` gives `what = "; ".join(f"variant {n} spent {spent} and was not run" ...)`. For the case this pass was for, a variant whose own run passed its budget, the person reads "variant a spent usd 1.2 of 1 and was not run". Variant a ran, and it has a branch and a recording. The test checks only for `"a"` and `"1.2"` in the question (`tests/test_budget_cap_turns_session.py:276-277`).
-- **D. The stop goes to the originator, but two of its three answers need two people.** `prototype_budget_spent` is seated `"originator"` (`scripts/orders.py:211`). `pick` still refuses one name unless the repo runs solo (`scripts/prototypes.py:217-219`, `if len(set(who)) < 2 and not solo(config): raise XVError("the pick is for two people ...")`), and that covers `pick none` too. This repo is solo (`.xv/picture.md:52`), so it does not show here. An adopting team that is not solo gets a stop for one person that only two people can close by picking. The scenario's "come back to you for a decision" does not settle which is meant.
 - **The picture edit in section 4.**
+- **The flaky test, for the record.** The watch stopped once with `cleaner_broke_suite` (`.xv/slices/2026-10-27-prototype-budgets.md:69`): `test_a_variant_that_ran_out_sends_the_slice_back_to_the_person_who_set_it_going` failed, and passed on the rerun. The cleaner saw that variant b's cap was missing (`:71`). I reran the whole suite: 312 OK. A likely cause, not proven: the three variant threads (`scripts/prototypes.py:124-128`) run `git branch -D` and `git worktree add` in the same repo at the same moment (`:50-51`, the second with `check=True`). If one of them fails, that thread dies before it calls the agent and leaves nothing in `out`. The variant then shows "No recording", and `:180-181` (`if n not in out: continue`) leaves it out of `ran_out`. Base ran the threads the same way, so this is not new. With this slice, though, a later start reruns that variant (B). Sean answered the stop "ok" and asked for priority on the issue that speeds up the suite.
 
-The standing-order change was already decided by Sean, solo, and has its CHANGELOG line (`CHANGELOG.md:7`).
+Done since the second packet:
 
-Smaller points, for the record only:
+- **B.** A variant counts as finished only when it has a recording and did not run out (`scripts/prototypes.py:119`, `kept = {n ... if (prev.get(n) or {}).get("recording") and n not in prev_out}`). A new `--axis` keeps none (`:83`, `:117-118`). Tests: `test_a_second_start_reruns_a_variant_that_ran_within_budget_but_left_no_recording` and `test_a_second_start_with_a_new_axis_reruns_all_three_and_keeps_none`.
+- **C.** The stop now says "ran out of its budget during its run" or "was not run" (`scripts/orders.py:207-209`, from `ran_during`, `scripts/prototypes.py:189`). Test: `test_the_stop_words_a_run_out_during_the_run_and_one_already_over_at_the_start_apart`.
+- **D.** The stop stays seated `originator` (`scripts/orders.py:214`). It now says that a budget raise is answered alone, and that a pick, `none` included, is for two people unless the repo runs solo. `pick` keeps its two-people rule (`scripts/prototypes.py:220-222`, unchanged). Tests: `test_the_person_who_set_it_going_answers_a_budget_raise_alone` and `test_the_stop_says_a_pick_is_for_two_people_unless_the_repo_runs_solo`.
+- **Small.** The stop says "answer this stop, and then run `xv prototype start`" (`scripts/orders.py:215-216`). The log line now reads "a pick is for two people unless the repo runs solo" (`scripts/prototypes.py:204`). The test comment is corrected (`tests/test_budget_cap_turns_session.py`, last comment line). Each one has a test.
 
-- The stop tells the person to raise a budget and run `xv prototype start` again (`scripts/orders.py:212-213`). It does not say to answer the stop first, and `start` refuses while a stop is unanswered (`scripts/prototypes.py:79-82`). The record's `watch_first_green` does say "answer the stop".
-- A pick made from the budget stop is written to the decision record under the order `prototypes_ready` (`scripts/prototypes.py:241`).
-- The log still says "the pick is for two people" when the stop is for the originator (`scripts/prototypes.py:201`).
-- A rerun variant starts again from HEAD in a fresh worktree (`scripts/prototypes.py:48-51`), with only the dollars left in its budget (`:59`; the test expects 1.8 of 3 after 1.2, `tests/test_budget_cap_turns_session.py:300`). Its first run's work is discarded.
-- `tests/test_budget_cap_turns_session.py:305` still says "the new cases are the three above". There are now nine.
+Still open from the second packet, for the record only:
+
+- A pick made from the budget stop is still written to the decision record under the order `prototypes_ready` (`scripts/prototypes.py:244`).
+- A rerun variant starts again from HEAD (`scripts/prototypes.py:51`), with only the dollars left in its budget (`:59`; the tests expect 1.95 and 1.8 of 3).
+- The cleaner's proposal: the over-budget check is written twice (`scripts/prototypes.py:120-121` and `:185`).
+- `xv record answer` closes an `originator` stop with any one name (`scripts/record.py:236`, where only `two_people` is checked). The alone test answers as "pat" and does not check that pat set the work going. This holds for every originator stop, not only this one.
 
 ## The scenario
 
 Sean's words: "whenever a prototype runs out of budget, it should come back to you for a decision. you cannot pick anything if no prototype was built, but you should be able to stop the prototype exploration."
 
-- When a variant has spent its budget, the others still run. Then the slice stops for the originator, naming each variant that ran out and what it spent.
-- The choices are: raise that variant's budget and start again, pick a variant that finished, or pick `none`. When all three ran out, `none` is the only pick.
-- A second start runs only the variants that ran out, on their raised budgets. It keeps the finished variants with their worktrees, recordings and side-by-side rows.
-- `prototype_budgets_not_set` is raised by `scripts/orders.py`.
-- Settled at the first guardian stop: a variant whose own run passes its budget counts as ran out. It is named in the stop, it cannot be picked, and it reruns once its budget is raised.
+- When a variant has spent its budget, before the start or during its own run, the others still run. Then `prototype_budget_spent` stops for the originator, naming each variant that ran out and what it spent.
+- The choices are: raise its budget, answer, and start again; pick a variant that finished; or pick `none`. A variant that ran out cannot be picked. When all three ran out, `none` is the only pick.
+- A variant has finished when it has a recording and did not run out. A second start reruns every variant that has not finished and keeps the finished ones. A new `--axis` keeps none.
+- `prototype_budgets_not_set` is raised by `scripts/orders.py`. This changes standing orders. Sean decided it, solo, and it has a CHANGELOG line (`CHANGELOG.md:7`).
 
 May ignore: nothing stated.
 
 ## The recording
 
-None; this is a feature. To replay it, run `cd tests && python3 -m unittest test_budget_cap_turns_session.PrototypeBudgetsTest`. The guardian reran it at HEAD: 22 OK. That count includes the four `BudgetCapTest` tests it imports. The guardian also reran the whole suite: 305 OK. The record has the red for this pass: 9 failures, `'two_people' != 'originator'`.
+None; this is a feature. To replay it, run `cd tests && python3 -m unittest test_budget_cap_turns_session.PrototypeBudgetsTest`. The guardian reran it at HEAD: 29 OK, which includes the four `BudgetCapTest` tests it imports. The whole suite: 312 OK. The record's red for this pass had 16 failures out of 29.
 
 ## The boundary picture
 
 From `.xv/slices/2026-10-27-prototype-budgets.boundary.md`, as given:
 
 - Modules touched: `scripts/orders` and `scripts/prototypes`. None added or removed.
-- No edges added or removed. No tables. No surface paths. No new calls out of the process.
-- Shape hints: none.
+- No edges, tables or surface paths added or removed. No new calls out of the process. Shape hints: none.
 
 ## What the suite asserts after
 
-`PrototypeBudgetsTest` gains nine tests:
+`PrototypeBudgetsTest` gains 16 tests:
 
-- A variant already over its budget stops the slice for the originator. The stop names its spend, `prototype_budgets` and `none`, and the others still run.
-- When all three are over, nothing runs, and `pick none` sets the slice to abandoned.
-- A second start, after a raise, runs only the raised variant, with the dollars it has left. It keeps b and c: branches, recordings, record entries and side-by-side rows.
-- A variant whose budget was not raised does not run again, and the stop names its spend.
-- The missing-budgets stop has the same question as `orders.evaluate`'s `prototype_budgets_not_set`, and no agent runs.
-- New in this pass: a variant whose run costs 1.2 against a budget of 1 raises `prototype_budget_spent` for the originator. It cannot be picked, though it has a branch. Once raised, it alone reruns with 1.8, and b's and c's recordings stay.
+- A variant over its budget stops the slice for the originator. The stop names its spend, `prototype_budgets` and `none`, and the others still run. When all three are over, nothing runs and `pick none` abandons the slice.
+- After a raise, a second start runs only the raised variant, with what is left of its budget. It keeps b and c: branches, recordings, record entries and side-by-side rows. A variant whose budget was not raised is not run, and the stop names its spend.
+- The missing-budgets stop has the same question as `orders.evaluate`, and no agent runs.
+- A variant whose own run costs 1.2 against a budget of 1 raises `prototype_budget_spent`. It cannot be picked, though it has a branch. Once its budget is raised, it alone reruns.
+- A variant that ran within its budget but left no recording is rerun. A new axis reruns all three.
+- The stop words the two kinds of run-out apart, says to answer before starting again, and says a pick is for two people unless solo. One name answers the raise, and one name cannot pick `none` (this test config is not solo). The log line says the same.
 
 No old assertion moved.
 
@@ -69,39 +69,40 @@ No old assertion moved.
 
 shape_change: no. shape_breadth: narrow.
 
-- The boundary picture shows no new modules, edges, tables or surfaces (`.xv/slices/2026-10-27-prototype-budgets.boundary.md`, "Edges: added: none"). `prototypes → orders` already existed: `scripts/prototypes.py:27` (`import orders`) is not in the diff.
-- The new stop order `prototype_budget_spent` (`scripts/orders.py:205-214`) fits "`orders` holds the stop rules" (`.xv/picture.md:23`). The new record key `checks.prototype.ran_out` (`scripts/prototypes.py:188`) fits "State is files" (`.xv/picture.md:26`).
-- Moving the `prototype_budgets_not_set` question out of `prototypes.py` (`scripts/prototypes.py:93-97`) brings the code into line with `.xv/picture.md:69`.
-- The cleaner proposed a helper for the over-budget check, which is written twice (`scripts/prototypes.py:118-119` and `:183`). That would be a function inside one module, not a shape change.
-- Breadth: the change touches two modules and adds one CHANGELOG line (`CHANGELOG.md:5-7`). The forecast expected `"shape": "wide"`, so this is narrower than forecast.
+- The boundary picture shows no new modules, edges, tables or surfaces ("Edges: added: none"). The `prototypes → orders` edge was already there.
+- The new order `prototype_budget_spent` (`scripts/orders.py:205-219`) fits "`orders` holds the stop rules" (`.xv/picture.md:23`). The new record keys `checks.prototype.ran_out` and `ran_during` (`scripts/prototypes.py:191`) fit "State is files" (`.xv/picture.md:26`).
+- Moving the `prototype_budgets_not_set` question out of `prototypes.py` (`scripts/prototypes.py:94-101`) brings the code into line with `.xv/picture.md:69`.
+- The forecast expected `"shape": "wide"` (`.xv/slices/2026-10-27-prototype-budgets.md:11`). The change touches two modules plus a CHANGELOG line (`CHANGELOG.md:5-7`), which is narrower than forecast.
 
 ## 2. Pitch
 
 pitch_contradiction: no.
 
-- What I checked against: "to vibe with discipline" (`.xv/pitch.md:7`), and "not for people or projects that will not trust agents to write production code" (`.xv/pitch.md:25`).
-- The change sends a budget stop to a person and lets no agent decide (`scripts/orders.py:211`, `fire("prototype_budget_spent", "originator", ...)`). It serves no one the pitch excludes.
+- Checked against "to vibe with discipline" (`.xv/pitch.md:7`) and "not for people or projects that will not trust agents to write production code" (`.xv/pitch.md:25`).
+- The change sends a spent budget to a person and lets no agent choose (`scripts/orders.py:214`, `fire("prototype_budget_spent", "originator", ...)`). It serves no one the pitch excludes.
 
 ## 3. Moved tests
 
-| File | Before | After | Why (the maker's record) | Forced by the scenario? |
+| File | Before | After | Why | Forced by the scenario? |
 | --- | --- | --- | --- | --- |
 | none | | | | |
 
-- `xv wall diff 2026-10-27-prototype-budgets` reports `changed: []`, `deleted: []` and `fewer_assertions: []`. The record has `moved_tests: []` (`.xv/slices/2026-10-27-prototype-budgets.md:15`).
-- The diff to `tests/test_budget_cap_turns_session.py` changes one existing line, the import of `FAKE` beside `BudgetCapTest` (`:9`). It changes no assertion. Every other change adds lines.
+- `xv wall diff 2026-10-27-prototype-budgets` gives `changed: []`, `deleted: []` and `fewer_assertions: []`. The record has `moved_tests: []` (`.xv/slices/2026-10-27-prototype-budgets.md:15`).
+- In `tests/test_budget_cap_turns_session.py`, two existing lines change, and neither is an assertion: the import gains `FAKE` (`:9`), and the closing comment is reworded as Sean asked (settled point "Small", record `:38`).
 
 Slice-only tests removed: none. Kept: none.
 
 ## 4. The picture
 
-- `.xv/picture.md:26` describes `prototype_budgets` but not what happens when one is spent. Proposed addition after "a variant's spend counts only against its own budget.": "A variant has run out when its spend, before the start or after its own run, reaches its budget. Then the others still run, and `prototype_budget_spent` stops for the originator, naming each variant that ran out and its spend. A second `xv prototype start` reruns only those variants, from HEAD, on their raised budgets, and keeps every other variant that has a branch. A variant that ran out cannot be picked." If B is decided differently, word "keeps every other variant that has a branch" to match.
+- `.xv/picture.md:26` describes `prototype_budgets` but not what happens when a variant spends its budget. Proposed addition after "a variant's spend counts only against its own budget.":
+
+  "A variant has run out when its spend, before the start or after its own run, reaches its budget. The others still run, and then `prototype_budget_spent` stops for the originator, naming each variant that ran out and its spend. The originator answers a budget raise alone; a pick, `none` included, is for two people unless the repo runs solo. A variant has finished when it has a recording and did not run out. A second `xv prototype start` reruns every variant that has not finished, from HEAD, on what is left of its budget, and keeps the finished ones. A new `--axis` keeps none. A variant that ran out cannot be picked."
 - `.xv/picture.md:69` (binding decision 10) stays true and now matches the code. No edit.
-- `.xv/picture.md:60` (binding decision 1): this slice changes standing orders, which needs two people. The repo runs solo (`.xv/picture.md:52`), and `CHANGELOG.md:7` records "Sean decided it, solo". No edit.
+- `.xv/picture.md:60` (binding decision 1): this slice changes standing orders. The repo runs solo (`.xv/picture.md:52`), and `CHANGELOG.md:7` says "Sean decided it, solo". No edit.
 
 ## Door
 
-**Door:** two-way. A revert undoes it. No data is migrated and nothing is sent to users. Older code ignores the new key `checks.prototype.ran_out`. **Blast radius:** prototypes.
+**Door:** two-way. A revert undoes it. No data is migrated and nothing is sent to users. Older code ignores the new keys `checks.prototype.ran_out` and `ran_during`. **Blast radius:** prototypes.
 
 ## Raw data
 
@@ -109,8 +110,14 @@ Slice-only tests removed: none. Kept: none.
 - Diff: `git diff 23f8dd53788ee9f656f572e730e497e3b0a298bc..HEAD`
 - Wall: `xv wall diff 2026-10-27-prototype-budgets`
 - Boundary: `.xv/slices/2026-10-27-prototype-budgets.boundary.md`
-- Previous packet: this file at commit `3914508`
+- Earlier packets: this file in the earlier commits of `xv/2026-10-27-prototype-budgets`
 
 ## From the cleaner
 
+- Shape proposal, for people: The over-budget key check (tokens/usd/turns against budget) is written twice in prototypes.start, before and after the run; a small helper would remove it, but that is a new concept, so left for the packet.
+
+## From the cleaner
+
+- Shape proposal, for people: The over-budget key check (tokens/usd/turns against budget) is written twice in prototypes.start, before and after the run; a small helper would remove it, but that is a new concept, so left for the packet.
+- Shape proposal, for people: The over-budget key check (tokens/usd/turns against budget) is written twice in prototypes.start, before and after the run; a small helper would remove it, but that is a new concept, so left for the packet.
 - Shape proposal, for people: The over-budget key check (tokens/usd/turns against budget) is written twice in prototypes.start, before and after the run; a small helper would remove it, but that is a new concept, so left for the packet.
