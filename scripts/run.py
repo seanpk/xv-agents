@@ -999,7 +999,8 @@ def cmd_init(a):
     config = load_config(root)
     tests = config.get("tests") or {}
     out = {"written": written, "kept": kept, "tests": tests}
-    out["test_run"] = try_test_command(root, tests)
+    if not a.no_try:
+        out["test_run"] = try_test_command(root, tests)
     bpath = os.path.join(dst, "boundary-all.md")
     if os.path.exists(bpath):
         out["modules"] = len([l for l in open(bpath).read().splitlines() if l.startswith("- ")])
@@ -1063,6 +1064,8 @@ def main(argv=None):
                    help="keep .xv/ out of git (in .git/info/exclude), to try XV before committing to it")
     s.add_argument("--repo", action="store_true",
                    help="with --trial: make .xv/ its own git repo (no commit), so the trial keeps history")
+    s.add_argument("--no-try", action="store_true",
+                   help="do not run the test command to check it")
     s.add_argument("--adopt", action="store_true",
                    help="end a trial: let git see .xv/ again; a nested .xv/.git moves to <git dir>/xv-trial.git")
     s.set_defaults(fn=cmd_init)
