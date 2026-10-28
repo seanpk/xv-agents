@@ -35,6 +35,8 @@ The suite runs about three times slower than it needs to (seanpk/xv-agents#38). 
 
 Settled at the guardian's stop, 2026-10-27, Sean: the slice is not done until the suite uses the flag. The scenario agent changes the test helpers in `tests/helpers.py`, and any test that runs `xv init` on its own, to pass `--no-try`, and records each change as a test move (`xv record move`). The tests in `tests/test_init_tries.py`, and any other test that checks the result of the try, leave it off. The packet reports the suite time before and after.
 
+Settled at the guardian's second stop, 2026-10-27, Sean: the move in `tests/helpers.py` and the picture edit are accepted. Two more things are in the slice. (1) The usage text names the flag: `bin/xv` and the usage line in `scripts/run.py` read `xv init [--trial [--repo]|--adopt] [--no-try]`, or the same with the flag in its right place. (2) With `--no-try`, the output of `xv init` says the try was skipped, so that no agent reads a missing `test_run` as "no command was guessed" (`skills/xv-init/SKILL.md`, where a null `test_run` means "ask the person for one"). Without the flag, the output is as before. A test covers each.
+
 ## May ignore
 
 Nothing stated.
