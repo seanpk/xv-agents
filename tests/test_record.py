@@ -760,12 +760,7 @@ class FifthAmendmentTest(RepoCase):
     def stop_saved_at(self, step, next_step):
         """A stop that saved `step`, as xv step writes it, while the record's next is `next_step`."""
         self.xv("record", "stop", "s1", "--order", "some_order", "--seat", "originator",
-                "--question", "Q?", cwd=self.wt)
-        path = os.path.join(self.wt, ".xv", "slices", "s1.md")
-        text = open(path).read()
-        self.assertIn('{"at":', text)
-        with open(path, "w") as f:
-            f.write(text.replace('{"at":', '{"step": "%s", "at":' % step, 1))
+                "--question", "Q?", "--step", step, cwd=self.wt)
         self.xv("record", "set", "s1", "next", next_step, "--by", "pat", cwd=self.wt)
         self.assertEqual(self.show()["stops"][-1]["step"], step)
 
