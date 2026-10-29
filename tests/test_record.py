@@ -809,3 +809,69 @@ class FifthAmendmentTest(RepoCase):
         self.assertRegex(lines[0], r"--settled")
         self.assertRegex(lines[0], r"(?i)(back|earlier)")
         self.assertRegex(lines[0], r"(?i)other")
+
+
+class SettledForwardTest(RepoCase):
+    """#82: an answer that moves the slice forward needs no --settled when the work has not started."""
+
+    def setUp(self):
+        super().setUp()
+        self.wt = self.new_slice("s1")
+
+    def show(self):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+
+    def stop(self, step, order="some_order"):
+        return self.xv("record", "stop", "s1", "--order", order, "--seat", "originator",
+                       "--question", "Q?", "--step", step, cwd=self.wt)
+
+    def answer(self, nxt):
+        return self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--next", nxt,
+                       "--resume", cwd=self.wt, check=False)
+
+    def test_record_stop_takes_a_step_and_saves_it_on_the_stop(self):
+        self.stop("maker")
+        self.assertEqual(self.show()["stops"][-1]["step"], "maker")
+
+    def test_a_failed_setup_goes_to_any_step_without_settled(self):
+        for nxt in ("forecaster", "scenario"):
+            self.stop("setup", "setup_failed")
+            p = self.answer(nxt)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(self.show()["next"], nxt)
+
+    def test_a_prototype_stop_goes_to_any_step_without_settled(self):
+        self.stop("prototype", "axis_not_named")
+        p = self.answer("scenario")
+        self.assertEqual(p.returncode, 0, p.stderr)
+
+    def test_a_budget_stop_before_its_step_ran_goes_to_that_step_without_settled(self):
+        self.stop("maker", "budget_spent")
+        p = self.answer("maker")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(self.show()["next"], "maker")
+
+    def test_a_budget_stop_before_its_step_still_needs_settled_to_go_earlier(self):
+        self.stop("maker", "budget_spent")
+        p = self.answer("scenario")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settled", p.stderr)
+
+    def test_another_stop_at_a_step_still_needs_settled_to_return_to_it(self):
+        self.stop("maker", "scenario_stopped")
+        p = self.answer("maker")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settled", p.stderr)
+
+    def test_the_readme_general_answer_line_runs_with_its_placeholders_filled(self):
+        import shlex
+        lines = [ln for ln in open(os.path.join(HOME, "README.md")).read().splitlines()
+                 if ln.startswith("A person answers with `xv record answer")]
+        self.assertEqual(len(lines), 1)
+        line = lines[0].split("`")[1]
+        for old, new in (("<id>", "s1"), ("<name>", "pat"), ("<their words>", "go"), ("<step>", "maker")):
+            self.assertIn(old, line)
+            line = line.replace(old, new)
+        self.stop("scenario", "scenario_stopped")
+        p = self.xv(*shlex.split(line)[1:], cwd=self.wt, check=False)
+        self.assertEqual(p.returncode, 0, line + "\n" + p.stderr)
