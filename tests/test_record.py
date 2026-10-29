@@ -476,7 +476,8 @@ class OfferAndAnswerTest(RepoCase):
 
     def test_an_answer_that_sends_work_back_needs_settled(self):
         self.offer()
-        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "redo it",
+        self.xv("record", "set", "s1", "next", "guardian", "--by", "pat", cwd=self.wt)
+        p =self.xv("record", "answer", "s1", "--by", "pat", "--answer", "redo it",
                     "--next", "scenario", cwd=self.wt, check=False)
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--settled", p.stderr)
@@ -646,7 +647,8 @@ class AnswerAmendmentsTest(RepoCase):
         self.assertEqual((data["status"], data["next"]), ("working", "maker"))
 
     def test_next_with_no_pick_and_no_settled_is_still_refused(self):
-        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--next", "maker",
+        self.xv("record", "set", "s1", "next", "maker", "--by", "pat", cwd=self.wt)
+        p =self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--next", "maker",
                     cwd=self.wt, check=False)
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--settled", p.stderr)

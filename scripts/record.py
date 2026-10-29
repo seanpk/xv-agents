@@ -257,7 +257,7 @@ def cmd_offer(a):
     stop = open_stops[-1]
     stop["options"] = options
     stop["recommended"] = a.recommend
-    stop["budget_seen"] = data.get("budget")
+    stop.setdefault("budget_seen", data.get("budget"))
     body = log_line(body, "watch", f"offered {len(options)} options for {stop['order']}")
     save(path, data, body)
 
@@ -292,7 +292,9 @@ def cmd_answer(a):
             settled = settled or options[pick - 1]["settles"]
         else:
             raise XVError("--pick is the number of an offered option, or other")
-    if (pick == "other" and not a.settled) or (a.next and not settled):
+    sends_back = bool(a.next) and a.next != "close" and not (
+        a.next in STEPS and data["next"] in STEPS and STEPS.index(a.next) > STEPS.index(data["next"]))
+    if (pick == "other" and not a.settled) or (sends_back and not settled):
         raise XVError("--settled is required when the answer sends work back or the pick is other: "
                       "say what is now true, so the next agent can act without the chat")
     stop["answered_by"], stop["answer"], stop["answered_at"] = who, a.answer, now()
