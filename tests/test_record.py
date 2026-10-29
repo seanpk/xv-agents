@@ -670,3 +670,78 @@ class AnswerAmendmentsTest(RepoCase):
         self.assertIn("settled", line[0])
         self.assertNotIn("new_info", line[0])
         self.assertNotIn("cause", line[0])
+
+
+class FourthAmendmentTest(RepoCase):
+    def setUp(self):
+        super().setUp()
+        self.wt = self.new_slice("s1")
+
+    def show(self):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+
+    def stop_at(self, step):
+        self.xv("record", "set", "s1", "next", step, "--by", "pat", cwd=self.wt)
+        self.xv("record", "stop", "s1", "--order", "some_order", "--seat", "originator",
+                "--question", "Q?", cwd=self.wt)
+
+    def answer(self, nxt):
+        return self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--next", nxt,
+                       "--resume", cwd=self.wt, check=False)
+
+    def test_next_forward_needs_no_settled(self):
+        self.stop_at("guardian")
+        p = self.answer("close")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        data = self.show()
+        self.assertEqual((data["status"], data["next"]), ("working", "close"))
+
+    def test_next_to_a_later_step_than_the_one_that_stopped_needs_no_settled(self):
+        self.stop_at("scenario")
+        p = self.answer("maker")
+        self.assertEqual(p.returncode, 0, p.stderr)
+
+    def test_next_to_the_step_that_stopped_needs_settled(self):
+        self.stop_at("maker")
+        p = self.answer("maker")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settled", p.stderr)
+
+    def test_next_to_an_earlier_step_needs_settled(self):
+        self.stop_at("guardian")
+        p = self.answer("scenario")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settled", p.stderr)
+        self.assertIsNone(self.show()["stops"][-1].get("answer"))
+
+    def test_the_readme_answer_examples_run_without_being_refused(self):
+        import shlex
+        lines = [ln.strip() for ln in open(os.path.join(HOME, "README.md")).read().splitlines()
+                 if ln.strip().startswith("xv record answer 2026-10-22-expiring-today")]
+        self.assertTrue(lines)
+        self.assertTrue(any("--next close" in ln for ln in lines), lines)
+        for ln in lines:
+            self.xv("record", "set", "s1", "next", "close", "--by", "pat", cwd=self.wt)
+            self.xv("record", "stop", "s1", "--order", "ready_to_merge", "--seat", "originator",
+                    "--question", "Merge?", cwd=self.wt)
+            args = shlex.split(ln)[1:]
+            args[2] = "s1"
+            p = self.xv(*args, cwd=self.wt, check=False)
+            self.assertEqual(p.returncode, 0, ln + "\n" + p.stderr)
+
+    def test_the_watch_brief_shows_next_as_required_and_says_when_settled_is_needed(self):
+        text = open(os.path.join(HOME, "skills", "watch", "SKILL.md")).read()
+        cmd = [ln for ln in text.splitlines() if ln.startswith("xv record answer ")]
+        self.assertEqual(len(cmd), 1)
+        self.assertIn("--next <step>", cmd[0])
+        self.assertNotIn("[--next", cmd[0])
+        self.assertRegex(text, r"(?is)--settled[^\n]{0,300}(earlier|forward)")
+
+    def test_an_offer_keeps_the_budget_the_stop_saved(self):
+        self.xv("record", "set", "s1", "budget", '{"usd": 2}', "--by", "pat", cwd=self.wt)
+        self.xv("record", "stop", "s1", "--order", "o", "--seat", "originator", "--question", "Q?", cwd=self.wt)
+        self.xv("record", "set", "s1", "budget", '{"usd": 4}', "--by", "pat", cwd=self.wt)
+        self.xv("record", "offer", "s1", "--option", "A", "--settles", "a", cwd=self.wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1", "--pick", "1", cwd=self.wt)
+        change = self.show()["stops"][-1].get("budget_change")
+        self.assertEqual((change["from"]["usd"], change["to"]["usd"]), (2, 4))
