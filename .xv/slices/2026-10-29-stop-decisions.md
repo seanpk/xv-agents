@@ -2,13 +2,13 @@
 id: 2026-10-29-stop-decisions
 title: "A stop keeps the decision, not only the answer"
 kind: feature
-status: open
+status: stopped
 set_by: Sean Kennedy
 created: 2026-10-29
 branch: xv/2026-10-29-stop-decisions
 base: 5d061c1f1a5a5b18b5fe7a3b8c5ad50e8bcc436d
-next: forecaster
-forecast: null
+next: scenario
+forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 350000, "turns": null, "usd": 1.8, "basis": ["2026-10-27-prototype-budgets", "2026-10-27-slice-tests", "2026-10-27-init-no-try"]}, {"harness": "claude", "model": "opus", "tokens": 210000, "turns": null, "usd": 2.5, "basis": ["2026-10-27-prototype-budgets", "2026-10-27-slice-tests", "2026-10-27-init-no-try"]}], "wall_s": 2500, "shape": "wide", "breadth": "Stop record fields (offer, answer, decisions report), the watch brief, the scenario brief, run.py next-step handling and the originator answer check; scenario, maker and cleaner on sonnet, guardian on opus, plus CHANGELOG lines."}
 budget: null
 red: null
 wall_baseline: null
@@ -19,12 +19,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: []
-stops: []
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 4301, "cache_read": 23564, "cache_write": 19364, "tokens": 23669, "usd": 0.0063, "turns": 3, "wall_s": 21.6, "session": "77de5837-6ba4-409a-b784-fee6333702d6", "step": "forecaster", "at": "2026-10-29T17:53:54+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-29-stop-decisions/01-forecaster.out"}]
+stops: [{"at": "2026-10-29T17:53:54+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-29-stop-decisions budget ... --by <name>`).", "answered_by": [], "answer": null, "also": []}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Sonnet ~350k tokens, opus ~210k; wide shape across record, briefs and run.py; basis includes prior reopen rounds", "at": "2026-10-29T17:53:54+00:00"}], "forecaster": {"at": "2026-10-29T17:53:54+00:00", "wrote": []}}
 ---
 # A stop keeps the decision, not only the answer
 
@@ -84,3 +84,5 @@ None. A feature starts from words.
 
 ## Log
 - 2026-10-29T17:53:29+00:00 watch: slice opened by Sean Kennedy
+- 2026-10-29T17:53:54+00:00 forecaster: done: Sonnet ~350k tokens, opus ~210k; wide shape across record, briefs and run.py; basis includes prior reopen rounds
+- 2026-10-29T17:53:54+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-29-stop-decisions budget ... --by <name>`).
