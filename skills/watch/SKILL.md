@@ -45,6 +45,8 @@ When the person answers, write it down before anything else:
 xv record answer <id> --by <name>[,<name>] --answer "<their words>" --pick <n|other> --settled "<what is now true>" --new-info "<what they brought, or none>" --cause "<decision|environment|tool|agent|watch>: <a line>" [--why "<their reason>"] [--bundle <order>[,<order>]] [--next <step>] --resume
 ```
 
+`--resume` refuses an answer with no `--next`: `next` stays on the step that stopped, so every answer says where the slice goes.
+
 You write `settled`, `new_info` and `cause` as the person's scribe; the record says so. `--settled` is required when the answer sends work back or the pick is `other`. Do not write a "Settled at" paragraph into the scenario. A decision that changes what the slice must do goes through `xv slice amend`, and `settled` names the amendment; every other decision lives only in `settled`. `xv prompt` gives the next agent `settled`, not the raw words.
 
 A stop for two people needs two names; the script refuses one, unless the repo runs solo (`seats.two_people: solo`), where one person answers and the decision record says so. The answer goes in the record verbatim. If two people decided, the script writes the decision record in `.xv/decisions/` with who took part. Then run the step the answer points to.

@@ -8,21 +8,18 @@ Usage: xv decisions [--since <date>]
 """
 
 import argparse
-import glob
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from xvlib import XV_DIR, XVError, die, read_doc, repo_root  # noqa: E402
+from retro import records  # noqa: E402
+from xvlib import XVError, die, repo_root  # noqa: E402
 
 
 def collect(root, since=None):
     """{order: {"stops", "picked", "no_new_info", "causes"}} over every record's counted stops."""
     orders = {}
-    for path in sorted(glob.glob(os.path.join(root, XV_DIR, "slices", "*.md"))):
-        if path.endswith((".packet.md", ".boundary.md")):
-            continue
-        data, _ = read_doc(path)
+    for _, data, _ in records(root):
         for st in data.get("stops") or []:
             if not isinstance(st, dict) or st.get("answer") is None:
                 continue
@@ -33,7 +30,7 @@ def collect(root, since=None):
             row = orders.setdefault(st.get("order") or "?",
                                     {"stops": 0, "picked": 0, "no_new_info": 0, "causes": {}})
             row["stops"] += 1
-            row["picked"] += isinstance(st.get("pick"), int)
+            row["picked"] += st.get("pick") is not None and st.get("pick") == st.get("recommended")
             row["no_new_info"] += st.get("new_info") == "none"
             cause = (st.get("cause") or "unrecorded").split(":")[0].strip()
             row["causes"][cause] = row["causes"].get(cause, 0) + 1

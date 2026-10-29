@@ -280,6 +280,8 @@ def cmd_answer(a):
         stop["solo"] = True
     if a.cause and a.cause.split(":")[0].strip() not in CAUSES:
         raise XVError(f"cause is one of {sorted(CAUSES)}, then a free line after a colon")
+    if a.resume and not a.next:
+        raise XVError("--resume needs --next: every answer says where the slice goes")
     pick, settled = None, a.settled
     if a.pick is not None:
         options = stop.get("options") or []
