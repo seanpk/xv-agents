@@ -292,8 +292,9 @@ def cmd_answer(a):
             settled = settled or options[pick - 1]["settles"]
         else:
             raise XVError("--pick is the number of an offered option, or other")
+    stopped_at = stop.get("step") or data["next"]
     sends_back = bool(a.next) and a.next != "close" and not (
-        a.next in STEPS and data["next"] in STEPS and STEPS.index(a.next) > STEPS.index(data["next"]))
+        a.next in STEPS and stopped_at in STEPS and STEPS.index(a.next) > STEPS.index(stopped_at))
     if (pick == "other" and not a.settled) or (sends_back and not settled):
         raise XVError("--settled is required when the answer sends work back or the pick is other: "
                       "say what is now true, so the next agent can act without the chat")
@@ -318,8 +319,10 @@ def cmd_answer(a):
         rec = write_decision(slice_root(path), data["id"], who, stop, a.answer
                              + ("\n\nDecided by one person: this repo runs solo (seats.two_people: solo)."
                                 if stop.get("solo") else ""))
-        data["decisions"].append({"date": today(), "who": who, "decision": a.answer,
-                                  "record": rec})
+        entry = {"date": today(), "who": who, "decision": a.answer, "record": rec}
+        if stop.get("settled"):
+            entry["settled"] = stop["settled"]
+        data["decisions"].append(entry)
     body = log_line(body, ",".join(who), f"answered {stop['order']}: {a.answer}")
     if scribed:
         body = log_line(body, "watch", f"scribe: wrote {', '.join(scribed)} for {stop['order']} "
@@ -337,7 +340,8 @@ def write_decision(root, slice_id, who, stop, answer):
         path, n = os.path.join(d, f"{base}-{n}.md"), n + 1
     with open(path, "w") as f:
         f.write(f"---\ndate: {today()}\nslice: {slice_id}\nwho: {json.dumps(who)}\n"
-                f"order: {stop['order']}\n---\n\n# {stop['question']}\n\n{answer}\n")
+                f"order: {stop['order']}\n---\n\n# {stop['question']}\n\n{answer}\n"
+                + (f"\n## Settled\n\n{stop['settled']}\n" if stop.get("settled") else ""))
     return os.path.relpath(path, root)
 
 
