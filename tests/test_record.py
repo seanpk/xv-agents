@@ -399,3 +399,137 @@ class SliceOnlyGateTest(RepoCase):
     def test_the_listed_name_in_another_file_is_a_plain_move(self):
         wt = self.listed()
         self.assertFalse(self.move(wt, "tests/test_y.py", "test_file_is_ts").get("slice_only"))
+
+
+class OfferAndAnswerTest(RepoCase):
+    """A stop keeps the decision: the offer, the pick, and `settled`."""
+
+    def setUp(self):
+        super().setUp()
+        self.wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+                "--question", "Which line?", cwd=self.wt)
+
+    def show(self):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+
+    def offer(self, *extra):
+        return self.xv("record", "offer", "s1",
+                       "--option", "Use the setting", "--settles", "Attribution is a setting, empty by default.",
+                       "--option", "Drop the line", "--settles", "No attribution line.", "--amends",
+                       *extra, cwd=self.wt)
+
+    def test_an_offer_puts_numbered_options_and_the_pick_on_the_open_stop(self):
+        self.offer("--recommend", "1")
+        stop = self.show()["stops"][-1]
+        self.assertEqual([o["text"] for o in stop["options"]], ["Use the setting", "Drop the line"])
+        self.assertEqual([o["settles"] for o in stop["options"]],
+                         ["Attribution is a setting, empty by default.", "No attribution line."])
+        self.assertEqual([bool(o.get("amends")) for o in stop["options"]], [False, True])
+        self.assertEqual(stop["recommended"], 1)
+
+    def test_an_offer_without_a_recommendation_holds_null(self):
+        self.offer()
+        self.assertIsNone(self.show()["stops"][-1]["recommended"])
+
+    def test_an_option_with_no_settles_is_refused(self):
+        p = self.xv("record", "offer", "s1", "--option", "Bare", "--recommend", "1", cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settles", p.stderr)
+
+    def test_a_settles_with_no_option_before_it_is_refused(self):
+        p = self.xv("record", "offer", "s1", "--settles", "Orphan", "--option", "A", "--settles", "a",
+                    cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--option", p.stderr)
+
+    def test_an_amends_with_no_option_before_it_is_refused(self):
+        p = self.xv("record", "offer", "s1", "--amends", "--option", "A", "--settles", "a",
+                    cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--option", p.stderr)
+
+    def test_a_pick_settles_with_the_offered_text_and_keeps_the_words(self):
+        self.offer("--recommend", "1")
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "2 ok", "--pick", "2",
+                "--new-info", "none", "--cause", "decision: the person chose", "--why", "less to maintain",
+                cwd=self.wt)
+        stop = self.show()["stops"][-1]
+        self.assertEqual(stop["answer"], "2 ok")
+        self.assertEqual(stop["pick"], 2)
+        self.assertEqual(stop["settled"], "No attribution line.")
+        self.assertEqual(stop["new_info"], "none")
+        self.assertTrue(stop["cause"].startswith("decision"))
+        self.assertEqual(stop["why"], "less to maintain")
+        self.assertNotIn("recommended_by", stop)
+
+    def test_other_needs_settled(self):
+        self.offer()
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "something else", "--pick", "other",
+                    cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settled", p.stderr)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "something else", "--pick", "other",
+                "--settled", "Attribution comes from the repo's config.", cwd=self.wt)
+        stop = self.show()["stops"][-1]
+        self.assertEqual((stop["pick"], stop["settled"]), ("other", "Attribution comes from the repo's config."))
+
+    def test_an_answer_that_sends_work_back_needs_settled(self):
+        self.offer()
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "redo it", "--pick", "1",
+                    "--next", "scenario", cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settled", p.stderr)
+
+    def test_the_cause_is_one_of_the_five(self):
+        self.offer()
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1", "--pick", "1",
+                    "--cause", "vibes", cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+
+    def test_the_record_says_the_watch_wrote_settled_new_info_and_cause(self):
+        self.offer()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1", "--pick", "1", "--new-info", "none",
+                "--cause", "decision", cwd=self.wt)
+        log = open(os.path.join(self.wt, ".xv", "slices", "s1.md")).read()
+        self.assertIn("scribe", log)
+
+    def test_a_bundle_names_the_other_stops_one_reply_answered(self):
+        self.offer()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1", "--pick", "1",
+                "--bundle", "budget_not_set,no_report", cwd=self.wt)
+        self.assertEqual(self.show()["stops"][-1]["bundle"], ["budget_not_set", "no_report"])
+
+    def test_a_budget_answer_records_the_change(self):
+        self.xv("record", "set", "s1", "budget", '{"usd": 2}', "--by", "pat", cwd=self.wt)
+        self.offer()
+        self.xv("record", "set", "s1", "budget", '{"usd": 4}', "--by", "pat", cwd=self.wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1, and raise it", "--pick", "1",
+                cwd=self.wt)
+        self.assertIsNotNone(self.show()["stops"][-1].get("budget_change"))
+
+    def test_an_originator_stop_may_be_answered_by_someone_who_did_not_set_the_work_going(self):
+        self.xv("record", "answer", "s1", "--by", "sam", "--answer", "carry on", cwd=self.wt)
+        self.assertEqual(self.show()["stops"][-1]["answered_by"], ["sam"])
+
+
+class DecisionsReportTest(RepoCase):
+    def answered(self, wt, order, pick, new_info):
+        self.xv("record", "stop", "s1", "--order", order, "--seat", "originator", "--question", "Q?", cwd=wt)
+        self.xv("record", "offer", "s1", "--option", "A", "--settles", "a", "--option", "B", "--settles", "b",
+                cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "x", "--pick", pick,
+                "--new-info", new_info, "--cause", "decision", "--settled", "s", cwd=wt)
+
+    def test_xv_decisions_counts_stops_per_order_and_skips_old_stops(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "old_order", "--seat", "originator", "--question", "Q?", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "old", cwd=wt)
+        self.answered(wt, "scenario_stopped", "1", "none")
+        self.answered(wt, "scenario_stopped", "other", "the grocer closes Sundays")
+        out = self.xv("decisions", cwd=wt).stdout
+        line = [ln for ln in out.splitlines() if "scenario_stopped" in ln]
+        self.assertEqual(len(line), 1, out)
+        self.assertIn("2", line[0])
+        self.assertIn("decision", line[0])
+        self.assertNotIn("old_order", out)

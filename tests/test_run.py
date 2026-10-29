@@ -254,6 +254,28 @@ class WatchLoopTest(RepoCase):
         p = self.xv("step", "cleaner", "s1", cwd=self.wt, check=False)
         self.assertIn("an earlier stop is unanswered", p.stdout)
 
+    def test_a_step_that_stops_keeps_next_on_that_step(self):
+        os.environ["FAKE_MAKER_CHEATS"] = "1"
+        try:
+            for agent in ("forecaster", "scenario"):
+                self.xv("step", agent, "s1", cwd=self.wt)
+            p = self.xv("step", "maker", "s1", cwd=self.wt, check=False)
+        finally:
+            del os.environ["FAKE_MAKER_CHEATS"]
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "unrecorded_move")
+        self.assertEqual(self.record()["next"], "maker")
+
+    def test_a_step_with_no_report_keeps_next_on_that_step(self):
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        os.environ["FAKE_NO_REPORT"] = "1"
+        try:
+            p = self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        finally:
+            del os.environ["FAKE_NO_REPORT"]
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "no_report")
+        self.assertEqual(self.record()["next"], "scenario")
+
 
 class RedFailsAfterTheMakerTest(RepoCase):
     """After the maker, the red must fail on the code from before the maker, not at HEAD."""

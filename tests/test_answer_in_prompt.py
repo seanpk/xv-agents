@@ -114,5 +114,31 @@ class SliceAmendTest(RepoCase):
         self.assertNotIn("invalid choice", p.stderr)
 
 
+class SettledInPromptTest(RepoCase):
+    def test_the_next_agent_gets_settled_not_the_raw_answer(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+                "--question", "Which attribution line?", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "2 ok", "--pick", "other",
+                "--settled", "Attribution is a promote.attribution setting, empty by default.", cwd=wt)
+        prompt = self.xv("prompt", "maker", "s1", cwd=wt).stdout
+        self.assertIn("Attribution is a promote.attribution setting, empty by default.", prompt)
+        self.assertNotIn("2 ok", prompt)
+
+    def test_the_scenario_brief_says_to_write_the_form_the_answer_names_or_stop(self):
+        wt = self.new_slice("s1")
+        low = self.xv("prompt", "scenario", "s1", cwd=wt).stdout.lower()
+        self.assertIn("settled", low)
+        self.assertIn("lint rule", low)
+        self.assertIn("does not swap in a test", low)
+
+    def test_the_watch_brief_puts_a_stop_with_offer_and_amends_through_slice_amend(self):
+        here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        text = open(os.path.join(here, "skills", "watch", "SKILL.md")).read()
+        self.assertIn("xv record offer", text)
+        self.assertIn("--settles", text)
+        self.assertIn("xv slice amend", text)
+
+
 if __name__ == "__main__":
     unittest.main()

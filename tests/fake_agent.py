@@ -12,6 +12,11 @@ title = prompt.splitlines()[0] if prompt else ""
 sid = (re.search(r"\.xv/slices/([\w.-]+)\.md", prompt) or [None, None])[1]
 
 
+if os.environ.get("FAKE_NO_REPORT") and not title.startswith("# The forecaster"):
+    print("done, and no report block")
+    sys.exit(0)
+
+
 def report(**kw):
     print("done\n```xv-report\n" + json.dumps(kw) + "\n```")
 
