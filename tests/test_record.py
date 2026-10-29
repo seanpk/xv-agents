@@ -840,17 +840,58 @@ class SettledForwardTest(RepoCase):
         p = self.answer("scenario")
         self.assertEqual(p.returncode, 0, p.stderr)
 
+    def stop_before_step(self, step):
+        """The watch's own budget stop: the budget is spent, so `step` does not run."""
+        row = {"step": "forecaster", "usd": 5, "tokens": 10, "tokens_in": 10, "tokens_out": 0,
+               "cache_read": 0, "cache_write": 0}
+        self.xv("record", "set", "s1", "budget", json.dumps({"usd": 1, "tokens": 10000000}),
+                "--by", "pat", cwd=self.wt)
+        self.xv("record", "add", "s1", "spend", json.dumps(row), cwd=self.wt)
+        p = self.xv("step", step, "s1", cwd=self.wt, check=False)
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "budget_spent", p.stdout + p.stderr)
+
     def test_a_budget_stop_before_its_step_ran_goes_to_that_step_without_settled(self):
-        self.stop("maker", "budget_spent")
+        self.stop_before_step("maker")
         p = self.answer("maker")
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertEqual(self.show()["next"], "maker")
 
     def test_a_budget_stop_before_its_step_still_needs_settled_to_go_earlier(self):
-        self.stop("maker", "budget_spent")
+        self.stop_before_step("maker")
         p = self.answer("scenario")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--settled", p.stderr)
+
+    def test_a_budget_stop_after_the_maker_left_the_suite_red_needs_settled_to_return_to_it(self):
+        self.stop("maker", "budget_spent")
+        p = self.answer("maker")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settled", p.stderr)
+
+    def test_a_setup_failed_stop_raised_after_the_scenario_step_needs_settled_to_return_to_it(self):
+        self.stop("scenario", "setup_failed")
+        p = self.answer("scenario")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settled", p.stderr)
+
+    def test_the_prototypes_ready_pick_needs_settled_to_send_the_work_back(self):
+        self.stop("prototype", "prototypes_ready")
+        p = self.answer("scenario")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settled", p.stderr)
+
+    def test_the_docs_name_the_stops_that_need_no_settled(self):
+        def read(path):
+            with open(os.path.join(HOME, path)) as f:
+                return f.read()
+        readme = [ln for ln in read("README.md").splitlines()
+                  if ln.startswith("A person answers with `xv record answer")][0]
+        for name, text in (("README answer line", readme), ("watch brief", read("skills/watch/SKILL.md"))):
+            for word in ("setup_failed", "budget_spent", "prototypes_ready"):
+                self.assertIn(word, text, f"{name} does not name {word}")
+        self.assertTrue([ln for ln in read("CHANGELOG.md").splitlines()
+                         if "setup_failed" in ln and "--settled" in ln and "prototypes_ready" in ln],
+                        "CHANGELOG.md has no line for the --settled exceptions")
 
     def test_another_stop_at_a_step_still_needs_settled_to_return_to_it(self):
         self.stop("maker", "scenario_stopped")
