@@ -32,6 +32,7 @@ LIST_FIELDS = {"moved_tests", "slice_only", "spend", "stops", "decisions", "prot
 STATUSES = {"open", "working", "stopped", "ready", "closed", "abandoned"}
 STEPS = ["forecaster", "scenario", "maker", "cleaner", "guardian", "close", "none"]
 SEATS = {"originator", "two_people", "chief_engineer"}
+CAUSES = {"decision", "environment", "tool", "agent", "watch"}
 
 BODY_TEMPLATE = """# {title}
 
@@ -217,9 +218,47 @@ def cmd_stop(a):
     if a.seat not in SEATS:
         raise XVError(f"seat is one of {sorted(SEATS)}")
     data["stops"].append({"at": now(), "order": a.order, "seat": a.seat,
-                          "question": a.question, "answered_by": [], "answer": None})
+                          "question": a.question, "answered_by": [], "answer": None,
+                          "budget_seen": data.get("budget")})
     data["status"] = "stopped"
     body = log_line(body, "watch", f"stop ({a.order}) for {a.seat}: {a.question}")
+    save(path, data, body)
+
+
+class OfferAction(argparse.Action):
+    """--option starts an option; --settles and --amends belong to the --option just before them."""
+
+    def __call__(self, parser, ns, values, option_string=None):
+        opts = ns.options = list(getattr(ns, "options", None) or [])
+        if option_string == "--option":
+            opts.append({"text": values, "settles": None, "amends": False})
+            return
+        if not opts:
+            parser.error(f"{option_string} needs an --option before it")
+        if option_string == "--settles":
+            opts[-1]["settles"] = values
+        else:
+            opts[-1]["amends"] = True
+
+
+def cmd_offer(a):
+    path, data, body = load(repo_root(), a.id)
+    open_stops = [s for s in data["stops"] if s.get("answer") is None]
+    if not open_stops:
+        raise XVError("no open stop on this slice")
+    options = a.options or []
+    if not options:
+        raise XVError("an offer needs at least one --option")
+    for i, o in enumerate(options, 1):
+        if not o["settles"]:
+            raise XVError(f"option {i} has no --settles: say what is settled if it is picked")
+    if a.recommend is not None and not 1 <= a.recommend <= len(options):
+        raise XVError(f"--recommend is one of 1..{len(options)}")
+    stop = open_stops[-1]
+    stop["options"] = options
+    stop["recommended"] = a.recommend
+    stop["budget_seen"] = data.get("budget")
+    body = log_line(body, "watch", f"offered {len(options)} options for {stop['order']}")
     save(path, data, body)
 
 
@@ -239,7 +278,33 @@ def cmd_answer(a):
                       "(a one-person team sets seats.two_people: solo in .xv/config.yml)")
     if alone:
         stop["solo"] = True
+    if a.cause and a.cause.split(":")[0].strip() not in CAUSES:
+        raise XVError(f"cause is one of {sorted(CAUSES)}, then a free line after a colon")
+    pick, settled = None, a.settled
+    if a.pick is not None:
+        options = stop.get("options") or []
+        if a.pick == "other":
+            pick = "other"
+        elif a.pick.isdigit() and 1 <= int(a.pick) <= len(options):
+            pick = int(a.pick)
+            settled = settled or options[pick - 1]["settles"]
+        else:
+            raise XVError("--pick is the number of an offered option, or other")
+    if (pick == "other" or a.next) and not a.settled:
+        raise XVError("--settled is required when the answer sends work back or the pick is other: "
+                      "say what is now true, so the next agent can act without the chat")
     stop["answered_by"], stop["answer"], stop["answered_at"] = who, a.answer, now()
+    for key, value in (("pick", pick), ("settled", settled), ("new_info", a.new_info),
+                       ("cause", a.cause), ("why", a.why)):
+        if value is not None:
+            stop[key] = value
+    if a.bundle:
+        stop["bundle"] = [b.strip() for b in a.bundle.split(",") if b.strip()]
+    had_seen = "budget_seen" in stop
+    seen = stop.pop("budget_seen", None)
+    if had_seen and seen != data.get("budget"):
+        stop["budget_change"] = {"from": seen, "to": data.get("budget")}
+    scribed = bool(settled or a.new_info or a.cause)
     data["status"] = "working" if a.resume else data["status"]
     if a.next:
         data["next"] = a.next
@@ -250,6 +315,9 @@ def cmd_answer(a):
         data["decisions"].append({"date": today(), "who": who, "decision": a.answer,
                                   "record": rec})
     body = log_line(body, ",".join(who), f"answered {stop['order']}: {a.answer}")
+    if scribed:
+        body = log_line(body, "watch", f"scribe: wrote settled, new_info and cause for {stop['order']} "
+                                       f"as the scribe of {','.join(who)}")
     save(path, data, body)
 
 
@@ -550,6 +618,14 @@ def main(argv=None):
     s.add_argument("--question", required=True)
     s.set_defaults(fn=cmd_stop)
 
+    s = sub.add_parser("offer", help="put the choices to the person on the open stop")
+    s.add_argument("id")
+    s.add_argument("--option", action=OfferAction)
+    s.add_argument("--settles", action=OfferAction)
+    s.add_argument("--amends", action=OfferAction, nargs=0)
+    s.add_argument("--recommend", type=int)
+    s.set_defaults(fn=cmd_offer)
+
     s = sub.add_parser("answer", help="a person answers the open stop")
     s.add_argument("id")
     s.add_argument("--by", required=True, help="comma-separated names")
@@ -557,6 +633,12 @@ def main(argv=None):
     s.add_argument("--next", choices=STEPS + ["prototype"])
     s.add_argument("--resume", action="store_true")
     s.add_argument("--decision", action="store_true", help="write a decision record")
+    s.add_argument("--pick", help="the number of the offered option, or other")
+    s.add_argument("--settled", help="what is now true, for the next agent")
+    s.add_argument("--new-info", dest="new_info", help="what the person brought that no agent had, or none")
+    s.add_argument("--cause", help="decision, environment, tool, agent or watch, then a free line")
+    s.add_argument("--why", help="the person's reason")
+    s.add_argument("--bundle", help="comma-separated orders the same reply answered")
     s.set_defaults(fn=cmd_answer)
 
     s = sub.add_parser("report", help="apply a worker's xv-report block")

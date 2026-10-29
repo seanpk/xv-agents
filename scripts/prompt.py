@@ -160,6 +160,9 @@ def answer_section(data, body=""):
                                for i, ln in enumerate(log)):
             return ""
     who = ", ".join(st.get("answered_by") or [])
+    if st.get("settled"):
+        return (f"\n## Settled\n\n{who} answered the stop `{st.get('order')}` "
+                f"({st.get('question', '')}). What is now true:\n\n{st['settled']}\n")
     return (f"\n## The person's answer\n\n{who} answered the stop `{st.get('order')}` "
             f"({st.get('question', '')}):\n\n{st['answer']}\n")
 
