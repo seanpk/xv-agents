@@ -533,3 +533,11 @@ class DecisionsReportTest(RepoCase):
         self.assertIn("2", line[0])
         self.assertIn("decision", line[0])
         self.assertNotIn("old_order", out)
+
+    def test_xv_decisions_since_a_date_counts_only_stops_from_that_date_on(self):
+        wt = self.new_slice("s1")
+        self.answered(wt, "scenario_stopped", "1", "none")
+        past = self.xv("decisions", "--since", "2000-01-01", cwd=wt).stdout
+        self.assertIn("scenario_stopped", past)
+        future = self.xv("decisions", "--since", "2999-01-01", cwd=wt).stdout
+        self.assertNotIn("scenario_stopped", future)
