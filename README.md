@@ -292,7 +292,7 @@ The standing orders are code, not prose. When the steps run through `xv step`, t
 | The suite is green and nothing stopped | the person who set the work going: the merge is theirs |
 | The packet from production | the chief engineer; it does not wait |
 
-A person answers with `xv record answer <id> --by <name> --answer "<their words>" --next <step> --resume`; `--settled` is required when `--next` sends the work back to the step that stopped or earlier, or the pick is `other`. A stop for two people takes two names, and the script refuses one. The answer goes in the record verbatim; when two people decided, a decision record is written to `.xv/decisions/` with who took part.
+A person answers with `xv record answer <id> --by <name> --answer "<their words>" --next <step> --resume`; `--settled` is required when `--next` sends the work back to the step that stopped or earlier, or the pick is `other`; three stops need none, because their work has not started: `setup_failed` saved at step `setup`, a prototype stop other than `prototypes_ready` (that pick keeps it), and a `budget_spent` stop raised before its step ran, answered with `--next` that step (not the one raised after the maker left the suite red). A stop for two people takes two names, and the script refuses one. The answer goes in the record verbatim; when two people decided, a decision record is written to `.xv/decisions/` with who took part.
 
 A one-person team sets `seats.two_people: solo` in `.xv/config.yml`. The two-person stops still fire and still wait. One person answers them, the question asks them to write down what they weighed, and the decision record says one person decided. `xv check` lists the setting as a declared relaxation and does not fail on it.
 
