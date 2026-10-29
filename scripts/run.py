@@ -389,6 +389,8 @@ def step(agent, slice_id, review_again=False):
     v = orders.verdict(data, agent, config)
     if v["stop"]:
         st = v["stop"]
+        if st["order"] != "ready_to_merge" and not checks.get("red_joined"):
+            data["next"] = agent  # a step that stopped is not done: a later step must not start on missing work
         data["stops"].append({"at": now(), "step": agent, "order": st["order"], "seat": st["seat"],
                               "question": st["question"], "answered_by": [], "answer": None,
                               "also": [f["order"] for f in v["fired"] if f is not st]})

@@ -13,6 +13,7 @@
   xv recording ...              a defect's recording into the first draft of its red
   xv playwright install ...     Playwright's test agents, without the healer
   xv record ...                 read and write the slice record
+  xv decisions [--since <date>] stops per order: picks taken, new_info none, causes
   xv orders <id> --after <step> the standing orders (exit 10 on a stop)
   xv wall ...                   the test wall: baseline, diff, check
   xv spend ...                  actual spend from a harness's logs
@@ -41,7 +42,7 @@ COMMANDS = {
     "boundary": "boundary.py", "check": "check.py", "retro": "retro.py",
     "promote": "promote.py", "listen": "listen.py", "prototype": "prototypes.py",
     "adapt": "adapt.py", "prompt": "prompt.py", "recording": "recording.py",
-    "playwright": "playwright_agents.py", "packet": "packet.py",
+    "playwright": "playwright_agents.py", "packet": "packet.py", "decisions": "decisions.py",
     "init": "run.py", "slice": "run.py", "run": "run.py", "step": "run.py", "close": "run.py",
     "guard": "run.py", "install": "install.py",
 }

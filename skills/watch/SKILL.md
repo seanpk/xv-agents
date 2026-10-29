@@ -31,11 +31,21 @@ xv step <agent> <id>
 - `"stop": null`: go on to the next step.
 - A stop: say to the person, in two or three lines, which order fired, which seat it is for, and the question. Point at the record and the packet. Then end your turn. Do not poll. Do not go on. Do not retry the step. Keep your context; the person's answer comes back to you.
 
+Before you end your turn on a stop, put the choices on the record:
+
+```
+xv record offer <id> --option "<text>" --settles "<what is settled if picked>" [--amends] ... --recommend <n>
+```
+
+`--settles` and `--amends` belong to the `--option` just before them; `--amends` marks an option that changes what the slice must do. Number the options in your message to the person the way the record numbers them.
+
 When the person answers, write it down before anything else:
 
 ```
-xv record answer <id> --by <name>[,<name>] --answer "<their words>" [--next <step>] --resume
+xv record answer <id> --by <name>[,<name>] --answer "<their words>" --pick <n|other> --settled "<what is now true>" --new-info "<what they brought, or none>" --cause "<decision|environment|tool|agent|watch>: <a line>" [--why "<their reason>"] [--bundle <order>[,<order>]] [--next <step>] --resume
 ```
+
+You write `settled`, `new_info` and `cause` as the person's scribe; the record says so. `--settled` is required when the answer sends work back or the pick is `other`. Do not write a "Settled at" paragraph into the scenario. A decision that changes what the slice must do goes through `xv slice amend`, and `settled` names the amendment; every other decision lives only in `settled`. `xv prompt` gives the next agent `settled`, not the raw words.
 
 A stop for two people needs two names; the script refuses one, unless the repo runs solo (`seats.two_people: solo`), where one person answers and the decision record says so. The answer goes in the record verbatim. If two people decided, the script writes the decision record in `.xv/decisions/` with who took part. Then run the step the answer points to.
 

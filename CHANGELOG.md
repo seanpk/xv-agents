@@ -2,6 +2,10 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
+## Unreleased
+
+- A stop keeps the decision, not only the answer. `xv record offer` puts the options, each with the `settled` text it would record and whether it amends the scenario, and the watch's pick, on the open stop; `xv record answer` takes `--pick`, `--settled`, `--new-info`, `--cause`, `--why` and `--bundle`, and the stop keeps the person's words, the pick, `settled`, `new_info`, `cause`, a budget change and the bundle. `xv prompt` gives the next agent `settled`, not the raw answer. `xv decisions [--since <date>]` counts stops per order, picks taken, `new_info` none and causes. The watch's brief uses `offer` and stops writing "Settled at" paragraphs into the scenario; an amending decision goes through `xv slice amend`. The scenario brief says to write the form `settled` names (a lint rule, a script) or stop, not swap in a test. A step that stops or ends with no report keeps `next` on that step. A stop seated `originator` may be answered by a name other than `set_by`. This changes two briefs and a standing order's effect; Sean decided it, solo (#80, #62, #42, #73). It moves no position on xtremevibing.com.
+
 ## 0.3.1, 2026-10-28
 
 Three changes from this repo's own slices, each run by the watch and decided by Sean solo: the wall reads old tests in a red file (#53), a prototype that runs out of budget comes back to a person (#55), and `xv init --no-try`, which the suite uses to run in about 80 seconds instead of 130 (#38). The last one changes no brief, standing order or check, so it has no line below.
