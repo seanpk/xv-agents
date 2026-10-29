@@ -9,127 +9,125 @@ door: two-way
 blast_radius: adopters
 ---
 
-# Packet: A stop keeps the decision, not only the answer (fourth pass)
+# Packet: A stop keeps the decision, not only the answer (fifth pass)
 
 **Needs a decision.**
 
-- **Shape (two people; Sean runs this repo solo, `.xv/picture.md:52`).** The shape has been accepted three times: `.xv/decisions/2026-10-29-2026-10-29-stop-decisions.md`, `…-2.md` and `…-3.md`, plus record lines 78-103. Since the third decision (`1ab21d4..HEAD`), no module, edge, table or surface was added. The diff only edits `scripts/record.py:260`, `scripts/record.py:295-297`, `README.md:189` and `skills/watch/SKILL.md:45,50`. The front-matter `yes` is for the whole slice. Nothing in the shape is new.
-- **For Sean as originator.** There are two new moved tests, both forced by amendment 4.1. All four fixes from amendment 4 are met. Three smaller gaps remain; see "For the originator" below.
+- **Shape: two people. Sean runs this repo solo (`.xv/picture.md:52`).** The front matter says `yes` because it covers the whole slice: `scripts/decisions.py` and `xv decisions` are new. Sean accepted that shape four times (`.xv/decisions/2026-10-29-2026-10-29-stop-decisions.md`, `…-2.md`, `…-3.md`, `…-4.md`). This pass (`a2c1dfb..HEAD`) adds no module, edge, table or surface. It edits only `scripts/record.py:295-297`, `:322-325` and `:343-344`, `README.md:295` and `CHANGELOG.md:7`.
+- **For Sean, as the person who set the work going.** All three parts of amendment 5 are met, and no test moved in this pass. Four small notes are below under "For the originator"; none of them stops the change.
 
 ## The scenario
 
-There are four issues in this slice.
+The slice covers four issues:
 
-- **#80.** `xv record offer` puts numbered options on the open stop, each with `settles` and `amends`, plus `recommended`. `xv record answer` takes `--pick`, `--settled`, `--new-info`, `--cause`, `--why` and `--bundle`, and records `budget_change`. `xv prompt` passes on `settled`. `xv decisions [--since]` counts stops per order.
-- **#62.** Someone other than `set_by` may answer an `originator` stop.
+- **#80.** `xv record offer` puts numbered options, each with `settles` and `amends`, on the open stop, along with `recommended`. `xv record answer` takes `--pick`, `--settled`, `--new-info`, `--cause`, `--why` and `--bundle`. `xv prompt` passes `settled` to the next agent. `xv decisions [--since]` counts stops per order.
+- **#62.** A name other than `set_by` may answer an `originator` stop.
 - **#42.** The scenario agent writes the red in the form `settled` names, or stops.
 - **#73.** A step that stops keeps `next` on itself.
 
-Amendments 1-3 are in record lines 78-94. Amendment 4 (record lines 96-103) has four parts:
+Amendments 1-4 are in record lines 78-103. Amendment 5 is in record lines 105-111:
 
-1. `--settled` is needed only when `--next` goes back to the step that stopped or an earlier one, or when the pick is `other`.
-2. The README merge example uses `--next close`, and both README examples run.
-3. The watch brief shows `--next` as required and says when `--settled` is needed.
-4. `offer` keeps the stop's `budget_seen`.
+1. The decision record and the `decisions` list keep `settled` alongside the person's words.
+2. "The step that stopped" is the stop's saved `step`. The record's `next` is used only when the stop has no step.
+3. `CHANGELOG.md` and `README.md:295` say when `--settled` is required.
 
-May ignore: the watch answering stops by itself, backfilling old records, and #64.
+The slice may ignore three things: the watch answering stops by itself, backfilling old records, and #64.
 
 ## The recording
 
-None, because this is a feature. To replay the red: `cd tests && python3 -m unittest test_record test_run`. The red at the last scenario step had 32 failures and 1 error out of 106 tests (`checks.scenario.red_output`). For the green, I re-ran the whole suite at HEAD `0df4f76`: `Ran 375 tests in 94.615s`, `OK`.
+There is no recording: this slice is a feature.
+
+- **Red.** `cd tests && python3 -m unittest test_record test_run test_answer_in_prompt`. At the last scenario step it ran 121 tests with 39 failures and 1 error (`checks.scenario.red_output`).
+- **Green.** I re-ran the whole suite at HEAD `04cbb5e`: `Ran 380 tests in 92.742s`, `OK`.
 
 ## The boundary picture
 
-From `.xv/slices/2026-10-29-stop-decisions.boundary.md`, as given:
+This is from `.xv/slices/2026-10-29-stop-decisions.boundary.md`, as given:
 
-- Touched: `scripts/decisions`, `scripts/prompt`, `scripts/record`, `scripts/run`.
-- Module added: `scripts/decisions`. None removed. No new outbound calls.
-- Edges added: `scripts/decisions → scripts/retro` and `scripts/decisions → scripts/xvlib`. None removed.
-- Tables: none. Surface paths: none detected. The diff also adds the `xv decisions` command (`bin/xv:45`) and changes two briefs (`skills/watch/SKILL.md`, `skills/scenario/SKILL.md`).
+- **Touched:** `scripts/decisions`, `scripts/prompt`, `scripts/record`, `scripts/run`.
+- **Modules:** `scripts/decisions` was added. None was removed, and nothing new calls out of the process.
+- **Edges:** `scripts/decisions → scripts/retro` and `scripts/decisions → scripts/xvlib` were added. None was removed.
+- **Tables and surface paths:** none.
 
-None of the code changes since `1ab21d4` adds an import.
+The tool does not count two changes that people meet: the new `xv decisions` command (`bin/xv:45`) and the edits to two briefs (`skills/watch/SKILL.md`, `skills/scenario/SKILL.md`). None of this pass's code changes adds an import.
 
 ## What the suite asserts after
 
-These are the assertions new or changed in this pass. The rest is as in the third packet.
+The new assertions in this pass are in `FifthAmendmentTest`, `tests/test_record.py:752-811`. Everything else is as described in the fourth packet.
 
-- **Forward answers.** An answer whose `--next` is later than the record's `next`, or is `close`, is accepted with no `--settled` (`FourthAmendmentTest`).
-- **Back answers.** `--next` to the same step or an earlier one, with no pick and no `--settled`, is refused, and the stop stays open.
-- **README.** Every `xv record answer 2026-10-22-expiring-today` line in the README runs against a `ready_to_merge` stop and exits 0, and one of them uses `--next close`.
-- **Watch brief.** It has exactly one `xv record answer` line, that line contains `--next <step>` and not `[--next`, and the text says when `--settled` is needed ("earlier" or "forward").
-- **Offer.** If the budget moved between `stop` and `offer`, the answer still records `budget_change` from 2 to 4.
+- **Back, judged on the stop.** The stop saved `guardian` and the record's `next` is `scenario`. An answer with `--next maker` and no `--settled` is refused, and the refusal names `--settled`.
+- **Forward, judged on the stop.** The stop saved `scenario` and the record's `next` is `guardian`. An answer with `--next maker` and no `--settled` is accepted, and `next` becomes `maker`.
+- **Decision keeps settled.** A two-person stop is answered with `--pick other --settled "…"`. The record's `decisions[0].settled` holds that text, and the `.xv/decisions/` file holds both the text and the person's words.
+- **CHANGELOG.** It names `--settled` together with "back" or "earlier" and "other".
+- **README.** The general answer line names `--settled`, "back" or "earlier", and "other".
 
 ## 1. Shape
 
-shape_change: **yes**, breadth **narrow**. The forecast expected `wide` (record `forecast.shape`), so this is not wider than forecast. Both hints were decided at earlier stops, and this pass adds nothing to the shape.
+shape_change: **yes**, breadth **narrow**. The forecast expected `wide` (record `forecast.shape`), so the change is not wider than forecast.
 
-- **Hint "a module was added": changes the shape.** `scripts/decisions.py` is new, and `bin/xv:45` gives it a command. `.xv/picture.md:21` counts 22 modules, and `.xv/picture.md:27` names the `xv` CLI as a surface. Accepted at the first shape stop (record line 80).
-- **Hint "an edge between modules was added": inside the shape.** `decisions → xvlib` reaches the shared base (`.xv/picture.md:23`). `decisions → retro` is the reuse that amendment 1.2 asked for, and it was accepted at the second stop (record line 88).
-- **This pass: inside the shape (`.xv/picture.md:23`, `record` owns the slice record).** `scripts/record.py:295-297` changes a refusal rule inside `record`, and `scripts/record.py:260` changes `stop["budget_seen"] = …` to `stop.setdefault("budget_seen", …)`; neither adds a key, a module or an edge (`git diff 1ab21d4..HEAD -- scripts`).
+- **Hint "a module was added": this changes the shape.** `scripts/decisions.py` is new, and `bin/xv:45` gives it a command. `.xv/picture.md:21` counts 22 modules, and `.xv/picture.md:27` lists the `xv` CLI as a surface. Sean accepted this at the first shape stop (record line 80).
+- **Hint "an edge between modules was added": this stays inside the shape.** `decisions → xvlib` reaches the shared base (`.xv/picture.md:23`). `decisions → retro` is the reuse that amendment 1.2 asked for, and it was accepted at the second stop (record line 88).
+- **This pass stays inside the shape.** `record` owns the slice record (`.xv/picture.md:23`). The changes at `scripts/record.py:295-297` (which step the send-back check compares against), `:322-325` (the `settled` key on a `decisions` entry) and `:343-344` (a `## Settled` section in the decision file) all live inside `record` and add no module or edge.
 
 ## 2. Pitch
 
 pitch_contradiction: **no**. I read `.xv/pitch.md:7` ("to vibe with discipline"), `:17` ("executable and empirical, and so usable and shareable"), `:21` (who uses it) and `:25` (who it is not for).
 
-- Asking for `settled` only when work goes back keeps the scribe step where it carries the decision. That serves "discipline" (`.xv/pitch.md:7`) and serves no one new (`.xv/pitch.md:21`).
-- The README fix makes the documented command runnable, which serves "usable" (`.xv/pitch.md:17`).
+- Keeping `settled` in the decision record (`scripts/record.py:322-325`, `:343-344`) makes a decision readable later without the chat. That serves "shareable" (`.xv/pitch.md:17`).
+- This pass serves no one new and makes the system do nothing new against `.xv/pitch.md:21` or `:25`.
 
 ## 3. Moved tests
 
 | File | Before | After | Why (the maker's record) | Forced by the scenario? |
 | --- | --- | --- | --- | --- |
-| `tests/test_record.py:477` `test_an_answer_that_sends_work_back_needs_settled` (first move, already accepted at the third stop) | `--pick 1 --next scenario`, no `--settled` → refused | `--next scenario`, no pick → refused | Amendment 1 fills `settled` from the pick | **Yes**, record line 90 |
-| same test, second move (`tests/test_record.py:479`) | `next` at its default (`forecaster`), `--next scenario`, no `--settled` → refused | first `record set next guardian`, then the same answer → refused | Amendment 4: going from `forecaster` to `scenario` is forward, so the setup must make `scenario` a step back | **Yes.** Record line 100 makes the old case pass. The assertions are unchanged. |
-| `tests/test_record.py:649` `test_next_with_no_pick_and_no_settled_is_still_refused` | `next` at its default, `--next maker`, no `--settled` → refused | first `record set next maker`, then the same answer → refused | Amendment 4: `maker` must be the step that stopped | **Yes.** Record line 100. The assertions are unchanged. |
+| `tests/test_record.py:477` `test_an_answer_that_sends_work_back_needs_settled`, move 1 (accepted at the third stop) | `--pick 1 --next scenario`, no `--settled`: refused | `--next scenario`, no pick: refused | Amendment 2.1: the pick fills `settled` | **Yes** (record line 90) |
+| Same test, move 2 (`:479`, accepted at the fourth stop) | `next` at its default, `--next scenario`: refused | `record set next guardian` first, then the same answer: refused | Amendment 4.1: `forecaster → scenario` is a forward move | **Yes** (record line 100). The assertions are unchanged. |
+| `tests/test_record.py:649` `test_next_with_no_pick_and_no_settled_is_still_refused` (accepted at the fourth stop) | `next` at its default, `--next maker`: refused | `record set next maker` first: refused | Amendment 4.1 | **Yes** (record line 100). The assertions are unchanged. |
 
-- **`xv wall diff`** (baseline `1ab21d4`): only `tests/test_record.py` changed, with 134 assertions before and 134 after. `fewer_assertions` is empty, and nothing was deleted or added. Neither test asserts less. Each keeps its refusal under a setup where the amended rule still refuses.
-- **Overlap.** The two moved tests now assert the same thing as `test_next_to_an_earlier_step_needs_settled` and `test_next_to_the_step_that_stopped_needs_settled` (`tests/test_record.py:706-717`).
-- **Duplicates in the record.** `moved_tests` lists each move twice (`.xv/slices/2026-10-29-stop-decisions.md:15`: 19:41:33/19:44:47 and 20:20:04/20:21:47). The log has one line for each (lines 137, 145, 146). That makes 3 moves on 2 tests, not 6.
-- **Style.** The two moved lines write `p =self.xv` with a missing space (`tests/test_record.py:480`, `:651`). The cleaner did not review the test hunks (record line 148).
+- **This pass.** `xv wall diff` (baseline `a2c1dfb`) shows nothing changed, deleted or added, and `fewer_assertions` is empty. `tests/test_record.py` grew from 134 to 148 assertions in `.xv/slices/2026-10-29-stop-decisions.wall.json`, all of them in the new `FifthAmendmentTest`.
+- **Duplicates in the record.** `moved_tests` (`.xv/slices/2026-10-29-stop-decisions.md:15`) lists each move twice. There are 3 moves on 2 tests, not 6.
 
 Slice-only tests removed: none (`slice_only: []`). Kept: none.
 
 ## 4. The picture
 
-These are proposed edits for Sean. I do not write to the picture. The ones carried from earlier packets are updated for amendment 4.
+These are proposed edits for Sean to accept. I do not write to the picture.
 
-- **`.xv/picture.md:21`.** Change it to 23 modules, `scripts/*.py` (20), and 58 edges: two added, none removed, per the boundary picture.
-- **`.xv/picture.md:23`.** Add: "`decisions` reads every slice record through `retro.records()` and counts answered stops per order: picks equal to the recommendation, `new_info: none`, and causes."
-- **`.xv/picture.md:26`.** The last sentence keeps `next` on `scenario` only for an unsafely joined red. Generalize it:
+- **`.xv/picture.md:21`.** Change it to 23 modules, with `scripts/*.py` at 20, and 58 edges. The boundary picture shows two edges added and none removed.
+- **`.xv/picture.md:23`.** Add this sentence: "`decisions` reads every slice record through `retro.records()` and counts answered stops per order: picks equal to the recommendation, `new_info: none`, and causes."
+- **`.xv/picture.md:26`.** Its last sentence keeps `next` on `scenario` only when a red command is joined unsafely. Widen it to say three things:
   - Any step that stops, other than at `ready_to_merge`, keeps `next` on itself (`scripts/run.py:392-393`).
-  - A `--resume` answer must name `--next` (`scripts/record.py:283`).
-  - It must carry `settled` when `--next` is the record's `next` or earlier, or when the pick is `other` (`scripts/record.py:295-297`).
+  - A `--resume` answer must name `--next` (`scripts/record.py:284`).
+  - The answer must carry `settled` when `--next` is the stop's saved `step` or an earlier one, or when the pick is `other` (`scripts/record.py:295-300`). A decision file and its `decisions` entry keep `settled` with the words (`scripts/record.py:322-325`, `:343-344`).
 - **`.xv/picture.md:31`.** Add that someone other than `set_by` may answer an `originator` stop (#62).
-- **Names (`.xv/picture.md:30-39`).** Add: "`settled` is what an answer made true, written by the watch as the person's scribe. The raw words stay in `answer`. An offer is the numbered options put on an open stop."
+- **Names, `.xv/picture.md:30-39`.** Add: "`settled` is what an answer made true, written by the watch as the person's scribe; the raw words stay in `answer`. An offer is the numbered options put on an open stop."
 
-## For the originator (do not stop the change)
+## For the originator (none of these stops the change)
 
-- **(a) The decision record still keeps only the raw words.**
-  - `scripts/record.py:318-321` writes `a.answer` into `.xv/decisions/*.md` and into the record's `decisions` list, not `settled`. That holds even when `settled` was given.
-  - `.xv/decisions/2026-10-29-2026-10-29-stop-decisions-3.md` reads only "1". Its heading says "Write down what you weighed; the decision record keeps it", and the record does not keep what was weighed.
-  - The scenario is silent on the decision file, so this is outside the slice. It is the gap the slice title names, in the one place that "binds later agents" (`scripts/record.py:331`).
-- **(b) "The step that stopped" is read from the record's `next`, not from the stop.**
-  - `scripts/record.py:295-296` compares `--next` with `data["next"]`, not with the stop's `step`. For stops raised by `xv step` the two agree (`scripts/run.py:392-393`).
-  - A stop the watch raises by hand with `xv record stop` has no step, and `next` there is the step that has not run yet. So `--next <that step>`, which moves the slice forward, still needs `--settled`.
-  - `--next prototype` is not in `STEPS`, so it always needs `--settled`.
-  - Both cases err toward asking for more.
-- **(c) The general README line does not mention `--settled`.**
-  - `README.md:295` shows `… --answer "<their words>" --next <step> --resume`. For a back step, `scripts/record.py:297` refuses it with exit 2.
-  - The new README test runs only the `2026-10-22-expiring-today` lines (`tests/test_record.py:719-722`), so line 295 is not exercised.
-  - The `CHANGELOG.md:7` line names the `--resume`/`--next` rule (amendment 2.3). It does not name the new rule for when `--settled` is required, which is a brief change (`.xv/picture.md:60`).
+- **(a) Stops whose saved step is not a pipeline step now always need `--settled`.** The forward test at `scripts/record.py:297` needs `stopped_at in STEPS`. Some stops save a step outside `STEPS`:
+  - `"setup"` (`scripts/run.py:263`, `setup_failed`).
+  - `"prototype"` (`scripts/prototypes.py:86`, `:96`, `:197`).
+
+  For these stops, every `--next` other than `close` counts as a send-back. Separately, a budget stop saves the step that was about to run (`scripts/run.py:342`). So "raise the budget and go on" (`--next <that step>`) counts as the same step and needs `--settled`. That was also true before amendment 5, when `next` equalled that step. Both cases ask for more, not less.
+- **(b) The tests fake the saved step.** `xv record stop` cannot save a `step`. The test helper `stop_saved_at` (`tests/test_record.py:760-770`) therefore rewrites the record text to inject one. The case of a stop that has a step is covered only through that edit and through `xv step`.
+- **(c) `README.md:295` is checked for wording, not run.** `tests/test_record.py:805-811` matches words in the line. Run as written, the line has no `--settled`, so it is refused for a back step (`scripts/record.py:298`). The line now says so.
+- **(d) Carried from the earlier passes.**
+  - The cleaner's shape proposal: `cmd_answer` is 68 lines (`scripts/record.py:265-331`).
+  - A missing space in `p =self.xv` (`tests/test_record.py:480`, `:651`).
 
 ## Door
 
-**Door:** two-way. A revert undoes the code, the two briefs, the README and the CHANGELOG line. Extra keys on stops written in the meantime are ignored by older code. **Blast radius:** adopters. Every adopting repo runs the watch and scenario briefs (`.xv/picture.md:27`), and every resumed answer there now needs `--next`, plus `settled` when it sends work back.
+**Door:** two-way. A revert undoes the code, the two briefs, the README and the CHANGELOG line. Stops and decision entries written in the meantime keep extra keys (`settled`, `pick`, …) and a `## Settled` section, which older code ignores. **Blast radius:** adopters. Every adopting repo runs the watch and scenario briefs (`.xv/picture.md:27`). In those repos, every resumed answer now needs `--next`, plus `--settled` when it sends work back.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-10-29-stop-decisions.md`
-- Diff: `git diff 5d061c1f1a5a5b18b5fe7a3b8c5ad50e8bcc436d..0df4f76`. Since the last packet: `git diff 1ab21d4..0df4f76`.
-- Wall: `xv wall diff 2026-10-29-stop-decisions` (baseline `1ab21d4`)
+- Diff: `git diff 5d061c1f1a5a5b18b5fe7a3b8c5ad50e8bcc436d..04cbb5e`. Since the last packet: `git diff a2c1dfb..04cbb5e`.
+- Wall: `xv wall diff 2026-10-29-stop-decisions` (baseline `a2c1dfb`)
 - Boundary: `.xv/slices/2026-10-29-stop-decisions.boundary.md`
-- Shape decisions: `.xv/decisions/2026-10-29-2026-10-29-stop-decisions.md`, `…-2.md`, `…-3.md`
+- Shape decisions: `.xv/decisions/2026-10-29-2026-10-29-stop-decisions.md`, `…-2.md`, `…-3.md`, `…-4.md`
 
 ## From the cleaner
 
 - Shape proposal, for people: cmd_answer in scripts/record.py has grown long; pulling the pick/settled resolution into a helper would be a new concept, so it is left for the packet
+- Shape proposal, for people: cmd_answer in scripts/record.py has grown long; pulling the pick/settled/send-back resolution into a helper would be a new concept, so it is left for the packet
