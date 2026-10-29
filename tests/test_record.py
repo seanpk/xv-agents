@@ -541,3 +541,86 @@ class DecisionsReportTest(RepoCase):
         self.assertIn("scenario_stopped", past)
         future = self.xv("decisions", "--since", "2999-01-01", cwd=wt).stdout
         self.assertNotIn("scenario_stopped", future)
+
+
+class ResumeNeedsNextTest(RepoCase):
+    def setUp(self):
+        super().setUp()
+        self.wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+                "--question", "Which line?", cwd=self.wt)
+
+    def test_an_answer_with_resume_and_no_next_is_refused(self):
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go on", "--resume",
+                    cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--next", p.stderr)
+        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+        self.assertIsNone(data["stops"][-1].get("answer"))
+
+    def test_an_answer_with_resume_and_next_is_accepted_and_sets_next(self):
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go on", "--resume",
+                "--next", "scenario", "--settled", "Carry on from the scenario.", cwd=self.wt)
+        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+        self.assertEqual((data["status"], data["next"]), ("working", "scenario"))
+
+    def test_the_watch_brief_says_an_answer_with_resume_needs_next(self):
+        text = open(os.path.join(HOME, "skills", "watch", "SKILL.md")).read()
+        self.assertRegex(text, r"(?is)--resume.{0,400}(refuses|needs|requires).{0,80}--next"
+                               r"|--next.{0,400}(refuses|needs|requires)")
+
+
+class DecisionsAmendedTest(RepoCase):
+    def answered(self, wt, order, recommend, pick):
+        self.xv("record", "stop", "s1", "--order", order, "--seat", "originator", "--question", "Q?", cwd=wt)
+        self.xv("record", "offer", "s1", "--option", "A", "--settles", "a", "--option", "B", "--settles", "b",
+                "--recommend", recommend, cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "x", "--pick", pick,
+                "--new-info", "none", "--cause", "decision", cwd=wt)
+
+    def line(self, wt, order):
+        out = self.xv("decisions", cwd=wt).stdout
+        lines = [ln for ln in out.splitlines() if order in ln]
+        self.assertEqual(len(lines), 1, out)
+        return lines[0]
+
+    def test_a_pick_is_taken_only_when_it_equals_the_recommendation(self):
+        wt = self.new_slice("s1")
+        self.answered(wt, "agrees", "1", "1")
+        self.answered(wt, "against", "1", "2")
+        self.assertRegex(self.line(wt, "agrees"), r"taken\D*1")
+        self.assertRegex(self.line(wt, "against"), r"taken\D*0")
+
+    def test_a_pick_with_no_recommendation_is_not_taken(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "unsure", "--seat", "originator", "--question", "Q?", cwd=wt)
+        self.xv("record", "offer", "s1", "--option", "A", "--settles", "a", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "x", "--pick", "1", cwd=wt)
+        self.assertRegex(self.line(wt, "unsure"), r"taken\D*0")
+
+    def stopped_doc(self, wt, name, with_id=True, broken=False):
+        order = name.replace(".md", "")
+        head = "id: %s\n" % order if with_id else ""
+        stop = {"order": order, "seat": "originator", "answer": "x", "pick": 1, "recommended": 1,
+                "settled": "s", "at": "2026-10-29T10:00:00+00:00"}
+        body = ("this is not front matter\n" if broken else head + "stops: %s\n" % json.dumps([stop]))
+        with open(os.path.join(wt, ".xv", "slices", name), "w") as f:
+            f.write("---\n" + body + "---\n# t\n")
+
+    def test_it_skips_the_files_xv_retro_skips(self):
+        wt = self.new_slice("s1")
+        self.answered(wt, "real_order", "1", "1")
+        self.stopped_doc(wt, "packet-ghost.md")
+        self.stopped_doc(wt, "noid.md", with_id=False)
+        out = self.xv("decisions", cwd=wt).stdout
+        self.assertIn("real_order", out)
+        self.assertNotIn("packet-ghost", out)
+        self.assertNotIn("noid", out)
+
+    def test_a_record_it_cannot_read_does_not_stop_the_report(self):
+        wt = self.new_slice("s1")
+        self.answered(wt, "real_order", "1", "1")
+        self.stopped_doc(wt, "broken.md", broken=True)
+        p = self.xv("decisions", cwd=wt, check=False)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("real_order", p.stdout)
