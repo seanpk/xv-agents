@@ -295,9 +295,12 @@ def cmd_answer(a):
         else:
             raise XVError("--pick is the number of an offered option, or other")
     stopped_at = stop.get("step") or data["next"]
-    # a stop raised before its work started has nothing to send back
-    not_started = (stop["order"] == "setup_failed" or stop.get("step") == "prototype"
-                   or (stop["order"] == "budget_spent" and a.next == stop.get("step")))
+    # a stop raised before its work started has nothing to send back; the watch's
+    # pre-step budget stop is the one budget_spent stop saved without budget_seen
+    not_started = ((stop["order"] == "setup_failed" and stop.get("step") == "setup")
+                   or (stop.get("step") == "prototype" and stop["order"] != "prototypes_ready")
+                   or (stop["order"] == "budget_spent" and "budget_seen" not in stop
+                       and a.next == stop.get("step")))
     sends_back = bool(a.next) and a.next != "close" and not not_started and not (
         a.next in STEPS and stopped_at in STEPS and STEPS.index(a.next) > STEPS.index(stopped_at))
     if (pick == "other" and not a.settled) or (sends_back and not settled):
