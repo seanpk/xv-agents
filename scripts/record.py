@@ -220,6 +220,8 @@ def cmd_stop(a):
     data["stops"].append({"at": now(), "order": a.order, "seat": a.seat,
                           "question": a.question, "answered_by": [], "answer": None,
                           "budget_seen": data.get("budget")})
+    if a.step:
+        data["stops"][-1]["step"] = a.step
     data["status"] = "stopped"
     body = log_line(body, "watch", f"stop ({a.order}) for {a.seat}: {a.question}")
     save(path, data, body)
@@ -293,7 +295,10 @@ def cmd_answer(a):
         else:
             raise XVError("--pick is the number of an offered option, or other")
     stopped_at = stop.get("step") or data["next"]
-    sends_back = bool(a.next) and a.next != "close" and not (
+    # a stop raised before its work started has nothing to send back
+    not_started = (stop["order"] == "setup_failed" or stop.get("step") == "prototype"
+                   or (stop["order"] == "budget_spent" and a.next == stop.get("step")))
+    sends_back = bool(a.next) and a.next != "close" and not not_started and not (
         a.next in STEPS and stopped_at in STEPS and STEPS.index(a.next) > STEPS.index(stopped_at))
     if (pick == "other" and not a.settled) or (sends_back and not settled):
         raise XVError("--settled is required when the answer sends work back or the pick is other: "
@@ -626,6 +631,7 @@ def main(argv=None):
     s.add_argument("--order", required=True)
     s.add_argument("--seat", required=True)
     s.add_argument("--question", required=True)
+    s.add_argument("--step", help="the step the stop was raised at")
     s.set_defaults(fn=cmd_stop)
 
     s = sub.add_parser("offer", help="put the choices to the person on the open stop")
