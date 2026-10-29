@@ -393,7 +393,8 @@ def step(agent, slice_id, review_again=False):
             data["next"] = agent  # a step that stopped is not done: a later step must not start on missing work
         data["stops"].append({"at": now(), "step": agent, "order": st["order"], "seat": st["seat"],
                               "question": st["question"], "answered_by": [], "answer": None,
-                              "also": [f["order"] for f in v["fired"] if f is not st]})
+                              "also": [f["order"] for f in v["fired"] if f is not st],
+                              "budget_seen": data.get("budget")})
         data["status"] = "ready" if st["order"] == "ready_to_merge" else "stopped"
         body = record.log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
         record.save(path, data, body)

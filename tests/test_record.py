@@ -476,7 +476,7 @@ class OfferAndAnswerTest(RepoCase):
 
     def test_an_answer_that_sends_work_back_needs_settled(self):
         self.offer()
-        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "redo it", "--pick", "1",
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "redo it",
                     "--next", "scenario", cwd=self.wt, check=False)
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--settled", p.stderr)

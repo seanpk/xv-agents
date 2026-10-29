@@ -292,7 +292,7 @@ def cmd_answer(a):
             settled = settled or options[pick - 1]["settles"]
         else:
             raise XVError("--pick is the number of an offered option, or other")
-    if (pick == "other" or a.next) and not a.settled:
+    if (pick == "other" and not a.settled) or (a.next and not settled):
         raise XVError("--settled is required when the answer sends work back or the pick is other: "
                       "say what is now true, so the next agent can act without the chat")
     stop["answered_by"], stop["answer"], stop["answered_at"] = who, a.answer, now()
@@ -305,8 +305,10 @@ def cmd_answer(a):
     had_seen = "budget_seen" in stop
     seen = stop.pop("budget_seen", None)
     if had_seen and seen != data.get("budget"):
-        stop["budget_change"] = {"from": seen, "to": data.get("budget")}
-    scribed = bool(settled or a.new_info or a.cause)
+        amounts = lambda b: b and {k: b[k] for k in ("tokens", "usd", "turns") if k in b}
+        stop["budget_change"] = {"from": amounts(seen), "to": amounts(data.get("budget"))}
+    scribed = [name for name, value in (("settled", settled), ("new_info", a.new_info),
+                                        ("cause", a.cause)) if value]
     data["status"] = "working" if a.resume else data["status"]
     if a.next:
         data["next"] = a.next
@@ -318,7 +320,7 @@ def cmd_answer(a):
                                   "record": rec})
     body = log_line(body, ",".join(who), f"answered {stop['order']}: {a.answer}")
     if scribed:
-        body = log_line(body, "watch", f"scribe: wrote settled, new_info and cause for {stop['order']} "
+        body = log_line(body, "watch", f"scribe: wrote {', '.join(scribed)} for {stop['order']} "
                                        f"as the scribe of {','.join(who)}")
     save(path, data, body)
 
