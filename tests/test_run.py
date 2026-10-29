@@ -276,6 +276,17 @@ class WatchLoopTest(RepoCase):
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "no_report")
         self.assertEqual(self.record()["next"], "scenario")
 
+    def test_a_stop_raised_by_a_step_keeps_the_budget_it_was_raised_under(self):
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        os.environ["FAKE_NO_REPORT"] = "1"
+        try:
+            self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        finally:
+            del os.environ["FAKE_NO_REPORT"]
+        self.xv("record", "set", "s1", "budget", '{"usd": 777}', "--by", "pat", cwd=self.wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go on", cwd=self.wt)
+        self.assertEqual(self.record()["stops"][-1]["budget_change"]["to"], {"usd": 777})
+
 
 class RedFailsAfterTheMakerTest(RepoCase):
     """After the maker, the red must fail on the code from before the maker, not at HEAD."""
