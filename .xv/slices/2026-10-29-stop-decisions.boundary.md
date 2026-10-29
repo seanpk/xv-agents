@@ -16,7 +16,7 @@ From `5d061c1f1a5a` to the working tree. Source: xv boundary (ast and regex). Ge
 
 ## Edges
 
-- added: scripts/decisions → scripts/xvlib
+- added: scripts/decisions → scripts/retro, scripts/decisions → scripts/xvlib
 - removed: none
 
 ```mermaid
@@ -59,6 +59,7 @@ flowchart LR
   m5 --> m22
   m6 --> m8
   m6 --> m22
+  m7 ==> m18
   m7 ==> m22
   m8 --> m22
   m9 --> m4
@@ -129,6 +130,10 @@ flowchart LR
  ],
  "modules_removed": [],
  "edges_added": [
+  [
+   "scripts/decisions",
+   "scripts/retro"
+  ],
   [
    "scripts/decisions",
    "scripts/xvlib"
@@ -230,6 +235,10 @@ flowchart LR
    [
     "scripts/check",
     "scripts/xvlib"
+   ],
+   [
+    "scripts/decisions",
+    "scripts/retro"
    ],
    [
     "scripts/decisions",
