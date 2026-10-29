@@ -624,3 +624,49 @@ class DecisionsAmendedTest(RepoCase):
         p = self.xv("decisions", cwd=wt, check=False)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertIn("real_order", p.stdout)
+
+
+class AnswerAmendmentsTest(RepoCase):
+    def setUp(self):
+        super().setUp()
+        self.wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+                "--question", "Which line?", cwd=self.wt)
+        self.xv("record", "offer", "s1", "--option", "Use the setting", "--settles", "It is a setting.",
+                "--recommend", "1", cwd=self.wt)
+
+    def log(self):
+        return open(os.path.join(self.wt, ".xv", "slices", "s1.md")).read()
+
+    def test_a_pick_fills_settled_before_next_checks_for_it(self):
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1", "--pick", "1",
+                "--next", "maker", "--resume", cwd=self.wt)
+        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+        self.assertEqual(data["stops"][-1]["settled"], "It is a setting.")
+        self.assertEqual((data["status"], data["next"]), ("working", "maker"))
+
+    def test_next_with_no_pick_and_no_settled_is_still_refused(self):
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--next", "maker",
+                    cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settled", p.stderr)
+
+    def test_the_readme_answer_examples_with_resume_give_next(self):
+        lines = [ln for ln in open(os.path.join(HOME, "README.md")).read().splitlines()
+                 if "xv record answer" in ln and "--resume" in ln]
+        self.assertTrue(lines)
+        for ln in lines:
+            self.assertIn("--next", ln)
+
+    def test_the_changelog_names_the_rule_that_resume_needs_next(self):
+        text = open(os.path.join(HOME, "CHANGELOG.md")).read()
+        self.assertRegex(text, r"(?i)--resume[^\n]{0,80}(needs|requires|refuses)[^\n]{0,40}--next")
+
+    def test_the_log_line_names_only_the_scribe_fields_written(self):
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "x", "--pick", "other",
+                "--settled", "Something else is true.", cwd=self.wt)
+        line = [ln for ln in self.log().splitlines() if "scribe" in ln]
+        self.assertEqual(len(line), 1, self.log())
+        self.assertIn("settled", line[0])
+        self.assertNotIn("new_info", line[0])
+        self.assertNotIn("cause", line[0])
