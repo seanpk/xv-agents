@@ -747,3 +747,65 @@ class FourthAmendmentTest(RepoCase):
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1", "--pick", "1", cwd=self.wt)
         change = self.show()["stops"][-1].get("budget_change")
         self.assertEqual((change["from"]["usd"], change["to"]["usd"]), (2, 4))
+
+
+class FifthAmendmentTest(RepoCase):
+    def setUp(self):
+        super().setUp()
+        self.wt = self.new_slice("s1")
+
+    def show(self):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+
+    def stop_saved_at(self, step, next_step):
+        """A stop that saved `step`, as xv step writes it, while the record's next is `next_step`."""
+        self.xv("record", "stop", "s1", "--order", "some_order", "--seat", "originator",
+                "--question", "Q?", cwd=self.wt)
+        path = os.path.join(self.wt, ".xv", "slices", "s1.md")
+        text = open(path).read()
+        self.assertIn('{"at":', text)
+        with open(path, "w") as f:
+            f.write(text.replace('{"at":', '{"step": "%s", "at":' % step, 1))
+        self.xv("record", "set", "s1", "next", next_step, "--by", "pat", cwd=self.wt)
+        self.assertEqual(self.show()["stops"][-1]["step"], step)
+
+    def answer(self, nxt):
+        return self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--next", nxt,
+                       "--resume", cwd=self.wt, check=False)
+
+    def test_going_back_is_judged_against_the_step_on_the_stop_not_the_records_next(self):
+        self.stop_saved_at("guardian", "scenario")
+        p = self.answer("maker")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settled", p.stderr)
+
+    def test_going_forward_is_judged_against_the_step_on_the_stop_not_the_records_next(self):
+        self.stop_saved_at("scenario", "guardian")
+        p = self.answer("maker")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(self.show()["next"], "maker")
+
+    def test_the_decision_record_and_the_decisions_list_keep_settled_and_the_words(self):
+        self.xv("record", "stop", "s1", "--order", "shape_or_pitch", "--seat", "two_people",
+                "--question", "Shape?", cwd=self.wt)
+        self.xv("record", "answer", "s1", "--by", "pat,sam", "--answer", "go with the new module",
+                "--pick", "other", "--settled", "The shape change is accepted: scripts/decisions is new.",
+                cwd=self.wt)
+        entry = self.show()["decisions"][0]
+        self.assertEqual(entry.get("settled"), "The shape change is accepted: scripts/decisions is new.")
+        text = open(os.path.join(self.wt, entry["record"])).read()
+        self.assertIn("The shape change is accepted: scripts/decisions is new.", text)
+        self.assertIn("go with the new module", text)
+
+    def test_the_changelog_names_when_settled_is_required(self):
+        text = open(os.path.join(HOME, "CHANGELOG.md")).read()
+        self.assertRegex(text, r"(?is)--settled[^\n]{0,200}(back|earlier)[^\n]{0,200}other"
+                               r"|(back|earlier)[^\n]{0,200}other[^\n]{0,200}--settled")
+
+    def test_the_readme_general_answer_line_says_when_settled_is_required(self):
+        lines = [ln for ln in open(os.path.join(HOME, "README.md")).read().splitlines()
+                 if ln.startswith("A person answers with `xv record answer")]
+        self.assertEqual(len(lines), 1)
+        self.assertRegex(lines[0], r"--settled")
+        self.assertRegex(lines[0], r"(?i)(back|earlier)")
+        self.assertRegex(lines[0], r"(?i)other")
