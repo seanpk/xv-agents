@@ -186,7 +186,7 @@ To try XV before your team commits to it, start with `xv init --trial`. It lists
 5. Answer the stop and go on:
 
    ```sh
-   xv record answer 2026-10-22-expiring-today --by sean --answer "merge" --next maker --resume
+   xv record answer 2026-10-22-expiring-today --by sean --answer "merge" --next close --resume
    xv run 2026-10-22-expiring-today
    ```
 
