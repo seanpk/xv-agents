@@ -11,52 +11,52 @@ blast_radius: narrow
 
 # Packet: A covers item may name more than one test
 
-Nothing here stops the change for two people. Sean, as the person who set the work going, decides three things: the picture edit (section 4), the CHANGELOG test's wall mark (section 5), and two gaps where the check lets through a covers name it should stop (just below).
+Nothing here stops the change for two people. Sean, as the person who set the work going, has three things to decide. The first is one gap where a covers name that names no test still goes on to the maker (just below). The second is the picture edit (section 4). The third is the CHANGELOG line, which does not yet describe the two amended behaviours (section 4).
 
-**Gaps worth a decision (not stops):**
+**A gap worth a decision (not a stop):**
 
-- **A list item that is not a string gets dropped, and the check passes.** `scripts/run.py:540-543`:
+- **A dotted or `::` name with nothing after the separator passes.** In `scripts/run.py:549-561`:
   ```
-  parts = test if isinstance(test, list) else ...
-  names = [p.strip() for p in parts if isinstance(p, str)]
-  return names if names and all(names) else []
+  where, _, test = name.rpartition("::")
+  ...
+  module, _, test = name.rpartition(".")
+  ...
+  whole = re.compile(r"(?<!\w)" + re.escape(test) + r"(?!\w)")
   ```
-  `"test": ["test_milk_today", 5]` (or `null`) reads as `["test_milk_today"]` and goes on to the maker. `"test": ["test_milk_today", ""]` stops. The binding rule says broken input stops: `.xv/picture.md:74` "A check whose input is broken or that cannot run stops for a person; it never passes." No red test covers a non-string item.
-- **A dotted name with a module in front matches on the class alone.** `scripts/run.py:551-553`:
-  ```
-  elif "." in name:
-      klass, _, test = name.rpartition(".")
-      klass = klass.rpartition(".")[2]
-  ```
-  `tests.test_store.Red.test_milk_today` goes on to the maker even though `test_store` is not a red file. The amendment says "A name with the right test under the wrong class or file does not match" (slice record, "Amended 2026-10-30"). This repo's own red command writes names in that dotted form (`test_run.WatchLoopTest`). The scenario only names `Class.test_name`, so this is a gap at the edge of the scenario, not a miss inside it.
+  For `tests/test_red.py::` or `Red.`, `test` is `""`. The pattern then becomes `(?<!\w)(?!\w)`, which matches between any two non-word characters, such as the `):` in `def test_milk_today(self):`. So `tests/test_red.py::` goes on whenever that file is a red file, and `Red.` goes on whenever `class Red` is in a red file. Neither one names a test. I found this by reading the code; I did not run it, and no test covers it. It goes against `.xv/picture.md:74` ("A check whose input is broken … stops for a person; it never passes"), and against scenario point 1: "Each name must match a whole test name in a red file." It is the same kind of gap Sean sent back at the last `accept_moves` stop (binding decision 12).
+- Edge, on the strict side (it stops, it does not pass): the pytest form `file::Class::test` splits at its last `::` (`scripts/run.py:550`). The file part then becomes `tests/x.py::Class`, which matches no red file, so the slice stops. The scenario names only `file::test_name`, so this is outside the scenario. It costs a stop on pytest repos.
 
 ## The scenario
 
-A covers item may name more than one test (#92). In the scenario report, a `covers` item's `test` may be one name or a list of names, and each name must match a whole test name in a red file. A string that joins names with `,` or `;` is read as that list. Sean's amendment: `Class.test_name` or `file::test_name` matches only when both parts do. The file must be a red file that has the test, and the class must be in a red file that also has the test. The brief's report example shows the list form, and `CHANGELOG.md` gets a line. May ignore: none.
+A covers item may name more than one test (#92). In the scenario report, a `covers` item's `test` may be one name or a list. A string that joins names with `,` or `;` is read as a list. Each name must match a whole test name in a red file.
+
+Amended (1): `Class.test_name` and `file::test_name` match only when both parts do. Amended (2), at the last guardian stop: a list item that is not a non-empty string stops before the maker (binding decision 12), and a dotted name with a module in front (`tests.test_store.Red.test_x`) matches only when the module is a red file that has the class and the test. The brief's example shows the list form, and `CHANGELOG.md` gets a line. May ignore: none.
 
 ## The recording
 
-None, because this is a feature. To replay: `cd tests && python3 -m unittest test_run.WatchLoopTest test_check.ScenarioBriefTest`. It failed at `c5380d7` (7 failures, slice record `checks.scenario.red_output`) and passes at HEAD `4d544a6`: I re-ran it, 59 tests, OK. The record shows the whole suite green after the maker and after the cleaner (576 tests).
+None, because this is a feature. To replay: `cd tests && python3 -m unittest test_check test_run`. The second-round red failed at `2e6dcc0`: 3 failures on the code then, per the record's scenario report. I re-ran it at HEAD `269f466`: 161 tests, OK. The record shows the whole suite green after the maker and after the cleaner (590 tests).
 
 ## The boundary picture
 
-From `.xv/slices/2026-10-30-covers-list.boundary.md`, as given: touched `scripts/run`. Modules added and removed: none. Edges added and removed: none. Outbound calls added: none. Tables: none. Surface paths: none. Shape hints: none.
+From `.xv/slices/2026-10-30-covers-list.boundary.md`, as given: one module touched, `scripts/run`. No modules, edges, outbound calls, tables or surface paths were added or removed, and there are no shape hints.
 
 ## What the suite asserts after
 
-- A covers `test` given as a list goes on to the maker when every name is a whole test name in a red file. It stops, naming the name, when one name is in no red file or is only part of a longer name. An empty list stops.
-- A string joined with `,` or `;` goes on to the maker when every name is found, and stops naming the missing one when one is not.
-- `Red.test_milk_today` goes on to the maker, and `Ghost.test_milk_today` stops. `tests/test_red.py::test_milk_today` goes on to the maker. `tests/test_store.py::…` (not a red file) stops, and so does `tests/test_red.py::test_cheese_ghost`.
-- The scenario brief's report example has a `"test": [ "…", "…" ]` list. `CHANGELOG.md`'s Unreleased section has a #92 line naming covers and Sean.
-- The old covers tests (`tests/test_run.py:267-299`) are unchanged, so the single-name, missing, empty and part-of-a-longer-name stops still hold.
+- A list of names goes on to the maker when every name is a whole test name in a red file. If one name is missing, or is only part of a longer name, the slice stops and the stop names it. An empty list stops.
+- A list holding a number, `null` or `""` stops (`tests/test_run.py:354-364`).
+- A string joined with `,` or `;` goes on to the maker when every name is found. When one is missing, it stops and names that name.
+- `Red.test_milk_today` and `tests/test_red.py::test_milk_today` go on to the maker. These stop: a wrong class, a file that is not a red file, and a red file that lacks the test.
+- `tests.test_red.Red.test_milk_today` goes on to the maker. These stop: a module that is not a red file, a red module with the wrong class, and a red module and class with a test the file lacks (`tests/test_run.py:366-379`).
+- The brief's example has a `"test": [..]` list. The CHANGELOG's Unreleased section has a #92 line that names covers and Sean.
+- The old covers tests (`tests/test_run.py:267-299`) are unchanged.
 
 ## 1. Shape
 
-shape_change: no. The boundary picture has no new module, edge, table, outbound call or surface, and no shape hints. The diff touches only `scripts/run.py` inside `unreadable_input` and `red_file_texts`, plus two new helpers in the same file (`scripts/run.py:527-560`). That is all inside the `run` module the picture already describes (`.xv/picture.md:26`, "`red_misses_scenario` stops … when the check cannot read its input"). `skills/scenario/SKILL.md:56,61` changes the text of an existing surface (`.xv/picture.md:28` lists `skills/*/SKILL.md`) but adds no surface. shape_breadth is narrow, the same as the forecast ("narrow": the brief, one check, and a CHANGELOG line).
+shape_change: no. The boundary picture has no new module, edge, table, outbound call or surface, and no shape hints. The diff adds two helpers inside `run.py`: `covers_names` and `covers_name_found` (`scripts/run.py:538-563`). It also changes `red_file_texts` to return a dict keyed by path, and its one other caller, `scenario_red_gaps`, is updated (`scripts/run.py:574`). That is all inside the check the picture already places in `run` (`.xv/picture.md:26`). `skills/scenario/SKILL.md:56,61` edits an existing surface (`.xv/picture.md:27`) and adds none. shape_breadth is narrow, as forecast ("narrow").
 
 ## 2. Pitch
 
-pitch_contradiction: no. I read `.xv/pitch.md:25` "xv-agents is not for people or projects that will not trust agents to write production code. It will never be a teapot." The change lets the scenario agent name several tests per item and serves the same users (`.xv/pitch.md:21`). No promise is broken.
+pitch_contradiction: no. I read `.xv/pitch.md:25`: "xv-agents is not for people or projects that will not trust agents to write production code." The change serves the same users (`.xv/pitch.md:21`) and breaks no promise in the pitch.
 
 ## 3. Moved tests
 
@@ -64,28 +64,29 @@ pitch_contradiction: no. I read `.xv/pitch.md:25` "xv-agents is not for people o
 | --- | --- | --- | --- | --- |
 | none | | | | |
 
-`xv wall diff 2026-10-30-covers-list` shows no files changed, deleted or added, and no tests with fewer assertions. The record's `moved_tests` is `[]`. The diff to `tests/` only adds lines (`tests/test_run.py:301-352`, `tests/test_check.py:57-68`).
+`xv wall diff 2026-10-30-covers-list` reports nothing changed, deleted or added, and no test with fewer assertions. The record's `moved_tests` is `[]`. Every hunk under `tests/` only adds lines (`tests/test_run.py:301-380`, `tests/test_check.py:57-68`).
 
-Slice-only tests removed: none. Kept: none (the record's `slice_only` is `[]`).
+Slice-only tests removed: none. Kept: `tests/test_check.py` `test_the_changelog_has_a_line_for_a_covers_item_naming_more_than_one_test`. It stays in the suite but off the wall. It guards this slice's CHANGELOG line until the release, and Sean accepted the mark at `accept_moves`.
 
 ## 4. The picture
 
-`.xv/picture.md:26` now understates the check. It says "`covers` empty or with an item that names no test, or a `covers` test that matches no whole word in any red file." Proposed edit: "`covers` empty or with an item that names no test, or a `covers` name that matches no whole test name in any red file. A `covers` test may be one name, a list, or a string joined with `,` or `;`. `Class.test` and `file::test` match only when the class is in, or the file is, a red file that has the test, and the stop names the name that does not match."
+- `.xv/picture.md:26` says "`covers` empty or with an item that names no test, or a `covers` test that matches no whole word in any red file." That is now incomplete. Proposed edit: "`covers` empty, or with an item whose `test` is not one name, a list of non-empty names, or a string joined with `,` or `;`, or a `covers` name that matches no whole test name in any red file. `Class.test`, `module.Class.test` and `file::test` match only when the file or module is a red file and the class is in a red file that has the test. The stop names the name that does not match."
+- Not the picture, but the same evidence. `CHANGELOG.md:7` describes round one only. It says nothing about a non-string list item stopping or about a module prefix. `skills/scenario/SKILL.md:61` doesn't mention the `module.Class.test` form either, though the brief's own red command example uses dotted modules (`tests.test_expiring`, `skills/scenario/SKILL.md:54`). `.xv/picture.md:63` asks for a CHANGELOG line for a change to a check. The line exists, but it is behind the code.
 
 ## 5. The wall
 
-- `tests/test_check.py`, `test_the_changelog_has_a_line_for_a_covers_item_naming_more_than_one_test`: recommend marking it slice-only, so it stays off the wall. It reads only `## Unreleased` (`tests/test_check.py:65` `unreleased = text.split("## Unreleased", 1)[1]…`) and guards a one-time CHANGELOG line, so it breaks when the release renames the section. Sean saw this option at the `red_misses_scenario` stop ("Send it back to mark the CHANGELOG test slice-only") and picked "go on". That pick moved the slice forward and did not settle the mark. Note that `tests/test_by_name.py:60` and `tests/test_slice_skill_readback.py:33` follow the same pattern and are on the wall.
+- `tests/test_check.py`, `test_the_changelog_has_a_line_for_a_covers_item_naming_more_than_one_test`: stay off the wall. It reads only `## Unreleased` (`tests/test_check.py:65`) and guards a one-time CHANGELOG line, so it breaks at the release. Sean accepted this mark (`accepted_wall` in the record).
 
-I also looked at the twelve new tests in `tests/test_run.py:309-352` and the brief-example test at `tests/test_check.py:57-60`. Each guards a lasting behaviour, so I make no recommendation for them. No test on the wall before the slice is made dead: the old covers tests at `tests/test_run.py:267-299` still describe the single-name case.
+I also looked at the 19 new tests in `tests/test_run.py:309-379` and the brief-example test at `tests/test_check.py:57-60`. Each one guards behaviour that lasts, so I make no recommendation for them. No test that was on the wall before the slice is made dead.
 
 ## Door
 
-**Door:** two-way. A revert restores the single-name check and the old brief example. No data, record format or public contract changes in a way old records can't read (a single string still works). **Blast radius:** narrow.
+**Door:** two-way. A revert restores the single-name check and the old brief example. A single string name still works, so old records still read. **Blast radius:** narrow.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-10-30-covers-list.md`
-- Diff: `git diff f9c5cb172de9480a62d1620c2a7e623ee4b0b5c5..4d544a6`
+- Diff: `git diff f9c5cb172de9480a62d1620c2a7e623ee4b0b5c5..269f466`. This round only: `git diff 2e6dcc0..269f466`.
 - Wall: `xv wall diff 2026-10-30-covers-list`
 - Boundary: `xv boundary --base f9c5cb172de9480a62d1620c2a7e623ee4b0b5c5` (`.xv/slices/2026-10-30-covers-list.boundary.md`)
-- The record says the cleaner did not commit (`checks.cleaner.committed: false`, `cleaner_commit: null`), but its `covers_name_found` fix is in `4d544a6` "record the cleaner's pass" (`git show 4d544a6 -- scripts/run.py`).
+- The record says the cleaner did not commit (`checks.cleaner.committed: false`). Its `red_file_texts` change is in fact in `269f466`, "record the cleaner's pass" (`git show 269f466 -- scripts/run.py`).
