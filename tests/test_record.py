@@ -1111,6 +1111,41 @@ class AcceptWallFlagTest(RepoCase):
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B 2", cwd=wt)
         self.assertIs(self.recs(wt)["test_drop_me"]["accepted"], False)
 
+    def accepted_both_then_second_stop(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                "--accept-wall", "test_keep_me", "--accept-wall", "test_drop_me", cwd=wt)
+        self.second_accept_moves(wt)
+        return wt
+
+    def test_refuse_wall_refuses_a_recommendation_an_earlier_stop_accepted(self):
+        wt = self.accepted_both_then_second_stop()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                "--refuse-wall", "test_drop_me", cwd=wt)
+        recs = self.recs(wt)
+        self.assertIs(recs["test_drop_me"]["accepted"], False)
+        self.assertIs(recs["test_drop_me"].get("refused"), True)
+
+    def test_refuse_wall_leaves_the_other_accepted_recommendations_accepted(self):
+        wt = self.accepted_both_then_second_stop()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                "--refuse-wall", "test_drop_me", cwd=wt)
+        recs = self.recs(wt)
+        self.assertIs(recs["test_keep_me"]["accepted"], True)
+        self.assertFalse(recs["test_keep_me"].get("refused"))
+
+    def test_refuse_wall_can_be_given_once_per_test(self):
+        wt = self.accepted_both_then_second_stop()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                "--refuse-wall", "test_keep_me", "--refuse-wall", "test_drop_me", cwd=wt)
+        self.assertEqual([r["accepted"] for r in self.recs(wt).values()], [False, False])
+
+    def test_the_words_never_refuse_an_earlier_accepted_test(self):
+        wt = self.accepted_both_then_second_stop()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer",
+                "refuse test_keep_me and test_drop_me", cwd=wt)
+        self.assertEqual([r["accepted"] for r in self.recs(wt).values()], [True, True])
+
     def test_a_scenario_rerun_keeps_the_marks_already_in_the_record(self):
         wt = self.new_slice("s1")
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
