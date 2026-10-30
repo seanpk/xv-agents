@@ -75,6 +75,8 @@ They are scripts (`xv orders <id>`), not this text. You do not interpret them, r
 | `shape_change: yes` or `pitch_contradiction: yes` in the packet (`shape_change: accepted` does not stop) | two people |
 | A budget raised past the team's limit, or a shape change wider than forecast | two people |
 | Prototypes ready to pick from | two people |
+| The packet says `scenario_miss: yes` (a scenario line or a binding decision missed), and no shape or pitch stop fires | no one: the watch sends the slice back to the maker, or to the scenario agent when the red does not cover the line, and records the send-back with the misses. The same miss on the next pass, a miss marked `amend: yes`, or a spent budget stops for the person who set the work going |
+| After the scenario step, a numbered point of the scenario or an amendment is in neither `covers` nor `not_covered` | no one: the watch sends the slice back to the scenario agent and records it; the same point on the next pass stops for the person who set the work going |
 | The suite is green and nothing stopped | the person who set the work going: the merge is theirs |
 | The packet from production | the chief engineer; it does not wait |
 
