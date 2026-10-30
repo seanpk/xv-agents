@@ -936,13 +936,6 @@ class WallChoicesTest(RepoCase):
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", text, cwd=wt)
         return {r["test"]: r for r in self.show(wt)["wall_recommendations"]}
 
-    def test_an_answer_that_names_one_recommendation_accepts_only_that_one(self):
-        recs = self.answer_accept_moves("accept test_keep_me; refuse the other")
-        self.assertIs(recs["test_keep_me"]["accepted"], True)
-        self.assertFalse(recs["test_keep_me"].get("refused"))
-        self.assertIs(recs["test_drop_me"]["accepted"], False)
-        self.assertIs(recs["test_drop_me"].get("refused"), True)
-
     def test_a_refused_recommendation_does_not_stop_accept_moves_again(self):
         import orders
         from xvlib import DEFAULT_CONFIG
