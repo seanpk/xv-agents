@@ -38,6 +38,14 @@ class ByNameTest(RepoCase):
             self.assertIn("settled", line)
             self.assertNotIn("--by scenario", line)
 
+    def test_the_scenario_may_not_list_forbids_recording_a_move_itself(self):
+        out = self.brief("scenario")
+        section = out.split("## May not", 1)[1].split("\n## ", 1)[0]
+        bullets = [l for l in section.splitlines() if l.startswith("- ")]
+        self.assertTrue(any(re.search(r"\b(never|not)\b", b, re.I)
+                            and re.search(r"record(s|ing)? (a|the) move itself", b)
+                            for b in bullets), bullets)
+
     def test_the_scenario_brief_numbers_its_steps_in_order(self):
         out = self.brief("scenario")
         start = out.index("## Make it red")
