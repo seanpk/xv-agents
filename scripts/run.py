@@ -523,6 +523,11 @@ def unreadable_input(root, data, report):
     if not isinstance(covers, list) or not covers or not all(
             isinstance(c, dict) and c.get("item") and c.get("test") for c in covers):
         out.append("The report's `covers` is missing, empty, or has an item that names no test.")
+    else:
+        texts = red_file_texts(root, data.get("red") or {})
+        for c in covers:
+            if not any(str(c["test"]) in t for t in texts):
+                out.append(f"The report says `{c['test']}` covers {c['item']}, and no red file has that test.")
     return out
 
 
@@ -534,6 +539,10 @@ def scenario_red_gaps(root, data, red):
     end = body.find("\n## May ignore")
     if at < 0:
         return []
+    return wall.red_gaps(body[at:end if end > at else len(body)], red_file_texts(root, red))
+
+
+def red_file_texts(root, red):
     texts = []
     for f in red.get("files") or []:
         try:
@@ -541,7 +550,7 @@ def scenario_red_gaps(root, data, red):
                 texts.append(fh.read())
         except OSError:
             pass
-    return wall.red_gaps(body[at:end if end > at else len(body)], texts)
+    return texts
 
 
 def append_cleaner_proposals(packet, data):
