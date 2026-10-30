@@ -351,6 +351,33 @@ class WatchLoopTest(RepoCase):
         p = self.covers_test("tests/test_red.py::test_cheese_ghost")
         self.assert_stopped_before_the_maker(p, "test_cheese_ghost")
 
+    def test_a_covers_list_with_a_number_among_the_names_stops_before_the_maker(self):
+        extra = json.dumps({"covers": [{"item": "milk today", "test": ["test_milk_today", 7]}]})
+        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "covers")
+
+    def test_a_covers_list_with_an_empty_string_among_the_names_stops_before_the_maker(self):
+        extra = json.dumps({"covers": [{"item": "milk today", "test": ["test_milk_today", ""]}]})
+        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "covers")
+
+    def test_a_covers_list_with_a_null_among_the_names_stops_before_the_maker(self):
+        extra = json.dumps({"covers": [{"item": "milk today", "test": ["test_milk_today", None]}]})
+        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "covers")
+
+    def test_a_covers_name_with_a_red_module_in_front_goes_on_to_the_maker(self):
+        self.assert_goes_on(self.covers_test("tests.test_red.Red.test_milk_today"))
+
+    def test_a_covers_name_with_a_module_that_is_not_a_red_file_stops_before_the_maker(self):
+        p = self.covers_test("tests.test_store.Red.test_milk_today")
+        self.assert_stopped_before_the_maker(p, "tests.test_store.Red.test_milk_today")
+
+    def test_a_covers_name_with_a_red_module_but_the_wrong_class_stops_before_the_maker(self):
+        p = self.covers_test("tests.test_red.Ghost.test_milk_today")
+        self.assert_stopped_before_the_maker(p, "tests.test_red.Ghost.test_milk_today")
+
+    def test_a_covers_name_with_a_red_module_and_class_but_a_test_it_lacks_stops_before_the_maker(self):
+        p = self.covers_test("tests.test_red.Red.test_cheese_ghost")
+        self.assert_stopped_before_the_maker(p, "test_cheese_ghost")
+
     def test_a_command_whose_words_are_apart_in_the_red_stops_before_the_maker(self):
         self.amend("A person runs `xv slice amend`.")
         p = self.scenario_with_env(FAKE_RED_TEXT="slice a list of other things, then amend")
