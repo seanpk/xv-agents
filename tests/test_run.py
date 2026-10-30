@@ -267,6 +267,20 @@ class WatchLoopTest(RepoCase):
         p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covers": []}')
         self.assert_stopped_before_the_maker(p, "covers")
 
+    def test_a_covers_item_whose_test_is_in_no_red_file_stops_before_the_maker(self):
+        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covers": [{"item": "milk today", "test": "test_a_ghost"}]}')
+        self.assert_stopped_before_the_maker(p, "test_a_ghost")
+
+    def test_one_covers_item_with_a_missing_test_among_found_ones_stops_before_the_maker(self):
+        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covers": [{"item": "milk today", "test": "test_milk_today"},'
+                                                     ' {"item": "cheese", "test": "test_cheese_ghost"}]}')
+        self.assert_stopped_before_the_maker(p, "test_cheese_ghost")
+
+    def test_a_covers_test_found_in_a_red_file_goes_on_to_the_maker(self):
+        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covers": [{"item": "milk today", "test": "test_milk_today"}]}')
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.record()["next"], "maker")
+
     def test_a_command_whose_words_are_apart_in_the_red_stops_before_the_maker(self):
         self.amend("A person runs `xv slice amend`.")
         p = self.scenario_with_env(FAKE_RED_TEXT="slice a list of other things, then amend")
