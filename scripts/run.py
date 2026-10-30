@@ -575,7 +575,7 @@ def unreadable_input(root, data, report):
 def covers_names(test):
     """The names a covers item's test holds: one name, a list, or a string joined with , or ;."""
     parts = test if isinstance(test, list) else re.split(r"[,;]", test) if isinstance(test, str) else []
-    names = [p.strip() for p in parts if isinstance(p, str)]
+    names = [p.strip() if isinstance(p, str) else "" for p in parts]
     return names if names and all(names) else []
 
 
@@ -586,8 +586,11 @@ def covers_name_found(name, files):
         where, _, test = name.rpartition("::")
         files = {f: t for f, t in files.items() if f == where or f.endswith("/" + where)}
     elif "." in name:
-        klass, _, test = name.rpartition(".")
-        klass = klass.rpartition(".")[2]
+        module, _, test = name.rpartition(".")
+        module, _, klass = module.rpartition(".")
+        if module:
+            files = {f: t for f, t in files.items()
+                     if ("." + f.removesuffix(".py").replace("/", ".")).endswith("." + module)}
     whole = re.compile(r"(?<!\w)" + re.escape(test) + r"(?!\w)")
     for t in files.values():
         if not whole.search(t):
