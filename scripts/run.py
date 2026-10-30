@@ -456,6 +456,8 @@ def post_step(agent, root, data, config, head_before, pre, report):
         if changed is None:
             checks["old_red_unchecked"] = ("The check for old tests changed in red files could not run: "
                                            "the record has no base, or the wall module did not load.")
+        checks["red_gaps"] = scenario_red_gaps(root, data, red)
+        checks["not_covered"] = [n for n in (report.get("not_covered") or []) if isinstance(n, dict)]
         wb = wall_baseline(root, data, config)
         if wb:
             data["wall_baseline"] = wb
@@ -507,6 +509,24 @@ def post_step(agent, root, data, config, head_before, pre, report):
             data["shape_change"] = data["pitch_contradiction"] = "yes"
             checks["missing_packet"] = True
     return checks
+
+
+def scenario_red_gaps(root, data, red):
+    """The flags and `xv` commands in backticks in the scenario and its amendments that no red file has."""
+    import check
+    body = record.load(root, data["id"])[2]
+    at = body.find("## Scenario")
+    end = body.find("\n## May ignore")
+    if at < 0:
+        return []
+    texts = []
+    for f in red.get("files") or []:
+        try:
+            with open(os.path.join(root, f), encoding="utf-8", errors="replace") as fh:
+                texts.append(fh.read())
+        except OSError:
+            pass
+    return check.red_gaps(body[at:end if end > at else len(body)], texts)
 
 
 def append_cleaner_proposals(packet, data):

@@ -8,6 +8,8 @@ Every change to a brief, a may-not list, a standing order, or a check an agent i
 
 - Some stops need no `--settled` when the answer moves the slice forward. A stop raised before its work started takes any `--next` without it: `setup_failed` saved at step `setup`, a prototype stop other than `prototypes_ready`, and a `budget_spent` stop raised before its step ran, answered with `--next` that step. `setup_failed` raised after the scenario step, the `prototypes_ready` pick and the `budget_spent` stop raised after the maker left the suite red keep the rule. `xv record stop` takes `--step`. This changes the watch's brief and a check; Sean decided it, solo (#82). It moves no position on xtremevibing.com.
 
+- A red that leaves part of the scenario untested stops before the maker. The scenario agent's report gains `covers` (each item the scenario names, with its test) and `not_covered` (each item it did not cover, with why); an item in `not_covered` stops the slice for the person who set the work going. After the scenario step a check, `check.red_gaps`, lists every flag and `xv` command in backticks in the scenario, amendments included, that no red file has, and stops the slice the same way. This changes the scenario brief and adds a check; Sean decided it, solo (#64, retro candidate 1 of 2026-10-29). It moves no position on xtremevibing.com.
+
 ## 0.3.1, 2026-10-28
 
 Three changes from this repo's own slices, each run by the watch and decided by Sean solo: the wall reads old tests in a red file (#53), a prototype that runs out of budget comes back to a person (#55), and `xv init --no-try`, which the suite uses to run in about 80 seconds instead of 130 (#38). The last one changes no brief, standing order or check, so it has no line below.
