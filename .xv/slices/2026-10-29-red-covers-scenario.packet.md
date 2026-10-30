@@ -11,85 +11,104 @@ blast_radius: adopters
 
 # Packet: A red that leaves part of the scenario untested is caught before the maker
 
-**Needs a decision from two people (solo here: Sean):** a narrow shape change. `run` now calls `check`, and `check` stops being only the guardian's module. The width matches the forecast's "narrow". Also for Sean: two places where the new check passes on input it cannot read (check 1, findings b and c), which `.xv/picture.md:72` says must stop instead.
+**Two people need to decide (this repo runs solo, so Sean decides): the shape changed again, narrowly, against what Sean settled.** The `run → check` edge is gone. In its place is a new `check → wall` edge, a re-export that exists only so `tests/test_check.py` can still call `check.red_gaps`. Sean settled that "red_gaps moves into scripts/wall.py … so the shape does not change" (`.xv/decisions/2026-10-29-2026-10-29-red-covers-scenario.md`, Settled). Everything else Sean asked for at the last stop is in place. One reading of "covers is read" is left for Sean (check 1, finding c).
 
 ## The scenario
 
-1. The scenario agent's report names each item in the scenario with the test that covers it, and each item it did not cover with the reason. An uncovered item stops the slice for the originator before the maker runs (#64).
-2. After the scenario step, a check lists each flag and `xv` command that the scenario (amendments included) writes in backticks and that no red file contains. Anything on the list stops the slice for the originator before the maker runs (retro candidate 1).
+1. The scenario agent's report names each item in the scenario with the test that covers it (`covers`), and each item it did not cover with the reason (`not_covered`). An uncovered item stops the slice for the originator before the maker runs (#64).
+2. After the scenario step, a check lists each flag and `xv` command that the scenario, amendments included, writes in backticks and that no red file contains. Anything on the list stops the slice for the originator before the maker runs (retro candidate 1).
 3. Test case: on the first red of `2026-10-29-stop-decisions` the check lists `--since`. On that slice's final red it lists nothing.
+4. Amended by Sean on 2026-10-29:
+   - `red_gaps` moves into `scripts/wall.py` so the shape does not change.
+   - A record with no `## Scenario` heading stops the slice. So does a report whose `covers` or `not_covered` is missing or is not a list of items.
+   - `covers` is read: each item names its test.
+   - An `xv` command counts as covered only when its words appear together, in order, in a red file.
 
-May ignore: items named in plain words without backticks. Point 1 covers those, not point 2.
+May ignore: items named in plain words without backticks.
 
 ## The recording
 
-None: this is a feature. Replay the red and the suite:
-- Red: `cd tests && python3 -m unittest test_check test_run`. At `8365f78` it fails 14 (5 failures, 9 errors), starting with `AttributeError: module 'check' has no attribute 'red_gaps'`. At HEAD it passes.
-- Whole suite: `cd tests && python3 -m unittest -q`. I ran it at HEAD: `Ran 408 tests … OK`.
+None: this is a feature. To replay:
+- Red: `cd tests && python3 -m unittest -q test_wall test_run test_check`. The scenario agent's record says that at the second red, `dded614`, 9 run tests fail and 7 wall tests error. I did not re-run it at that commit. I ran it at HEAD (`c2d3beb`): `Ran 98 tests … OK`.
+- Whole suite: `cd tests && python3 -m unittest -q`. I ran it at HEAD: `Ran 425 tests … OK`.
 
 ## The boundary picture
 
 From `.xv/slices/2026-10-29-red-covers-scenario.boundary.md`, as given:
-- Modules touched: `scripts/check`, `scripts/orders`, `scripts/run`. None added or removed. No new outbound calls.
-- Edges added: **`scripts/run → scripts/check`**. None removed.
-- Tables: none. Surfaces users meet: none in the boundary tool's terms. The scenario brief `skills/scenario/SKILL.md` (a surface per `.xv/picture.md:28`) gains two report fields, and the watch gains a new stop, `red_misses_scenario`.
+- Modules touched: `scripts/check`, `scripts/orders`, `scripts/run`, `scripts/wall`. None were added or removed, and there are no new outbound calls.
+- Edges added: **`scripts/check → scripts/wall`**. None were removed. (The base has no `run → check` edge, and HEAD does not add one. `run` uses `wall`, an edge it already had.)
+- Tables: none. Surfaces in the tool's terms: none. Two surfaces still change, though. The scenario brief (`skills/scenario/SKILL.md:53-58`) gains `covers` and `not_covered`, and the watch gains the stop `red_misses_scenario` (`scripts/orders.py:110-119`).
 - Shape hint: "an edge between modules was added".
 
 ## What the suite asserts after
 
-- `check.red_gaps(scenario, red_texts)` lists each backticked flag that no red text contains. It reads every flag in a span and ignores flags written in plain words. It lists an `xv` command unless some red text contains all of its words, either as arguments or as text. It lists nothing when the scenario has no backticks (`tests/test_check.py` `RedGapsTest`, 7 cases).
-- On frozen copies of the stop-decisions red files (`tests/data/stop-decisions-red/{first,final}`), read against the live `.xv/slices/2026-10-29-stop-decisions.md` scenario, the first red lists `--since` (and neither `--settles` nor `xv record offer`). The final red lists nothing.
+- `wall.red_gaps(scenario, red_texts)` lists each flag in backticks that no red text has. It does not read flags written in plain words. It lists an `xv` command unless a red text has the command's words in order, joined only by non-alphanumeric characters. A command whose words are apart or out of order is listed (`tests/test_wall.py` `RedGapsTest`, 7 cases). `tests/test_check.py` `RedGapsTest` makes the same kinds of assertions through `check.red_gaps`, 9 cases.
+- On frozen copies of the stop-decisions red files (`tests/data/stop-decisions-red/{first,final}`), against the live `.xv/slices/2026-10-29-stop-decisions.md` scenario, the first red lists `--since` and the final red lists nothing.
+- Through the watch (`tests/test_run.py`, 18 cases), each of these stops before the maker with exit 10:
+  - a flag or `xv` command in backticks that no red file has, including one that came in by amendment;
+  - a `not_covered` item;
+  - a record with no `## Scenario` heading;
+  - a report whose `covers` or `not_covered` is missing or not a list;
+  - an empty `covers`;
+  - a `covers` item that names no test;
+  - a command whose words are apart or out of order in the red.
+
+  A flag that a red file has, a flag in plain words, and an empty `not_covered` all go on to the maker.
 - The scenario brief contains `` `covers` `` and `` `not_covered` `` (`ScenarioBriefTest`).
-- End to end through the watch (`tests/test_run.py`, 7 cases): a backticked flag or `xv` command that no red file has stops for the originator before the maker, with exit 10 and the item named in the question. A flag added by amendment counts. If a red file has the flag, or the flag is in plain words, the slice goes on to the maker. A `not_covered` item stops and names the item and the reason. An empty `not_covered` goes on.
 - No old assertion moved.
 
 ## 1. Shape
 
 shape_change: **yes**, narrow (the forecast also said narrow).
 
-- **Hint "an edge between modules was added" (`run → check`): this changes the shape.** Before this slice `run` and `check` were apart: `.xv/picture.md:21` lists everything `run` reaches, and `check` is not on the list. `.xv/picture.md:23` says "`boundary`, `packet` and `check` are the guardian's checks." After the change, the watch's loop calls `check` after every scenario step (`scripts/run.py:459`, `scripts/run.py:516` `import check`). This is a coupling between modules that were apart, and it changes what `check` is for.
-- `check`'s own docstring no longer describes it: `scripts/check.py:2` "Read the project layer against the shared core. Changes nothing." `red_gaps` (`scripts/check.py:220`) reads a slice's scenario against its red files, not the project layer against the core, and its result now gates the watch. Which module a gate like this belongs in is for the two people to decide. Nothing in the binding decisions settles it: `.xv/picture.md:70` (decision 10) is satisfied, because the stop itself is raised in `scripts/orders.py:110-117` from what the record says.
-- **Binding decision 12 (`.xv/picture.md:72`): "A check whose input is broken or that cannot run stops for a person; it never passes."** This is not a shape change, but it is a finding in three places:
-  - a. `scripts/run.py:520-521` `if at < 0: return []`: when a record has no `## Scenario` heading, the check finds nothing to read and passes. The body template always writes that heading (`scripts/record.py` `BODY_TEMPLATE`), so this only happens to hand-edited records.
-  - b. `scripts/run.py:460` `[n for n in (report.get("not_covered") or []) if isinstance(n, dict)]`: a report that leaves out `not_covered`, gives it as strings (`["the grocer share"]`), or gives it as a single string is quietly read as "nothing uncovered", and the slice goes on to the maker. An agent on another harness, or one that does not follow the new brief, will do exactly this.
-  - c. Scenario point 1 asks the report to name each item **with the test that covers it**. Nothing reads `covers`: `scripts/run.py:459-460` sets only `red_gaps` and `not_covered`, and no file in `scripts/` mentions `covers` as a field. A report with neither `covers` nor `not_covered` goes on to the maker. The default fake agent sends no `covers`, and `test_a_flag_in_plain_words_does_not_stop` asserts that it goes on.
-- How strictly the check reads a command: `scripts/check.py:231-232` counts `xv record answer` as covered when the words `record` and `answer` appear **anywhere** in a red file, even apart. Scenario point 2 says "appears in no red file". In a red file such as `test_record.py`, common words like `record` will nearly always be present, so a missing subcommand can slip through. `test_a_command_is_covered_by_its_words_as_arguments_or_as_text` asserts only the case where the command is covered.
-- Everything else is inside the current shape. `orders.py` gains one order (`scripts/orders.py:110-117`). It is still a pure function of the record (`.xv/picture.md:70`). There are no new tables, outbound calls or modules (boundary picture).
+- **a. Hint "an edge between modules was added" (`check → wall`): this changes the shape.** At the base, `check` and `wall` were apart. `.xv/picture.md:23` says "`wall` holds the test hash check" and "`boundary`, `packet` and `check` are the guardian's checks". The new edge comes from `scripts/check.py:220` `from wall import red_gaps  # noqa: E402,F401  (the check lives in wall, beside the other red-file checks)`. Nothing in `scripts/` calls `check.red_gaps`. The only caller is `tests/test_check.py` (`check.red_gaps(...)` in `RedGapsTest`), and `tests/test_wall.py` `RedGapsTest` already covers the same function in `wall`. The cleaner said the same in its report: "scripts/check.py re-exports wall.red_gaps only because tests/test_check.py still calls check.red_gaps" (record, `checks.reports`, cleaner 00:57). This goes against Sean's settled words "so the shape does not change" (decision record, Settled). It is narrow: one import line, no behaviour.
+- **b. Decision 12 (`.xv/picture.md:72`), which the last packet raised, is now met for the cases Sean named.**
+  - A record with no Scenario heading stops: `scripts/run.py:518`.
+  - A missing, non-list or non-dict `not_covered` stops: `scripts/run.py:521-522`.
+  - A missing, empty, non-list or test-less `covers` stops: `scripts/run.py:523-525`.
+  - Command words must now come together and in order: `scripts/wall.py:203-205` (`r"[^A-Za-z0-9]+".join(...)`).
+- **c. "covers is read" is met in its literal form only.** `scripts/run.py:524` `isinstance(c, dict) and c.get("item") and c.get("test")` checks that each item has a non-empty `test` string. Nothing checks that the named test exists in a red file. A report with `{"item": "x", "test": "test_that_does_not_exist"}` goes on to the maker. Sean's words were "covers is read: each item names the test that covers it" (decision record, Settled). Whether "names the test" means a test that exists is Sean's reading to give.
+- Everything else stays inside the current shape. `orders.py` gains stops under the existing `after == "scenario"` branch (`scripts/orders.py:110-119`), and they are raised from what the record says (`.xv/picture.md:70`, decision 10). No tables, outbound calls or modules change.
 
 ## 2. Pitch
 
-pitch_contradiction: **no**. The change adds a stop that hands a person a gap between the scenario and the red. That fits `.xv/pitch.md:7` "makes it easy … to vibe with discipline". It does not touch who the system is not for (`.xv/pitch.md:25` "not for people or projects that will not trust agents to write production code"). I read the whole pitch and found no line the change contradicts.
+pitch_contradiction: **no**. The change adds a stop that hands a person a gap between the scenario and the red. That fits `.xv/pitch.md:7` "makes it easy … to vibe with discipline". It does not touch `.xv/pitch.md:25` "not for people or projects that will not trust agents to write production code". I read the whole pitch and found no line the change contradicts.
 
 ## 3. Moved tests
 
 | File | Before | After | Why (the maker's record) | Forced by the scenario? |
 | --- | --- | --- | --- | --- |
-| — | — | — | — | — |
+| none | | | | |
 
-No old test moved. Here is what I looked at:
-- The record has `moved_tests: []` (`.xv/slices/2026-10-29-red-covers-scenario.md:15`). `xv wall diff 2026-10-29-red-covers-scenario` returns changed, deleted and `fewer_assertions` all `[]`.
-- `tests/test_check.py` and `tests/test_run.py` (the red files) only gain lines. The one changed line is an import (`from helpers import HOME, RepoCase`, `tests/test_check.py:4`), which the wall exempts (`.xv/picture.md:23`).
-- `tests/fake_agent.py` is not a red file. The scenario agent changed it (red commit `8365f78`) by adding the env-gated `FAKE_RED_TEXT` and `FAKE_NOT_COVERED` (`tests/fake_agent.py:37-51`). Without those variables it behaves as before, and it adds no assertion. The wall baseline was written after the scenario step and already includes this version (`.xv/slices/2026-10-29-red-covers-scenario.wall.json:13`), so the wall would not have flagged it either way.
-- New fixtures: `tests/data/stop-decisions-red/**` holds 2,387 lines of frozen copies of the stop-decisions red files. `RedGapsTest` also reads the **live** `.xv/slices/2026-10-29-stop-decisions.md` (`tests/test_check.py:53-57`), so a later edit to that record's scenario would break the test.
+What I looked at:
+- The record has `moved_tests: []` (`.xv/slices/2026-10-29-red-covers-scenario.md:15`).
+- `xv wall diff 2026-10-29-red-covers-scenario` shows `changed`, `deleted`, `added` and `fewer_assertions` all empty (`.xv/slices/2026-10-29-red-covers-scenario.wall.json`, baseline `058959e`).
+- The only removed line in a red file is the import at `tests/test_check.py:4` (`from helpers import RepoCase` → `from helpers import HOME, RepoCase`), which the wall exempts (`.xv/picture.md:23`).
+- `tests/fake_agent.py` gains `FAKE_RED_TEXT`, `FAKE_NOT_COVERED`, `FAKE_REPORT_EXTRA` and `FAKE_REPORT_DROP`, and by default it now sends `covers` and an empty `not_covered` (`tests/fake_agent.py:45-50`). It asserts nothing.
+- Still open from the last packet: both `RedGapsTest` classes read the **live** `.xv/slices/2026-10-29-stop-decisions.md` (`tests/test_check.py:53-57`, which `tests/test_wall.py` imports). A later edit to that record's scenario breaks them.
 
-Slice-only tests removed: none. Kept: none (the record's `slice_only` is `[]`).
+Slice-only tests removed: none. Kept: none (`slice_only: []`).
 
 ## 4. The picture
 
 Proposed edits to `.xv/picture.md`, for the originator to accept:
-- `.xv/picture.md:21`: add `check` to the list of modules `run` reaches. The count "58 edges" becomes 59 once `.xv/boundary-all.md` is regenerated.
-- `.xv/picture.md:23`: "`boundary`, `packet` and `check` are the guardian's checks" is no longer complete. Add: "`check.red_gaps` is also run by the watch after the scenario step."
-- `.xv/picture.md:26`, the paragraph on the step lifecycle: add that after the scenario step, the watch stops with `red_misses_scenario` for the originator, with `next` staying on `scenario`. It does so when a flag or `xv` command written in backticks in the scenario (amendments included) is in no red file, or when the scenario report's `not_covered` names an item.
-- Names section (`.xv/picture.md:30`, `## Names`): add the scenario report's `covers` and `not_covered` fields (`skills/scenario/SKILL.md:53-54`).
-- `.xv/picture.md:61` (decision 1) is met in form: a brief and a check changed, and `CHANGELOG.md:11` has the line. That line already says "Sean decided it, solo", but the decision is what this packet asks for. It only becomes true once Sean accepts.
+- `.xv/picture.md:23`: "`wall` holds the test hash check" becomes "`wall` holds the test hash check and `red_gaps`, the check that each flag and `xv` command in backticks in the scenario is in a red file". If the `check → wall` edge stays, add that `check` re-exports it.
+- `.xv/picture.md:21`: "58 edges" becomes 59 if the `check → wall` edge stays.
+- `.xv/picture.md:26` (the step lifecycle): add that after the scenario step, the watch stops with `red_misses_scenario` for the originator (`scripts/orders.py:110-119`) when a flag or `xv` command in backticks in the scenario, amendments included, is in no red file; when the report's `not_covered` names an item; when the record has no `## Scenario` heading; or when the report's `covers` or `not_covered` is missing or malformed.
+- `## Names` (`.xv/picture.md:30`): add the scenario report's `covers` and `not_covered` fields (`skills/scenario/SKILL.md:53-54`).
 
 ## Door
 
-**Door:** two-way. A revert removes the check, the order and the two brief fields. No data is migrated and no message goes to users. **Blast radius:** adopters. The brief (`skills/scenario/SKILL.md`) and the new stop in `scripts/orders.py` reach every adopting repo on upgrade.
+**Door:** two-way. A revert removes the check, the stops and the two brief fields. No data is migrated and no message goes to users. **Blast radius:** adopters. The scenario brief and the new stop reach every adopting repo on upgrade, and every adopter's scenario agent must now send `covers` and `not_covered` or its slices stop (`scripts/run.py:521-525`).
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-10-29-red-covers-scenario.md`
-- Diff: `git diff 5ec1d8640ff0da37a2634737f241cfd1a14821e2..3317370`
+- Decision: `.xv/decisions/2026-10-29-2026-10-29-red-covers-scenario.md`
+- Diff: `git diff 5ec1d8640ff0da37a2634737f241cfd1a14821e2..c2d3beb`
 - Wall: `xv wall diff 2026-10-29-red-covers-scenario`
 - Boundary: `.xv/slices/2026-10-29-red-covers-scenario.boundary.md` (`xv boundary --base 5ec1d8640ff0`)
+
+## From the cleaner
+
+- Shape proposal, for people: scripts/check.py re-exports wall.red_gaps only because tests/test_check.py still calls check.red_gaps; if that test moves to wall, drop the re-export and the new check -> wall import.
