@@ -4,18 +4,18 @@ From `5ec1d8640ff0` to the working tree. Source: xv boundary (ast and regex). Ge
 
 ## Shape hints
 
-- an edge between modules was added
+- none
 
 ## Modules
 
-- touched: scripts/check, scripts/orders, scripts/run, scripts/wall
+- touched: scripts/orders, scripts/run, scripts/wall
 - added: none
 - removed: none
 - now calling out of the process: none
 
 ## Edges
 
-- added: scripts/check → scripts/wall
+- added: none
 - removed: none
 
 ```mermaid
@@ -57,7 +57,6 @@ flowchart LR
   m4 --> m22
   m5 --> m22
   m6 --> m8
-  m6 ==> m21
   m6 --> m22
   m7 --> m18
   m7 --> m22
@@ -120,19 +119,13 @@ flowchart LR
 {
  "base": "5ec1d8640ff0da37a2634737f241cfd1a14821e2",
  "touched": [
-  "scripts/check",
   "scripts/orders",
   "scripts/run",
   "scripts/wall"
  ],
  "modules_added": [],
  "modules_removed": [],
- "edges_added": [
-  [
-   "scripts/check",
-   "scripts/wall"
-  ]
- ],
+ "edges_added": [],
  "edges_removed": [],
  "outbound_added": [],
  "tables": {
@@ -225,10 +218,6 @@ flowchart LR
    [
     "scripts/check",
     "scripts/install"
-   ],
-   [
-    "scripts/check",
-    "scripts/wall"
    ],
    [
     "scripts/check",
@@ -416,9 +405,7 @@ flowchart LR
   ]
  },
  "source": "xv boundary (ast and regex)",
- "shape_hints": [
-  "an edge between modules was added"
- ]
+ "shape_hints": []
 }
 ```
 </details>
