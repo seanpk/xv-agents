@@ -228,6 +228,44 @@ class OrdersTest(unittest.TestCase):
                 table = f.read().split(start)[1].split("\n## ")[0].split("\n### ")[0]
             self.assertIn("slice-only", table, path)
 
+    def miss_record(self, **kw):
+        d = with_report(rec(shape_change="no", pitch_contradiction="no", scenario_miss="yes", **kw), "guardian")
+        d["checks"]["guardian"] = {"picture_change": "yes"}
+        return d
+
+    def fired(self, data, after="guardian"):
+        return [f["order"] for f in orders.verdict(data, after, DEFAULT_CONFIG)["fired"]]
+
+    def test_a_scenario_miss_does_not_stop_and_fires_no_accept_moves_or_ready_to_merge(self):
+        d = self.miss_record(moved_tests=[{"file": "tests/a.py"}],
+                             wall_recommendations=[{"file": "tests/a.py", "test": "t", "recommend": "remove"}])
+        self.assertIsNone(self.stop(d, "guardian"))
+        self.assertFalse({"accept_moves", "ready_to_merge"} & set(self.fired(d)))
+
+    def test_moved_tests_are_put_to_the_person_when_the_slice_comes_back_with_no_miss(self):
+        d = self.miss_record(moved_tests=[{"file": "tests/a.py"}])
+        d["scenario_miss"] = "no"
+        self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
+
+    def test_a_scenario_miss_beside_a_shape_change_still_stops_for_two_people(self):
+        d = self.miss_record()
+        d["shape_change"] = "yes"
+        self.assertEqual(self.stop(d, "guardian")["order"], "shape_or_pitch")
+
+    def test_a_scenario_miss_with_the_budget_spent_stops_for_the_originator(self):
+        d = self.miss_record(spend=[{"step": "maker", "usd": 2.5, "tokens": 10}])
+        s = self.stop(d, "guardian")
+        self.assertEqual((s["order"], s["seat"]), ("budget_spent", "originator"))
+
+    def test_the_scenario_step_names_old_test_files_that_existed_at_the_base_not_red_files(self):
+        d = with_report(rec(), "scenario", "red")
+        d["checks"]["scenario"] = {"old_red_changed": ["tests/test_store.py"], "red_fails": True}
+        qs = [f["question"] for f in orders.verdict(d, "scenario", DEFAULT_CONFIG)["fired"]
+              if f["order"] == "unrecorded_move"]
+        self.assertEqual(len(qs), 1)
+        self.assertIn("old test files that existed at the base", qs[0])
+        self.assertNotIn("red files", qs[0])
+
     def test_shape_or_pitch_does_not_fire_on_an_accepted_shape_change(self):
         d = with_report(rec(shape_change="accepted", pitch_contradiction="no"), "guardian")
         d["checks"]["guardian"] = {}

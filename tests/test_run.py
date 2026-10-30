@@ -345,6 +345,120 @@ class WatchLoopTest(RepoCase):
         self.assertNotIn("scenario_stopped", p.stdout)
         self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
 
+    P1 = "1. A household sees milk running out soon."
+    P2 = "2. A household sees nothing for bread that is fresh."
+
+    def record_text(self):
+        with open(os.path.join(self.wt, ".xv", "slices", "s1.md")) as f:
+            return f.read()
+
+    def open_stops(self):
+        return [s for s in self.record()["stops"] if s.get("answer") is None]
+
+    def scenario_covering(self, covered=(), not_covered=()):
+        """Run the scenario step once, with a report that covers only the given points."""
+        from unittest import mock
+        extra = {"covers": [{"item": c, "test": "test_milk_today"} for c in covered],
+                 "not_covered": [{"item": n, "why": "no seam to start the app"} for n in not_covered]}
+        with mock.patch.dict(os.environ, {"FAKE_REPORT_EXTRA": json.dumps(extra)}):
+            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+
+    def test_a_numbered_point_in_neither_covers_nor_not_covered_goes_back_without_a_stop(self):
+        self.amend(f"{self.P1}\n{self.P2}")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        p = self.scenario_covering(covered=[self.P1])
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.open_stops(), [])
+        self.assertEqual(self.record()["next"], "scenario")
+        self.assertNotIn("maker", [s["step"] for s in self.record()["spend"]])
+        watch_lines = [ln for ln in self.record_text().splitlines() if " watch: " in ln and self.P2 in ln]
+        self.assertTrue(watch_lines, "the watch records the send-back with the missed point")
+
+    def test_the_next_scenario_agent_gets_the_missed_point_through_xv_prompt(self):
+        self.amend(f"{self.P1}\n{self.P2}")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario_covering(covered=[self.P1])
+        prompt = self.xv("prompt", "scenario", "s1", cwd=self.wt).stdout
+        self.assertIn(self.P2, prompt)
+
+    def test_a_numbered_point_in_not_covered_still_stops_for_the_person(self):
+        self.amend(f"{self.P1}\n{self.P2}")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        p = self.scenario_covering(covered=[self.P1], not_covered=[self.P2])
+        self.assert_stopped_before_the_maker(p, "no seam to start the app")
+
+    def test_every_numbered_point_in_covers_goes_on_to_the_maker(self):
+        self.amend(f"{self.P1}\n{self.P2}")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        p = self.scenario_covering(covered=[self.P1, self.P2])
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.record()["next"], "maker")
+
+    def test_the_same_missed_point_on_the_next_pass_stops_for_the_person(self):
+        self.amend(f"{self.P1}\n{self.P2}")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario_covering(covered=[self.P1])
+        p = self.scenario_covering(covered=[self.P1])
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(json.loads(p.stdout)["stop"]["seat"], "originator")
+        self.assertEqual(len(self.open_stops()), 1)
+
+    def guardian_with_miss(self, miss="Point 1 is not met: the list still leaves out milk that runs out today.",
+                           **env):
+        from unittest import mock
+        with mock.patch.dict(os.environ, dict(env, FAKE_SCENARIO_MISS=miss)):
+            return self.xv("step", "guardian", "s1", cwd=self.wt, check=False)
+
+    def to_the_guardian(self):
+        for agent in ("forecaster", "scenario", "maker", "cleaner"):
+            self.xv("step", agent, "s1", cwd=self.wt)
+
+    def test_a_scenario_miss_in_the_packet_sends_the_slice_to_the_maker_without_a_stop(self):
+        self.to_the_guardian()
+        p = self.guardian_with_miss()
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        data = self.record()
+        self.assertEqual(data["scenario_miss"], "yes")
+        self.assertEqual(self.open_stops(), [])
+        self.assertEqual(data["next"], "maker")
+        self.assertIn("milk that runs out today",
+                      "\n".join(ln for ln in self.record_text().splitlines() if " watch: " in ln))
+
+    def test_the_maker_gets_the_miss_through_xv_prompt(self):
+        self.to_the_guardian()
+        self.guardian_with_miss()
+        self.assertIn("milk that runs out today", self.xv("prompt", "maker", "s1", cwd=self.wt).stdout)
+
+    def test_a_scenario_miss_beside_a_shape_change_still_stops_for_two_people(self):
+        self.to_the_guardian()
+        p = self.guardian_with_miss(FAKE_SHAPE_CHANGE="yes")
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "shape_or_pitch")
+
+    def test_the_same_scenario_miss_on_the_next_guardian_pass_stops_for_the_person(self):
+        self.to_the_guardian()
+        self.guardian_with_miss()
+        for agent in ("maker", "cleaner"):
+            self.xv("step", agent, "s1", cwd=self.wt)
+        p = self.guardian_with_miss()
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(json.loads(p.stdout)["stop"]["seat"], "originator")
+        self.assertNotEqual(json.loads(p.stdout)["stop"]["order"], "ready_to_merge")
+
+    def test_a_packet_with_no_miss_still_ends_in_the_merge_stop(self):
+        self.to_the_guardian()
+        p = self.xv("step", "guardian", "s1", cwd=self.wt, check=False)
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "ready_to_merge")
+        self.assertEqual(self.record()["scenario_miss"], "no")
+
+    def test_the_old_red_check_that_cannot_run_names_old_test_files_that_existed_at_the_base(self):
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.xv("record", "set", "s1", "base", "", cwd=self.wt)
+        p = self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        question = json.loads(p.stdout)["stop"]["question"]
+        self.assertIn("old test files that existed at the base", question)
+        self.assertNotIn("red files", question)
+
     def test_a_stop_waits_for_an_answer_and_close_needs_the_merge_answered(self):
         self.xv("run", "s1", cwd=self.wt, check=False)
         p = self.xv("close", "s1", cwd=self.wt, check=False)
