@@ -9,102 +9,92 @@ door: two-way
 blast_radius: workflow
 ---
 
-# Packet: A person sees which tests stay on the wall and which leave it
+# Packet: A person sees which tests stay on the wall and which leave it (second pass)
 
-Nothing here stops the change for two people under the orders. Four things need Sean, as the person who set the work going:
+Nothing here stops the change for two people. Three things need Sean, as the person who set the work going:
 
-1. **Binding decision 1.** This changes a standing order and two briefs. Under that decision it needs two people and a CHANGELOG line (`.xv/picture.md:61`). The repo runs solo (`.xv/picture.md:53`). The CHANGELOG line is there (`CHANGELOG.md:9`, "Sean decided it, solo (#87, #89)"), but the record's `decisions` is `[]`, and no order will raise the two-people stop, because shape and pitch are both `no`.
-2. **Accepting a recommendation accepts all of them.** Answering `accept_moves` marks every wall recommendation `accepted`, whatever the answer says (`scripts/record.py:323`). The record cannot keep "which ones the person accepted", as scenario step 2 asks. No test covers it.
-3. **The stop asks for an unmark the tool cannot do.** It tells you to "unmark a test" (`scripts/orders.py:119`), but `xv record set` refuses list fields (`scripts/record.py:130-131`) and nothing removes an item from `slice_only`.
-4. **This slice's own slice-only removal was never put to you.** It was also recorded without its slice-only flag. See check 3.
+1. **Your slice-only decision was lost.** At the last stop you accepted that `test_the_guardian_brief_has_five_checks` is marked slice-only. The record's `slice_only` is `[]`. The scenario re-run at `c718f14` replaced the list with its own report, `slice_only: []`. That also dropped the earlier mark on the README test (record history at `c718f14`: `-slice_only: [{... "test_the_readme_says_five_checks_not_four" ...}]`, `+slice_only: []`). The code does this at `scripts/record.py:436-437`: every scenario report overwrites `slice_only`. An `xv record unmark` is undone the same way the next time the scenario runs. So the cleaner kept the test, and it is now in the wall baseline (`wall_baseline.commit: c05e27e`).
+2. **Your usual answer still accepts every recommendation.** `r["accepted"] = r in named or not named` (`scripts/record.py:340`). If the answer names no test, for example "B: 1" (how every stop on this record was answered), every recommendation is set accepted. The amendment says "an answer does not set every one accepted" (record, Amended 2026-10-29, item 1). The match only looks for the test's name in the words of the answer (`:337-338`). So "accept test_keep_me, refuse test_drop_me" accepts both. The text of a picked option's `settled` is never read either. The test avoids both cases: it says "refuse the other" (`tests/test_record.py:940`).
+3. **Binding decision 1 has no decision entry.** This changes a standing order and two briefs, which "needs two people and a line in `CHANGELOG.md`" (`.xv/picture.md:61`). The line is there (`CHANGELOG.md:7`, "Sean decided it, solo"). But the record's `decisions` is `[]`, and with shape and pitch both `no`, no order raises the two-people stop.
 
 The merge is Sean's.
 
 ## The scenario
 
-A person sees which tests stay on the wall and which leave it (#87, #89).
-
-1. After the scenario step, a new order for the person who set the work going fires only when the scenario report marks slice-only tests. It lists each one with its reason. The person accepts the marks or unmarks a test so it joins the wall. The answer is recorded. With no marks, there is no stop. The watch's stop table and the README list the new order.
-2. The guardian gets a fifth check that makes three kinds of wall recommendation, and the packet gets a section for them. The recommendations reach the person in `accept_moves`, and the record keeps which ones they accepted. Docs that said "four checks" now say five. `CHANGELOG.md` gets a line.
-
-May ignore: rewording the site, and moving slice-only tests out of the cleaner.
+1. After the scenario step, a new order for the person who set the work going fires only when the scenario marks slice-only tests. It lists each marked test with its reason. The person accepts the marks or unmarks a test so it joins the wall. No marks means no stop. The watch's stop table and the README's list the new order.
+2. The guardian has a fifth check, wall recommendations, and the packet has a section for them. The recommendations reach the person in `accept_moves`, and the record keeps which ones they accepted. The docs say "five checks".
+3. Amended: an `accept_moves` answer accepts only the recommendations it names, and records the rest as refused. `xv record unmark <id> --test <name>` takes a test off `slice_only`. A move whose assertion starts with a marked name keeps its `slice_only` flag.
 
 ## The recording
 
-None: this is a feature. Replay the red and the green with `cd tests && python3 -m unittest test_orders`. It was red at `606efa8` (8 failures, 2 errors, from the record's `checks.scenario.red_output`). It is green at HEAD `3c5362b`: I ran 34 tests, OK. After the cleaner, the whole suite was 402 tests, OK (`checks.cleaner.suite_output`).
+None: this is a feature. To replay it, run `cd tests && python3 -m unittest test_orders test_record.WallChoicesTest`. It was red at `c718f14`: 9 failures and 3 errors, `invalid choice: 'unmark'` (`checks.scenario.red_output`). At HEAD `d55c1fd` I ran it: 40 tests, OK. After the cleaner, the whole suite was 408 tests, OK (`checks.cleaner.suite_output`).
 
 ## The boundary picture
 
-From `xv boundary` (`.xv/slices/2026-10-30-test-marks.boundary.md`), as given:
-
-- Touched: `scripts/orders`, `scripts/record`.
-- No modules, edges, outbound calls, tables or surface paths added or removed.
-- Shape hints: none.
+From `.xv/slices/2026-10-30-test-marks.boundary.md`, as given: it touches `scripts/orders` and `scripts/record`. It adds or removes no module, edge, outbound call, table or surface path. Shape hints: none.
 
 ## What the suite asserts after
 
-- After the scenario step, slice-only marks raise an `originator` stop. The question names each marked test and its reason and contains "unmark". With no marks there is no stop (`tests/test_orders.py:166`, `:176`, `:179`).
-- A wall recommendation that is not accepted raises `accept_moves` for the originator, and an accepted one gives `ready_to_merge` (`:198`, `:204`).
-- `record.apply_report` keeps the guardian's `wall_recommendations`, and the field is a list field (`:209`). `docs/slice-record.md` names it (`:220`). The watch's and the README's stop tables say "slice-only" (`:224`).
-- The guardian brief has "## The five checks", no "four checks", and a fifth item naming slice-only, "should not join the wall" and "removed". The packet template has "## 5. " (`:237`, `:242`, `:249`).
-- Not asserted:
-  - That answering `accept_moves` sets `accepted` (`scripts/record.py:323-325`).
-  - Any way to unmark a test. `test_unmarking_…` (`tests/test_orders.py:179`) builds a record that already has the test missing (`self.scenario_done([b])  # the person unmarked test_file_is_ts`). It calls no unmark action.
-- Old assertions moved: one, a slice-only removal (check 3).
+- **Slice-only marks.** After the scenario step, marks raise an `originator` stop that names each test and its reason and says "unmark". No marks means no stop (`tests/test_orders.py` `test_slice_only_marks_…`, `test_no_slice_only_marks_…`, `test_unmarking_…`).
+- **Wall recommendations.** An open recommendation raises `accept_moves`. An accepted or refused one gives `ready_to_merge` (`test_a_wall_recommendation_waits…`, `test_accepted_…`, `WallChoicesTest.test_a_refused_…`). `apply_report` keeps the guardian's `wall_recommendations` (`test_the_record_keeps_…`).
+- **Answers and marks.** An answer naming one of two recommendations accepts that one and refuses the other. `unmark` takes off one mark and fails on an unmarked test. A move whose assertion starts with a marked name keeps the flag, and one for another test does not (`tests/test_record.py` `WallChoicesTest`).
+- **Docs.** The stop tables, `docs/slice-record.md`, the guardian brief (five checks) and the packet template (`## 5. `) say the new things.
+- **Not asserted:** an answer that names no test, an answer that names a test in order to refuse it, and a scenario re-run keeping earlier marks or unmarks.
 
 ## 1. Shape
 
-shape_change: no. shape_breadth: narrow, the same as the forecast's `"shape": "narrow"`.
+shape_change: no. shape_breadth: narrow, the same as the forecast (`forecast.shape: "narrow"`).
 
-- `.xv/slices/2026-10-30-test-marks.boundary.md` shows no new module, edge, outbound call, table or surface. Shape hints: none.
-- The new order is inside `orders`, which "holds the stop rules" (`.xv/picture.md:23`). Binding decision 10 also puts every standing order in `scripts/orders.py` (`.xv/picture.md:70`), and the diff respects that (`scripts/orders.py:114-120`).
-- The new record field `wall_recommendations` (`scripts/record.py:27`, `:31`) is more state in the slice file. "State is files: `.xv/slices/<id>.md`" (`.xv/picture.md:26`), so it is not a new table.
-- The changed briefs are content inside an existing surface, "`skills/*/SKILL.md`" (`.xv/picture.md:27`). No surface is added.
+- No new module, edge, table or surface (boundary picture, above). Shape hints: none.
+- The new order is in `scripts/orders.py:114-120`, where binding decision 10 puts every standing order (`.xv/picture.md:70`).
+- `wall_recommendations` (`scripts/record.py:27`, `:31`) is a new field in the slice file. "State is files" (`.xv/picture.md:26`), so it adds no table.
+- `xv record unmark` (`scripts/record.py:170-178`, `:648-652`) is a new subcommand on an existing surface, "the `xv` CLI" (`.xv/picture.md:27`). It changes nothing in the shape.
 
 ## 2. Pitch
 
-pitch_contradiction: no.
-
-- I checked the change against `.xv/pitch.md:7`: "makes it easy for a team or an individual to adopt Xtreme Vibing in a repo: to vibe with discipline". I also checked the not-for line at `.xv/pitch.md:25`.
-- The change adds a person's say over which tests join the wall. Nothing in it serves people "that will not trust agents to write production code", and it breaks no promise in the pitch.
+pitch_contradiction: no. I checked the change against `.xv/pitch.md:7` ("vibe with discipline") and the not-for line at `.xv/pitch.md:25`. The change gives a person more say over the wall and serves no one the pitch excludes.
 
 ## 3. Moved tests
 
-| File | Before | After | Why (the record) | Forced by the scenario? |
-| --- | --- | --- | --- | --- |
-| `tests/test_orders.py` (`3c5362b`, old `:249-252`) | `test_the_readme_says_five_checks_not_four`: `assertNotIn("four checks", README)`, `assertNotIn("its four findings", README)` | removed (wall: 50 → 48 assertions) | "guards a one-time wording change from four to five in the README; no value once the wording is changed" (cleaner) | Not forced. It is a slice-only removal and asserts less by design. |
+`xv wall diff 2026-10-30-test-marks` (baseline `c05e27e`): nothing changed, deleted or added, and no file has fewer assertions.
 
-- **Slice-only tests removed:** `tests/test_orders.py::test_the_readme_says_five_checks_not_four`.
-- **Kept:** none. The record's `slice_only` lists only the one test removed above (`.xv/slices/2026-10-30-test-marks.md`, `slice_only`).
-- **Never accepted by the person.** The test is in the record's `slice_only`, but the `slice_only_marks` stop never fired for it. The record's `stops` has only `budget_not_set` and `red_check`, because the maker wrote the order after the scenario step had run. Nothing now asserts the README's "five checks" wording (`README.md:23`, `:41`, `:50`).
-- **Recorded without the slice-only flag.** The cleaner gave `--assertion "test_the_readme_says_five_checks_not_four; removed"`. `cmd_move` sets `slice_only` only when the assertion equals the test name exactly (`scripts/record.py:176-179`), so the record's `moved_tests` entry has no `slice_only: true`. The `accept_moves` order will therefore count it as an ordinary old-test move (`scripts/orders.py:190`). It still goes to Sean, not to two people.
-- `xv wall diff` shows no unrecorded change: one file changed (`tests/test_orders.py`), and it is recorded (`.xv/slices/2026-10-30-test-marks.md`, `checks.cleaner.wall.unrecorded: []`).
+| File | Before | After | Why (record) | Forced? |
+| --- | --- | --- | --- | --- |
+| `tests/test_orders.py` | `test_the_readme_says_five_checks_not_four` (added by this slice at `58ac3df`) | removed at `3c5362b` | "guards a one-time wording change from four to five in the README" (cleaner) | Not forced. Sean accepted it at the last `accept_moves` (record, stop 3, `settled`). |
+
+- **Slice-only tests removed:** `test_the_readme_says_five_checks_not_four`. The `moved_tests` entry still has no `slice_only: true`, and the mark it would match is gone (finding 1). So `scripts/orders.py:190` counts it as an ordinary old-test move again.
+- **Kept:** `test_the_guardian_brief_has_five_checks` (`tests/test_orders.py:237`). The cleaner had no mark to act on, so it kept the test without giving a reason to keep it (finding 1).
+- **Wall re-based mid-slice:** the baseline moved from `28dfb65` to `58ac3df` to `c05e27e` (`.xv/slices/2026-10-30-test-marks.md`, `wall_baseline`, and its history at `606efa8` and `c718f14`). `c05e27e` is after the first pass, so the slice's own first-round tests now count as wall tests. Removing one of them now needs a recorded move.
 
 ## 4. The picture
 
 picture_change: yes. Proposed edits:
 
-- **`.xv/picture.md:23`** ("`orders` holds the stop rules"): add that after the scenario step, `slice_only_marks` stops for the originator when the scenario report lists `slice_only` tests, and that the guardian's `wall_recommendations` go to the originator through `accept_moves`.
-- **`.xv/picture.md:26`** (the state in the slice file): add that the record keeps the scenario's `slice_only` marks and the guardian's `wall_recommendations`. Each recommendation has an `accepted` flag, and today any answer to `accept_moves` sets it on all of them (`scripts/record.py:323-325`).
-- **`.xv/picture.md:16`** (the seats): no change. The new stop uses the existing `originator` seat.
+- **`.xv/picture.md:23`** ("`orders` holds the stop rules"): add that `slice_only_marks` stops for the originator after the scenario step when the record lists `slice_only` tests, and that the guardian's `wall_recommendations` go to the originator in `accept_moves`.
+- **`.xv/picture.md:26`** (state in the slice file): add that the record keeps `slice_only` and `wall_recommendations`, each with `accepted` and `refused` flags, set from the words of the `accept_moves` answer. Also add that `xv record unmark` removes a mark, and that a scenario report replaces the whole `slice_only` list.
+- **`.xv/picture.md:16`** (seats): no change. The new order uses `originator`.
 
 ## 5. The wall
 
-I looked at the 12 tests this slice added in `tests/test_orders.py:166-251` and at the record's `slice_only` list.
+I read the 17 tests this slice adds (`tests/test_orders.py:161-252`, `tests/test_record.py:916-981`) and the record's `slice_only` list.
 
-- **`tests/test_orders.py::test_the_readme_says_five_checks_not_four` stays off the wall.** It was marked slice-only and removed (`3c5362b`), and the record's reason holds: it guards a one-time wording change.
-- **`tests/test_orders.py::test_the_guardian_brief_has_five_checks` should not join the wall.** Mark it slice-only.
-  - Its `assertNotIn("four checks", text)` (`:240`) guards the same one-time four-to-five wording that the cleaner removed the README test for.
-  - Its `assertIn("## The five checks", text)` (`:239`) is restated by `test_the_fifth_check_names_the_three_recommendations`, which splits on that heading (`:243`) and fails if the heading is missing.
-- **No test on the wall before the slice should be removed.** The suite is green with the README and briefs saying "five", so no old test asserts "four checks".
+- **`tests/test_orders.py::test_the_guardian_brief_has_five_checks` should stay off the wall.** It is still there and is now in the baseline. Its `assertNotIn("four checks", text)` guards the one-time wording change. Its heading assert is repeated by `test_the_fifth_check_names_the_three_recommendations`, which splits on `## The five checks`. Sean already accepted this (record, stop 3, `settled`).
+- **No test that was on the wall before the slice should be removed.** `xv wall diff` shows no change to a pre-slice test.
+- **The six `WallChoicesTest` tests and the docs-table tests stay.** I make no recommendation for them.
+
+This run's prompt carried the four-check brief from the main checkout. This section follows the slice's own brief (`skills/guardian/SKILL.md` check 5).
 
 ## Door
 
-**Door:** two-way. A revert undoes the order, the record field and the docs. Records that already hold `wall_recommendations` keep a field the old code ignores. **Blast radius:** workflow.
+**Door:** two-way. A revert undoes the order, the subcommand, the record field and the docs. Old code ignores records that already hold `wall_recommendations`. **Blast radius:** workflow.
 
 ## Raw data
 
-- Slice record: `.xv/slices/2026-10-30-test-marks.md`
-- Diff: `git diff 5ec1d8640ff0da37a2634737f241cfd1a14821e2..3c5362b`
-- Wall: `xv wall diff 2026-10-30-test-marks` (baseline `58ac3df`)
-- Boundary: `xv boundary --base 5ec1d8640ff0da37a2634737f241cfd1a14821e2`, saved in `.xv/slices/2026-10-30-test-marks.boundary.md`
+- Slice record: `.xv/slices/2026-10-30-test-marks.md` (history: `git log -p 5ec1d86..HEAD -- .xv/slices/2026-10-30-test-marks.md`)
+- Diff: `git diff 5ec1d8640ff0da37a2634737f241cfd1a14821e2..d55c1fd`
+- Wall: `xv wall diff 2026-10-30-test-marks` (baseline `c05e27e`)
+- Boundary: `.xv/slices/2026-10-30-test-marks.boundary.md`
+
+## From the cleaner
+
+- Shape proposal, for people: A shared helper for matching a test name inside a string, now written twice in scripts/record.py (cmd_move and cmd_answer) with slightly different regexes; it would be a new concept, so left for the packet.
