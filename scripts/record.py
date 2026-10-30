@@ -336,12 +336,19 @@ def cmd_answer(a):
     if stop["order"] == "accept_moves":
         recs = data.get("wall_recommendations") or []
         known = {r.get("test") for r in recs}
-        for t in a.accept_wall or []:
-            if t not in known:
-                raise XVError(f"--accept-wall {t}: no wall recommendation names that test")
+        for flag, names in (("--accept-wall", a.accept_wall), ("--refuse-wall", a.refuse_wall)):
+            for t in names or []:
+                if t not in known:
+                    raise XVError(f"{flag} {t}: no wall recommendation names that test")
+        stop["accepted_wall"] = list(a.accept_wall or [])
+        stop["refused_wall"] = list(a.refuse_wall or [])
         for r in recs:
-            r["accepted"] = r.get("test") in (a.accept_wall or [])
-            if not r["accepted"]:
+            test = r.get("test")
+            r["accepted"] = test in stop["accepted_wall"] or (
+                bool(r.get("accepted")) and test not in stop["refused_wall"])
+            if r["accepted"]:
+                r.pop("refused", None)
+            else:
                 r["refused"] = True
     data["status"] = "working" if a.resume else data["status"]
     if a.next:
@@ -696,6 +703,8 @@ def main(argv=None):
     s.add_argument("--bundle", help="comma-separated orders the same reply answered")
     s.add_argument("--accept-wall", dest="accept_wall", action="append", metavar="TEST",
                    help="accept the wall recommendation for this test; repeat per test")
+    s.add_argument("--refuse-wall", dest="refuse_wall", action="append", metavar="TEST",
+                   help="refuse the wall recommendation for this test; repeat per test")
     s.set_defaults(fn=cmd_answer)
 
     s = sub.add_parser("report", help="apply a worker's xv-report block")
