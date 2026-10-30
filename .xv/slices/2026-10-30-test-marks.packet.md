@@ -9,104 +9,91 @@ door: two-way
 blast_radius: workflow
 ---
 
-# Packet: A person sees which tests stay on the wall and which leave it (fourth pass)
+# Packet: A person sees which tests stay on the wall and which leave it (fifth pass)
 
-Nothing here needs two people; the merge is Sean's. The third amendment is half met. Sean has two findings to decide:
+Nothing here needs two people; the merge is Sean's. The last two amendments are met: findings A and B from the fourth pass are fixed and tested. What is left for Sean:
 
-1. **A later `accept_moves` answer refuses what was accepted earlier.** A guardian re-run now keeps an acceptance, but the next answer without the flag turns it into a refusal (§3, finding A).
-2. **The accepted names are not kept on the stop.** Amendment 3, item 2 asks for this, and the code does not do it. An accepted recommendation that a later guardian report leaves out is lost from the record (§3, finding B).
-
-The other findings are small (C to F).
+1. **None of this has run live yet.** No `slice_only_marks` stop and no wall recommendation is in this slice's record, so the first green run below is still owed (§ The recording).
+2. **A guardian report can still mark a recommendation `refused`** (finding C, carried over). It is the last place an agent can answer for the person.
+3. Small items: D to H.
 
 ## The scenario
 
-There are two parts (#87, #89). (1) After the scenario step, `slice_only_marks` stops for the originator whenever slice-only marks exist. It lists each mark with its reason; the person accepts the marks or unmarks a test. A slice with no marks adds no stop. The stop tables list the order. (2) The guardian brief gets a fifth check, the wall, and the packet a fifth section. The recommendations reach the originator in `accept_moves`, and the record keeps which ones they accepted. "Four checks" becomes five wherever it appears.
-
-Amendments: (1) acceptance is per recommendation; `xv record unmark`; a move whose assertion starts with a marked name keeps `slice_only`. (2) `--accept-wall <test>`, and the words are never read; the guardian-brief test is in `slice_only` at merge; a merge answer is recorded as a decision. (3) Only `--accept-wall` accepts, and the guardian's report never does. The accepted names are kept on the stop and survive a guardian re-run. The scenario report marks `test_the_guardian_brief_has_five_checks` (`.xv/slices/2026-10-30-test-marks.md:59-63`). May ignore: rewording the site, and moving slice-only tests out of the cleaner.
+There are two parts (#87, #89). (1) After the scenario step, `slice_only_marks` stops for the originator whenever slice-only marks exist. The person accepts the marks or runs `xv record unmark`. (2) The guardian brief gets a fifth check, the wall. Its recommendations reach the originator in `accept_moves`, and the record keeps which ones the person accepted. The amendments say: acceptance is per test, by `--accept-wall` only, and the answer's words are never read. An acceptance survives a guardian re-run and later answers unless `--refuse-wall` names the test. Each answered stop keeps `accepted_wall` and `refused_wall`. A `ready_to_merge` answer is recorded as a decision (`.xv/slices/2026-10-30-test-marks.md:36-82`). May ignore: rewording the site, and moving slice-only tests out of the cleaner.
 
 ## The recording
 
-None; this is a feature. Replay the red with `cd tests && python3 -m unittest test_orders test_record`. Before the maker's fourth pass it failed on `test_a_guardian_rerun_keeps_what_the_person_accepted_with_the_flag` (record `red.failure`). I ran the whole suite (`cd tests && python3 -m unittest -q`) at HEAD `36a13e0`: `Ran 419 tests in 97.445s`, `OK`.
+None; this is a feature. Replay the red with `python3 -m unittest tests.test_record tests.test_orders`. I ran the whole suite at HEAD `355e8f6` (`cd tests && python3 -m unittest -q`): `Ran 431 tests in 99.564s`, `OK`.
 
-**First green run still owed.** No `slice_only_marks` stop is in the record. Yet `slice_only` has held a mark since the scenario report at 02:28:44 (`.xv/slices/2026-10-30-test-marks.md:16`, `:23`), so the watch driving this slice was not running the new order. Nobody has watched it live yet.
+**First green run still owed.** `slice_only` has held a mark since 02:28 (`.xv/slices/2026-10-30-test-marks.md:16`). Yet `stops` has no `slice_only_marks` entry, and the record has no `wall_recommendations` field at all (`:15-23`). The watch running this slice is the old one. Before merging: answer an `accept_moves` stop with `--accept-wall X`, then answer a later stop with `--refuse-wall X`. The later stop should show `refused_wall: ["X"]`, and the earlier stop should keep `accepted_wall: ["X"]`.
 
 ## The boundary picture
 
-From `.xv/slices/2026-10-30-test-marks.boundary.md`, as given: it touches `scripts/orders` and `scripts/record`. It adds and removes no modules, edges, tables, surface paths or outbound calls. Shape hints: none.
+As given in `.xv/slices/2026-10-30-test-marks.boundary.md`: it touches `scripts/orders` and `scripts/record`. It adds no modules, edges, tables, surfaces or outbound calls. Shape hints: none (`:5-7`).
 
 ## What the suite asserts after
 
-- `slice_only_marks` fires after the scenario step when there are marks, listing each test and reason. It does not fire when there are none (`tests/test_orders.py`, the `SliceOnlyMarks` tests).
-- An unaccepted wall recommendation fires `accept_moves`. The docs and stop tables name the new order, and the brief and packet template have a fifth check or section.
-- `xv record unmark` removes one mark. A prefix-matched move keeps `slice_only`.
-- `--accept-wall` accepts only the tests it names and refuses the rest, the answer's words are never read, and an unknown name is refused (`tests/test_record.py:1008-1049`).
-- New this pass: a guardian report cannot set `accepted`. A guardian re-run keeps what the person accepted and cannot accept anything new (`tests/test_record.py:1059-1081`).
-- A scenario re-run keeps earlier marks. A `ready_to_merge` answer writes a decision.
-- No test that existed at the base changed: `git diff 5ec1d86..HEAD --stat -- tests` shows 291 insertions and 0 deletions.
+- `slice_only_marks` fires after the scenario step when there are marks, and not when there are none. `xv record unmark` removes one mark. A scenario re-run keeps the marks already in the record.
+- An unanswered wall recommendation fires `accept_moves`. `--accept-wall` accepts only the tests it names, the words are never read, and an unknown name is refused. A guardian report cannot set `accepted`, and a guardian re-run keeps what the person accepted.
+- New this pass (`tests/test_record.py:1087-1190`): a later answer with no flag, or with a different flag, keeps an earlier acceptance. `--refuse-wall` refuses an earlier acceptance and leaves the others alone. The words never refuse. Each answered `accept_moves` stop keeps `accepted_wall` and `refused_wall`, which are empty lists when no flag was given, and an earlier stop keeps its own lists.
+- This pass removed no test line: `git diff 36a13e0..HEAD -- tests` adds 107 lines and removes none.
 
 ## 1. Shape
 
-shape_change: no. shape_breadth: narrow, the same as the forecast (`"shape": "narrow"`, `.xv/slices/2026-10-30-test-marks.md:11`).
+shape_change: no. shape_breadth: narrow, the same as the forecast (`.xv/slices/2026-10-30-test-marks.md:11`, `"shape": "narrow"`).
 
-- The boundary picture has no added modules, edges, tables, surfaces or outbound calls, and no shape hints (`.xv/slices/2026-10-30-test-marks.boundary.md:7`, "Shape hints: none").
-- The new order is in `scripts/orders.py:114-120`, where the standing orders live (`.xv/picture.md:70`). `wall_recommendations`, `unmark` and `--accept-wall` are in `scripts/record.py`, which "owns the slice record" (`.xv/picture.md:23`).
-- The new flag and subcommand extend the `xv` CLI, which is already a surface (`.xv/picture.md:27`). They do not add a new one.
+- The boundary picture shows no new module, edge, table or surface, and no shape hints (`.xv/slices/2026-10-30-test-marks.boundary.md:7`).
+- The new order sits in `scripts/orders.py:114-120`. That is where the standing orders live (`.xv/picture.md:70`).
+- `--refuse-wall`, the per-stop lists and `unmark` are in `scripts/record.py:171` and `:336-352`. `record` "owns the slice record" (`.xv/picture.md:23`).
+- The new flags extend the `xv` CLI, which is already a surface (`.xv/picture.md:27`).
 
 ## 2. Pitch
 
-pitch_contradiction: no. I checked against `.xv/pitch.md:7` ("to vibe with discipline"), `:21` (who uses it) and `:25` ("not for people or projects that will not trust agents to write production code"). Giving a person a say over which tests join the wall goes against no line of the pitch.
+pitch_contradiction: no. I checked `.xv/pitch.md:7` ("to vibe with discipline"), `:21` (who uses it) and `:25` ("not for people or projects that will not trust agents to write production code"). Letting a person accept or refuse wall changes by name goes against none of them.
 
 ## 3. Moved tests
 
-No test that existed at the base `5ec1d86` changed. All three recorded moves are on tests born in this slice. `xv wall diff` measures against the baseline retaken at `cfe5d0e`, and shows `tests/test_orders.py` going from 48 to 46 assertions.
+No test that existed at the base `5ec1d86` changed. `xv wall diff` measures against the baseline `f5528b6` and reports nothing changed, deleted or with fewer assertions. All three recorded moves are on tests born in this slice:
 
-| File | Before | After | Why (the record) | Forced by the scenario? |
-| --- | --- | --- | --- | --- |
-| tests/test_orders.py | `test_the_readme_says_five_checks_not_four` | removed by the cleaner | "guards a one-time wording change" | Sean accepted it at the first `accept_moves` (`.xv/slices/2026-10-30-test-marks.md:43`). |
-| tests/test_record.py | `test_an_answer_that_names_one_recommendation_accepts_only_that_one`: the words accept one | removed by the maker | "the answer's words are never read" | Yes: `.xv/slices/2026-10-30-test-marks.md:53`. `AcceptWallFlagTest` now covers it. The record lists this move twice, at 02:06:23 and 02:08:07 (`:15`). |
-| tests/test_orders.py | `test_the_guardian_brief_has_five_checks`: asserts `## The five checks` and no "four checks" | removed by the cleaner, 48 → 46 assertions | "accepted as slice-only" | Yes: Sean accepted the mark (`:43`, `:63`). The heading is still asserted indirectly by `test_the_fifth_check_names_the_three_recommendations`, which splits on it. |
+| File | Before → after | Why (the record) | Forced? |
+| --- | --- | --- | --- |
+| tests/test_orders.py | `test_the_readme_says_five_checks_not_four` → removed (cleaner) | "a one-time wording change" | Sean accepted it (`.xv/slices/2026-10-30-test-marks.md:43`) |
+| tests/test_record.py | `test_an_answer_that_names_one_recommendation_accepts_only_that_one` (the words accept one) → removed (maker) | "the answer's words are never read" | Yes, `:53`; `AcceptWallFlagTest` covers the flag |
+| tests/test_orders.py | `test_the_guardian_brief_has_five_checks` → removed (cleaner) | "accepted as slice-only" | Yes, `:43`, `:63` |
 
 Slice-only tests removed: `tests/test_orders.py::test_the_guardian_brief_has_five_checks`. Kept: none.
 
-**Finding A: a later `accept_moves` answer turns an earlier acceptance into a refusal.** In `scripts/record.py:342-345`, every answer rewrites every recommendation:
+**Finding C (carried): a guardian report can still set `refused`.** In `scripts/record.py:453`, the guardian re-run builds each item as `[{**r, "accepted": r.get("test") in kept} ...]`. That copies every key from the agent's report and overrides only `accepted`. A report item that carries `"refused": true` lands in the record. Then `scripts/orders.py:192` (`if not r.get("accepted") and not r.get("refused")`) never puts it to the person. The record shows a refusal nobody gave. This goes against `.xv/picture.md:72`: "Read-only agents are checked, not trusted."
 
-```python
-        for r in recs:
-            r["accepted"] = r.get("test") in (a.accept_wall or [])
-            if not r["accepted"]:
-                r["refused"] = True
-```
+**Finding D (carried): the record's moves are off.** The cleaner's slice-only move at 02:38:15 has no `slice_only: true` (`.xv/slices/2026-10-30-test-marks.md:15`), even though the test is in `slice_only` (`:16`). So `scripts/orders.py:190` counts it as an old moved test and puts it to Sean as one. The maker's move is also recorded twice, at 02:06:23 and 02:08:07 (`:15`).
 
-`accept_moves` also fires on moved tests or a picture change alone (`scripts/orders.py:193`), and this slice has fired it three times that way. Suppose Sean passes `--accept-wall test_keep_me` once. The guardian re-run keeps it (`scripts/record.py:445-446`). Then Sean answers the next `accept_moves` with just `B: 1`. Now `test_keep_me` has `accepted: false, refused: true`. Amendment 3 says the accepted names "are kept" (`.xv/slices/2026-10-30-test-marks.md:62`), and the scenario says "the record keeps which ones the person accepted" (`:37`). No test covers a second answer.
+**Finding E (new): the wall flags work on `accept_moves` stops only, and anywhere else they are silently dropped.** The lists and the validation sit under `if stop["order"] == "accept_moves":` (`scripts/record.py:336`). Pass `--accept-wall X` on any other stop and nothing is checked or recorded. The amendment reads "Each answered stop keeps two lists" (`.xv/slices/2026-10-30-test-marks.md:82`), but other stops get no lists. Sean decides whether "each answered stop" meant each `accept_moves` stop.
 
-**Finding B: the `--accept-wall` names are not kept on the stop.** Amendment 3, item 2: "The names accepted with `--accept-wall` are kept on the stop" (`:62`). `cmd_answer` writes `answered_by`, `answer`, `answered_at`, `pick`, `settled`, `new_info`, `cause`, `why` and `bundle` onto the stop (`scripts/record.py:322-328`). It never writes `a.accept_wall`. The only place an acceptance lives is the recommendation item. A guardian re-run rebuilds that list from its own report alone (`scripts/record.py:446-447`). So if the new report leaves out a recommendation the person accepted, the acceptance is gone from the record.
-
-**Finding C: a guardian report can still set `refused`.** `{**r, "accepted": ...}` at `scripts/record.py:446` copies every key from the report and overrides only `accepted`. A report that carries `"refused": true` therefore lands in the record. `scripts/orders.py:192` then never puts that item to the person, and the record shows it as refused by someone who never saw it. That goes against `.xv/picture.md:72`: "Read-only agents are checked, not trusted." Separately, `scripts/record.py:343-345` never clears `refused`, so an item refused once and accepted later carries both flags.
-
-**Finding D: the record's moves are off.** The cleaner's slice-only move at 02:38:15 has no `slice_only: true` (`.xv/slices/2026-10-30-test-marks.md:15`), even though the test is in `slice_only` (`:16`) and the assertion starts with its name (`scripts/record.py:188-192`). So `scripts/orders.py:190` counts it as an old moved test and puts it to Sean as one. The maker's move is also recorded twice (`:15`). I cannot tell from the record whether the cleaner passed `--slice-only`.
-
-**Carried from the third pass, unchanged:**
-
-- **E.** `"who": ",".join(who)` (`scripts/record.py:353`) changes `who` from a list to a string for every decision entry, while `docs/slice-record.md:31` and older records use a list.
-- **F.** `slice_only_marks` asks again about marks the person has already accepted, after every scenario re-run (`scripts/orders.py:114-120`). Its question says "the scenario agent marked" even for marks that a person added.
+**Finding F (new): naming a test with both flags accepts it.** `r["accepted"] = test in stop["accepted_wall"] or (...)` (`scripts/record.py:347-348`) lets accept win, and the stop records the name in both lists. Nothing refuses the contradiction.
 
 ## 4. The picture
 
-- `.xv/picture.md:23` names what `record` and `orders` own, but not the two choices this slice adds. Proposed addition: "After the scenario step, `slice_only_marks` lists slice-only marks for the originator, who accepts them or runs `xv record unmark`; marks survive a scenario re-run. The guardian's `wall_recommendations` go to the originator in `accept_moves`; only `xv record answer --accept-wall <test>` accepts one, every other is recorded as refused, and a guardian re-run keeps what was accepted."
-- `.xv/picture.md:26` ends "A decision file and its `decisions` entry keep `settled` with the person's words." Proposed addition: "An answer to `ready_to_merge` also writes a decision." Add "and `who` is a comma-joined string" only if Sean keeps finding E as built.
-- `.xv/picture.md:23` "`boundary`, `packet` and `check` are the guardian's checks" stays true. The picture never counted the checks.
+- `.xv/picture.md:23` names what `record` and `orders` own, but not the choices this slice adds. Proposed addition: "After the scenario step, `slice_only_marks` lists slice-only marks for the originator, who accepts them or runs `xv record unmark`; marks survive a scenario re-run. The guardian's `wall_recommendations` go to the originator in `accept_moves`. Only `xv record answer --accept-wall <test>` accepts one, and only `--refuse-wall <test>` takes back an earlier acceptance. Each answered `accept_moves` stop keeps `accepted_wall` and `refused_wall`."
+- `.xv/picture.md:26` ends "A decision file and its `decisions` entry keep `settled` with the person's words." Proposed addition: "An answer to `ready_to_merge` also writes a decision."
+
+**Finding G (doc, not the picture):** `docs/slice-record.md:30` gives the stop shape without `accepted_wall` or `refused_wall`. `:31` says decisions are written "when two people decided", which is no longer the only case (`scripts/record.py:356`).
+
+**Finding H (carried):**
+
+- `"who": ",".join(who)` (`scripts/record.py:360`) turns `who` from a list into a string in every decision entry. `docs/slice-record.md:31` and older records use a list.
+- `slice_only_marks` asks again about marks already accepted, after every scenario re-run (`scripts/orders.py:114-120`).
 
 ## Door
 
-**Door:** two-way. The change adds a record field, a flag, a subcommand and doc wording, and a revert undoes all of it. One leftover: decision entries written with a string `who` stay in the records. **Blast radius:** workflow.
+**Door:** two-way. The change adds a record field, two flags, a subcommand and doc wording, and a revert undoes all of it. Decision entries already written with a string `who` stay in the records. **Blast radius:** workflow.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-10-30-test-marks.md`
-- Diff: `git diff 5ec1d8640ff0da37a2634737f241cfd1a14821e2..36a13e0`. This pass alone: `git diff cfe5d0e..36a13e0`.
-- Wall: `xv wall diff 2026-10-30-test-marks` (baseline `cfe5d0e`, retaken mid-slice)
+- Diff: `git diff 5ec1d8640ff0da37a2634737f241cfd1a14821e2..355e8f6`; this pass alone: `git diff 36a13e0..355e8f6 -- scripts tests`
+- Wall: `xv wall diff 2026-10-30-test-marks` (baseline `f5528b6`)
 - Boundary: `.xv/slices/2026-10-30-test-marks.boundary.md`
-- From the cleaner (a shape proposal, for people): a shared helper for matching a test name inside a string. `scripts/record.py` does that matching in two places: `cmd_move` (`:188-190`, regex prefix) and `cmd_answer` (`:338-343`, set lookup).
+- From the cleaner (a shape proposal, for people): a shared helper for matching a test name inside a string. `scripts/record.py` matches names in `cmd_move` (regex prefix) and in `cmd_answer` and `apply_report` (set lookup).
 
 ## From the cleaner
 
