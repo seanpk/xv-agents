@@ -498,5 +498,77 @@ class RedFailsAfterTheMakerTest(RepoCase):
         self.assertIn("SETUP-BOOM", fired["setup_failed"]["question"])
 
 
+class AcceptedShapeChangeTest(WatchLoopTest):
+    """shape_change: accepted counts only when the packet's accepted_by names a decision record
+    on this slice that answered a shape_or_pitch stop; otherwise it is read as yes."""
+
+    def decide(self, order="shape_or_pitch", listed=True):
+        import record
+        path, data, body = record.load(self.wt, "s1")
+        rel = record.write_decision(self.wt, "s1", ["pat"], {"order": order, "question": "Shape?"}, "Accepted.")
+        if listed:
+            data["decisions"].append({"date": "2026-10-30", "who": ["pat"], "decision": "Accepted.", "record": rel})
+            record.save(path, data, body)
+        sh(["git", "add", "-A"], self.wt)
+        sh(["git", "commit", "-qm", "a decision"], self.wt)
+        return rel
+
+    def run_with_packet(self, shape, accepted_by=None):
+        os.environ["FAKE_SHAPE_CHANGE"] = shape
+        if accepted_by:
+            os.environ["FAKE_PACKET_EXTRA"] = f"accepted_by: {accepted_by}\n"
+        try:
+            p = self.xv("run", "s1", cwd=self.wt, check=False)
+        finally:
+            os.environ.pop("FAKE_SHAPE_CHANGE", None)
+            os.environ.pop("FAKE_PACKET_EXTRA", None)
+        return self.record(), json.loads(p.stdout)["stop"]["order"]
+
+    def test_accepted_with_a_listed_shape_or_pitch_decision_is_kept_and_does_not_stop(self):
+        rel = self.decide()
+        data, order = self.run_with_packet("accepted", rel)
+        self.assertEqual(data["shape_change"], "accepted")
+        self.assertEqual(order, "ready_to_merge")
+
+    def test_accepted_without_accepted_by_is_read_as_yes(self):
+        self.decide()
+        data, order = self.run_with_packet("accepted")
+        self.assertEqual(data["shape_change"], "yes")
+        self.assertEqual(order, "shape_or_pitch")
+
+    def test_accepted_by_a_file_not_in_the_slice_decisions_is_read_as_yes(self):
+        rel = self.decide(listed=False)
+        data, order = self.run_with_packet("accepted", rel)
+        self.assertEqual(data["shape_change"], "yes")
+        self.assertEqual(order, "shape_or_pitch")
+
+    def test_accepted_by_a_missing_file_is_read_as_yes(self):
+        self.decide()
+        data, order = self.run_with_packet("accepted", ".xv/decisions/no-such-record.md")
+        self.assertEqual(data["shape_change"], "yes")
+        self.assertEqual(order, "shape_or_pitch")
+
+    def test_accepted_by_a_decision_of_another_order_is_read_as_yes(self):
+        rel = self.decide(order="accept_moves")
+        data, order = self.run_with_packet("accepted", rel)
+        self.assertEqual(data["shape_change"], "yes")
+        self.assertEqual(order, "shape_or_pitch")
+
+    def test_xv_guard_with_no_slice_record_reads_accepted_as_yes(self):
+        rel = self.decide()
+        sh(["git", "checkout", "-q", "-b", "pr"], self.repo)
+        with open(os.path.join(self.repo, "change.txt"), "w") as f:
+            f.write("a change\n")
+        sh(["git", "add", "-A"], self.repo)
+        sh(["git", "commit", "-qm", "a change"], self.repo)
+        os.environ["FAKE_SHAPE_CHANGE"] = "accepted"
+        os.environ["FAKE_PACKET_EXTRA"] = f"accepted_by: {rel}\n"
+        try:
+            p = self.xv("guard", "--base", "main", cwd=self.repo, check=False)
+        finally:
+            del os.environ["FAKE_SHAPE_CHANGE"], os.environ["FAKE_PACKET_EXTRA"]
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "shape_or_pitch", p.stdout + p.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

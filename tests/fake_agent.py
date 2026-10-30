@@ -69,10 +69,12 @@ elif title.startswith("# The maker") and "prototype" not in title:
 elif title.startswith("# The cleaner"):
     report(agent="cleaner", status="done", summary="nothing to fix", commit=None, applied=[])
 elif title.startswith("# The guardian"):
-    with open(f".xv/slices/{sid}.packet.md", "w") as f:
-        f.write("---\nslice: %s\nshape_change: no\npitch_contradiction: no\npicture_change: no\n"
-                "shape_breadth: none\nmoved_tests: 0\ndoor: two-way\n---\n\n# Packet\n\n"
-                "## 1. Shape\n\n- None: one comparison in pantry/store.py:47.\n" % sid)
+    packet_path = ".xv/slices/pr-packet.md" if sid == "pr-packet" else f".xv/slices/{sid}.packet.md"
+    with open(packet_path, "w") as f:
+        f.write("---\nslice: %s\nshape_change: %s\npitch_contradiction: no\npicture_change: no\n"
+                "shape_breadth: none\nmoved_tests: 0\ndoor: two-way\n%s---\n\n# Packet\n\n"
+                "## 1. Shape\n\n- None: one comparison in pantry/store.py:47.\n"
+                % (sid, os.environ.get("FAKE_SHAPE_CHANGE", "no"), os.environ.get("FAKE_PACKET_EXTRA", "")))
     report(agent="guardian", status="done", summary="no stop", packet=f".xv/slices/{sid}.packet.md",
            shape_change="no", pitch_contradiction="no")
 elif not title.startswith("# The maker, with a prototype brief"):
