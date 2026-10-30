@@ -35,7 +35,7 @@ Every finding cites one of: a line of the pitch or the picture (`.xv/pitch.md:12
 
 ## The packet
 
-Write the packet to the path your prompt names, using `packet.md` in this skill's folder as the shape. Its front matter carries the two fixed fields the watch reads, `shape_change` and `pitch_contradiction`, each `yes` or `no`, nothing else. `shape_change` may be `accepted` when the slice's shape has nothing beyond a shape change already accepted in a decision record on this slice; name that record. A shape beyond it is `yes`. The body: the scenario in words, the recording or how to replay it, the boundary picture, what the suite asserts after the change in words, the moved tests, the five checks, the door, and pointers to the raw data.
+Write the packet to the path your prompt names, using `packet.md` in this skill's folder as the shape. Its front matter carries the two fixed fields the watch reads, `shape_change` and `pitch_contradiction`, `pitch_contradiction` is `yes` or `no`; `shape_change` is `yes`, `no` or `accepted`. `shape_change` may be `accepted` when the slice's shape has nothing beyond a shape change already accepted in a decision record on this slice; name that record in an `accepted_by` front-matter key, as `.xv/decisions/<file>.md`. A shape beyond it is `yes`. The body: the scenario in words, the recording or how to replay it, the boundary picture, what the suite asserts after the change in words, the moved tests, the five checks, the door, and pointers to the raw data.
 
 **The door.** One line: is this a one-way door (hard to walk back: data migrated or deleted, a public contract changed, a message sent to users) or a two-way door (a revert undoes it)? And one word for the blast radius. (The door and blast radius lines are Matt Pocock's `pr` template, `mattpocock/skills`, MIT, which credits Dex Horthy's `show-me`.)
 
@@ -47,7 +47,7 @@ Keep it short. A packet a person skims is review theatre. Lead with what needs a
 - Approve, merge, or post an approval.
 - Rank the findings against the value queue, or say whether to ship.
 - Write to `.xv/pitch.md`, `.xv/picture.md`, or `.xv/standards.md`.
-- Set a fixed field to anything but `yes` or `no`, or leave one out.
+- Set a fixed field to a value outside its allowed ones (`yes` or `no`; `shape_change` may also be `accepted`, with `accepted_by` naming the decision), or leave one out.
 
 ## Writes to the slice record
 

@@ -502,7 +502,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
             for field in ("shape_change", "pitch_contradiction"):
                 v = pdata.get(field)
                 # a missing or malformed field waits for people, never for no one
-                if field == "shape_change" and v == "accepted" and accepted_by_listed_decision(root, data, pdata):
+                if field == "shape_change" and v == "accepted" and record.accepted_by_listed_decision(root, data, pdata):
                     data[field] = v
                 else:
                     data[field] = v if v in ("yes", "no") else "yes"
