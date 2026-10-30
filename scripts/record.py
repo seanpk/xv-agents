@@ -442,7 +442,8 @@ def apply_report(data, body, agent, text):
                            for n in report["slice_only"])]
         data["slice_only"] = kept + report["slice_only"]
     if agent == "guardian" and isinstance(report.get("wall_recommendations"), list):
-        data["wall_recommendations"] = [{**r, "accepted": bool(r.get("accepted"))}
+        kept = {r.get("test") for r in data.get("wall_recommendations") or [] if r.get("accepted")}
+        data["wall_recommendations"] = [{**r, "accepted": r.get("test") in kept}
                                         for r in report["wall_recommendations"] if isinstance(r, dict)]
     if agent == "forecaster" and report.get("forecast") and not data.get("forecast"):
         data["forecast"] = report["forecast"]
