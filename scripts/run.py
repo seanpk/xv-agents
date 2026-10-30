@@ -591,6 +591,8 @@ def covers_name_found(name, files):
         if module:
             files = {f: t for f, t in files.items()
                      if ("." + f.removesuffix(".py").replace("/", ".")).endswith("." + module)}
+    if not test.strip():
+        return False
     whole = re.compile(r"(?<!\w)" + re.escape(test) + r"(?!\w)")
     for t in files.values():
         if not whole.search(t):
