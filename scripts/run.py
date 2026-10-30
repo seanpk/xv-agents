@@ -398,17 +398,12 @@ def step(agent, slice_id, review_again=False):
         data["status"] = "ready" if st["order"] == "ready_to_merge" else "stopped"
         body = record.log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
         record.save(path, data, body)
-    elif agent == "scenario" and checks.get("missed_points"):
-        body = record.send_back(data, body, agent, "red_misses_point", checks["missed_points"],
-                                "these points are in neither covers nor not_covered: " + "; ".join(checks["missed_points"]),
-                                "scenario")
-        record.save(path, data, body)
-    elif agent == "guardian" and checks.get("misses"):
-        found = checks["misses"]
-        body = record.send_back(data, body, agent, "scenario_miss", sorted({m["ref"] for m in found}),
-                                "; ".join(m["text"] for m in found),
-                                "scenario" if any(m["to"] == "scenario" for m in found) else "maker")
-        record.save(path, data, body)
+    else:
+        for f in v["fired"]:
+            if f.get("send_back"):
+                body = record.send_back(data, body, agent, f["order"], f["send_back"]["misses"],
+                                        f["question"], f["send_back"]["to"])
+                record.save(path, data, body)
     commit_step(agent, root, slice_id, checks)
     v["record"] = os.path.relpath(path, root)
     v["worktree"] = root

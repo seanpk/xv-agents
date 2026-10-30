@@ -533,13 +533,13 @@ def cmd_packet(a):
     found = packetlib.misses(read_doc(a.file)[1]) if pdata.get("scenario_miss") == "yes" else []
     data["scenario_miss"] = "yes" if found else "no"
     checks = data.setdefault("checks", {}).setdefault("guardian", {})
-    checks["miss_amend"] = any(m["amend"] for m in found)
-    checks["miss_repeat"] = sorted({m["ref"] for m in found} & sent_back(data, "scenario_miss"))
-    if found and not checks["miss_amend"] and not checks["miss_repeat"] \
-            and data["shape_change"] != "yes" and data.get("pitch_contradiction") != "yes":
-        body = send_back(data, body, "guardian", "scenario_miss", sorted({m["ref"] for m in found}),
-                         "; ".join(m["text"] for m in found),
-                         "scenario" if any(m["to"] == "scenario" for m in found) else "maker")
+    import orders
+    checks["misses"] = found
+    checks["miss_repeat"] = sorted({m["ref"] for m in found} & orders.sent_back(data, "scenario_miss", None))
+    for f in orders.evaluate(data, "guardian", load_config(slice_root(path))):
+        if f.get("send_back"):
+            body = send_back(data, body, "guardian", f["order"], f["send_back"]["misses"],
+                             f["question"], f["send_back"]["to"])
     save(path, data, body)
 
 
