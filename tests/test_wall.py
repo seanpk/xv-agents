@@ -212,5 +212,38 @@ class WallRedFileTest(RepoCase):
         self.assertEqual((p.returncode, res["unrecorded"], res["tests_moved"]), (0, [], []))
 
 
+class RedGapsTest(unittest.TestCase):
+    """wall.red_gaps(scenario, red_texts): the flags and `xv` commands in backticks that no red file has."""
+
+    def gaps(self, scenario, *reds):
+        import wall
+        return wall.red_gaps(scenario, list(reds))
+
+    def test_a_flag_in_backticks_that_no_red_file_has_is_listed(self):
+        self.assertEqual(self.gaps("Takes `--since <date>`.", "run(['--until', 'x'])"), ["--since"])
+
+    def test_a_flag_one_of_the_red_files_has_is_not_listed(self):
+        self.assertEqual(self.gaps("Takes `--since <date>`.", "nothing", "xv('--since', d)"), [])
+
+    def test_a_flag_in_plain_words_is_not_read(self):
+        self.assertEqual(self.gaps("Takes a --since flag.", ""), [])
+
+    def test_a_command_is_covered_when_its_words_are_together_in_order(self):
+        scenario = "Run `xv record answer` and `xv slice amend`."
+        self.assertEqual(self.gaps(scenario, "self.xv('record', 'answer')", "run xv slice amend"), [])
+
+    def test_a_command_whose_words_are_apart_is_listed(self):
+        scenario = "Run `xv record answer`."
+        self.assertEqual(self.gaps(scenario, "xv('record', 'show')\nxv('slice', 'answer')"), ["xv record answer"])
+
+    def test_a_command_whose_words_are_out_of_order_is_listed(self):
+        self.assertEqual(self.gaps("Run `xv record answer`.", "('answer', 'record')"), ["xv record answer"])
+
+    def test_on_the_first_red_of_stop_decisions_it_lists_since_and_on_the_final_red_nothing(self):
+        from test_check import red_texts, stop_decisions_scenario
+        self.assertIn("--since", self.gaps(stop_decisions_scenario(), *red_texts("first")))
+        self.assertEqual(self.gaps(stop_decisions_scenario(), *red_texts("final")), [])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -234,6 +234,55 @@ class WatchLoopTest(RepoCase):
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
+    def test_a_record_with_no_scenario_heading_stops_before_the_maker(self):
+        path = os.path.join(self.wt, ".xv", "slices", "s1.md")
+        with open(path) as f:
+            text = f.read()
+        self.assertIn("## Scenario", text)
+        with open(path, "w") as f:
+            f.write(text.replace("## Scenario", "## Story"))
+        self.assert_stopped_before_the_maker(self.scenario_with_env(), "Scenario")
+
+    def test_a_report_with_no_not_covered_stops_before_the_maker(self):
+        p = self.scenario_with_env(FAKE_REPORT_DROP="not_covered")
+        self.assert_stopped_before_the_maker(p, "not_covered")
+
+    def test_a_not_covered_that_is_not_a_list_stops_before_the_maker(self):
+        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"not_covered": "nothing"}')
+        self.assert_stopped_before_the_maker(p, "not_covered")
+
+    def test_a_report_with_no_covers_stops_before_the_maker(self):
+        p = self.scenario_with_env(FAKE_REPORT_DROP="covers")
+        self.assert_stopped_before_the_maker(p, "covers")
+
+    def test_a_covers_that_is_not_a_list_stops_before_the_maker(self):
+        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covers": "everything"}')
+        self.assert_stopped_before_the_maker(p, "covers")
+
+    def test_a_covers_item_that_names_no_test_stops_before_the_maker(self):
+        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covers": [{"item": "milk today"}]}')
+        self.assert_stopped_before_the_maker(p, "covers")
+
+    def test_an_empty_covers_stops_before_the_maker(self):
+        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covers": []}')
+        self.assert_stopped_before_the_maker(p, "covers")
+
+    def test_a_command_whose_words_are_apart_in_the_red_stops_before_the_maker(self):
+        self.amend("A person runs `xv slice amend`.")
+        p = self.scenario_with_env(FAKE_RED_TEXT="slice a list of other things, then amend")
+        self.assert_stopped_before_the_maker(p, "xv slice amend")
+
+    def test_a_command_whose_words_are_out_of_order_in_the_red_stops_before_the_maker(self):
+        self.amend("A person runs `xv slice amend`.")
+        p = self.scenario_with_env(FAKE_RED_TEXT="amend slice")
+        self.assert_stopped_before_the_maker(p, "xv slice amend")
+
+    def test_a_command_whose_words_are_together_in_order_in_the_red_goes_on_to_the_maker(self):
+        self.amend("A person runs `xv slice amend`.")
+        p = self.scenario_with_env(FAKE_RED_TEXT="self.xv('slice', 'amend', 's1')")
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.record()["next"], "maker")
+
     def assert_refused(self, command):
         p = self.scenario_with_red(command)
         stop = json.loads(p.stdout)["stop"]

@@ -42,10 +42,12 @@ elif title.startswith("# The scenario agent"):
         t = open("tests/test_store.py").read().replace('["yogurt"]', '["yogurt"] or []')
         open("tests/test_store.py", "w").write(t)
         red_files = ["tests/test_store.py"]
-    extra = {}
+    extra = {"covers": [{"item": "milk today", "test": "test_milk_today"}], "not_covered": []}
     if os.environ.get("FAKE_NOT_COVERED"):
-        extra = {"covers": [{"item": "milk today", "test": "test_milk_today"}],
-                 "not_covered": json.loads(os.environ["FAKE_NOT_COVERED"])}
+        extra["not_covered"] = json.loads(os.environ["FAKE_NOT_COVERED"])
+    extra.update(json.loads(os.environ.get("FAKE_REPORT_EXTRA") or "{}"))
+    for key in (os.environ.get("FAKE_REPORT_DROP") or "").split():
+        extra.pop(key, None)
     report(agent="scenario", status="red", summary="red",
            red={"files": red_files, "command": os.environ.get("FAKE_RED_COMMAND") or "python3 -m unittest tests.test_red",
                 "failure": "Lists differ", "watch_first_green": None}, **extra)
