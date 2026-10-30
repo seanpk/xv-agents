@@ -28,7 +28,7 @@
   "tests/test_init_tries.py": 24,
   "tests/test_install.py": 21,
   "tests/test_listen.py": 7,
-  "tests/test_orders.py": 39,
+  "tests/test_orders.py": 50,
   "tests/test_packet.py": 5,
   "tests/test_promote.py": 17,
   "tests/test_promote_draft.py": 8,
@@ -48,7 +48,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "28dfb65e8318f59bbd4bfb4c6b105198c3f1e5d5",
+ "commit": "58ac3dfec17077625b792df032f5f8e3dd39d5e5",
  "files": {
   "tests/data/claude-result.json": "d97d2788e30ab2c1dcefc61594ffaaf6892217e088255672a7ead5be9747a331",
   "tests/data/claude-session.jsonl": "f334175619c11a34eabde629fe45e0def44aa43becec22059c9c9841ffccf073",
@@ -78,7 +78,7 @@
   "tests/test_init_tries.py": "7957b03792be4570fa2afc3a255ff3c9c439145b899b8d7ab9800784667db716",
   "tests/test_install.py": "679eb14055d6c10396fe5869833db82ad7460fca4f1efc09ad7f1dc533cc9e16",
   "tests/test_listen.py": "191b146fe181322cd23f730fc8e5149bbf29ce2c58abebe51c8d14d3f2adb01a",
-  "tests/test_orders.py": "dbc4dc99349f6463d49c64823b7677184ae56e8b301101545078fe7f6dfd50f2",
+  "tests/test_orders.py": "56949dfcbf7a1a0a3bdbef9c3b9dfc68e5d7c2708032eb9277473f9f8b73a406",
   "tests/test_packet.py": "dfefcbcc5ff03870191eac6dfb8eda8443b3f09947ad66fd223366d23e420d81",
   "tests/test_promote.py": "64de3475974ebe7d9e789a0f73fe1b9cb4d1d06b86ff529dd2504597bf78d1ec",
   "tests/test_promote_draft.py": "564226e253e4b8a0308407fcd8eade9a132af0c500276234d6e56303c39f226d",

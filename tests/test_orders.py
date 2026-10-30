@@ -1,8 +1,10 @@
+import json
 import os
 import unittest
 
 from helpers import HOME  # noqa: F401
 import orders
+import record
 from xvlib import DEFAULT_CONFIG
 
 
@@ -173,6 +175,58 @@ class OrdersTest(unittest.TestCase):
 
     def test_no_slice_only_marks_add_no_stop_after_the_scenario(self):
         self.assertIsNone(self.stop(self.scenario_done([]), "scenario"))
+
+    def test_unmarking_a_test_takes_it_off_the_stop_and_leaves_it_to_join_the_wall(self):
+        a = {"file": "tests/test_a.py", "test": "test_file_is_ts", "why": "only proves the rename"}
+        b = {"file": "tests/test_b.py", "test": "test_old_flag_gone", "why": "dead after the slice"}
+        s = self.stop(self.scenario_done([b]), "scenario")  # the person unmarked test_file_is_ts
+        self.assertIsNotNone(s)
+        self.assertIn(b["test"], s["question"])
+        self.assertNotIn(a["test"], s["question"])
+        self.assertIn("unmark", s["question"].lower())
+        # an unmarked test is not in slice_only, so removing it is a plain move the person must accept
+        d = with_report(rec(shape_change="no", pitch_contradiction="no", slice_only=[b],
+                            moved_tests=[{"file": a["file"], "assertion": a["test"]}]), "guardian")
+        d["checks"]["guardian"] = {}
+        self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
+
+    def guardian_with(self, recs):
+        d = with_report(rec(shape_change="no", pitch_contradiction="no", wall_recommendations=recs), "guardian")
+        d["checks"]["guardian"] = {}
+        return d
+
+    def test_a_wall_recommendation_waits_for_the_person_who_set_the_work_going(self):
+        recs = [{"file": "tests/test_a.py", "test": "test_new_thing", "recommend": "stay off the wall",
+                 "why": "not marked slice-only, covered by the packet", "accepted": False}]
+        s = self.stop(self.guardian_with(recs), "guardian")
+        self.assertEqual((s["order"], s["seat"]), ("accept_moves", "originator"))
+
+    def test_accepted_wall_recommendations_do_not_stop_again(self):
+        recs = [{"file": "tests/test_a.py", "test": "test_new_thing", "recommend": "remove",
+                 "why": "the wall held it before the slice", "accepted": True}]
+        self.assertEqual(self.stop(self.guardian_with(recs), "guardian")["order"], "ready_to_merge")
+
+    def test_the_record_keeps_the_guardians_wall_recommendations(self):
+        recs = [{"file": "tests/test_a.py", "test": "test_new_thing", "recommend": "stay on the wall",
+                 "why": "marked slice-only"}]
+        text = ("```xv-report\n" + json.dumps({"agent": "guardian", "status": "done", "summary": "p",
+                "shape_change": "no", "pitch_contradiction": "no", "wall_recommendations": recs}) + "\n```\n")
+        data = rec()
+        record.apply_report(data, "", "guardian", text)
+        self.assertEqual([{k: r[k] for k in ("file", "test", "recommend", "why")}
+                          for r in data["wall_recommendations"]], recs)
+        self.assertIn("wall_recommendations", record.LIST_FIELDS)
+
+    def test_the_slice_record_doc_lists_the_recommendations(self):
+        with open(os.path.join(HOME, "docs", "slice-record.md")) as f:
+            self.assertIn("wall_recommendations", f.read())
+
+    def test_the_stop_tables_list_the_slice_only_marks_order(self):
+        for path, start in ((("skills", "watch", "SKILL.md"), "## The standing orders"),
+                            (("README.md",), "### The stops")):
+            with open(os.path.join(HOME, *path)) as f:
+                table = f.read().split(start)[1].split("\n## ")[0].split("\n### ")[0]
+            self.assertIn("slice-only", table, path)
 
 
 class GuardianFiveChecksTest(unittest.TestCase):
