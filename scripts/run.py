@@ -457,6 +457,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
             checks["old_red_unchecked"] = ("The check for old tests changed in red files could not run: "
                                            "the record has no base, or the wall module did not load.")
         checks["red_gaps"] = scenario_red_gaps(root, data, red)
+        checks["unreadable"] = unreadable_input(root, data, report)
         checks["not_covered"] = [n for n in (report.get("not_covered") or []) if isinstance(n, dict)]
         wb = wall_baseline(root, data, config)
         if wb:
@@ -511,9 +512,23 @@ def post_step(agent, root, data, config, head_before, pre, report):
     return checks
 
 
+def unreadable_input(root, data, report):
+    """What the coverage check cannot read: it never passes on that."""
+    out = []
+    if "## Scenario" not in record.load(root, data["id"])[2]:
+        out.append("The record has no `## Scenario` heading, so the check cannot read the scenario.")
+    covers, not_covered = report.get("covers"), report.get("not_covered")
+    if not isinstance(not_covered, list) or not all(isinstance(n, dict) for n in not_covered):
+        out.append("The report's `not_covered` is missing or is not a list of items.")
+    if not isinstance(covers, list) or not covers or not all(
+            isinstance(c, dict) and c.get("item") and c.get("test") for c in covers):
+        out.append("The report's `covers` is missing, empty, or has an item that names no test.")
+    return out
+
+
 def scenario_red_gaps(root, data, red):
     """The flags and `xv` commands in backticks in the scenario and its amendments that no red file has."""
-    import check
+    import wall
     body = record.load(root, data["id"])[2]
     at = body.find("## Scenario")
     end = body.find("\n## May ignore")
@@ -526,7 +541,7 @@ def scenario_red_gaps(root, data, red):
                 texts.append(fh.read())
         except OSError:
             pass
-    return check.red_gaps(body[at:end if end > at else len(body)], texts)
+    return wall.red_gaps(body[at:end if end > at else len(body)], texts)
 
 
 def append_cleaner_proposals(packet, data):

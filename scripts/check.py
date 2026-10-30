@@ -217,21 +217,7 @@ def drift(offline=False):
     return items
 
 
-def red_gaps(scenario, red_texts):
-    """Each flag and `xv` command written in backticks in the scenario that appears in none of the red files."""
-    gaps = []
-    for span in re.findall(r"(?<!`)`([^`\n]+)`(?!`)", scenario):
-        for flag in re.findall(r"(?<![\w-])--[a-z][\w-]*", span):
-            rx = re.compile(re.escape(flag) + r"(?![\w-])")
-            if flag not in gaps and not any(rx.search(t) for t in red_texts):
-                gaps.append(flag)
-        for m in re.finditer(r"(?<![\w-])xv((?:\s+[a-z][\w-]*)+)", span):
-            words = m.group(1).split()
-            name = "xv " + " ".join(words)
-            rxs = [re.compile(r"(?<![A-Za-z0-9])" + re.escape(w) + r"(?![A-Za-z0-9])") for w in words]  # test_xv_retro too
-            if name not in gaps and not any(all(rx.search(t) for rx in rxs) for t in red_texts):
-                gaps.append(name)
-    return gaps
+from wall import red_gaps  # noqa: E402,F401  (the check lives in wall, beside the other red-file checks)
 
 
 def main(argv=None):
