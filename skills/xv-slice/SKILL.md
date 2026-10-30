@@ -20,7 +20,7 @@ One question at a time:
 4. **Is the design settled?** If the scenario does not settle how it should look or flow, and a wrong design would be felt in use, this is a prototype slice (`--kind prototype --axis "<the one axis>"`). Ask for the axis: the one difference between three versions that people would feel by using them. An agent can suggest axes; the person names one. A column and a button have no open question; prototypes there are waste.
 5. **Who set the work going?** Their name goes in the record. They answer the stops.
 
-Read the scenario back in the person's words. Tidy grammar only. If it is ambiguous about what must be true, ask; do not pick.
+Read the scenario back in the person's words, in the message to the person: the full scenario and its "may ignore" lines, not only a path to a file. Tidy grammar only. If it is ambiguous about what must be true, ask; do not pick.
 
 Check it against `.xv/pitch.md`. If the scenario looks like it contradicts the pitch, say which line, and ask whether to go on. The guardian will flag it anyway; it is cheaper now.
 
