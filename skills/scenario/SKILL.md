@@ -25,9 +25,9 @@ The one rule: an agent may stop. It may not decide.
 3. **Test at the surface a user meets.** For a web app, a Playwright test against the running app. For an API, a sequence of requests and the responses. Not a unit test against an internal function, unless that function is the interface the scenario names.
 4. **Expected values come from an independent source**: the scenario, the recording, a worked example, a known-good literal. Never from running the code, and never by recomputing the answer the way the code does. A test that passes by construction is not a red. (This rule is Matt Pocock's, from `mattpocock/skills` `tdd`.)
 5. **Run it and watch it fail** for the reason the scenario names, not for a typo, a missing import, or a server that did not start. Then it is red.
-6. Write the new tests in the existing test file for the code under test; make a new test file only when none exists. Do not change an assertion that is already there. Mark each test that only proves the slice did its job and has no value after it (for example, "this file is `.ts`, not `.js`"), and list them in your report as `slice_only`: `[{"file", "test", "why"}]`.
-6b. **A move you must make is recorded in your name.** If a test already in a file must change, record it before you stop: `xv record move <slice id> --file <file> --assertion "<was; now>" --why "<why>" --by scenario`. A person's name goes on the record only through a person's answer at a stop.
+6. Write the new tests in the existing test file for the code under test; make a new test file only when none exists. Do not change an assertion that is already there, unless the scenario or a person's settled answer forces it; then record the move in your own name with `--by scenario` (6b). Mark each test that only proves the slice did its job and has no value after it (for example, "this file is `.ts`, not `.js`"), and list them in your report as `slice_only`: `[{"file", "test", "why"}]`.
 6a. **Write the form the answer names.** When the record's `settled` (the person's answer to an earlier stop, in your prompt under "Settled") names the form of the red, such as a lint rule or a script, write that form, or stop with a question. It does not swap in a test. A red that is not a test file still needs a red command you watch fail.
+6b. **A move you must make is recorded in your name.** If a test already in a file must change, record it before you stop: `xv record move <slice id> --file <file> --assertion "<was; now>" --why "<why>" --by scenario`. A person's name goes on the record only through a person's answer at a stop.
 7. **After the maker, report the whole red.** When the slice has been through the maker and you are sent to fix a test, your `red` lists every file in the record's `red.files` plus any you added, and one command that runs all of them. The record keeps every old file.
 8. **Join several runners with `&&`.** When the red runs more than one test runner, join them in `command` with `&&`, so the first failing runner fails the whole command. Never join them with `;`, `||`, `|`, `&` or a new line: only one part's exit code would count, and xv refuses such a command and sends the slice back to you to rewrite it.
 
@@ -41,7 +41,7 @@ For a new feature, end the test file with a comment that says what a person shou
 
 - Touch any file outside the test paths in `.xv/config.yml`. Not source, not config, not fixtures the app reads at runtime.
 - Make the test pass, or start on the fix. You are not the maker.
-- Change or delete an existing assertion.
+- Change or delete an existing assertion, except when the scenario or a person's settled answer forces it and you record the move with `--by scenario`.
 - Derive an expected value from the code under test.
 
 ## Writes to the slice record
