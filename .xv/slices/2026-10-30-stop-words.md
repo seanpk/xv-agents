@@ -7,11 +7,11 @@ set_by: Sean Kennedy
 created: 2026-10-29
 branch: xv/2026-10-30-stop-words
 base: 5ec1d8640ff0da37a2634737f241cfd1a14821e2
-next: forecaster
+next: scenario
 forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 450000, "turns": null, "usd": 2.5, "basis": ["2026-10-29-stop-decisions", "2026-10-29-settled-forward"]}, {"harness": "claude", "model": "opus", "tokens": 260000, "turns": null, "usd": 3.25, "basis": ["2026-10-29-stop-decisions", "2026-10-29-settled-forward"]}], "wall_s": 1400, "shape": "narrow", "breadth": "Wide across files (watch and maker skills, scenario and maker briefs, README, docs/briefs, CHANGELOG) but narrow in method: stop wording, no re-stop on an accepted shape change, and watch may edit the picture when directed; accept_moves and the picture rules have reopened before, so a reopen would push both keys toward the stop-decisions rows."}
-budget: null
+budget: {"tokens": 1000000, "usd": 8, "set_by": "Sean Kennedy"}
 red: null
-wall_baseline: null
+wall_baseline: {"commit": "f1af38e6ad9d3fbf61fbaaeceaa1001c794a1f89", "count": 47, "digest": "8ef64ebb39b560bf", "file": ".xv/slices/2026-10-30-stop-words.wall.json"}
 moved_tests: []
 slice_only: []
 suite: null
@@ -19,12 +19,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 2477, "cache_read": 25528, "cache_write": 18070, "tokens": 20551, "usd": 0.0051, "turns": 3, "wall_s": 12.5, "session": "36aa7b36-66ba-4521-be2a-375ef0a5dfb3", "step": "forecaster", "at": "2026-10-30T01:07:33+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-30-stop-words/01-forecaster.out"}]
-stops: [{"at": "2026-10-30T01:07:33+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-30-stop-words budget ... --by <name>`).", "answered_by": [], "answer": null, "also": [], "budget_seen": null}]
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 2477, "cache_read": 25528, "cache_write": 18070, "tokens": 20551, "usd": 0.0051, "turns": 3, "wall_s": 12.5, "session": "36aa7b36-66ba-4521-be2a-375ef0a5dfb3", "step": "forecaster", "at": "2026-10-30T01:07:33+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-30-stop-words/01-forecaster.out"}, {"harness": "claude", "model": "sonnet", "model_id": "claude-sonnet-5-5", "tokens_in": 14, "tokens_out": 2415, "cache_read": 160150, "cache_write": 27513, "tokens": 29942, "usd": 0.1502, "turns": 8, "wall_s": 20.3, "session": "839f3b87-a927-4a3d-96de-9d6db2e94e8f", "step": "scenario", "at": "2026-10-30T01:16:02+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-30-stop-words/02-scenario.out"}]
+stops: [{"at": "2026-10-30T01:07:33+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-30-stop-words budget ... --by <name>`).", "answered_by": ["Sean Kennedy"], "answer": "A: Understood and budget prop accepted", "also": [], "options": [{"text": "$8 and 1M tokens", "settles": "The budget is $8 and 1M tokens: the forecast plus room for one send-back.", "amends": false}, {"text": "$5.75 and 710K tokens, the forecast", "settles": "The budget is $5.75 and 710K tokens, as forecast.", "amends": false}, {"text": "$11 and 1.4M tokens", "settles": "The budget is $11 and 1.4M tokens: room for several send-backs.", "amends": false}], "recommended": 1, "answered_at": "2026-10-30T01:15:42+00:00", "pick": 1, "settled": "The budget is $8 and 1M tokens: the forecast plus room for one send-back.", "new_info": "none", "cause": "decision: a budget is the person's", "budget_change": {"from": null, "to": {"tokens": 1000000, "usd": 8}}}, {"at": "2026-10-30T01:16:02+00:00", "step": "scenario", "order": "scenario_stopped", "seat": "originator", "question": "The scenario stopped (ambiguous_scenario): How should the watch tell that a shape change matches a decision already accepted on the same slice? (1) a shape_id slug in the packet front matter, recorded in the stop and compared; (2) shape_breadth equality with an answered shape_or_pitch stop, no new key; (3) the answerer marks the shape accepted at the stop and the watch skips while the packet is unchanged since that answer.", "answered_by": [], "answer": null, "also": [], "budget_seen": {"tokens": 1000000, "usd": 8, "set_by": "Sean Kennedy"}}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast sonnet ~450k tokens and opus ~260k tokens, from the two same-key stop-rule rows; the stop-decisions reopen history is the main risk.", "at": "2026-10-30T01:07:33+00:00"}], "forecaster": {"at": "2026-10-30T01:07:33+00:00", "wrote": []}}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast sonnet ~450k tokens and opus ~260k tokens, from the two same-key stop-rule rows; the stop-decisions reopen history is the main risk.", "at": "2026-10-30T01:07:33+00:00"}, {"agent": "scenario", "status": "stopped", "summary": "Point 1 does not say how a shape change is recognised as matching an accepted decision; the record carries only shape_change yes/no.", "stop": {"reason": "ambiguous_scenario", "question": "How should the watch tell that a shape change matches a decision already accepted on the same slice? (1) a shape_id slug in the packet front matter, recorded in the stop and compared; (2) shape_breadth equality with an answered shape_or_pitch stop, no new key; (3) the answerer marks the shape accepted at the stop and the watch skips while the packet is unchanged since that answer."}, "at": "2026-10-30T01:16:02+00:00"}], "forecaster": {"at": "2026-10-30T01:07:33+00:00", "wrote": []}, "scenario": {"at": "2026-10-30T01:16:02+00:00", "protected_changed": [], "outside_tests": [], "red_fails": null, "old_red_changed": []}}
 ---
 # The stops, the briefs and the picture say what the method says
 
@@ -52,3 +52,9 @@ None. A feature starts from words.
 - 2026-10-30T01:07:13+00:00 watch: slice opened by Sean Kennedy
 - 2026-10-30T01:07:33+00:00 forecaster: done: Forecast sonnet ~450k tokens and opus ~260k tokens, from the two same-key stop-rule rows; the stop-decisions reopen history is the main risk.
 - 2026-10-30T01:07:33+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-30-stop-words budget ... --by <name>`).
+- 2026-10-30T01:07:42+00:00 watch: offered 3 options for budget_not_set
+- 2026-10-30T01:15:42+00:00 Sean Kennedy: set budget
+- 2026-10-30T01:15:42+00:00 Sean Kennedy: answered budget_not_set: A: Understood and budget prop accepted
+- 2026-10-30T01:15:42+00:00 watch: scribe: wrote settled, new_info, cause for budget_not_set as the scribe of Sean Kennedy
+- 2026-10-30T01:16:02+00:00 scenario: stopped: Point 1 does not say how a shape change is recognised as matching an accepted decision; the record carries only shape_change yes/no.
+- 2026-10-30T01:16:02+00:00 watch: stop (scenario_stopped) for originator: The scenario stopped (ambiguous_scenario): How should the watch tell that a shape change matches a decision already accepted on the same slice? (1) a shape_id slug in the packet front matter, recorded in the stop and compared; (2) shape_breadth equality with an answered shape_or_pitch stop, no new key; (3) the answerer marks the shape accepted at the stop and the watch skips while the packet is unchanged since that answer.
