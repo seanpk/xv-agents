@@ -483,6 +483,18 @@ def cmd_report(a):
     emit(report or {"agent": a.agent, "status": "no-report"}, True)
 
 
+def accepted_by_listed_decision(root, data, pdata):
+    """accepted holds only when accepted_by is a decision on this slice that answered a shape_or_pitch stop."""
+    rel = pdata.get("accepted_by")
+    if not rel or rel not in [d.get("record") for d in data.get("decisions") or []]:
+        return False
+    full = os.path.join(root, rel)
+    if not os.path.exists(full):
+        return False
+    ddata, _ = read_doc(full)
+    return ddata.get("order") == "shape_or_pitch"
+
+
 def cmd_packet(a):
     """Attach the guardian's packet and copy its two fixed fields."""
     root = repo_root()
@@ -493,6 +505,8 @@ def cmd_packet(a):
         allowed = ("yes", "no", "accepted") if field == "shape_change" else ("yes", "no")
         if value not in allowed:
             raise XVError(f"the packet's {field} must be {' or '.join(allowed)}, found {value!r}")
+        if field == "shape_change" and value == "accepted" and not accepted_by_listed_decision(root, data, pdata):
+            value = "yes"
         data[field] = value
     data["packet"] = os.path.relpath(os.path.abspath(a.file), slice_root(path))
     body = log_line(body, "guardian", f"packet: shape_change={data['shape_change']}, "
