@@ -27,7 +27,7 @@ git clone https://github.com/seanpk/xv-agents ~/src/xv-agents
 python3 ~/src/xv-agents/bin/xv install
 ```
 
-`xv install` links every skill into the skills folder of each agent you have installed (Claude Code, Codex, Cursor, Grok, and the shared `~/.agents`), and `xv` into `~/.local/bin`, and says if that is not on your `PATH`. It creates no folder for an agent you do not have, and never replaces a skill folder it did not make. `--into <folder>` names a skills folder instead; `--dry-run` says what it would do; `--remove` takes out what it put in. Upgrade with `git pull` in the clone: the links follow. To stay on a release, `git checkout v0.3.1` in the clone.
+`xv install` links every skill into the skills folder of each agent you have installed (Claude Code, Codex, Cursor, Grok, and the shared `~/.agents`), and `xv` into `~/.local/bin`, and says if that is not on your `PATH`. It creates no folder for an agent you do not have, and never replaces a skill folder it did not make. `--into <folder>` names a skills folder instead; `--dry-run` says what it would do; `--remove` takes out what it put in. Upgrade with `git pull` in the clone: the links follow. To stay on a release, `git checkout v0.4.0` in the clone.
 
 To give a whole team the skills through the repo instead, run `xv install --scope project` in it and commit the result. It copies the skills into the repo's agent folders (`.agents/skills` and `.claude/skills` when it has none), each with a mark of its version, so a later install replaces a copy nobody edited and refuses one somebody did, and `xv check` reports a stale or edited copy. Everyone still needs `xv` on their `PATH` from a user install. In Claude Code a person's own skill wins over the project's, and `xv check` says when both are installed.
 
@@ -347,7 +347,7 @@ The forecaster reads `.xv/estimation.md`, a list of closed slices keyed by harne
 - `xv guard --base <base>` on every pull request, which runs the guardian on the slice record in the change, or on the bare diff when there is none, posts the packet as a comment, and fails the check only when the packet calls for two people;
 - `xv listen run` on a schedule, which gathers errors, usage and feedback from the sources in the config, runs the listener, fails if the packet ranks, pushes the packet on a branch, and opens a pull request for the chief engineer when the repo lets Actions open one.
 
-No step in any of them approves or merges. That is a promise of the workflows, not of GitHub: a workflow token can approve when the repo setting "Allow GitHub Actions to create and approve pull requests" is on, so the guardian example says to keep it off. The examples pin `v0.3.1`; upgrade by changing the ref.
+No step in any of them approves or merges. That is a promise of the workflows, not of GitHub: a workflow token can approve when the repo setting "Allow GitHub Actions to create and approve pull requests" is on, so the guardian example says to keep it off. The examples pin `v0.4.0`; upgrade by changing the ref.
 
 ### The project layer
 

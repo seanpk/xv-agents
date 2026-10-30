@@ -29,11 +29,6 @@ class ReadbackIsTheFullTextTest(unittest.TestCase):
         para = readback_paragraph().lower()
         self.assertRegex(para, r"not only a path|not just a path|not a path|not the path")
 
-    def test_the_changelog_has_a_line_for_the_read_back(self):
-        unreleased = read("CHANGELOG.md").split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        self.assertRegex(unreleased, r"(?i)read-back")
-        self.assertIn("#95", unreleased)
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -55,19 +55,6 @@ class ByNameTest(RepoCase):
         self.assertGreater(len(keys), 6)
         self.assertEqual(keys, sorted(keys))
 
-    def test_the_changelog_has_a_line_for_the_change(self):
-        text = open(os.path.join(HOME, "CHANGELOG.md"), encoding="utf-8").read()
-        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        self.assertTrue(any("--by maker" in p and "#93" in p and "--by scenario" not in p
-                            for p in unreleased.split("\n\n")))
-
-    def test_the_changelog_line_names_the_may_not_line(self):
-        text = open(os.path.join(HOME, "CHANGELOG.md"), encoding="utf-8").read()
-        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        line = next(p for p in unreleased.split("\n\n") if "#93" in p)
-        self.assertTrue(re.search(r"scenario agent (never|does not) records? a move itself", line)
-                        or re.search(r"never records a move itself", line), line)
-
 
 if __name__ == "__main__":
     unittest.main()
