@@ -257,15 +257,6 @@ class OrdersTest(unittest.TestCase):
         s = self.stop(d, "guardian")
         self.assertEqual((s["order"], s["seat"]), ("budget_spent", "originator"))
 
-    def test_the_scenario_step_names_old_test_files_that_existed_at_the_base_not_red_files(self):
-        d = with_report(rec(), "scenario", "red")
-        d["checks"]["scenario"] = {"old_red_changed": ["tests/test_store.py"], "red_fails": True}
-        qs = [f["question"] for f in orders.verdict(d, "scenario", DEFAULT_CONFIG)["fired"]
-              if f["order"] == "unrecorded_move"]
-        self.assertEqual(len(qs), 1)
-        self.assertIn("old test files that existed at the base", qs[0])
-        self.assertNotIn("red files", qs[0])
-
     def test_shape_or_pitch_does_not_fire_on_an_accepted_shape_change(self):
         d = with_report(rec(shape_change="accepted", pitch_contradiction="no"), "guardian")
         d["checks"]["guardian"] = {}

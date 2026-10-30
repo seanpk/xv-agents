@@ -536,7 +536,7 @@ def cmd_packet(a):
     checks["miss_amend"] = any(m["amend"] for m in found)
     checks["miss_repeat"] = sorted({m["ref"] for m in found} & sent_back(data, "scenario_miss"))
     if found and not checks["miss_amend"] and not checks["miss_repeat"] \
-            and not data["shape_change"] == "yes" and data.get("pitch_contradiction") != "yes":
+            and data["shape_change"] != "yes" and data.get("pitch_contradiction") != "yes":
         body = send_back(data, body, "guardian", "scenario_miss", sorted({m["ref"] for m in found}),
                          "; ".join(m["text"] for m in found),
                          "scenario" if any(m["to"] == "scenario" for m in found) else "maker")

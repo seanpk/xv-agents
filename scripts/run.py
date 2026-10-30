@@ -400,14 +400,14 @@ def step(agent, slice_id, review_again=False):
         record.save(path, data, body)
     elif agent == "scenario" and checks.get("missed_points"):
         body = record.send_back(data, body, agent, "red_misses_point", checks["missed_points"],
-                         "these points are in neither covers nor not_covered: " + "; ".join(checks["missed_points"]),
-                         "scenario")
+                                "these points are in neither covers nor not_covered: " + "; ".join(checks["missed_points"]),
+                                "scenario")
         record.save(path, data, body)
     elif agent == "guardian" and checks.get("misses"):
         found = checks["misses"]
         body = record.send_back(data, body, agent, "scenario_miss", sorted({m["ref"] for m in found}),
-                         "; ".join(m["text"] for m in found),
-                         "scenario" if any(m["to"] == "scenario" for m in found) else "maker")
+                                "; ".join(m["text"] for m in found),
+                                "scenario" if any(m["to"] == "scenario" for m in found) else "maker")
         record.save(path, data, body)
     commit_step(agent, root, slice_id, checks)
     v["record"] = os.path.relpath(path, root)
