@@ -76,6 +76,42 @@ class PacketTest(unittest.TestCase):
         self.assertIn("scenario_miss", text)
         self.assertRegex(text, r"(?i)binding decision")
 
+    MISSES = GOOD.replace("door: two-way\n---", "door: two-way\nscenario_miss: yes\n---", 1) + """
+## Scenario misses
+
+- 2: the list leaves out milk that runs out today (evidence: tests/test_store.py:7; to: maker)
+- amendment 1, item 3: no heading for the section (evidence: a run of `xv packet lint`; to: scenario)
+- decision 4: breaks the by-name rule (evidence: pantry/store.py:12; to: maker)
+- The list feels thin (evidence: tests/test_store.py:9; to: maker)
+- 3: the stop is missing; to: maker
+"""
+
+    def fixed(self, text):
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
+            f.write(text)
+        packet.fix(f.name)
+        out = open(f.name).read()
+        os.unlink(f.name)
+        return out
+
+    def test_a_miss_that_names_no_point_or_decision_or_no_evidence_leaves_the_misses_section(self):
+        out = self.fixed(self.MISSES)
+        kept, dropped = out.split("## Dropped")[0], out.split("## Dropped")[1]
+        self.assertIn("## Scenario misses", kept)
+        for line in ("2: the list leaves out milk", "amendment 1, item 3", "decision 4"):
+            self.assertIn(line, kept)
+        for line in ("The list feels thin", "3: the stop is missing"):
+            self.assertNotIn(line, kept)
+            self.assertIn(line, dropped)
+        self.assertIn("scenario_miss: yes", out.split("---")[1])
+
+    def test_with_no_miss_left_scenario_miss_reads_as_no(self):
+        only_bad = self.MISSES.split("- 2:")[0] + (
+            "- The list feels thin (evidence: tests/test_store.py:9; to: maker)\n")
+        out = self.fixed(only_bad)
+        self.assertIn("scenario_miss: no", out.split("---")[1])
+        self.assertNotIn("scenario_miss: yes", out)
+
 
 if __name__ == "__main__":
     unittest.main()
