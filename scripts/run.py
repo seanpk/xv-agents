@@ -502,7 +502,10 @@ def post_step(agent, root, data, config, head_before, pre, report):
             for field in ("shape_change", "pitch_contradiction"):
                 v = pdata.get(field)
                 # a missing or malformed field waits for people, never for no one
-                data[field] = v if v in ("yes", "no") or (field == "shape_change" and v == "accepted") else "yes"
+                if field == "shape_change" and v == "accepted" and accepted_by_listed_decision(root, data, pdata):
+                    data[field] = v
+                else:
+                    data[field] = v if v in ("yes", "no") else "yes"
             data["packet"] = os.path.relpath(packet, root)
             checks["picture_change"] = pdata.get("picture_change") or report.get("picture_change")
             checks["shape_breadth"] = pdata.get("shape_breadth") or report.get("shape_breadth")
@@ -552,6 +555,18 @@ def red_file_texts(root, red):
         except OSError:
             pass
     return texts
+
+
+def accepted_by_listed_decision(root, data, pdata):
+    """accepted holds only when accepted_by is a decision on this slice that answered a shape_or_pitch stop."""
+    rel = pdata.get("accepted_by")
+    if not rel or rel not in [d.get("record") for d in data.get("decisions") or []]:
+        return False
+    full = os.path.join(root, rel)
+    if not os.path.exists(full):
+        return False
+    ddata, _ = record.read_doc(full)
+    return ddata.get("order") == "shape_or_pitch"
 
 
 def append_cleaner_proposals(packet, data):
@@ -792,8 +807,7 @@ def cmd_guard(a):
         packetlib.fix(full)
         pdata, _ = record.read_doc(full)
         for field in ("shape_change", "pitch_contradiction"):
-            ok = ("yes", "no", "accepted") if field == "shape_change" else ("yes", "no")
-            data[field] = pdata.get(field) if pdata.get(field) in ok else "yes"
+            data[field] = pdata.get(field) if pdata.get(field) in ("yes", "no") else "yes"
         data["checks"]["guardian"] = {"picture_change": pdata.get("picture_change")}
         if pdata.get("moved_tests"):
             data["moved_tests"] = [{"file": "see the packet"}] * int(pdata.get("moved_tests") or 0)
