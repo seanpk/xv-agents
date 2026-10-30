@@ -15,7 +15,7 @@ From `f9c5cb172de9` to the working tree. Source: xv boundary (ast and regex). Ge
 
 ## Edges
 
-- added: scripts/record → scripts/packet
+- added: scripts/record → scripts/orders, scripts/record → scripts/packet
 - removed: none
 
 ```mermaid
@@ -80,6 +80,7 @@ flowchart LR
   m15 --> m16
   m15 --> m20
   m15 --> m22
+  m16 ==> m10
   m16 ==> m11
   m16 --> m20
   m16 --> m22
@@ -128,6 +129,10 @@ flowchart LR
  "modules_added": [],
  "modules_removed": [],
  "edges_added": [
+  [
+   "scripts/record",
+   "scripts/orders"
+  ],
   [
    "scripts/record",
    "scripts/packet"
@@ -317,6 +322,10 @@ flowchart LR
    [
     "scripts/prototypes",
     "scripts/xvlib"
+   ],
+   [
+    "scripts/record",
+    "scripts/orders"
    ],
    [
     "scripts/record",
