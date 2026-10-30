@@ -188,6 +188,25 @@ def check_against_base(root, base, config=None):
     return out
 
 
+def red_gaps(scenario, red_texts):
+    """Each flag and `xv` command written in backticks in the scenario that appears in none of the red files.
+    A command is covered only when its words come together, in order, in a red file."""
+    gaps = []
+    for span in re.findall(r"(?<!`)`([^`\n]+)`(?!`)", scenario):
+        for flag in re.findall(r"(?<![\w-])--[a-z][\w-]*", span):
+            rx = re.compile(re.escape(flag) + r"(?![\w-])")
+            if flag not in gaps and not any(rx.search(t) for t in red_texts):
+                gaps.append(flag)
+        for m in re.finditer(r"(?<![\w-])xv((?:\s+[a-z][\w-]*)+)", span):
+            words = m.group(1).split()
+            name = "xv " + " ".join(words)
+            rx = re.compile(r"(?<![A-Za-z0-9])" + r"[^A-Za-z0-9]+".join(re.escape(w) for w in words)
+                            + r"(?![A-Za-z0-9])")
+            if name not in gaps and not any(rx.search(t) for t in red_texts):
+                gaps.append(name)
+    return gaps
+
+
 HOOK = """#!/bin/sh
 # xv-agents: the test wall on slice branches. Installed by `xv wall install-hook`.
 command -v xv >/dev/null 2>&1 || { echo "xv-agents: xv is not on PATH; the wall did not run" >&2; exit 0; }

@@ -107,6 +107,8 @@ def evaluate(data, after, config):
             out.append(fire("setup_failed", "originator", checks["old_red_unchecked"]))
         if checks.get("setup_failed"):
             out.append(fire("setup_failed", "originator", checks["setup_failed"]))
+        for msg in checks.get("unreadable") or []:
+            out.append(fire("red_misses_scenario", "originator", msg))
         if checks.get("red_gaps"):
             out.append(fire("red_misses_scenario", "originator",
                             "The scenario names these in backticks, and no red file has them: "
