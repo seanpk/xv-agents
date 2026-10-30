@@ -911,3 +911,71 @@ class SettledForwardTest(RepoCase):
         self.stop("scenario", "scenario_stopped")
         p = self.xv(*shlex.split(line)[1:], cwd=self.wt, check=False)
         self.assertEqual(p.returncode, 0, line + "\n" + p.stderr)
+
+
+class WallChoicesTest(RepoCase):
+    """Sean's three amendments to the test-marks slice."""
+
+    RECS = [{"file": "tests/test_a.py", "test": "test_keep_me", "recommend": "stay on the wall", "why": "w"},
+            {"file": "tests/test_a.py", "test": "test_drop_me", "recommend": "stay off the wall", "why": "w"}]
+    MARK = {"file": "tests/test_x.py", "test": "test_file_is_ts", "why": "only proves the rename"}
+
+    def show(self, wt):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+
+    def answer_accept_moves(self, text):
+        wt = self.new_slice("s1")
+        path = os.path.join(self.tmp, "g.txt")
+        report = {"agent": "guardian", "status": "done", "summary": "p", "shape_change": "no",
+                  "pitch_contradiction": "no", "wall_recommendations": self.RECS}
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
+        self.xv("record", "report", "s1", "guardian", path, cwd=wt)
+        self.xv("record", "stop", "s1", "--order", "accept_moves", "--seat", "originator",
+                "--question", "accept?", "--step", "guardian", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", text, cwd=wt)
+        return {r["test"]: r for r in self.show(wt)["wall_recommendations"]}
+
+    def test_an_answer_that_names_one_recommendation_accepts_only_that_one(self):
+        recs = self.answer_accept_moves("accept test_keep_me; refuse the other")
+        self.assertIs(recs["test_keep_me"]["accepted"], True)
+        self.assertFalse(recs["test_keep_me"].get("refused"))
+        self.assertIs(recs["test_drop_me"]["accepted"], False)
+        self.assertIs(recs["test_drop_me"].get("refused"), True)
+
+    def test_a_refused_recommendation_does_not_stop_accept_moves_again(self):
+        import orders
+        from xvlib import DEFAULT_CONFIG
+        refused = dict(self.RECS[1], accepted=False, refused=True)
+        d = {"id": "s1", "set_by": "pat", "budget": {"usd": 2}, "moved_tests": [], "spend": [], "stops": [],
+             "shape_change": "no", "pitch_contradiction": "no", "wall_recommendations": [refused],
+             "checks": {"reports": [{"agent": "guardian", "status": "done"}], "guardian": {}}}
+        self.assertEqual(orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"]["order"], "ready_to_merge")
+
+    def test_unmark_takes_one_test_off_slice_only_and_keeps_the_rest(self):
+        wt = self.new_slice("s1")
+        other = {"file": "tests/test_y.py", "test": "test_old_flag_gone", "why": "dead"}
+        for m in (self.MARK, other):
+            self.xv("record", "add", "s1", "slice_only", json.dumps(m), cwd=wt)
+        self.xv("record", "unmark", "s1", "--test", "test_file_is_ts", cwd=wt)
+        left = self.show(wt)["slice_only"]
+        self.assertEqual([m["test"] for m in left], ["test_old_flag_gone"])
+
+    def test_unmark_of_a_test_that_is_not_marked_fails(self):
+        wt = self.new_slice("s1")
+        p = self.xv("record", "unmark", "s1", "--test", "test_nope", cwd=wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+
+    def test_a_move_whose_assertion_starts_with_the_marked_name_keeps_the_flag(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
+        self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion",
+                "test_file_is_ts; removed", "--why", "w", "--slice-only", cwd=wt)
+        self.assertIs(self.show(wt)["moved_tests"][0].get("slice_only"), True)
+
+    def test_a_move_of_another_test_does_not_get_the_flag(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
+        self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion",
+                "test_other; removed", "--why", "w", "--slice-only", cwd=wt)
+        self.assertFalse(self.show(wt)["moved_tests"][0].get("slice_only"))
