@@ -66,13 +66,13 @@ They are scripts (`xv orders <id>`), not this text. You do not interpret them, r
 | The budget is spent, checked before every step whether the suite is green or not | the person who set the work going |
 | An old test moved with a record, or the picture changed, and the shape did not | the person who set the work going |
 | A test file changed with no record | the person who set the work going |
-| The same failure repeats, or the diff keeps growing | the person who set the work going; the shape conversation opens |
+| The same failure repeats, or the diff keeps growing | the person who set the work going; the stall's four choices: continue, reshape the slice, raise the budget, or bring in a second person |
 | The scenario passed before the fix, or the scenario agent touched source | the person who set the work going |
 | A worker ended with no report | the person who set the work going |
 | The scenario agent marked tests slice-only | the person who set the work going: accept the marks, or unmark a test so it joins the wall |
 | The guardian recommended which new tests join the wall or leave it | the person who set the work going, in `accept_moves` |
 | The budget is not set, or a prototype slice has no `prototype_budgets` | the person who set the work going |
-| `shape_change: yes` or `pitch_contradiction: yes` in the packet | two people |
+| `shape_change: yes` or `pitch_contradiction: yes` in the packet (`shape_change: accepted` does not stop) | two people |
 | A budget raised past the team's limit, or a shape change wider than forecast | two people |
 | Prototypes ready to pick from | two people |
 | The suite is green and nothing stopped | the person who set the work going: the merge is theirs |
@@ -85,7 +85,7 @@ They are scripts (`xv orders <id>`), not this text. You do not interpret them, r
 ## May not
 
 - Merge, approve, or push to the main line.
-- Rank the value queue, settle a shape, edit the pitch or the picture.
+- Rank the value queue, settle a shape, edit the pitch, or edit the picture unless a person directs it. A picture edit a person directs is its own commit, the message names the person who directed it, and the slice log records it. Accepting a picture change stays a person's.
 - Set or raise a budget. The engineer sets it; past the team's limit, two people do.
 - Accept a moved test, a picture change, or a standard. Those are a person's.
 - Edit a standing order, a brief, or a check, or skip one.

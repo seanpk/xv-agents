@@ -22,6 +22,8 @@ from xvlib import XVError, die, emit, load_config, read_doc, record_path, repo_r
 
 SEAT_RANK = {"chief_engineer": 0, "originator": 1, "two_people": 2}
 BREADTH = {"none": 0, "narrow": 1, "wide": 2}
+STALL_CHOICES = ("This is a stall on this slice, and the agent may not renovate. Choose: continue, "
+                 "reshape the slice, raise the budget, or bring in a second person.")
 
 
 def fire(order, seat, question, blocking=True):
@@ -75,8 +77,7 @@ def evaluate(data, after, config):
         reason = stop.get("reason") or report.get("status")
         seat = "two_people" if reason == "shape" else "originator"
         if reason in ("repeated_failure", "growing_diff"):
-            q = (f"The {after} stopped: {reason.replace('_', ' ')}. The shape conversation opens; "
-                 "the agent may not renovate.")
+            q = f"The {after} stopped: {reason.replace('_', ' ')}. {STALL_CHOICES}"
         else:
             q = f"The {after} stopped ({reason}): {stop.get('question') or report.get('summary', '')}"
         out.append(fire(f"{after}_stopped", seat, q))
@@ -155,17 +156,17 @@ def evaluate(data, after, config):
         if len(fails) >= 2 and fails[-1] and fails[-1] == fails[-2]:
             out.append(fire("repeated_failure", "originator",
                             f"The same tests failed after two runs of the maker: {', '.join(fails[-1][:5])}. "
-                            "The shape conversation opens; the agent may not renovate."))
+                            + STALL_CHOICES))
         hist = checks.get("diff_history") or []
         if len(hist) >= 2 and hist[-2] and hist[-1] > 2 * hist[-2]:
             out.append(fire("diff_growing", "originator",
                             f"The diff grew from {hist[-2]} to {hist[-1]} lines between two runs of the maker. "
-                            "The shape conversation opens; the agent may not renovate."))
+                            + STALL_CHOICES))
         limit = (config.get("limits") or {}).get("max_diff_lines") or 0
         if limit and (checks.get("diff_lines") or 0) > limit:
             out.append(fire("diff_growing", "originator",
                             f"The diff is {checks['diff_lines']} lines, past the team's {limit}. "
-                            "The shape conversation opens."))
+                            + STALL_CHOICES))
 
     budget = data.get("budget") or {}
     pct = (config.get("limits") or {}).get("budget_raise_pct") or 0
@@ -207,7 +208,7 @@ def evaluate(data, after, config):
             if recs:
                 parts.append(f"{len(recs)} wall recommendation(s) from the guardian")
             if picture:
-                parts.append("the picture changed")
+                parts.append("the guardian proposes a change to the picture")
             out.append(fire("accept_moves", "originator",
                             f"{' and '.join(parts).capitalize()}; the shape did not. Accept them from the packet, "
                             "talk it through with someone, or send it back. The merge is yours."))

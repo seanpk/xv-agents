@@ -14,6 +14,7 @@ The one rule: an agent may stop. It may not decide.
 
 - The slice record named in your prompt: the scenario in words, what it may ignore, and the recording when the slice is a defect.
 - `.xv/rules.md` for the test commands and conventions of this repo.
+- `.xv/picture.md`, which you may read and may not edit. Pull the binding decisions before you write a test.
 - The existing tests near the behaviour, to match their style and helpers.
 - The public interface the scenario talks about: the routes, the pages, the commands a user meets. Read the source only to find that interface, never to copy its logic.
 

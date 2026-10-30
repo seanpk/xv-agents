@@ -502,7 +502,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
             for field in ("shape_change", "pitch_contradiction"):
                 v = pdata.get(field)
                 # a missing or malformed field waits for people, never for no one
-                data[field] = v if v in ("yes", "no") else "yes"
+                data[field] = v if v in ("yes", "no") or (field == "shape_change" and v == "accepted") else "yes"
             data["packet"] = os.path.relpath(packet, root)
             checks["picture_change"] = pdata.get("picture_change") or report.get("picture_change")
             checks["shape_breadth"] = pdata.get("shape_breadth") or report.get("shape_breadth")
@@ -792,7 +792,8 @@ def cmd_guard(a):
         packetlib.fix(full)
         pdata, _ = record.read_doc(full)
         for field in ("shape_change", "pitch_contradiction"):
-            data[field] = pdata.get(field) if pdata.get(field) in ("yes", "no") else "yes"
+            ok = ("yes", "no", "accepted") if field == "shape_change" else ("yes", "no")
+            data[field] = pdata.get(field) if pdata.get(field) in ok else "yes"
         data["checks"]["guardian"] = {"picture_change": pdata.get("picture_change")}
         if pdata.get("moved_tests"):
             data["moved_tests"] = [{"file": "see the packet"}] * int(pdata.get("moved_tests") or 0)

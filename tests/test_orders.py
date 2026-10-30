@@ -59,7 +59,7 @@ class OrdersTest(unittest.TestCase):
     def test_a_stall_opens_the_shape_conversation(self):
         d = with_report(rec(), "maker", "stopped", stop={"reason": "repeated_failure"})
         d["checks"]["maker"] = {"suite": "red"}
-        self.assertIn("shape conversation", self.stop(d, "maker")["question"])
+        self.assertIn("reshape the slice", self.stop(d, "maker")["question"])
 
     def test_scenario_must_stay_in_the_tests_and_be_red(self):
         d = with_report(rec(), "scenario", "red")
