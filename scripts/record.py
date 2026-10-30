@@ -161,7 +161,8 @@ def cmd_add(a):
     item = parse_value(a.value)
     if not isinstance(item, dict):
         raise XVError("an item is a JSON object")
-    item.setdefault("at", now())
+    if a.field != "slice_only":
+        item.setdefault("at", now())
     data[a.field].append(item)
     body = log_line(body, a.by or "watch", f"added to {a.field}")
     save(path, data, body)
@@ -334,20 +335,22 @@ def cmd_answer(a):
                                         ("cause", a.cause)) if value]
     if stop["order"] == "accept_moves":
         recs = data.get("wall_recommendations") or []
-        named = [r for r in recs if r.get("test")
-                 and re.search(r"(?<!\w)" + re.escape(r["test"]) + r"(?!\w)", a.answer)]
+        known = {r.get("test") for r in recs}
+        for t in a.accept_wall or []:
+            if t not in known:
+                raise XVError(f"--accept-wall {t}: no wall recommendation names that test")
         for r in recs:
-            r["accepted"] = r in named or not named
+            r["accepted"] = r.get("test") in (a.accept_wall or [])
             if not r["accepted"]:
                 r["refused"] = True
     data["status"] = "working" if a.resume else data["status"]
     if a.next:
         data["next"] = a.next
-    if stop["seat"] == "two_people" or a.decision:
+    if stop["seat"] == "two_people" or stop["order"] == "ready_to_merge" or a.decision:
         rec = write_decision(slice_root(path), data["id"], who, stop, a.answer
                              + ("\n\nDecided by one person: this repo runs solo (seats.two_people: solo)."
                                 if stop.get("solo") else ""))
-        entry = {"date": today(), "who": who, "decision": a.answer, "record": rec}
+        entry = {"date": today(), "who": ",".join(who), "decision": a.answer, "record": rec}
         if stop.get("settled"):
             entry["settled"] = stop["settled"]
         data["decisions"].append(entry)
@@ -434,7 +437,10 @@ def apply_report(data, body, agent, text):
         else:
             data["red"] = report["red"]
     if agent == "scenario" and isinstance(report.get("slice_only"), list):
-        data["slice_only"] = report["slice_only"]
+        kept = [m for m in data.get("slice_only") or []
+                if not any(isinstance(n, dict) and n.get("test") == m.get("test")
+                           for n in report["slice_only"])]
+        data["slice_only"] = kept + report["slice_only"]
     if agent == "guardian" and isinstance(report.get("wall_recommendations"), list):
         data["wall_recommendations"] = [{**r, "accepted": bool(r.get("accepted"))}
                                         for r in report["wall_recommendations"] if isinstance(r, dict)]
@@ -687,6 +693,8 @@ def main(argv=None):
     s.add_argument("--cause", help="decision, environment, tool, agent or watch, then a free line")
     s.add_argument("--why", help="the person's reason")
     s.add_argument("--bundle", help="comma-separated orders the same reply answered")
+    s.add_argument("--accept-wall", dest="accept_wall", action="append", metavar="TEST",
+                   help="accept the wall recommendation for this test; repeat per test")
     s.set_defaults(fn=cmd_answer)
 
     s = sub.add_parser("report", help="apply a worker's xv-report block")
