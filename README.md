@@ -54,7 +54,7 @@ XV has its own words. This README and the method use them from here on.
 | The packet | What the guardian writes about one change, for a person to read instead of the code: the scenario, the recording, the boundary picture, what the suite asserts after, and its five findings. The listener writes a packet from production. |
 | A recording | A defect's evidence: a Playwright trace, a HAR file, or an API sequence as JSON, saved under `.xv/recordings/`. The scenario agent starts a defect's red from it. |
 | The shape | The structure of the system as the team can see it: coupling, what users meet, runtime budgets. A change to it takes two people. |
-| The shape conversation | People deciding the shape, in conversation. It opens when the maker's failure repeats or its diff keeps growing, and before and after a burst of work. The agent may not renovate on its own. |
+| The shape conversation | People deciding the shape, in conversation. It opens on a shape change, and before and after a burst of work. The agent may not renovate on its own. |
 | The pitch | One page in `.xv/pitch.md`: what the system does, why, and for whom. The guardian checks every change against it. |
 | The picture | `.xv/picture.md`, the shared operating picture: the users, what the system is now, the decisions that bind, what is in motion. |
 | The three agents | The maker, the cleaner and the guardian, three contexts on one change: make it work, make it right, find what the other two would rather not say. |
@@ -307,7 +307,7 @@ The standing orders are code, not prose. When the steps run through `xv step`, t
 | The budget is spent, checked before every step whether the suite is green or not | the person who set the work going |
 | An old test moved with a record, or the picture changed, and the shape did not | the person who set the work going |
 | A test file changed with no record | the person who set the work going |
-| The same tests failed after two runs of the maker, or the diff more than doubled between two runs | the person who set the work going; the shape conversation opens |
+| The same tests failed after two runs of the maker, or the diff more than doubled between two runs | the person who set the work going; the stall's four choices: continue, reshape the slice, raise the budget, or bring in a second person |
 | The scenario passed before the fix, or the scenario agent touched source | the person who set the work going |
 | A worker ended with no report, or a read-only agent wrote | the person who set the work going |
 | The scenario agent marked tests slice-only (`slice_only_marks`) | the person who set the work going: accept the marks, or unmark a test so it joins the wall |
@@ -319,7 +319,7 @@ The standing orders are code, not prose. When the steps run through `xv step`, t
 | An agent ended its step with a stop of its own: the forecaster, the scenario agent, the maker, the cleaner or the guardian asks a question | the person who set the work going; two people for a shape question |
 | The cleaner's pass left the suite not green | the person who set the work going |
 | The cleaner edited the standards file | the person who set the work going |
-| `shape_change: yes` or `pitch_contradiction: yes` in the packet | two people |
+| `shape_change: yes` or `pitch_contradiction: yes` in the packet (`shape_change: accepted`, for a shape a decision record on this slice already accepted, does not stop) | two people |
 | A budget raised past the team's limit, or a shape change wider than forecast | two people |
 | Prototypes ready to pick from | two people |
 | The suite is green and nothing stopped | the person who set the work going: the merge is theirs |
@@ -333,7 +333,7 @@ A team can name a command in `reach:` to be told of a stop (a chat message, a pa
 
 ### The packet
 
-The guardian writes `.xv/slices/<id>.packet.md`: five sections for its five checks, the fifth recommending which new tests join the wall or leave it, and a front matter with `shape_change` and `pitch_contradiction` (each `yes` or `no`), the door, and a one-word blast radius. `xv packet lint` enforces the evidence rule: a finding that cites no line, rule, project file, quoted line or diff hunk is moved to a "Dropped by the evidence rule" section, where a person can still read it, and it does not count. The boundary picture in the packet comes from `xv boundary`, not from the agent: modules and the import edges between them before and after the change, new outbound calls, tables and surface paths the diff adds or removes. It is generated so that it can be wrong in a way someone can check. A missing or malformed packet is read as `yes` to both, so the change waits for people, never for no one.
+The guardian writes `.xv/slices/<id>.packet.md`: five sections for its five checks, the fifth recommending which new tests join the wall or leave it, and a front matter with `shape_change` and `pitch_contradiction` (each `yes` or `no`; `shape_change` may also be `accepted`), the door, and a one-word blast radius. `xv packet lint` enforces the evidence rule: a finding that cites no line, rule, project file, quoted line or diff hunk is moved to a "Dropped by the evidence rule" section, where a person can still read it, and it does not count. The boundary picture in the packet comes from `xv boundary`, not from the agent: modules and the import edges between them before and after the change, new outbound calls, tables and surface paths the diff adds or removes. It is generated so that it can be wrong in a way someone can check. A missing or malformed packet is read as `yes` to both, so the change waits for people, never for no one.
 
 ### The budget and the spend
 

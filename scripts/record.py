@@ -490,8 +490,9 @@ def cmd_packet(a):
     pdata, _ = read_doc(a.file)
     for field in ("shape_change", "pitch_contradiction"):
         value = pdata.get(field)
-        if value not in ("yes", "no"):
-            raise XVError(f"the packet's {field} must be yes or no, found {value!r}")
+        allowed = ("yes", "no", "accepted") if field == "shape_change" else ("yes", "no")
+        if value not in allowed:
+            raise XVError(f"the packet's {field} must be {' or '.join(allowed)}, found {value!r}")
         data[field] = value
     data["packet"] = os.path.relpath(os.path.abspath(a.file), slice_root(path))
     body = log_line(body, "guardian", f"packet: shape_change={data['shape_change']}, "

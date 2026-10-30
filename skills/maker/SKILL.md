@@ -14,6 +14,7 @@ The one rule: an agent may stop. It may not decide. Stopping is a good outcome. 
 
 - The slice record named in your prompt: the scenario in words, what it may ignore, the red (the test files and the command that shows them fail), and the budget.
 - `.xv/rules.md` for this repo's commands and the facts an agent cannot infer.
+- You may read `.xv/picture.md`. Pull the binding decisions before you write code, and keep to them.
 - The code the red test reaches, and what you need around it.
 
 Do not read `.xv/standards.md`. Making it right is the cleaner's job, in another context. Do not read `.xv/learnings.md`; it is evidence for people, not rules.
@@ -34,7 +35,7 @@ Stop and report, without finishing, when any of these is true:
 
 - **The budget is spent.** Your prompt gives it. On harnesses that enforce it, the run ends on its own; report what state you left.
 - **The same failure repeats.** Two attempts at the same failing test with the same error: stop. A third try is guessing.
-- **The diff keeps growing.** If each fix needs edits in more files than the last, stop. That is the shape conversation, and it is for people.
+- **The diff keeps growing.** If each fix needs edits in more files than the last, stop. That is a stall, and the watch puts four choices to people: continue, reshape the slice, raise the budget, or bring in a second person.
 - **Green needs a move the scenario does not force**, or a weakened test.
 - **The scenario and an old test contradict, and the scenario does not say which wins.**
 
@@ -49,7 +50,7 @@ When the slice is a prototype slice, the watch gives you `prototype.md` in this 
 - Refactor, rename, or add an abstraction.
 - Raise the budget, or keep going past it.
 - Commit, merge, or push.
-- Read or edit `.xv/standards.md`, `.xv/pitch.md`, `.xv/picture.md`, or anything under `.xv/` except through the report.
+- Edit `.xv/picture.md`. Read or edit `.xv/standards.md`, `.xv/pitch.md`, or anything else under `.xv/` except through the report.
 
 ## Writes to the slice record
 

@@ -32,7 +32,7 @@ The briefs are the skills' `SKILL.md` files. This page gives the reason for the 
 
 - **It does not read the standards file.** Making it right is the cleaner's job. An implementer under context pressure that also carries the standards does both badly (Pocock, `retro`: "the review agent should be responsible for imposing coding standards").
 - **The recorded move.** Tools that guard tests either block every change or allow every change. XV allows a change the scenario forces and requires a record; the wall check fails on a change without one. A changed user message and its tests is the common case.
-- **Two attempts at the same failure, then stop.** A third try is guessing. A growing diff is a shape question. Both open the shape conversation; neither licenses a renovation.
+- **Two attempts at the same failure, then stop.** A third try is guessing. A growing diff is a stall. Both put four choices to people: continue, reshape the slice, raise the budget, or bring in a second person; neither licenses a renovation.
 - **It leaves its work uncommitted.** The watch commits after its checks, so the commit history shows what passed the wall.
 
 ## The cleaner

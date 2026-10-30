@@ -38,8 +38,9 @@ def lint(text):
     data, body = split_front_matter(text)
     problems = []
     for field in ("shape_change", "pitch_contradiction"):
-        if data.get(field) not in ("yes", "no"):
-            problems.append(f"front matter {field} must be yes or no, found {data.get(field)!r}")
+        allowed = ("yes", "no", "accepted") if field == "shape_change" else ("yes", "no")
+        if data.get(field) not in allowed:
+            problems.append(f"front matter {field} must be {' or '.join(allowed)}, found {data.get(field)!r}")
     if data.get("door") not in ("one-way", "two-way"):
         problems.append(f"front matter door must be one-way or two-way, found {data.get('door')!r}")
     kept, dropped = [], []
