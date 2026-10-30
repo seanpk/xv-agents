@@ -2,13 +2,13 @@
 id: 2026-10-30-scenario-miss
 title: A slice that misses its own scenario goes back without a stop
 kind: feature
-status: open
+status: stopped
 set_by: Sean Kennedy
 created: 2026-10-30
 branch: xv/2026-10-30-scenario-miss
 base: f9c5cb172de9480a62d1620c2a7e623ee4b0b5c5
 next: forecaster
-forecast: null
+forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 500000, "turns": null, "usd": 2.7, "basis": ["2026-10-30-stop-words", "2026-10-30-by-name", "2026-10-30-test-marks"], "note": "turns not in guide; test-marks ran 869k with nine scenario runs, so a second reopen would roughly double this"}, {"harness": "claude", "model": "opus", "tokens": 300000, "turns": null, "usd": 3.4, "basis": ["2026-10-30-stop-words", "2026-10-30-by-name", "2026-10-30-test-marks"], "note": "turns not in guide; test-marks ran 478k and $6.12 with six guardian passes, so a reopen here is the largest usd risk"}], "wall_s": 2500, "shape": "narrow", "breadth": "Touches the guardian and watch briefs, packet template, scripts/run.py message, one check, standing orders and CHANGELOG; the code path it changes is narrow."}
 budget: null
 red: null
 wall_baseline: null
@@ -20,12 +20,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: []
-stops: []
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 3166, "cache_read": 25533, "cache_write": 21043, "tokens": 24213, "usd": 0.006, "turns": 3, "wall_s": 19.5, "session": "9c4ef31f-94a8-47f4-8a76-6b6776e6e436", "step": "forecaster", "at": "2026-10-30T04:37:20+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-10-30-scenario-miss/01-forecaster.out"}]
+stops: [{"at": "2026-10-30T04:37:20+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-30-scenario-miss budget ... --by <name>`).", "answered_by": [], "answer": null, "also": [], "budget_seen": null}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast from the last three claude/sonnet and claude/opus rows: about 500k sonnet and 300k opus tokens for one pass plus one send-back; reopen risk is the main uncertainty.", "at": "2026-10-30T04:37:20+00:00"}], "forecaster": {"at": "2026-10-30T04:37:20+00:00", "wrote": []}}
 ---
 # A slice that misses its own scenario goes back without a stop
 
@@ -53,3 +53,5 @@ None. A feature starts from words.
 
 ## Log
 - 2026-10-30T04:37:00+00:00 watch: slice opened by Sean Kennedy
+- 2026-10-30T04:37:20+00:00 forecaster: done: Forecast from the last three claude/sonnet and claude/opus rows: about 500k sonnet and 300k opus tokens for one pass plus one send-back; reopen risk is the main uncertainty.
+- 2026-10-30T04:37:20+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-10-30-scenario-miss budget ... --by <name>`).
