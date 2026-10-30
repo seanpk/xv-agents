@@ -146,10 +146,11 @@ def removed_lines(root, base, rel, head="HEAD"):
             if l.startswith("-") and not l.startswith("---") and not not_code(rel, l)]
 
 
-def old_red_changed(root, base, files, recorded=()):
-    """The red files that existed at `base` and lost or changed old test code in the
-    working tree, with no recorded move naming them."""
+def old_red_changed(root, base, files, recorded=(), paths=()):
+    """The test files that existed at `base` (the red files, and every file under `paths`)
+    and lost or changed old test code in the working tree, with no recorded move naming them."""
     in_base = set(git(["ls-tree", "-r", "--name-only", base], root).split())
+    files = set(files) | {f for f in in_base if match_any(f, paths)}
     return sorted(f for f in files if f in in_base and f not in recorded and removed_lines(root, base, f, None))
 
 

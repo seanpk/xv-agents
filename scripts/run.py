@@ -451,7 +451,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
                 checks["setup_failed"] = out
         else:
             checks["red_fails"] = None
-        changed = old_red_changed(root, data, red)
+        changed = old_red_changed(root, data, red, tests)
         checks["old_red_changed"] = changed or []
         if changed is None:
             checks["old_red_unchecked"] = ("The check for old tests changed in red files could not run: "
@@ -645,14 +645,14 @@ def red_run(root, data, red, config):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def old_red_changed(root, data, red):
-    """Red files that existed at the base and lost or changed old test code."""
+def old_red_changed(root, data, red, paths=()):
+    """Test files that existed at the base and lost or changed old test code."""
     try:
         import wall
     except ImportError:
         return None
     moved = {m.get("file") for m in data.get("moved_tests") or []}
-    return wall.old_red_changed(root, data["base"], red.get("files") or [], moved) if data.get("base") else None
+    return wall.old_red_changed(root, data["base"], red.get("files") or [], moved, paths) if data.get("base") else None
 
 
 def wall_baseline(root, data, config):
