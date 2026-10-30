@@ -561,15 +561,42 @@ def unreadable_input(root, data, report):
     if not isinstance(not_covered, list) or not all(isinstance(n, dict) for n in not_covered):
         out.append("The report's `not_covered` is missing or is not a list of items.")
     if not isinstance(covers, list) or not covers or not all(
-            isinstance(c, dict) and c.get("item") and c.get("test") for c in covers):
+            isinstance(c, dict) and c.get("item") and covers_names(c.get("test")) for c in covers):
         out.append("The report's `covers` is missing, empty, or has an item that names no test.")
     else:
-        texts = red_file_texts(root, data.get("red") or {})
+        files = red_file_texts(root, data.get("red") or {}, by_name=True)
         for c in covers:
-            whole = re.compile(r"(?<!\w)" + re.escape(str(c["test"])) + r"(?!\w)")
-            if not any(whole.search(t) for t in texts):
-                out.append(f"The report says `{c['test']}` covers {c['item']}, and no red file has that test.")
+            for name in covers_names(c["test"]):
+                if not covers_name_found(name, files):
+                    out.append(f"The report says `{name}` covers {c['item']}, and no red file has that test.")
     return out
+
+
+def covers_names(test):
+    """The names a covers item's test holds: one name, a list, or a string joined with , or ;."""
+    parts = test if isinstance(test, list) else re.split(r"[,;]", test) if isinstance(test, str) else []
+    names = [p.strip() for p in parts if isinstance(p, str)]
+    return names if names and all(names) else []
+
+
+def covers_name_found(name, files):
+    """A whole test name in a red file; `file::test` and `Class.test` match only when both parts do."""
+    where, test = None, name
+    if "::" in name:
+        where, _, test = name.rpartition("::")
+        files = {f: t for f, t in files.items() if f == where or f.endswith("/" + where)}
+    whole = re.compile(r"(?<!\w)" + re.escape(test) + r"(?!\w)")
+    klass = None
+    if where is None and "." in name:
+        klass, _, test = name.rpartition(".")
+        klass = klass.rpartition(".")[2]
+        whole = re.compile(r"(?<!\w)" + re.escape(test) + r"(?!\w)")
+    for t in files.values():
+        if not whole.search(t):
+            continue
+        if klass is None or re.search(r"(?m)^\s*class\s+" + re.escape(klass) + r"(?!\w)", t):
+            return True
+    return False
 
 
 def scenario_red_gaps(root, data, red):
@@ -583,15 +610,15 @@ def scenario_red_gaps(root, data, red):
     return wall.red_gaps(body[at:end if end > at else len(body)], red_file_texts(root, red))
 
 
-def red_file_texts(root, red):
-    texts = []
+def red_file_texts(root, red, by_name=False):
+    texts = {}
     for f in red.get("files") or []:
         try:
             with open(os.path.join(root, f), encoding="utf-8", errors="replace") as fh:
-                texts.append(fh.read())
+                texts[f] = fh.read()
         except OSError:
             pass
-    return texts
+    return texts if by_name else list(texts.values())
 
 
 def accepted_by_listed_decision(root, data, pdata):
