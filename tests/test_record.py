@@ -1048,6 +1048,38 @@ class AcceptWallFlagTest(RepoCase):
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("test_nope", p.stderr)
 
+    def guardian_report(self, wt, recs):
+        path = os.path.join(self.tmp, "g2.txt")
+        report = {"agent": "guardian", "status": "done", "summary": "p", "shape_change": "no",
+                  "pitch_contradiction": "no", "wall_recommendations": recs}
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
+        self.xv("record", "report", "s1", "guardian", path, cwd=wt)
+
+    def test_a_guardian_report_cannot_mark_its_own_recommendation_accepted(self):
+        wt = self.new_slice("s1")
+        self.guardian_report(wt, [dict(r, accepted=True) for r in self.RECS])
+        for r in self.recs(wt).values():
+            self.assertIsNot(r.get("accepted"), True)
+
+    def test_a_guardian_rerun_keeps_what_the_person_accepted_with_the_flag(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B: 1",
+                "--accept-wall", "test_keep_me", cwd=wt)
+        self.guardian_report(wt, self.RECS)
+        recs = self.recs(wt)
+        self.assertIs(recs["test_keep_me"]["accepted"], True)
+        self.assertIsNot(recs["test_drop_me"].get("accepted"), True)
+
+    def test_a_guardian_rerun_cannot_accept_what_the_person_did_not(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B: 1",
+                "--accept-wall", "test_keep_me", cwd=wt)
+        self.guardian_report(wt, [dict(r, accepted=True) for r in self.RECS])
+        recs = self.recs(wt)
+        self.assertIs(recs["test_keep_me"]["accepted"], True)
+        self.assertIsNot(recs["test_drop_me"].get("accepted"), True)
+
     def test_a_scenario_rerun_keeps_the_marks_already_in_the_record(self):
         wt = self.new_slice("s1")
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
