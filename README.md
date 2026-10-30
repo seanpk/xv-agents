@@ -6,6 +6,37 @@ It is not a plugin and not any one vendor's subagent format. v0.1 was built from
 
 XV is the method. This repo is the mechanics: how the agents run, what they may not do, and where they hand back to a person. The method is written up at [xtremevibing.com](https://xtremevibing.com/), and its short form is below, after the words it uses.
 
+## Contents
+
+- [Install](#install)
+- [The one rule](#the-one-rule)
+- [The words](#the-words)
+- [The method in brief](#the-method-in-brief)
+- [The agents](#the-agents)
+- [How a slice runs](#how-a-slice-runs)
+- [Try it on a repo](#try-it-on-a-repo)
+- [How it works](#how-it-works)
+- [What the evals show](#what-the-evals-show)
+- [Status](#status)
+- [Credits and license](#credits-and-license)
+
+## Install
+
+```sh
+git clone https://github.com/seanpk/xv-agents ~/src/xv-agents
+python3 ~/src/xv-agents/bin/xv install
+```
+
+`xv install` links every skill into the skills folder of each agent you have installed (Claude Code, Codex, Cursor, Grok, and the shared `~/.agents`), and `xv` into `~/.local/bin`, and says if that is not on your `PATH`. It creates no folder for an agent you do not have, and never replaces a skill folder it did not make. `--into <folder>` names a skills folder instead; `--dry-run` says what it would do; `--remove` takes out what it put in. Upgrade with `git pull` in the clone: the links follow. To stay on a release, `git checkout v0.3.1` in the clone.
+
+To give a whole team the skills through the repo instead, run `xv install --scope project` in it and commit the result. It copies the skills into the repo's agent folders (`.agents/skills` and `.claude/skills` when it has none), each with a mark of its version, so a later install replaces a copy nobody edited and refuses one somebody did, and `xv check` reports a stale or edited copy. Everyone still needs `xv` on their `PATH` from a user install. In Claude Code a person's own skill wins over the project's, and `xv check` says when both are installed.
+
+`gh skill install seanpk/xv-agents --all` and `npx skills add` also install skills from a GitHub repo. They copy the skills but not [`bin/xv`](bin/xv), and `gh skill install --force` overwrites a local edit without warning (checked with `gh` 2.102.0, where `gh skill` is a preview; `npx skills` was not checked).
+
+Python 3.10 or later, standard library only. The default agent CLI is Claude Code (`claude -p`); `.xv/config.yml` names a CLI per step: opencode with a local model, or Grok.
+
+Then [try it on a repo](#try-it-on-a-repo).
+
 ## The one rule
 
 An agent may stop. It may not decide. A person is responsible for every change, including one made entirely by agents, so the harness is built to hand back, not to approve. There is no agent that says yes. When the conditions are met, nobody else has to say yes either: the person who set the work going merges.
@@ -156,7 +187,7 @@ flowchart TB
 
 ## Try it on a repo
 
-The whole path, on a repo that has a test suite. Install first (below).
+The whole path, on a repo that has a test suite. [Install](#install) first.
 
 To try XV before your team commits to it, start with `xv init --trial`. It lists `.xv/` in `.git/info/exclude`, so the project layer stays on your machine and nothing about XV enters the repo's history; a slice's commits carry only the code. Everything else below works the same. If you want the layer's own history, or teammates in the trial, use `xv init --trial --repo`: `.xv/` also becomes its own git repo, which you can push to a private remote for teammates to clone into their `.xv/`. When you decide to keep it, `xv init --adopt` lets git see `.xv/` again, and you commit it. If `.xv/` is its own repo, `--adopt` refuses while that repo has uncommitted changes, then moves its history to `<git common dir>/xv-trial.git`; it deletes nothing. To drop a trial, delete `.xv/` and the `xv/*` branches.
 
@@ -355,21 +386,6 @@ flowchart LR
 ### What was checked on each harness
 
 Claude Code runs a brief as the whole prompt, reports spend in its JSON result, and refuses writes under `.git/`, which is why worktrees live in `.xv/`. opencode cannot drop its own system prompt, so the brief arrives after about 17,800 tokens of opencode's; it reports spend through `opencode session export`. codex has the flags and was not run. Playwright's test agents install without the healer, which repairs a failing test by editing it, the move the wall exists to stop. Versions, dates and what each line rests on are in [`docs/harness-notes.md`](docs/harness-notes.md); the doc sentences the scripts depend on are in [`docs/relies-on.md`](docs/relies-on.md), and a weekly workflow opens an issue here when one is gone.
-
-## Install
-
-```sh
-git clone https://github.com/seanpk/xv-agents ~/src/xv-agents
-python3 ~/src/xv-agents/bin/xv install
-```
-
-`xv install` links every skill into the skills folder of each agent you have installed (Claude Code, Codex, Cursor, Grok, and the shared `~/.agents`), and `xv` into `~/.local/bin`, and says if that is not on your `PATH`. It creates no folder for an agent you do not have, and never replaces a skill folder it did not make. `--into <folder>` names a skills folder instead; `--dry-run` says what it would do; `--remove` takes out what it put in. Upgrade with `git pull` in the clone: the links follow. To stay on a release, `git checkout v0.3.1` in the clone.
-
-To give a whole team the skills through the repo instead, run `xv install --scope project` in it and commit the result. It copies the skills into the repo's agent folders (`.agents/skills` and `.claude/skills` when it has none), each with a mark of its version, so a later install replaces a copy nobody edited and refuses one somebody did, and `xv check` reports a stale or edited copy. Everyone still needs `xv` on their `PATH` from a user install. In Claude Code a person's own skill wins over the project's, and `xv check` says when both are installed.
-
-`gh skill install seanpk/xv-agents --all` and `npx skills add` also install skills from a GitHub repo. They copy the skills but not [`bin/xv`](bin/xv), and `gh skill install --force` overwrites a local edit without warning (checked with `gh` 2.102.0, where `gh skill` is a preview; `npx skills` was not checked).
-
-Python 3.10 or later, standard library only. The default agent CLI is Claude Code (`claude -p`); `.xv/config.yml` names a CLI per step: opencode with a local model, or Grok.
 
 ## What the evals show
 
