@@ -32,6 +32,9 @@ CITATION = re.compile(
     r"|@@ -\d+", re.I)
 NOT_A_FINDING = re.compile(r"^\s*(?:[-*]|\d+\.)\s*(?:none\b|no\b|nothing\b|not\b|looked at|checked\b|n/a\b)", re.I)
 ITEM = re.compile(r"^\s*(?:[-*]|\d+\.)\s+\S")
+MISSES = re.compile(r"^##\s*scenario misses\b", re.I)
+MISS_REF = re.compile(r"^\s*[-*]\s+((?:point\s+|decision\s+|amendment\s+)?\d+\b[^:;(]*)", re.I)
+EVIDENCE = re.compile(r"\bevidence\s*:", re.I)
 
 
 def lint(text):
@@ -43,8 +46,10 @@ def lint(text):
             problems.append(f"front matter {field} must be {' or '.join(allowed)}, found {data.get(field)!r}")
     if data.get("door") not in ("one-way", "two-way"):
         problems.append(f"front matter door must be one-way or two-way, found {data.get('door')!r}")
+    if data.get("scenario_miss") not in (None, "yes", "no"):
+        problems.append(f"front matter scenario_miss must be yes or no, found {data.get('scenario_miss')!r}")
     kept, dropped = [], []
-    in_check, in_code = False, False
+    in_check, in_misses, in_code = False, False, False
     for line in body.splitlines():
         if line.startswith("```"):
             in_code = not in_code
@@ -52,21 +57,45 @@ def lint(text):
             continue
         if line.startswith("## "):
             in_check = bool(CHECKS.match(line))
+            in_misses = bool(MISSES.match(line))
+        if in_misses and not in_code and ITEM.match(line) and not (MISS_REF.match(line) and EVIDENCE.search(line)):
+            dropped.append(line.strip())
+            continue
         if in_check and not in_code and ITEM.match(line) and not NOT_A_FINDING.match(line) \
                 and not CITATION.search(line):
             dropped.append(line.strip())
             continue
         kept.append(line)
-    return data, "\n".join(kept), problems, dropped
+    body = "\n".join(kept)
+    if data.get("scenario_miss") == "yes" and not misses(body):
+        data["scenario_miss"] = "no"
+    return data, body, problems, dropped
+
+
+def misses(body):
+    """The misses kept in the packet's `## Scenario misses` section: ref, text, where it goes, whether it amends."""
+    out, in_misses = [], False
+    for line in body.splitlines():
+        if line.startswith("## "):
+            in_misses = bool(MISSES.match(line))
+        m = MISS_REF.match(line) if in_misses else None
+        if m and EVIDENCE.search(line):
+            to = re.search(r"\bto\s*:\s*(maker|scenario)\b", line, re.I)
+            out.append({"ref": m.group(1).strip().lower(), "text": line.strip().lstrip("-* ").strip(),
+                        "to": to.group(1).lower() if to else "maker",
+                        "amend": bool(re.search(r"\bamend\s*:\s*yes\b", line, re.I))})
+    return out
 
 
 def fix(path):
     with open(path) as f:
         text = f.read()
     data, body, problems, dropped = lint(text)
+    changed = split_front_matter(text)[0].get("scenario_miss") != data.get("scenario_miss")
     if dropped:
         body = body.rstrip("\n") + "\n\n## Dropped by the evidence rule\n\nThese findings cite no line, rule or hunk, so they do not count.\n\n" \
             + "\n".join(f"- {d.lstrip('-* ').strip()}" for d in dropped) + "\n"
+    if dropped or changed:
         with open(path, "w") as f:
             f.write(join_front_matter(data, "\n" + body.lstrip("\n")))
     return {"problems": problems, "dropped": dropped}

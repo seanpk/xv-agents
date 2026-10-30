@@ -102,7 +102,7 @@ def evaluate(data, after, config):
                             "so only the last one's exit code counts. The scenario agent will rewrite it, joining the runners with `&&`."))
         if checks.get("old_red_changed"):
             out.append(fire("unrecorded_move", "originator",
-                            "The scenario agent changed or removed old tests or assertions in red files that existed at the base: "
+                            "The scenario agent changed or removed old tests or assertions in old test files that existed at the base: "
                             + ", ".join(checks["old_red_changed"]) + ". Revert them, or record why the scenario forces it."))
         if checks.get("old_red_unchecked"):
             out.append(fire("setup_failed", "originator", checks["old_red_unchecked"]))
@@ -118,6 +118,10 @@ def evaluate(data, after, config):
         for n in checks.get("not_covered") or []:
             out.append(fire("red_misses_scenario", "originator",
                             f"The scenario agent did not cover {n.get('item')}: {n.get('why')}"))
+        if checks.get("missed_repeat"):
+            out.append(fire("red_misses_point", "originator",
+                            "The same scenario points are still in neither covers nor not_covered after a send-back: "
+                            + "; ".join(checks.get("missed_points") or []) + ". " + STALL_CHOICES))
         if checks.get("red_fails") is False:
             out.append(fire("scenario_not_red", "originator",
                             "The scenario passes on the code as it is. The behaviour may exist already, "
@@ -201,7 +205,22 @@ def evaluate(data, after, config):
         moved = [m for m in data.get("moved_tests") or [] if not m.get("slice_only")]
         picture = checks.get("picture_change") == "yes"
         recs = [r for r in data.get("wall_recommendations") or [] if not r.get("accepted") and not r.get("refused")]
-        if not out and (moved or picture or recs):
+        miss = data.get("scenario_miss") == "yes"
+        if miss:
+            state = budget_state(data)
+            if state["spent_out"]:
+                out.append(fire("budget_spent", "originator",
+                                f"The budget is spent ({', '.join(state['over'])}) and the packet says scenario_miss: yes. "
+                                "Continue with a new budget, reshape, or set it aside."))
+            if checks.get("miss_amend"):
+                out.append(fire("scenario_miss", "originator",
+                                "The packet lists a scenario miss marked amend: yes: meeting it would change the scenario, "
+                                "which goes through `xv slice amend` and is yours."))
+            elif checks.get("miss_repeat"):
+                out.append(fire("scenario_miss", "originator",
+                                "The same scenario miss came back after a send-back: "
+                                + "; ".join(checks.get("miss_repeat")) + ". " + STALL_CHOICES))
+        if not out and not miss and (moved or picture or recs):
             parts = []
             if moved:
                 parts.append(f"{len(moved)} old test(s) moved with a record")
@@ -212,7 +231,7 @@ def evaluate(data, after, config):
             out.append(fire("accept_moves", "originator",
                             f"{' and '.join(parts).capitalize()}; the shape did not. Accept them from the packet, "
                             "talk it through with someone, or send it back. The merge is yours."))
-        if not out:
+        if not out and not miss:
             out.append(fire("ready_to_merge", "originator",
                             "The suite is green and nothing stopped. The merge is yours."))
         watch = (data.get("red") or {}).get("watch_first_green")
