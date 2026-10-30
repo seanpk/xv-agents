@@ -581,16 +581,14 @@ def covers_names(test):
 
 def covers_name_found(name, files):
     """A whole test name in a red file; `file::test` and `Class.test` match only when both parts do."""
-    where, test = None, name
+    klass, test = None, name
     if "::" in name:
         where, _, test = name.rpartition("::")
         files = {f: t for f, t in files.items() if f == where or f.endswith("/" + where)}
-    whole = re.compile(r"(?<!\w)" + re.escape(test) + r"(?!\w)")
-    klass = None
-    if where is None and "." in name:
+    elif "." in name:
         klass, _, test = name.rpartition(".")
         klass = klass.rpartition(".")[2]
-        whole = re.compile(r"(?<!\w)" + re.escape(test) + r"(?!\w)")
+    whole = re.compile(r"(?<!\w)" + re.escape(test) + r"(?!\w)")
     for t in files.values():
         if not whole.search(t):
             continue
