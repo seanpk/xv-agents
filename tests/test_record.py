@@ -1146,6 +1146,47 @@ class AcceptWallFlagTest(RepoCase):
                 "refuse test_keep_me and test_drop_me", cwd=wt)
         self.assertEqual([r["accepted"] for r in self.recs(wt).values()], [True, True])
 
+    def answered_stops(self, wt):
+        return [s for s in self.show(wt)["stops"] if s.get("order") == "accept_moves"]
+
+    def test_the_stop_keeps_the_names_given_with_accept_wall(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B: 1",
+                "--accept-wall", "test_keep_me", cwd=wt)
+        stop = self.answered_stops(wt)[0]
+        self.assertEqual(stop["accepted_wall"], ["test_keep_me"])
+        self.assertEqual(stop["refused_wall"], [])
+
+    def test_the_stop_keeps_every_name_given_with_accept_wall(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                "--accept-wall", "test_keep_me", "--accept-wall", "test_drop_me", cwd=wt)
+        stop = self.answered_stops(wt)[0]
+        self.assertEqual(sorted(stop["accepted_wall"]), ["test_drop_me", "test_keep_me"])
+
+    def test_the_stop_keeps_the_names_given_with_refuse_wall(self):
+        wt = self.accepted_both_then_second_stop()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                "--refuse-wall", "test_drop_me", cwd=wt)
+        stop = self.answered_stops(wt)[1]
+        self.assertEqual(stop["refused_wall"], ["test_drop_me"])
+        self.assertEqual(stop["accepted_wall"], [])
+
+    def test_a_stop_answered_with_no_wall_flag_keeps_two_empty_lists(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B: 1", cwd=wt)
+        stop = self.answered_stops(wt)[0]
+        self.assertEqual(stop["accepted_wall"], [])
+        self.assertEqual(stop["refused_wall"], [])
+
+    def test_an_earlier_stop_keeps_its_names_after_a_later_answer(self):
+        wt = self.accepted_both_then_second_stop()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                "--refuse-wall", "test_drop_me", cwd=wt)
+        first = self.answered_stops(wt)[0]
+        self.assertEqual(sorted(first["accepted_wall"]), ["test_drop_me", "test_keep_me"])
+        self.assertEqual(first["refused_wall"], [])
+
     def test_a_scenario_rerun_keeps_the_marks_already_in_the_record(self):
         wt = self.new_slice("s1")
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
