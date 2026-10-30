@@ -19,3 +19,9 @@ Each entry is a heading and these lines:
 - from: 2026-10-25-diff-count, -suite-red-quote, -answer-in-prompt, -init-tries-guesses, the guardian's packets; v0.3.0, three positions moved on the site
 - miss: four of five makers changed a brief or an order and wrote no CHANGELOG line; binding decision 1 asks for one, and the maker does not read the picture. In v0.3 the mechanism changed before the site's positions did, and no rule said which goes first
 - seen: [xv-agents@2026-10-26]
+
+### A slice that changes what `xv record` accepts or refuses also changes README.md and the briefs that state the old rule; the picture's line is changed at merge
+- added: 2026-10-29 by Sean Kennedy
+- from: 2026-10-29-settled-forward, guardian logs 22:11:42 and 23:24:32 "README/watch brief/picture/CHANGELOG still state the old rule", "picture.md:26 still states the old --settled rule"; 2026-10-29-stop-decisions, guardian logs 19:30:42 and 19:53:37 "README examples now refused", "README:189 sends a merge to the maker"
+- miss: in both slices the guardian found the old `--settled` rule still stated somewhere else, four times in all: README answer examples that `xv record` now refused, the watch brief, and `.xv/picture.md:26`. The maker does not read the picture, so the picture's line was found twice.
+- seen: [seanpk/xv-agents@2026-10-29]

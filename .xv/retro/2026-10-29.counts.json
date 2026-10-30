@@ -1,0 +1,5 @@
+{
+ "override_rate_limit": 0.25,
+ "min_fires": 5,
+ "rules": []
+}
