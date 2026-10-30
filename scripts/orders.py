@@ -26,8 +26,19 @@ STALL_CHOICES = ("This is a stall on this slice, and the agent may not renovate.
                  "reshape the slice, raise the budget, or bring in a second person.")
 
 
-def fire(order, seat, question, blocking=True):
-    return {"order": order, "seat": seat, "question": question, "blocking": blocking}
+def fire(order, seat, question, blocking=True, send_back=None):
+    f = {"order": order, "seat": seat, "question": question, "blocking": blocking}
+    if send_back:
+        f["send_back"] = send_back
+    return f
+
+
+def sent_back(data, order, after):
+    """Keys of what the watch sent back for this order before the report now being read: the points, or the miss refs."""
+    report = last_report(data, after) or {}
+    return {k for st in data.get("stops") or [] if st.get("order") == order and st.get("seat") == "watch"
+            and not (report.get("at") and st.get("at") and st["at"] >= report["at"])
+            for k in st.get("keys") or []}
 
 
 def first_failing_step(output):
@@ -118,10 +129,11 @@ def evaluate(data, after, config):
         for n in checks.get("not_covered") or []:
             out.append(fire("red_misses_scenario", "originator",
                             f"The scenario agent did not cover {n.get('item')}: {n.get('why')}"))
-        if checks.get("missed_repeat"):
+        points = [str(p) for p in checks.get("missed_points") or []]
+        if checks.get("missed_repeat") or set(points) & sent_back(data, "red_misses_point", after):
             out.append(fire("red_misses_point", "originator",
                             "The same scenario points are still in neither covers nor not_covered after a send-back: "
-                            + "; ".join(checks.get("missed_points") or []) + ". " + STALL_CHOICES))
+                            + "; ".join(points) + ". " + STALL_CHOICES))
         if checks.get("red_fails") is False:
             out.append(fire("scenario_not_red", "originator",
                             "The scenario passes on the code as it is. The behaviour may exist already, "
@@ -212,14 +224,16 @@ def evaluate(data, after, config):
                 out.append(fire("budget_spent", "originator",
                                 f"The budget is spent ({', '.join(state['over'])}) and the packet says scenario_miss: yes. "
                                 "Continue with a new budget, reshape, or set it aside."))
-            if checks.get("miss_amend"):
+            found = checks.get("misses") or []
+            repeat = checks.get("miss_repeat") or sorted({m["ref"] for m in found} & sent_back(data, "scenario_miss", after))
+            if checks.get("miss_amend") or any(m.get("amend") for m in found):
                 out.append(fire("scenario_miss", "originator",
                                 "The packet lists a scenario miss marked amend: yes: meeting it would change the scenario, "
                                 "which goes through `xv slice amend` and is yours."))
-            elif checks.get("miss_repeat"):
+            elif repeat:
                 out.append(fire("scenario_miss", "originator",
                                 "The same scenario miss came back after a send-back: "
-                                + "; ".join(checks.get("miss_repeat")) + ". " + STALL_CHOICES))
+                                + "; ".join(repeat) + ". " + STALL_CHOICES))
         if not out and not miss and (moved or picture or recs):
             parts = []
             if moved:
@@ -269,6 +283,18 @@ def evaluate(data, after, config):
         out.append(fire("prototypes_ready", "two_people",
                         f"{n} prototype(s) are ready to pick from, or none. Two people pick, with a user "
                         "when one can be reached."))
+
+    if not any(f["blocking"] for f in out):
+        if after == "scenario" and checks.get("missed_points"):
+            points = sorted({str(p) for p in checks["missed_points"]})
+            out.append(fire("red_misses_point", "watch",
+                            "These points are in neither covers nor not_covered: " + "; ".join(points),
+                            blocking=False, send_back={"to": "scenario", "misses": points}))
+        elif after == "guardian" and data.get("scenario_miss") == "yes" and checks.get("misses"):
+            found = checks["misses"]
+            out.append(fire("scenario_miss", "watch", "; ".join(m["text"] for m in found), blocking=False,
+                            send_back={"to": "scenario" if any(m["to"] == "scenario" for m in found) else "maker",
+                                       "misses": sorted({m["ref"] for m in found})}))
 
     return out
 
