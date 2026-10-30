@@ -606,11 +606,6 @@ class AcceptedShapeChangeTest(WatchLoopTest):
         fields = [l for l in text.splitlines() if "pitch_contradiction" in l and "fixed fields" in l][0]
         self.assertNotIn("each `yes` or `no`, nothing else", fields)
 
-    def test_the_stall_test_is_named_for_what_it_checks(self):
-        text = open(os.path.join(HOME, "tests", "test_orders.py")).read()
-        self.assertNotIn("def test_a_stall_opens_the_shape_conversation", text)
-        self.assertIn("def test_a_stall_question_offers_to_reshape_the_slice", text)
-
 
 if __name__ == "__main__":
     unittest.main()
