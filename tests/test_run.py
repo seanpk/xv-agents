@@ -181,6 +181,59 @@ class WatchLoopTest(RepoCase):
         self.scenario_with_red("false && true")
         self.assertEqual(self.record()["next"], "maker")
 
+    def amend(self, text):
+        path = os.path.join(self.tmp, "amendment.md")
+        with open(path, "w") as f:
+            f.write(text)
+        self.xv("slice", "amend", "s1", "--scenario-file", path, "--by", "pat", cwd=self.wt)
+
+    def scenario_with_env(self, **env):
+        from unittest import mock
+        with mock.patch.dict(os.environ, env):
+            self.xv("step", "forecaster", "s1", cwd=self.wt)
+            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+
+    def assert_stopped_before_the_maker(self, p, *named):
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["seat"], "originator")
+        for n in named:
+            self.assertIn(n, stop["question"])
+        self.assertNotIn("maker", [s["step"] for s in self.record()["spend"]])
+
+    def test_a_flag_in_backticks_that_no_red_file_has_stops_before_the_maker(self):
+        self.amend("The list takes `--since <date>`.")
+        self.assert_stopped_before_the_maker(self.scenario_with_env(), "--since")
+
+    def test_a_flag_in_an_amendment_counts(self):
+        self.amend("Also `--until <date>`.")
+        self.assert_stopped_before_the_maker(self.scenario_with_env(), "--until")
+
+    def test_an_xv_command_in_backticks_that_no_red_file_has_stops_before_the_maker(self):
+        self.amend("A person runs `xv ghost <id>`.")
+        self.assert_stopped_before_the_maker(self.scenario_with_env(), "xv ghost")
+
+    def test_a_flag_a_red_file_has_goes_on_to_the_maker(self):
+        self.amend("The list takes `--since <date>`.")
+        p = self.scenario_with_env(FAKE_RED_TEXT="xv list --since 2026-10-01")
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.record()["next"], "maker")
+
+    def test_a_flag_in_plain_words_does_not_stop(self):
+        self.amend("The list takes a --since flag, written without backticks.")
+        p = self.scenario_with_env()
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.record()["next"], "maker")
+
+    def test_an_item_the_report_says_it_did_not_cover_stops_before_the_maker(self):
+        p = self.scenario_with_env(FAKE_NOT_COVERED='[{"item": "the grocer share", "why": "no seam to start the app"}]')
+        self.assert_stopped_before_the_maker(p, "the grocer share", "no seam to start the app")
+
+    def test_a_report_with_nothing_left_uncovered_goes_on_to_the_maker(self):
+        p = self.scenario_with_env(FAKE_NOT_COVERED="[]")
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.record()["next"], "maker")
+
     def assert_refused(self, command):
         p = self.scenario_with_red(command)
         stop = json.loads(p.stdout)["stop"]
