@@ -42,6 +42,9 @@ elif title.startswith("# The scenario agent"):
         t = open("tests/test_store.py").read().replace('["yogurt"]', '["yogurt"] or []')
         open("tests/test_store.py", "w").write(t)
         red_files = ["tests/test_store.py"]
+    if os.environ.get("FAKE_SCENARIO_EDITS_OLD_OUTSIDE_RED"):
+        t = open("tests/test_store.py").read().replace('["yogurt"]', '["yogurt"] or []')
+        open("tests/test_store.py", "w").write(t)
     extra = {"covers": [{"item": "milk today", "test": "test_milk_today"}], "not_covered": []}
     if os.environ.get("FAKE_NOT_COVERED"):
         extra["not_covered"] = json.loads(os.environ["FAKE_NOT_COVERED"])

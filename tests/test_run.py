@@ -142,6 +142,19 @@ class WatchLoopTest(RepoCase):
         self.assertIn("tests/test_store.py", stop["question"])
         self.assertNotIn("maker", [s["step"] for s in self.record()["spend"]])
 
+    def test_an_old_assertion_changed_in_a_file_outside_the_red_stops_before_the_maker(self):
+        os.environ["FAKE_SCENARIO_EDITS_OLD_OUTSIDE_RED"] = "1"
+        try:
+            p = self.scenario_with_red("false")
+        finally:
+            del os.environ["FAKE_SCENARIO_EDITS_OLD_OUTSIDE_RED"]
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["order"], "unrecorded_move")
+        self.assertEqual(stop["seat"], "originator")
+        self.assertIn("tests/test_store.py", stop["question"])
+        self.assertNotIn("maker", [s["step"] for s in self.record()["spend"]])
+
     def test_a_scenario_step_whose_old_red_check_cannot_run_stops_before_the_maker(self):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.xv("record", "set", "s1", "base", "", cwd=self.wt)
