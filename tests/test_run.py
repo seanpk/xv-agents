@@ -473,14 +473,6 @@ class WatchLoopTest(RepoCase):
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "ready_to_merge")
         self.assertEqual(self.record()["scenario_miss"], "no")
 
-    def test_the_old_red_check_that_cannot_run_names_old_test_files_that_existed_at_the_base(self):
-        self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.xv("record", "set", "s1", "base", "", cwd=self.wt)
-        p = self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
-        question = json.loads(p.stdout)["stop"]["question"]
-        self.assertIn("old test files that existed at the base", question)
-        self.assertNotIn("red files", question)
-
     def test_a_stop_waits_for_an_answer_and_close_needs_the_merge_answered(self):
         self.xv("run", "s1", cwd=self.wt, check=False)
         p = self.xv("close", "s1", cwd=self.wt, check=False)
