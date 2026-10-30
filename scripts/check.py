@@ -217,9 +217,6 @@ def drift(offline=False):
     return items
 
 
-from wall import red_gaps  # noqa: E402,F401  (the check lives in wall, beside the other red-file checks)
-
-
 def main(argv=None):
     p = argparse.ArgumentParser(prog="xv check", description=__doc__.split("\n")[0])
     p.add_argument("what", nargs="?", default="all", choices=["all", "relaxations", "overrides", "entries", "drift"])
