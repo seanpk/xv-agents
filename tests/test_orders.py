@@ -323,6 +323,84 @@ class OrdersTest(unittest.TestCase):
         self.assertNotIn("the picture changed", s["question"].lower())
 
 
+class SendBackFromOrdersTest(unittest.TestCase):
+    """The send-back is decided by orders.evaluate from the record alone: a fired entry that is not
+    blocking and carries send_back = {"to": "maker"|"scenario", "misses": [refs]}."""
+
+    def miss(self, ref="2", to="maker", amend=False, text="the red does not cover it"):
+        return {"ref": ref, "to": to, "amend": amend, "text": text}
+
+    def guardian(self, misses, **kw):
+        d = with_report(rec(shape_change="no", pitch_contradiction="no", scenario_miss="yes", **kw), "guardian")
+        d["checks"]["guardian"] = {"misses": misses}
+        return d
+
+    def after_scenario(self, points, **kw):
+        d = with_report(rec(**kw), "scenario", "red")
+        d["checks"]["scenario"] = {"red_fails": True, "missed_points": points}
+        return d
+
+    def verdict(self, data, after):
+        return orders.verdict(data, after, DEFAULT_CONFIG)
+
+    def send_backs(self, v):
+        return [f for f in v["fired"] if f.get("send_back")]
+
+    def test_orders_sends_a_guardian_miss_back_to_the_maker_without_a_stop(self):
+        v = self.verdict(self.guardian([self.miss("2")]), "guardian")
+        self.assertIsNone(v["stop"])
+        back = self.send_backs(v)
+        self.assertEqual([(f["order"], f["blocking"], f["send_back"]) for f in back],
+                         [("scenario_miss", False, {"to": "maker", "misses": ["2"]})])
+
+    def test_orders_sends_a_miss_the_red_does_not_cover_to_the_scenario_agent(self):
+        v = self.verdict(self.guardian([self.miss("2"), self.miss("10", to="scenario")]), "guardian")
+        self.assertIsNone(v["stop"])
+        self.assertEqual([f["send_back"] for f in self.send_backs(v)],
+                         [{"to": "scenario", "misses": ["10", "2"]}])
+
+    def test_orders_stops_for_a_miss_marked_amend_yes_and_sends_nothing_back(self):
+        v = self.verdict(self.guardian([self.miss("2", amend=True)]), "guardian")
+        self.assertEqual((v["stop"]["order"], v["stop"]["seat"]), ("scenario_miss", "originator"))
+        self.assertEqual(self.send_backs(v), [])
+
+    def test_orders_stops_when_the_same_point_comes_back_worded_differently(self):
+        prior = {"order": "scenario_miss", "seat": "watch", "keys": ["2"], "answer": "sent back to the maker"}
+        v = self.verdict(self.guardian([self.miss("2", text="said another way entirely")], stops=[prior]), "guardian")
+        self.assertEqual((v["stop"]["order"], v["stop"]["seat"]), ("scenario_miss", "originator"))
+        self.assertEqual(self.send_backs(v), [])
+
+    def test_orders_sends_back_a_new_point_after_an_earlier_send_back_for_another(self):
+        prior = {"order": "scenario_miss", "seat": "watch", "keys": ["3"], "answer": "sent back to the maker"}
+        v = self.verdict(self.guardian([self.miss("2")], stops=[prior]), "guardian")
+        self.assertIsNone(v["stop"])
+        self.assertEqual(len(self.send_backs(v)), 1)
+
+    def test_orders_sends_nothing_back_beside_a_shape_change(self):
+        d = self.guardian([self.miss("2")])
+        d["shape_change"] = "yes"
+        v = self.verdict(d, "guardian")
+        self.assertEqual(v["stop"]["order"], "shape_or_pitch")
+        self.assertEqual(self.send_backs(v), [])
+
+    def test_orders_sends_nothing_back_when_the_budget_is_spent(self):
+        v = self.verdict(self.guardian([self.miss("2")], spend=[{"step": "maker", "usd": 2.5, "tokens": 10}]), "guardian")
+        self.assertEqual(v["stop"]["order"], "budget_spent")
+        self.assertEqual(self.send_backs(v), [])
+
+    def test_orders_sends_uncovered_scenario_points_back_to_the_scenario_agent(self):
+        v = self.verdict(self.after_scenario(["3", "5"]), "scenario")
+        self.assertIsNone(v["stop"])
+        self.assertEqual([(f["order"], f["blocking"], f["send_back"]) for f in self.send_backs(v)],
+                         [("red_misses_point", False, {"to": "scenario", "misses": ["3", "5"]})])
+
+    def test_orders_stops_when_the_same_uncovered_point_comes_back(self):
+        prior = {"order": "red_misses_point", "seat": "watch", "keys": ["3"], "answer": "sent back to the scenario"}
+        v = self.verdict(self.after_scenario(["3"], stops=[prior]), "scenario")
+        self.assertEqual((v["stop"]["order"], v["stop"]["seat"]), ("red_misses_point", "originator"))
+        self.assertEqual(self.send_backs(v), [])
+
+
 class GuardianFiveChecksTest(unittest.TestCase):
     def read(self, *path):
         with open(os.path.join(HOME, *path)) as f:
