@@ -519,7 +519,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
                     data[field] = v
                 else:
                     data[field] = v if v in ("yes", "no") else "yes"
-            found =packetlib.misses(record.read_doc(packet)[1]) if pdata.get("scenario_miss") == "yes" else []
+            found = packetlib.misses(record.read_doc(packet)[1]) if pdata.get("scenario_miss") == "yes" else []
             data["scenario_miss"] = "yes" if found else "no"
             checks["misses"] = found
             checks["miss_amend"] = any(m["amend"] for m in found)
