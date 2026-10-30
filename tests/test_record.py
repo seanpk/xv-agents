@@ -979,3 +979,111 @@ class WallChoicesTest(RepoCase):
         self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion",
                 "test_other; removed", "--why", "w", "--slice-only", cwd=wt)
         self.assertFalse(self.show(wt)["moved_tests"][0].get("slice_only"))
+
+
+class AcceptWallFlagTest(RepoCase):
+    """Sean's second set of amendments to the test-marks slice."""
+
+    RECS = WallChoicesTest.RECS
+    MARK = WallChoicesTest.MARK
+
+    def show(self, wt):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+
+    def stopped_on_accept_moves(self):
+        wt = self.new_slice("s1")
+        path = os.path.join(self.tmp, "g.txt")
+        report = {"agent": "guardian", "status": "done", "summary": "p", "shape_change": "no",
+                  "pitch_contradiction": "no", "wall_recommendations": self.RECS}
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
+        self.xv("record", "report", "s1", "guardian", path, cwd=wt)
+        self.xv("record", "stop", "s1", "--order", "accept_moves", "--seat", "originator",
+                "--question", "accept?", "--step", "guardian", cwd=wt)
+        return wt
+
+    def recs(self, wt):
+        return {r["test"]: r for r in self.show(wt)["wall_recommendations"]}
+
+    def scenario_rerun(self, wt, slice_only):
+        path = os.path.join(self.tmp, "out.txt")
+        report = {"agent": "scenario", "status": "red", "summary": "r", "red": RED, "slice_only": slice_only}
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
+        self.xv("record", "report", "s1", "scenario", path, cwd=wt)
+
+    def test_accept_wall_accepts_the_named_test_and_refuses_the_rest(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B: 1",
+                "--accept-wall", "test_keep_me", cwd=wt)
+        recs = self.recs(wt)
+        self.assertIs(recs["test_keep_me"]["accepted"], True)
+        self.assertFalse(recs["test_keep_me"].get("refused"))
+        self.assertIs(recs["test_drop_me"]["accepted"], False)
+        self.assertIs(recs["test_drop_me"].get("refused"), True)
+
+    def test_accept_wall_can_be_given_once_per_test(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                "--accept-wall", "test_keep_me", "--accept-wall", "test_drop_me", cwd=wt)
+        self.assertEqual([r["accepted"] for r in self.recs(wt).values()], [True, True])
+
+    def test_an_answer_with_no_flag_refuses_every_recommendation(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B: 1", cwd=wt)
+        for r in self.recs(wt).values():
+            self.assertIs(r["accepted"], False)
+            self.assertIs(r.get("refused"), True)
+
+    def test_the_words_of_the_answer_are_never_read_to_accept_a_test(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer",
+                "accept test_keep_me and test_drop_me", cwd=wt)
+        for r in self.recs(wt).values():
+            self.assertIs(r["accepted"], False)
+
+    def test_naming_a_test_in_the_words_does_not_refuse_it_when_the_flag_accepts_it(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "refuse test_keep_me",
+                "--accept-wall", "test_keep_me", cwd=wt)
+        self.assertIs(self.recs(wt)["test_keep_me"]["accepted"], True)
+
+    def test_accept_wall_for_a_test_with_no_recommendation_is_refused(self):
+        wt = self.stopped_on_accept_moves()
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                    "--accept-wall", "test_nope", cwd=wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("test_nope", p.stderr)
+
+    def test_a_scenario_rerun_keeps_the_marks_already_in_the_record(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
+        self.scenario_rerun(wt, [])
+        self.assertEqual(self.show(wt)["slice_only"], [self.MARK])
+
+    def test_a_scenario_rerun_adds_new_marks_beside_the_kept_ones(self):
+        wt = self.new_slice("s1")
+        new = {"file": "tests/test_y.py", "test": "test_old_flag_gone", "why": "dead"}
+        self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
+        self.scenario_rerun(wt, [new])
+        self.assertEqual(sorted(m["test"] for m in self.show(wt)["slice_only"]),
+                         ["test_file_is_ts", "test_old_flag_gone"])
+
+    def test_a_merge_answer_is_recorded_as_a_decision(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "ready_to_merge", "--seat", "originator",
+                "--question", "merge?", "--step", "guardian", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "merge it", cwd=wt)
+        data = self.show(wt)
+        self.assertEqual(len(data["decisions"]), 1)
+        self.assertEqual(data["decisions"][0]["who"], "pat")
+        with open(os.path.join(wt, data["decisions"][0]["record"])) as f:
+            self.assertIn("merge it", f.read())
+
+    def test_a_plain_one_person_stop_still_writes_no_decision(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+                "--question", "q?", "--step", "scenario", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--next", "maker",
+                "--settled", "x", cwd=wt)
+        self.assertEqual(self.show(wt)["decisions"], [])
