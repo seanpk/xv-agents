@@ -58,7 +58,7 @@ End your final message with one report block. `files` are the test files you wro
  "slice_only": [{"file": "tests/test_expiring.py", "test": "test_file_is_ts", "why": "<why it has no value after the slice>"}]}
 ```
 
-`covers` names each item the scenario names, with the test that covers it. `not_covered` names each item you did not cover, with why; leave it `[]` when every item has a test. An item in `not_covered` stops the slice for the person who set the work going, before the maker runs. After the report, a check lists every flag and `xv` command written in backticks in the scenario that no red file has, and stops the slice the same way.
+`covers` names each item the scenario names, with the test that covers it. `not_covered` names each item you did not cover, with why; leave it `[]` when every item has a test. Each numbered point of the scenario and of each amendment must appear in `covers` or `not_covered`: a point in neither sends the slice back to you without a stop. An item in `not_covered` stops the slice for the person who set the work going, before the maker runs. After the report, a check lists every flag and `xv` command written in backticks in the scenario that no red file has, and stops the slice the same way.
 
 ## Stop and report when
 

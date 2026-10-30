@@ -33,7 +33,7 @@ CITATION = re.compile(
 NOT_A_FINDING = re.compile(r"^\s*(?:[-*]|\d+\.)\s*(?:none\b|no\b|nothing\b|not\b|looked at|checked\b|n/a\b)", re.I)
 ITEM = re.compile(r"^\s*(?:[-*]|\d+\.)\s+\S")
 MISSES = re.compile(r"^##\s*scenario misses\b", re.I)
-MISS_REF = re.compile(r"^\s*[-*]\s+((?:point\s+|decision\s+|amendment\s+)?\d+\b[^:;(]*)", re.I)
+MISS_REF = re.compile(r"^\s*[-*]\s+((?:point\s+|decision\s+|amendment\s+)?\d+(?:\s*,\s*item\s+\d+)?)\b", re.I)
 EVIDENCE = re.compile(r"\bevidence\s*:", re.I)
 
 
@@ -81,7 +81,7 @@ def misses(body):
         m = MISS_REF.match(line) if in_misses else None
         if m and EVIDENCE.search(line):
             to = re.search(r"\bto\s*:\s*(maker|scenario)\b", line, re.I)
-            out.append({"ref": m.group(1).strip().lower(), "text": line.strip().lstrip("-* ").strip(),
+            out.append({"ref": re.sub(r"^point\s+", "", m.group(1).strip().lower()), "text": line.strip().lstrip("-* ").strip(),
                         "to": to.group(1).lower() if to else "maker",
                         "amend": bool(re.search(r"\bamend\s*:\s*yes\b", line, re.I))})
     return out

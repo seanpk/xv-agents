@@ -399,13 +399,13 @@ def step(agent, slice_id, review_again=False):
         body = record.log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
         record.save(path, data, body)
     elif agent == "scenario" and checks.get("missed_points"):
-        body = send_back(data, body, agent, "red_misses_point", checks["missed_points"],
+        body = record.send_back(data, body, agent, "red_misses_point", checks["missed_points"],
                          "these points are in neither covers nor not_covered: " + "; ".join(checks["missed_points"]),
                          "scenario")
         record.save(path, data, body)
     elif agent == "guardian" and checks.get("misses"):
         found = checks["misses"]
-        body = send_back(data, body, agent, "scenario_miss", sorted({m["ref"] for m in found}),
+        body = record.send_back(data, body, agent, "scenario_miss", sorted({m["ref"] for m in found}),
                          "; ".join(m["text"] for m in found),
                          "scenario" if any(m["to"] == "scenario" for m in found) else "maker")
         record.save(path, data, body)
@@ -471,7 +471,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
         checks["unreadable"] = unreadable_input(root, data, report)
         checks["not_covered"] = [n for n in (report.get("not_covered") or []) if isinstance(n, dict)]
         checks["missed_points"] = missed_points(root, data, report)
-        checks["missed_repeat"] = bool(set(checks["missed_points"]) & sent_back(data, "red_misses_point"))
+        checks["missed_repeat"] = bool(set(checks["missed_points"]) & record.sent_back(data, "red_misses_point"))
         wb = wall_baseline(root, data, config)
         if wb:
             data["wall_baseline"] = wb
@@ -523,7 +523,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
             data["scenario_miss"] = "yes" if found else "no"
             checks["misses"] = found
             checks["miss_amend"] = any(m["amend"] for m in found)
-            checks["miss_repeat"] = sorted({m["ref"] for m in found} & sent_back(data, "scenario_miss"))
+            checks["miss_repeat"] = sorted({m["ref"] for m in found} & record.sent_back(data, "scenario_miss"))
             data["packet"] = os.path.relpath(packet, root)
             checks["picture_change"] = pdata.get("picture_change") or report.get("picture_change")
             checks["shape_breadth"] = pdata.get("shape_breadth") or report.get("shape_breadth")
@@ -555,24 +555,6 @@ def missed_points(root, data, report):
         if not any(t in i or (len(i) >= 4 and i in t) or t[:40] in i for i in items):
             missed.append(f"{num}. {text.strip()}")
     return missed
-
-
-def sent_back(data, order):
-    """Keys of what the watch has already sent back for this order: the points, or the miss refs."""
-    return {k for st in data.get("stops") or [] if st.get("order") == order and st.get("seat") == "watch"
-            for k in st.get("keys") or []}
-
-
-def send_back(data, body, agent, order, keys, summary, target):
-    """The watch's own send-back, kept like an answered stop so that `xv prompt` and `xv decisions` read it."""
-    at = now()
-    question = f"The {agent} step missed the scenario: {summary}"
-    data["stops"].append({"at": at, "step": agent, "order": order, "seat": "watch", "question": question,
-                          "answered_by": ["watch"], "answer": f"sent back to the {target}", "answered_at": at,
-                          "settled": f"The slice came back to the {target} without a stop. {summary}",
-                          "cause": "watch: the slice missed its scenario", "keys": keys})
-    data["next"] = target
-    return record.log_line(body, "watch", f"sent back to the {target}, answered {order}: {summary}")
 
 
 def unreadable_input(root, data, report):
