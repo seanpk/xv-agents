@@ -199,7 +199,7 @@ def evaluate(data, after, config):
                             f"The shape change is {actual}; the forecast expected {fc}. Two people decide."))
         moved = [m for m in data.get("moved_tests") or [] if not m.get("slice_only")]
         picture = checks.get("picture_change") == "yes"
-        recs = [r for r in data.get("wall_recommendations") or [] if not r.get("accepted")]
+        recs = [r for r in data.get("wall_recommendations") or [] if not r.get("accepted") and not r.get("refused")]
         if not out and (moved or picture or recs):
             parts = []
             if moved:

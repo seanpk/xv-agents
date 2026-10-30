@@ -167,13 +167,25 @@ def cmd_add(a):
     save(path, data, body)
 
 
+def cmd_unmark(a):
+    path, data, body = load(repo_root(), a.id)
+    marks = data.get("slice_only") or []
+    left = [m for m in marks if not (isinstance(m, dict) and m.get("test") == a.test)]
+    if len(left) == len(marks):
+        raise XVError(f"{a.test} is not marked slice-only")
+    data["slice_only"] = left
+    body = log_line(body, a.by or "watch", f"unmarked {a.test}; it joins the wall")
+    save(path, data, body)
+
+
 def cmd_move(a):
     path, data, body = load(repo_root(), a.id)
     for name in ("file", "assertion", "why"):
         if not getattr(a, name):
             raise XVError(f"a moved test names its {name}")
     entry = {"file": a.file, "assertion": a.assertion, "why": a.why, "by": a.by or "maker", "at": now()}
-    listed = any(s.get("file") == a.file and s.get("test") and s["test"] == a.assertion
+    listed = any(s.get("file") == a.file and s.get("test")
+                 and re.match(re.escape(s["test"]) + r"(?!\w)", a.assertion)
                  for s in data.get("slice_only") or [] if isinstance(s, dict))
     if a.slice_only and listed:
         entry["slice_only"] = True
@@ -321,8 +333,13 @@ def cmd_answer(a):
     scribed = [name for name, value in (("settled", settled), ("new_info", a.new_info),
                                         ("cause", a.cause)) if value]
     if stop["order"] == "accept_moves":
-        for r in data.get("wall_recommendations") or []:
-            r["accepted"] = True
+        recs = data.get("wall_recommendations") or []
+        named = [r for r in recs if r.get("test")
+                 and re.search(r"(?<!\w)" + re.escape(r["test"]) + r"(?!\w)", a.answer)]
+        for r in recs:
+            r["accepted"] = r in named or not named
+            if not r["accepted"]:
+                r["refused"] = True
     data["status"] = "working" if a.resume else data["status"]
     if a.next:
         data["next"] = a.next
@@ -627,6 +644,12 @@ def main(argv=None):
     s.add_argument("--slice-only", action="store_true", help="a slice-only test removed after green")
     s.add_argument("--by")
     s.set_defaults(fn=cmd_move)
+
+    s = sub.add_parser("unmark", help="take a test off slice_only so it joins the wall")
+    s.add_argument("id")
+    s.add_argument("--test", required=True)
+    s.add_argument("--by")
+    s.set_defaults(fn=cmd_unmark)
 
     s = sub.add_parser("override", help="a person declines a standard's fix on this slice")
     s.add_argument("id")
