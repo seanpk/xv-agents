@@ -645,7 +645,7 @@ def red_run(root, data, red, config):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def old_red_changed(root, data, red, paths=()):
+def old_red_changed(root, data, red, paths):
     """Test files that existed at the base and lost or changed old test code."""
     try:
         import wall
