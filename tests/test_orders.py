@@ -245,6 +245,71 @@ class GuardianFiveChecksTest(unittest.TestCase):
         text = self.read("skills", "guardian", "packet.md")
         self.assertIn("## 5. ", text)
 
+    def test_shape_or_pitch_does_not_fire_on_an_accepted_shape_change(self):
+        d = with_report(rec(shape_change="accepted", pitch_contradiction="no"), "guardian")
+        d["checks"]["guardian"] = {}
+        fired = [f["order"] for f in orders.verdict(d, "guardian", DEFAULT_CONFIG)["fired"]]
+        self.assertNotIn("shape_or_pitch", fired)
+        self.assertEqual(self.stop(d, "guardian")["order"], "ready_to_merge")
+
+    def test_shape_or_pitch_still_fires_on_yes(self):
+        d = with_report(rec(shape_change="yes", pitch_contradiction="no"), "guardian")
+        d["checks"]["guardian"] = {}
+        s = self.stop(d, "guardian")
+        self.assertEqual((s["order"], s["seat"]), ("shape_or_pitch", "two_people"))
+
+    def test_an_accepted_shape_does_not_hide_a_pitch_contradiction(self):
+        d = with_report(rec(shape_change="accepted", pitch_contradiction="yes"), "guardian")
+        d["checks"]["guardian"] = {}
+        s = self.stop(d, "guardian")
+        self.assertEqual((s["order"], s["seat"]), ("shape_or_pitch", "two_people"))
+        self.assertNotIn("shape_change", s["question"])
+
+    def assert_names_the_four_choices(self, question):
+        low = question.lower()
+        self.assertNotIn("The shape conversation opens", question)
+        for choice in ("continue", "reshape the slice", "raise the budget", "second person"):
+            self.assertIn(choice, low)
+
+    def test_a_stall_reported_by_the_maker_names_the_four_choices(self):
+        d = with_report(rec(), "maker", "stopped", stop={"reason": "repeated_failure"})
+        d["checks"]["maker"] = {"suite": "red"}
+        self.assert_names_the_four_choices(self.stop(d, "maker")["question"])
+
+    def test_the_same_tests_failing_twice_names_the_stall_and_the_four_choices(self):
+        d = with_report(rec(), "maker", "green")
+        d["checks"]["maker"] = {"suite": "red", "failing_history": [["test_a (t.T.test_a)"], ["test_a (t.T.test_a)"]]}
+        fired = [f for f in orders.verdict(d, "maker", DEFAULT_CONFIG)["fired"] if f["order"] == "repeated_failure"]
+        self.assertEqual(len(fired), 1)
+        self.assertIn("test_a", fired[0]["question"])
+        self.assert_names_the_four_choices(fired[0]["question"])
+
+    def test_a_growing_diff_names_the_stall_and_the_four_choices(self):
+        d = with_report(rec(), "maker", "green")
+        d["checks"]["maker"] = {"suite": "red", "diff_history": [10, 30]}
+        fired = [f for f in orders.verdict(d, "maker", DEFAULT_CONFIG)["fired"] if f["order"] == "diff_growing"]
+        self.assertEqual(len(fired), 1)
+        self.assertIn("10", fired[0]["question"])
+        self.assertIn("30", fired[0]["question"])
+        self.assert_names_the_four_choices(fired[0]["question"])
+
+    def test_a_diff_past_the_team_limit_names_the_four_choices(self):
+        config = dict(DEFAULT_CONFIG, limits={"max_diff_lines": 100})
+        d = with_report(rec(), "maker", "green")
+        d["checks"]["maker"] = {"suite": "red", "diff_lines": 150}
+        fired = [f for f in orders.verdict(d, "maker", config)["fired"] if f["order"] == "diff_growing"]
+        self.assertEqual(len(fired), 1)
+        self.assertIn("150", fired[0]["question"])
+        self.assert_names_the_four_choices(fired[0]["question"])
+
+    def test_a_picture_change_is_a_proposal_from_the_guardian(self):
+        d = with_report(rec(shape_change="no", pitch_contradiction="no"), "guardian")
+        d["checks"]["guardian"] = {"picture_change": "yes"}
+        s = self.stop(d, "guardian")
+        self.assertEqual(s["order"], "accept_moves")
+        self.assertIn("The guardian proposes a change to the picture", s["question"])
+        self.assertNotIn("the picture changed", s["question"].lower())
+
 
 if __name__ == "__main__":
     unittest.main()
