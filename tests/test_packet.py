@@ -46,6 +46,14 @@ class PacketTest(unittest.TestCase):
         _, _, problems, _ = packet.lint(GOOD.replace("shape_change: yes", "shape_change: maybe"))
         self.assertTrue(any("shape_change" in p for p in problems))
 
+    def test_shape_change_may_be_accepted_when_a_decision_already_accepted_it(self):
+        _, _, problems, _ = packet.lint(GOOD.replace("shape_change: yes", "shape_change: accepted"))
+        self.assertEqual(problems, [])
+
+    def test_pitch_contradiction_may_not_be_accepted(self):
+        _, _, problems, _ = packet.lint(GOOD.replace("pitch_contradiction: no", "pitch_contradiction: accepted"))
+        self.assertTrue(any("pitch_contradiction" in p for p in problems))
+
 
 if __name__ == "__main__":
     unittest.main()
