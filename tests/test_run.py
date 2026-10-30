@@ -445,6 +445,28 @@ class WatchLoopTest(RepoCase):
         self.assertEqual(json.loads(p.stdout)["stop"]["seat"], "originator")
         self.assertNotEqual(json.loads(p.stdout)["stop"]["order"], "ready_to_merge")
 
+    def test_a_miss_marked_amend_yes_is_not_sent_back_and_stops_for_the_person(self):
+        self.to_the_guardian()
+        p = self.guardian_with_miss("2: the scenario itself is wrong here, to: maker, amend: yes")
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["seat"], "originator")
+        self.assertNotEqual(stop["order"], "ready_to_merge")
+        self.assertEqual(len(self.open_stops()), 1)
+
+    def test_xv_decisions_counts_a_guardian_send_back_as_a_scenario_miss_row(self):
+        self.to_the_guardian()
+        self.guardian_with_miss("2: milk that runs out today is left out, to: maker")
+        out = self.xv("decisions", cwd=self.wt).stdout
+        self.assertTrue([ln for ln in out.splitlines() if "scenario_miss" in ln], out)
+
+    def test_xv_decisions_counts_a_scenario_send_back_as_a_red_misses_point_row(self):
+        self.amend(f"{self.P1}\n{self.P2}")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario_covering(covered=[self.P1])
+        out = self.xv("decisions", cwd=self.wt).stdout
+        self.assertTrue([ln for ln in out.splitlines() if "red_misses_point" in ln], out)
+
     def test_a_packet_with_no_miss_still_ends_in_the_merge_stop(self):
         self.to_the_guardian()
         p = self.xv("step", "guardian", "s1", cwd=self.wt, check=False)
