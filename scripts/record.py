@@ -333,9 +333,15 @@ def cmd_answer(a):
         stop["budget_change"] = {"from": amounts(seen), "to": amounts(data.get("budget"))}
     scribed = [name for name, value in (("settled", settled), ("new_info", a.new_info),
                                         ("cause", a.cause)) if value]
+    if stop["order"] != "accept_moves":
+        for flag, names in (("--accept-wall", a.accept_wall), ("--refuse-wall", a.refuse_wall)):
+            if names:
+                raise XVError(f"{flag} only answers an accept_moves stop, not {stop['order']}")
     if stop["order"] == "accept_moves":
         recs = data.get("wall_recommendations") or []
         known = {r.get("test") for r in recs}
+        for t in sorted(set(a.accept_wall or []) & set(a.refuse_wall or [])):
+            raise XVError(f"--accept-wall and --refuse-wall both name {t}; give one")
         for flag, names in (("--accept-wall", a.accept_wall), ("--refuse-wall", a.refuse_wall)):
             for t in names or []:
                 if t not in known:
@@ -449,9 +455,13 @@ def apply_report(data, body, agent, text):
                            for n in report["slice_only"])]
         data["slice_only"] = kept + report["slice_only"]
     if agent == "guardian" and isinstance(report.get("wall_recommendations"), list):
-        kept = {r.get("test") for r in data.get("wall_recommendations") or [] if r.get("accepted")}
-        data["wall_recommendations"] = [{**r, "accepted": r.get("test") in kept}
-                                        for r in report["wall_recommendations"] if isinstance(r, dict)]
+        old = data.get("wall_recommendations") or []
+        kept = {r.get("test") for r in old if r.get("accepted")}
+        refused = {r.get("test") for r in old if r.get("refused")}
+        data["wall_recommendations"] = [
+            {**{k: v for k, v in r.items() if k != "refused"}, "accepted": r.get("test") in kept,
+             **({"refused": True} if r.get("test") in refused else {})}
+            for r in report["wall_recommendations"] if isinstance(r, dict)]
     if agent == "forecaster" and report.get("forecast") and not data.get("forecast"):
         data["forecast"] = report["forecast"]
     if agent == "cleaner" and report.get("commit"):
