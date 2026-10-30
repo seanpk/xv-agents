@@ -6,8 +6,8 @@ from helpers import HOME, RepoCase
 
 
 class ByNameTest(RepoCase):
-    def brief(self, seat):
-        wt = self.new_slice("s1")
+    def brief(self, seat, wt=None):
+        wt = wt or self.new_slice("s1")
         return self.xv("prompt", seat, "s1", cwd=wt).stdout
 
     def test_the_scenario_brief_says_to_record_a_move_with_by_scenario(self):
@@ -24,8 +24,9 @@ class ByNameTest(RepoCase):
         self.assertIn("--by cleaner", self.brief("cleaner"))
 
     def test_no_agent_brief_tells_the_agent_to_sign_a_move_with_a_person(self):
+        wt = self.new_slice("s1")
         for seat in ("scenario", "maker", "cleaner"):
-            out = self.brief(seat)
+            out = self.brief(seat, wt)
             for line in re.findall(r"xv record move[^\n]*", out):
                 self.assertNotIn("--by <name>", line, seat)
                 self.assertNotIn("--by pat", line, seat)
