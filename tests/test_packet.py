@@ -60,8 +60,9 @@ class PacketTest(unittest.TestCase):
         self.assertEqual(problems, [])
         _, _, problems, _ = packet.lint(with_field.replace("scenario_miss: no", "scenario_miss: maybe"))
         self.assertTrue(any("scenario_miss" in p for p in problems))
+        # optional: a packet without the field is not a lint problem
         _, _, problems, _ = packet.lint(GOOD)
-        self.assertTrue(any("scenario_miss" in p for p in problems))
+        self.assertFalse(any("scenario_miss" in p for p in problems))
 
     def test_the_packet_template_shows_the_fields_and_a_misses_section(self):
         text = open(os.path.join(HOME, "skills", "guardian", "packet.md")).read()
