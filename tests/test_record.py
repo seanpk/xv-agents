@@ -1187,6 +1187,63 @@ class AcceptWallFlagTest(RepoCase):
         self.assertEqual(sorted(first["accepted_wall"]), ["test_drop_me", "test_keep_me"])
         self.assertEqual(first["refused_wall"], [])
 
+    def test_a_guardian_report_cannot_mark_its_own_recommendation_refused(self):
+        wt = self.new_slice("s1")
+        self.guardian_report(wt, [dict(r, refused=True) for r in self.RECS])
+        for r in self.recs(wt).values():
+            self.assertIsNot(r.get("refused"), True)
+
+    def test_a_guardian_rerun_cannot_refuse_what_the_person_accepted(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B: 1",
+                "--accept-wall", "test_keep_me", cwd=wt)
+        self.guardian_report(wt, [dict(r, accepted=False, refused=True) for r in self.RECS])
+        recs = self.recs(wt)
+        self.assertIs(recs["test_keep_me"]["accepted"], True)
+        self.assertIsNot(recs["test_keep_me"].get("refused"), True)
+
+    def other_stop(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+                "--question", "q?", "--step", "scenario", cwd=wt)
+        return wt
+
+    def test_accept_wall_on_a_stop_other_than_accept_moves_is_refused_with_an_error(self):
+        wt = self.other_stop()
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--next", "maker",
+                    "--settled", "x", "--accept-wall", "test_keep_me", cwd=wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("accept-wall", p.stderr)
+
+    def test_refuse_wall_on_a_stop_other_than_accept_moves_is_refused_with_an_error(self):
+        wt = self.other_stop()
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--next", "maker",
+                    "--settled", "x", "--refuse-wall", "test_keep_me", cwd=wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("refuse-wall", p.stderr)
+
+    def test_a_wall_flag_on_another_stop_leaves_that_stop_unanswered(self):
+        wt = self.other_stop()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--next", "maker",
+                "--settled", "x", "--accept-wall", "test_keep_me", cwd=wt, check=False)
+        self.assertFalse(self.show(wt)["stops"][-1].get("answer"))
+
+    def test_accept_wall_and_refuse_wall_on_the_same_test_is_refused_with_an_error(self):
+        wt = self.stopped_on_accept_moves()
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                    "--accept-wall", "test_keep_me", "--refuse-wall", "test_keep_me",
+                    cwd=wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("test_keep_me", p.stderr)
+
+    def test_a_refused_clash_accepts_nothing_and_leaves_the_stop_unanswered(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                "--accept-wall", "test_keep_me", "--refuse-wall", "test_keep_me",
+                cwd=wt, check=False)
+        self.assertNotIn(True, [r.get("accepted") for r in self.recs(wt).values()])
+        self.assertFalse(self.answered_stops(wt)[0].get("answer"))
+
     def test_a_scenario_rerun_keeps_the_marks_already_in_the_record(self):
         wt = self.new_slice("s1")
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
