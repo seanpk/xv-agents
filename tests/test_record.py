@@ -1080,6 +1080,37 @@ class AcceptWallFlagTest(RepoCase):
         self.assertIs(recs["test_keep_me"]["accepted"], True)
         self.assertIsNot(recs["test_drop_me"].get("accepted"), True)
 
+    def second_accept_moves(self, wt):
+        self.xv("record", "stop", "s1", "--order", "accept_moves", "--seat", "originator",
+                "--question", "accept again?", "--step", "guardian", cwd=wt)
+
+    def test_a_later_answer_with_no_flag_keeps_what_an_earlier_stop_accepted(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B: 1",
+                "--accept-wall", "test_keep_me", cwd=wt)
+        self.second_accept_moves(wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B 2", cwd=wt)
+        recs = self.recs(wt)
+        self.assertIs(recs["test_keep_me"]["accepted"], True)
+        self.assertFalse(recs["test_keep_me"].get("refused"))
+
+    def test_a_later_answer_with_another_flag_keeps_the_earlier_accepted_name_too(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B: 1",
+                "--accept-wall", "test_keep_me", cwd=wt)
+        self.second_accept_moves(wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                "--accept-wall", "test_drop_me", cwd=wt)
+        self.assertEqual([r["accepted"] for r in self.recs(wt).values()], [True, True])
+
+    def test_a_later_answer_does_not_accept_a_recommendation_nobody_accepted(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B: 1",
+                "--accept-wall", "test_keep_me", cwd=wt)
+        self.second_accept_moves(wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B 2", cwd=wt)
+        self.assertIs(self.recs(wt)["test_drop_me"]["accepted"], False)
+
     def test_a_scenario_rerun_keeps_the_marks_already_in_the_record(self):
         wt = self.new_slice("s1")
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
