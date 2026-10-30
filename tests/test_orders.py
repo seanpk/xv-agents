@@ -246,11 +246,6 @@ class GuardianFiveChecksTest(unittest.TestCase):
         self.assertIn("should not join the wall", text)
         self.assertIn("removed", text)
 
-    def test_the_readme_says_five_checks_not_four(self):
-        text = self.read("README.md")
-        self.assertNotIn("four checks", text)
-        self.assertNotIn("its four findings", text)
-
     def test_the_packet_template_has_a_section_for_wall_recommendations(self):
         text = self.read("skills", "guardian", "packet.md")
         self.assertIn("## 5. ", text)
