@@ -47,21 +47,6 @@ class CheckTest(RepoCase):
         self.assertGreaterEqual(len(check.drift(offline=True)), 8)
 
 
-DATA = os.path.join(HOME, "tests", "data", "stop-decisions-red")
-
-
-def stop_decisions_scenario():
-    """The scenario of 2026-10-29-stop-decisions, amendments included."""
-    with open(os.path.join(HOME, ".xv", "slices", "2026-10-29-stop-decisions.md"), encoding="utf-8") as f:
-        text = f.read()
-    return text[text.index("## Scenario"):text.index("## May ignore")]
-
-
-def red_texts(which):
-    folder = os.path.join(DATA, which)
-    return [open(os.path.join(folder, n), encoding="utf-8").read() for n in sorted(os.listdir(folder))]
-
-
 class ScenarioBriefTest(unittest.TestCase):
     def test_the_brief_asks_for_covers_and_not_covered_in_the_report(self):
         with open(os.path.join(HOME, "skills", "scenario", "SKILL.md"), encoding="utf-8") as f:

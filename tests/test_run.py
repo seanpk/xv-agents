@@ -276,6 +276,10 @@ class WatchLoopTest(RepoCase):
                                                      ' {"item": "cheese", "test": "test_cheese_ghost"}]}')
         self.assert_stopped_before_the_maker(p, "test_cheese_ghost")
 
+    def test_a_covers_test_that_is_only_part_of_a_longer_test_name_stops_before_the_maker(self):
+        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covers": [{"item": "milk today", "test": "test_milk"}]}')
+        self.assert_stopped_before_the_maker(p, "test_milk")
+
     def test_a_covers_test_found_in_a_red_file_goes_on_to_the_maker(self):
         p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covers": [{"item": "milk today", "test": "test_milk_today"}]}')
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
