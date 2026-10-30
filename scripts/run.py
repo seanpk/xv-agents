@@ -564,7 +564,7 @@ def unreadable_input(root, data, report):
             isinstance(c, dict) and c.get("item") and covers_names(c.get("test")) for c in covers):
         out.append("The report's `covers` is missing, empty, or has an item that names no test.")
     else:
-        files = red_file_texts(root, data.get("red") or {}, by_name=True)
+        files = red_file_texts(root, data.get("red") or {})
         for c in covers:
             for name in covers_names(c["test"]):
                 if not covers_name_found(name, files):
@@ -608,10 +608,10 @@ def scenario_red_gaps(root, data, red):
     end = body.find("\n## May ignore")
     if at < 0:
         return []
-    return wall.red_gaps(body[at:end if end > at else len(body)], red_file_texts(root, red))
+    return wall.red_gaps(body[at:end if end > at else len(body)], list(red_file_texts(root, red).values()))
 
 
-def red_file_texts(root, red, by_name=False):
+def red_file_texts(root, red):
     texts = {}
     for f in red.get("files") or []:
         try:
@@ -619,7 +619,7 @@ def red_file_texts(root, red, by_name=False):
                 texts[f] = fh.read()
         except OSError:
             pass
-    return texts if by_name else list(texts.values())
+    return texts
 
 
 def accepted_by_listed_decision(root, data, pdata):
