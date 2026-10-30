@@ -10,10 +10,8 @@ class ByNameTest(RepoCase):
         wt = wt or self.new_slice("s1")
         return self.xv("prompt", seat, "s1", cwd=wt).stdout
 
-    def test_the_scenario_brief_says_to_record_a_move_with_by_scenario(self):
-        out = self.brief("scenario")
-        self.assertIn("xv record move", out)
-        self.assertIn("--by scenario", out)
+    def test_the_scenario_brief_does_not_tell_the_agent_to_record_a_move_itself(self):
+        self.assertNotIn("--by scenario", self.brief("scenario"))
 
     def test_the_maker_brief_says_to_record_a_move_with_by_maker(self):
         out = self.brief("maker")
@@ -38,7 +36,7 @@ class ByNameTest(RepoCase):
                        if l.startswith("- ") and "existing assertion" in l)
         for line in (step6, may_not):
             self.assertIn("settled", line)
-            self.assertIn("--by scenario", line)
+            self.assertNotIn("--by scenario", line)
 
     def test_the_scenario_brief_numbers_its_steps_in_order(self):
         out = self.brief("scenario")
@@ -52,7 +50,7 @@ class ByNameTest(RepoCase):
     def test_the_changelog_has_a_line_for_the_change(self):
         text = open(os.path.join(HOME, "CHANGELOG.md"), encoding="utf-8").read()
         unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        self.assertTrue(any("--by scenario" in p and "--by maker" in p and "#93" in p
+        self.assertTrue(any("--by maker" in p and "#93" in p and "--by scenario" not in p
                             for p in unreleased.split("\n\n")))
 
 
