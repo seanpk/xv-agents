@@ -44,7 +44,7 @@ The briefs are the skills' `SKILL.md` files. This page gives the reason for the 
 
 ## The guardian
 
-- **Four checks, one packet.** Shape and pitch stop the change for two people. Moved tests and picture changes go to the person who set the work going. One packet however many tests moved, so a person reads one thing.
+- **Five checks, one packet.** Shape and pitch stop the change for two people. Moved tests, picture changes and wall recommendations go to the person who set the work going. One packet however many tests moved, so a person reads one thing.
 - **The boundary picture comes from a script.** An agent's architecture sketch is not evidence; a generated picture can be wrong in a way someone can check.
 - **Every finding cites a line, a rule, or a hunk, or it is dropped.** Agreement without evidence is false consensus (Qiu and Gill, 2026). Pocock's `code-review` has the same rule.
 - **Silence in the pitch is not a contradiction.** Otherwise every new feature stops for two people.

@@ -33,7 +33,7 @@ Fewer candidates is better. Three good ones beat ten generic ones. "Write cleare
 
 - Write to `.xv/standards.md`, `.xv/rules.md`, `.xv/learnings.md`, a brief, a check, or any source.
 - Propose a candidate without a slice id and a moment.
-- Propose relaxing the protected core: the contexts kept apart, the scenario agent never the maker, the recorded move, the guardian's four checks, the stops, the may-not lists.
+- Propose relaxing the protected core: the contexts kept apart, the scenario agent never the maker, the recorded move, the guardian's five checks, the stops, the may-not lists.
 
 ## Writes
 

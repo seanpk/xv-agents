@@ -69,6 +69,8 @@ They are scripts (`xv orders <id>`), not this text. You do not interpret them, r
 | The same failure repeats, or the diff keeps growing | the person who set the work going; the shape conversation opens |
 | The scenario passed before the fix, or the scenario agent touched source | the person who set the work going |
 | A worker ended with no report | the person who set the work going |
+| The scenario agent marked tests slice-only | the person who set the work going: accept the marks, or unmark a test so it joins the wall |
+| The guardian recommended which new tests join the wall or leave it | the person who set the work going, in `accept_moves` |
 | The budget is not set, or a prototype slice has no `prototype_budgets` | the person who set the work going |
 | `shape_change: yes` or `pitch_contradiction: yes` in the packet | two people |
 | A budget raised past the team's limit, or a shape change wider than forecast | two people |

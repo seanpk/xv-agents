@@ -24,11 +24,11 @@ FIELDS = [
     ("id", None), ("title", ""), ("kind", "feature"), ("status", "open"),
     ("set_by", ""), ("created", None), ("branch", ""), ("base", None), ("next", "forecaster"),
     ("forecast", None), ("budget", None), ("red", None), ("wall_baseline", None),
-    ("moved_tests", []), ("slice_only", []), ("suite", None), ("cleaner_commit", None),
+    ("moved_tests", []), ("slice_only", []), ("wall_recommendations", []), ("suite", None), ("cleaner_commit", None),
     ("packet", None), ("shape_change", None), ("pitch_contradiction", None),
     ("spend", []), ("stops", []), ("decisions", []), ("prototypes", []), ("overrides", []), ("checks", {}),
 ]
-LIST_FIELDS = {"moved_tests", "slice_only", "spend", "stops", "decisions", "prototypes", "overrides"}
+LIST_FIELDS = {"moved_tests", "slice_only", "wall_recommendations", "spend", "stops", "decisions", "prototypes", "overrides"}
 STATUSES = {"open", "working", "stopped", "ready", "closed", "abandoned"}
 STEPS = ["forecaster", "scenario", "maker", "cleaner", "guardian", "close", "none"]
 SEATS = {"originator", "two_people", "chief_engineer"}
@@ -320,6 +320,9 @@ def cmd_answer(a):
         stop["budget_change"] = {"from": amounts(seen), "to": amounts(data.get("budget"))}
     scribed = [name for name, value in (("settled", settled), ("new_info", a.new_info),
                                         ("cause", a.cause)) if value]
+    if stop["order"] == "accept_moves":
+        for r in data.get("wall_recommendations") or []:
+            r["accepted"] = True
     data["status"] = "working" if a.resume else data["status"]
     if a.next:
         data["next"] = a.next
@@ -415,6 +418,9 @@ def apply_report(data, body, agent, text):
             data["red"] = report["red"]
     if agent == "scenario" and isinstance(report.get("slice_only"), list):
         data["slice_only"] = report["slice_only"]
+    if agent == "guardian" and isinstance(report.get("wall_recommendations"), list):
+        data["wall_recommendations"] = [{**r, "accepted": bool(r.get("accepted"))}
+                                        for r in report["wall_recommendations"] if isinstance(r, dict)]
     if agent == "forecaster" and report.get("forecast") and not data.get("forecast"):
         data["forecast"] = report["forecast"]
     if agent == "cleaner" and report.get("commit"):

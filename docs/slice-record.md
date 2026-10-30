@@ -21,6 +21,7 @@ Each value is a bare word or one line of JSON.
 | `red` | the scenario agent | `{"files", "command", "failure", "watch_first_green"}` |
 | `wall_baseline` | `xv wall baseline` | `{"commit", "count", "digest", "file"}`; the hashes are in `.xv/slices/<id>.wall.json` |
 | `moved_tests` | the maker, the cleaner | one item per move: `{"file", "assertion", "why", "by", "at"}` |
+| `wall_recommendations` | the guardian | one item per recommendation: `{"file", "test", "recommend", "why", "accepted"}`; `accepted` turns true when the person answers `accept_moves` |
 | `suite` | the watch | `green` or `red` after the last maker or cleaner step |
 | `cleaner_commit` | the cleaner | the commit of the cleaner's fix |
 | `packet` | the watch | the path of the guardian's packet |

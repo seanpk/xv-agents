@@ -51,7 +51,7 @@ XV has its own words. This README and the method use them from here on.
 | The scenario | What must be true when the slice is done, in the words of the person who asked for it: the steps a user takes and what they see. |
 | Red | The scenario made executable as a test, and shown to fail before the fix. Green is that test and every old test passing. |
 | The wall | Every test that existed before the slice, hashed. A test file that changes without a recorded reason fails the wall check. |
-| The packet | What the guardian writes about one change, for a person to read instead of the code: the scenario, the recording, the boundary picture, what the suite asserts after, and its four findings. The listener writes a packet from production. |
+| The packet | What the guardian writes about one change, for a person to read instead of the code: the scenario, the recording, the boundary picture, what the suite asserts after, and its five findings. The listener writes a packet from production. |
 | A recording | A defect's evidence: a Playwright trace, a HAR file, or an API sequence as JSON, saved under `.xv/recordings/`. The scenario agent starts a defect's red from it. |
 | The shape | The structure of the system as the team can see it: coupling, what users meet, runtime budgets. A change to it takes two people. |
 | The shape conversation | People deciding the shape, in conversation. It opens when the maker's failure repeats or its diff keeps growing, and before and after a burst of work. The agent may not renovate on its own. |
@@ -310,6 +310,8 @@ The standing orders are code, not prose. When the steps run through `xv step`, t
 | The same tests failed after two runs of the maker, or the diff more than doubled between two runs | the person who set the work going; the shape conversation opens |
 | The scenario passed before the fix, or the scenario agent touched source | the person who set the work going |
 | A worker ended with no report, or a read-only agent wrote | the person who set the work going |
+| The scenario agent marked tests slice-only (`slice_only_marks`) | the person who set the work going: accept the marks, or unmark a test so it joins the wall |
+| The guardian recommended which new tests join the wall or leave it | the person who set the work going, in `accept_moves`; the record keeps which they accepted |
 | An agent changed a file only people change: the config, the pitch, the picture, the estimation guide, the rules, the wall's hashes | the person who set the work going |
 | The maker ran in a context that had built a prototype | the person who set the work going |
 | The forecaster ran and the budget is not set | the person who set the work going |
@@ -331,7 +333,7 @@ A team can name a command in `reach:` to be told of a stop (a chat message, a pa
 
 ### The packet
 
-The guardian writes `.xv/slices/<id>.packet.md`: four sections for its four checks, and a front matter with `shape_change` and `pitch_contradiction` (each `yes` or `no`), the door, and a one-word blast radius. `xv packet lint` enforces the evidence rule: a finding that cites no line, rule, project file, quoted line or diff hunk is moved to a "Dropped by the evidence rule" section, where a person can still read it, and it does not count. The boundary picture in the packet comes from `xv boundary`, not from the agent: modules and the import edges between them before and after the change, new outbound calls, tables and surface paths the diff adds or removes. It is generated so that it can be wrong in a way someone can check. A missing or malformed packet is read as `yes` to both, so the change waits for people, never for no one.
+The guardian writes `.xv/slices/<id>.packet.md`: five sections for its five checks, the fifth recommending which new tests join the wall or leave it, and a front matter with `shape_change` and `pitch_contradiction` (each `yes` or `no`), the door, and a one-word blast radius. `xv packet lint` enforces the evidence rule: a finding that cites no line, rule, project file, quoted line or diff hunk is moved to a "Dropped by the evidence rule" section, where a person can still read it, and it does not count. The boundary picture in the packet comes from `xv boundary`, not from the agent: modules and the import edges between them before and after the change, new outbound calls, tables and surface paths the diff adds or removes. It is generated so that it can be wrong in a way someone can check. A missing or malformed packet is read as `yes` to both, so the change waits for people, never for no one.
 
 ### The budget and the spend
 
@@ -363,7 +365,7 @@ What a team adds to shape the agents for its own system lives in `.xv/`, committ
 | `decisions/` | What two people decided, and who | `xv record answer` |
 | `slices/`, `recordings/` | The records and the packets; a defect's recordings | the watch and the agents |
 
-It may add a rule, a fact, an example or a standing order. It may not relax the core: the contexts kept apart, the scenario agent never the maker, a test moves only with a record, the guardian's four checks, the stops, the may-not lists ([`docs/core.md`](docs/core.md)). `xv check` reports a line that reads as a relaxation, a harness file that would shadow a shared skill, every entry with the miss it came from, and a harness doc sentence a brief relied on that is gone.
+It may add a rule, a fact, an example or a standing order. It may not relax the core: the contexts kept apart, the scenario agent never the maker, a test moves only with a record, the guardian's five checks, the stops, the may-not lists ([`docs/core.md`](docs/core.md)). `xv check` reports a line that reads as a relaxation, a harness file that would shadow a shared skill, every entry with the miss it came from, and a harness doc sentence a brief relied on that is gone.
 
 The shared skills are never edited in place. An upgrade is a copy, not a merge, because every project learning is in `.xv/`. A team that must change a brief copies it under a new name, records why in `.xv/decisions/`, and accepts that the copy no longer receives upgrades.
 
