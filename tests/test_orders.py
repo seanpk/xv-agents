@@ -228,23 +228,6 @@ class OrdersTest(unittest.TestCase):
                 table = f.read().split(start)[1].split("\n## ")[0].split("\n### ")[0]
             self.assertIn("slice-only", table, path)
 
-
-class GuardianFiveChecksTest(unittest.TestCase):
-    def read(self, *path):
-        with open(os.path.join(HOME, *path)) as f:
-            return f.read()
-
-    def test_the_fifth_check_names_the_three_recommendations(self):
-        text = self.read("skills", "guardian", "SKILL.md").split("## The five checks")[1].split("## The evidence rule")[0]
-        self.assertIn("5. ", text)
-        self.assertIn("slice-only", text)
-        self.assertIn("should not join the wall", text)
-        self.assertIn("removed", text)
-
-    def test_the_packet_template_has_a_section_for_wall_recommendations(self):
-        text = self.read("skills", "guardian", "packet.md")
-        self.assertIn("## 5. ", text)
-
     def test_shape_or_pitch_does_not_fire_on_an_accepted_shape_change(self):
         d = with_report(rec(shape_change="accepted", pitch_contradiction="no"), "guardian")
         d["checks"]["guardian"] = {}
@@ -310,6 +293,22 @@ class GuardianFiveChecksTest(unittest.TestCase):
         self.assertIn("The guardian proposes a change to the picture", s["question"])
         self.assertNotIn("the picture changed", s["question"].lower())
 
+
+class GuardianFiveChecksTest(unittest.TestCase):
+    def read(self, *path):
+        with open(os.path.join(HOME, *path)) as f:
+            return f.read()
+
+    def test_the_fifth_check_names_the_three_recommendations(self):
+        text = self.read("skills", "guardian", "SKILL.md").split("## The five checks")[1].split("## The evidence rule")[0]
+        self.assertIn("5. ", text)
+        self.assertIn("slice-only", text)
+        self.assertIn("should not join the wall", text)
+        self.assertIn("removed", text)
+
+    def test_the_packet_template_has_a_section_for_wall_recommendations(self):
+        text = self.read("skills", "guardian", "packet.md")
+        self.assertIn("## 5. ", text)
 
 if __name__ == "__main__":
     unittest.main()
