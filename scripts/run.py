@@ -526,7 +526,8 @@ def unreadable_input(root, data, report):
     else:
         texts = red_file_texts(root, data.get("red") or {})
         for c in covers:
-            if not any(str(c["test"]) in t for t in texts):
+            whole = re.compile(r"(?<!\w)" + re.escape(str(c["test"])) + r"(?!\w)")
+            if not any(whole.search(t) for t in texts):
                 out.append(f"The report says `{c['test']}` covers {c['item']}, and no red file has that test.")
     return out
 
