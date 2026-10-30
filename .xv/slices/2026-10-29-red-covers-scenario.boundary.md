@@ -8,14 +8,14 @@ From `5ec1d8640ff0` to the working tree. Source: xv boundary (ast and regex). Ge
 
 ## Modules
 
-- touched: scripts/check, scripts/orders, scripts/run
+- touched: scripts/check, scripts/orders, scripts/run, scripts/wall
 - added: none
 - removed: none
 - now calling out of the process: none
 
 ## Edges
 
-- added: scripts/run → scripts/check
+- added: scripts/check → scripts/wall
 - removed: none
 
 ```mermaid
@@ -57,6 +57,7 @@ flowchart LR
   m4 --> m22
   m5 --> m22
   m6 --> m8
+  m6 ==> m21
   m6 --> m22
   m7 --> m18
   m7 --> m22
@@ -90,7 +91,6 @@ flowchart LR
   m18 --> m22
   m19 --> m4
   m19 --> m5
-  m19 ==> m6
   m19 --> m10
   m19 --> m11
   m19 --> m14
@@ -122,14 +122,15 @@ flowchart LR
  "touched": [
   "scripts/check",
   "scripts/orders",
-  "scripts/run"
+  "scripts/run",
+  "scripts/wall"
  ],
  "modules_added": [],
  "modules_removed": [],
  "edges_added": [
   [
-   "scripts/run",
-   "scripts/check"
+   "scripts/check",
+   "scripts/wall"
   ]
  ],
  "edges_removed": [],
@@ -224,6 +225,10 @@ flowchart LR
    [
     "scripts/check",
     "scripts/install"
+   ],
+   [
+    "scripts/check",
+    "scripts/wall"
    ],
    [
     "scripts/check",
@@ -356,10 +361,6 @@ flowchart LR
    [
     "scripts/run",
     "scripts/boundary"
-   ],
-   [
-    "scripts/run",
-    "scripts/check"
    ],
    [
     "scripts/run",
