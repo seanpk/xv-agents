@@ -107,6 +107,14 @@ def evaluate(data, after, config):
             out.append(fire("setup_failed", "originator", checks["old_red_unchecked"]))
         if checks.get("setup_failed"):
             out.append(fire("setup_failed", "originator", checks["setup_failed"]))
+        if checks.get("red_gaps"):
+            out.append(fire("red_misses_scenario", "originator",
+                            "The scenario names these in backticks, and no red file has them: "
+                            + ", ".join(f"`{g}`" for g in checks["red_gaps"])
+                            + ". Add a test that reaches each, or amend the scenario."))
+        for n in checks.get("not_covered") or []:
+            out.append(fire("red_misses_scenario", "originator",
+                            f"The scenario agent did not cover {n.get('item')}: {n.get('why')}"))
         if checks.get("red_fails") is False:
             out.append(fire("scenario_not_red", "originator",
                             "The scenario passes on the code as it is. The behaviour may exist already, "

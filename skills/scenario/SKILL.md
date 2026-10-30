@@ -50,8 +50,12 @@ End your final message with one report block. `files` are the test files you wro
 {"agent": "scenario", "status": "red", "summary": "<one line>",
  "red": {"files": ["tests/test_expiring.py"], "command": "python3 -m unittest tests.test_expiring", "failure": "<the failing assertion, one line>",
          "watch_first_green": "<for a feature: what a person should watch; null for a defect>"},
+ "covers": [{"item": "<an item the scenario names>", "test": "test_expiring_today"}],
+ "not_covered": [{"item": "<an item with no test>", "why": "<why it has none>"}],
  "slice_only": [{"file": "tests/test_expiring.py", "test": "test_file_is_ts", "why": "<why it has no value after the slice>"}]}
 ```
+
+`covers` names each item the scenario names, with the test that covers it. `not_covered` names each item you did not cover, with why; leave it `[]` when every item has a test. An item in `not_covered` stops the slice for the person who set the work going, before the maker runs. After the report, a check lists every flag and `xv` command written in backticks in the scenario that no red file has, and stops the slice the same way.
 
 ## Stop and report when
 
