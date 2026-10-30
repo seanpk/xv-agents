@@ -43,6 +43,7 @@ For a new feature, end the test file with a comment that says what a person shou
 - Make the test pass, or start on the fix. You are not the maker.
 - Change or delete an existing assertion, except when the scenario or a person's settled answer forces it, and you say so in your report.
 - Derive an expected value from the code under test.
+- Record a move yourself. You never record a move itself; the stop puts it before a person.
 
 ## Writes to the slice record
 
