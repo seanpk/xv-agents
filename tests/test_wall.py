@@ -2,7 +2,9 @@ import json
 import os
 import unittest
 
-from helpers import RepoCase, sh
+from helpers import HOME, RepoCase, sh
+
+DATA = os.path.join(HOME, "tests", "data", "stop-decisions-red")
 
 
 def write(path, text):
@@ -212,6 +214,22 @@ class WallRedFileTest(RepoCase):
         self.assertEqual((p.returncode, res["unrecorded"], res["tests_moved"]), (0, [], []))
 
 
+def stop_decisions_scenario():
+    """A copy of the scenario of 2026-10-29-stop-decisions, amendments included."""
+    with open(os.path.join(DATA, "scenario.md"), encoding="utf-8") as f:
+        text = f.read()
+    return text[text.index("## Scenario"):text.index("## May ignore")]
+
+
+def red_texts(which):
+    folder = os.path.join(DATA, which)
+    out = []
+    for n in sorted(os.listdir(folder)):
+        with open(os.path.join(folder, n), encoding="utf-8") as f:
+            out.append(f.read())
+    return out
+
+
 class RedGapsTest(unittest.TestCase):
     """wall.red_gaps(scenario, red_texts): the flags and `xv` commands in backticks that no red file has."""
 
@@ -240,7 +258,6 @@ class RedGapsTest(unittest.TestCase):
         self.assertEqual(self.gaps("Run `xv record answer`.", "('answer', 'record')"), ["xv record answer"])
 
     def test_on_the_first_red_of_stop_decisions_it_lists_since_and_on_the_final_red_nothing(self):
-        from test_check import red_texts, stop_decisions_scenario
         self.assertIn("--since", self.gaps(stop_decisions_scenario(), *red_texts("first")))
         self.assertEqual(self.gaps(stop_decisions_scenario(), *red_texts("final")), [])
 
