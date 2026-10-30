@@ -54,6 +54,19 @@ class ScenarioBriefTest(unittest.TestCase):
         self.assertIn("`covers`", text)
         self.assertIn("`not_covered`", text)
 
+    def test_the_brief_report_example_shows_the_list_form_of_a_covers_test(self):
+        with open(os.path.join(HOME, "skills", "scenario", "SKILL.md"), encoding="utf-8") as f:
+            text = f.read()
+        self.assertRegex(text, r'"test": \[\s*"[^"]+"(,\s*"[^"]+")+\s*\]')
+
+    def test_the_changelog_has_a_line_for_a_covers_item_naming_more_than_one_test(self):
+        with open(os.path.join(HOME, "CHANGELOG.md"), encoding="utf-8") as f:
+            text = f.read()
+        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
+        line = next((p for p in unreleased.split("\n") if "#92" in p), "")
+        self.assertIn("covers", line)
+        self.assertIn("Sean", line)
+
 
 if __name__ == "__main__":
     unittest.main()

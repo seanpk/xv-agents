@@ -298,6 +298,59 @@ class WatchLoopTest(RepoCase):
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
+    def covers_test(self, test, **env):
+        extra = json.dumps({"covers": [{"item": "milk today", "test": test}]})
+        return self.scenario_with_env(FAKE_REPORT_EXTRA=extra, **env)
+
+    def assert_goes_on(self, p):
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.record()["next"], "maker")
+
+    def test_a_covers_test_that_is_a_list_of_names_all_in_red_files_goes_on_to_the_maker(self):
+        extra = json.dumps({"covers": [{"item": "milk today", "test": ["test_milk_today", "test_cheese"]}]})
+        p = self.scenario_with_env(FAKE_REPORT_EXTRA=extra, FAKE_RED_TEXT="def test_cheese(self): pass")
+        self.assert_goes_on(p)
+
+    def test_a_covers_list_with_a_name_in_no_red_file_stops_before_the_maker(self):
+        extra = json.dumps({"covers": [{"item": "milk today", "test": ["test_milk_today", "test_cheese_ghost"]}]})
+        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "test_cheese_ghost")
+
+    def test_a_covers_list_with_a_name_that_is_part_of_a_longer_name_stops_before_the_maker(self):
+        extra = json.dumps({"covers": [{"item": "milk today", "test": ["test_milk_today", "test_milk"]}]})
+        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "test_milk")
+
+    def test_an_empty_covers_list_stops_before_the_maker(self):
+        self.assert_stopped_before_the_maker(self.covers_test([]), "covers")
+
+    def test_a_covers_test_that_joins_names_with_a_comma_goes_on_to_the_maker(self):
+        p = self.covers_test("test_milk_today, test_cheese", FAKE_RED_TEXT="def test_cheese(self): pass")
+        self.assert_goes_on(p)
+
+    def test_a_covers_test_that_joins_names_with_a_semicolon_goes_on_to_the_maker(self):
+        p = self.covers_test("test_milk_today; test_cheese", FAKE_RED_TEXT="def test_cheese(self): pass")
+        self.assert_goes_on(p)
+
+    def test_a_joined_covers_test_with_a_name_in_no_red_file_stops_before_the_maker(self):
+        p = self.covers_test("test_milk_today, test_cheese_ghost")
+        self.assert_stopped_before_the_maker(p, "test_cheese_ghost")
+
+    def test_a_covers_name_written_class_dot_test_goes_on_when_the_class_and_test_are_in_a_red_file(self):
+        self.assert_goes_on(self.covers_test("Red.test_milk_today"))
+
+    def test_a_covers_name_written_with_the_wrong_class_stops_before_the_maker(self):
+        self.assert_stopped_before_the_maker(self.covers_test("Ghost.test_milk_today"), "Ghost.test_milk_today")
+
+    def test_a_covers_name_written_file_colons_test_goes_on_when_the_file_is_a_red_file_with_the_test(self):
+        self.assert_goes_on(self.covers_test("tests/test_red.py::test_milk_today"))
+
+    def test_a_covers_name_written_with_a_file_that_is_not_a_red_file_stops_before_the_maker(self):
+        p = self.covers_test("tests/test_store.py::test_milk_today")
+        self.assert_stopped_before_the_maker(p, "tests/test_store.py::test_milk_today")
+
+    def test_a_covers_name_written_with_the_right_file_and_a_test_it_lacks_stops_before_the_maker(self):
+        p = self.covers_test("tests/test_red.py::test_cheese_ghost")
+        self.assert_stopped_before_the_maker(p, "test_cheese_ghost")
+
     def test_a_command_whose_words_are_apart_in_the_red_stops_before_the_maker(self):
         self.amend("A person runs `xv slice amend`.")
         p = self.scenario_with_env(FAKE_RED_TEXT="slice a list of other things, then amend")
