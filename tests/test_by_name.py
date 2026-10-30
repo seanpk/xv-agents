@@ -31,6 +31,24 @@ class ByNameTest(RepoCase):
                 self.assertNotIn("--by <name>", line, seat)
                 self.assertNotIn("--by pat", line, seat)
 
+    def test_the_scenario_brief_says_when_an_old_assertion_may_change(self):
+        out = self.brief("scenario")
+        step6 = re.search(r"(?m)^6\. .*$", out).group(0)
+        may_not = next(l for l in out.splitlines()
+                       if l.startswith("- ") and "existing assertion" in l)
+        for line in (step6, may_not):
+            self.assertIn("settled", line)
+            self.assertIn("--by scenario", line)
+
+    def test_the_scenario_brief_numbers_its_steps_in_order(self):
+        out = self.brief("scenario")
+        start = out.index("## Make it red")
+        end = out.index("### With Playwright")
+        labels = re.findall(r"(?m)^(\d+)([a-z]?)\. ", out[start:end])
+        keys = [(int(n), l) for n, l in labels]
+        self.assertGreater(len(keys), 6)
+        self.assertEqual(keys, sorted(keys))
+
     def test_the_changelog_has_a_line_for_the_change(self):
         text = open(os.path.join(HOME, "CHANGELOG.md"), encoding="utf-8").read()
         unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
