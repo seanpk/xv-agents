@@ -495,6 +495,24 @@ def accepted_by_listed_decision(root, data, pdata):
     return ddata.get("order") == "shape_or_pitch"
 
 
+def sent_back(data, order):
+    """Keys of what the watch has already sent back for this order: the points, or the miss refs."""
+    return {k for st in data.get("stops") or [] if st.get("order") == order and st.get("seat") == "watch"
+            for k in st.get("keys") or []}
+
+
+def send_back(data, body, agent, order, keys, summary, target):
+    """The watch's own send-back, kept like an answered stop so that `xv prompt` and `xv decisions` read it."""
+    at = now()
+    question = f"The {agent} step missed the scenario: {summary}"
+    data["stops"].append({"at": at, "step": agent, "order": order, "seat": "watch", "question": question,
+                          "answered_by": ["watch"], "answer": f"sent back to the {target}", "answered_at": at,
+                          "settled": f"The slice came back to the {target} without a stop. {summary}",
+                          "cause": "watch: the slice missed its scenario", "keys": keys})
+    data["next"] = target
+    return log_line(body, "watch", f"sent back to the {target}, answered {order}: {summary}")
+
+
 def cmd_packet(a):
     """Attach the guardian's packet and copy its two fixed fields."""
     root = repo_root()
@@ -511,6 +529,17 @@ def cmd_packet(a):
     data["packet"] = os.path.relpath(os.path.abspath(a.file), slice_root(path))
     body = log_line(body, "guardian", f"packet: shape_change={data['shape_change']}, "
                                       f"pitch_contradiction={data['pitch_contradiction']}")
+    import packet as packetlib
+    found = packetlib.misses(read_doc(a.file)[1]) if pdata.get("scenario_miss") == "yes" else []
+    data["scenario_miss"] = "yes" if found else "no"
+    checks = data.setdefault("checks", {}).setdefault("guardian", {})
+    checks["miss_amend"] = any(m["amend"] for m in found)
+    checks["miss_repeat"] = sorted({m["ref"] for m in found} & sent_back(data, "scenario_miss"))
+    if found and not checks["miss_amend"] and not checks["miss_repeat"] \
+            and not data["shape_change"] == "yes" and data.get("pitch_contradiction") != "yes":
+        body = send_back(data, body, "guardian", "scenario_miss", sorted({m["ref"] for m in found}),
+                         "; ".join(m["text"] for m in found),
+                         "scenario" if any(m["to"] == "scenario" for m in found) else "maker")
     save(path, data, body)
 
 
