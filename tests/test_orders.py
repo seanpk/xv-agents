@@ -1,3 +1,4 @@
+import os
 import unittest
 
 from helpers import HOME  # noqa: F401
@@ -154,6 +155,51 @@ class OrdersTest(unittest.TestCase):
     def test_prototype_budgets_for_all_three_variants_do_not_stop_it(self):
         d = with_report(rec(kind="prototype", prototype_budgets={n: {"usd": 1} for n in "abc"}), "prototype")
         self.assertNotEqual((self.stop(d, "prototype") or {}).get("order"), "prototype_budgets_not_set")
+
+    def scenario_done(self, slice_only):
+        d = with_report(rec(slice_only=slice_only), "scenario", "red")
+        d["checks"]["scenario"] = {"outside_tests": [], "red_fails": True}
+        return d
+
+    def test_slice_only_marks_after_the_scenario_stop_for_the_person_who_set_it_going(self):
+        marks = [{"file": "tests/test_a.py", "test": "test_file_is_ts", "why": "only proves the rename"},
+                 {"file": "tests/test_b.py", "test": "test_old_flag_gone", "why": "dead after the slice"}]
+        s = self.stop(self.scenario_done(marks), "scenario")
+        self.assertIsNotNone(s)
+        self.assertEqual(s["seat"], "originator")
+        for m in marks:
+            self.assertIn(m["test"], s["question"])
+            self.assertIn(m["why"], s["question"])
+
+    def test_no_slice_only_marks_add_no_stop_after_the_scenario(self):
+        self.assertIsNone(self.stop(self.scenario_done([]), "scenario"))
+
+
+class GuardianFiveChecksTest(unittest.TestCase):
+    def read(self, *path):
+        with open(os.path.join(HOME, *path)) as f:
+            return f.read()
+
+    def test_the_guardian_brief_has_five_checks(self):
+        text = self.read("skills", "guardian", "SKILL.md")
+        self.assertIn("## The five checks", text)
+        self.assertNotIn("four checks", text)
+
+    def test_the_fifth_check_names_the_three_recommendations(self):
+        text = self.read("skills", "guardian", "SKILL.md").split("## The five checks")[1].split("## The evidence rule")[0]
+        self.assertIn("5. ", text)
+        self.assertIn("slice-only", text)
+        self.assertIn("should not join the wall", text)
+        self.assertIn("removed", text)
+
+    def test_the_readme_says_five_checks_not_four(self):
+        text = self.read("README.md")
+        self.assertNotIn("four checks", text)
+        self.assertNotIn("its four findings", text)
+
+    def test_the_packet_template_has_a_section_for_wall_recommendations(self):
+        text = self.read("skills", "guardian", "packet.md")
+        self.assertIn("## 5. ", text)
 
 
 if __name__ == "__main__":
