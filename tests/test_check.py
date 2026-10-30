@@ -59,6 +59,21 @@ class ScenarioBriefTest(unittest.TestCase):
             text = f.read()
         self.assertRegex(text, r'"test": \[\s*"[^"]+"(,\s*"[^"]+")+\s*\]')
 
+    def test_the_brief_says_a_non_string_list_item_and_a_module_prefix_are_checked(self):
+        with open(os.path.join(HOME, "skills", "scenario", "SKILL.md"), encoding="utf-8") as f:
+            text = f.read()
+        covers = next(p for p in text.split("\n") if p.startswith("`covers` names"))
+        self.assertIn("non-empty string", covers)
+        self.assertIn("module", covers)
+
+    def test_the_changelog_line_says_a_non_string_list_item_and_a_module_prefix_are_checked(self):
+        with open(os.path.join(HOME, "CHANGELOG.md"), encoding="utf-8") as f:
+            text = f.read()
+        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
+        line = next((p for p in unreleased.split("\n") if "#92" in p), "")
+        self.assertIn("non-empty string", line)
+        self.assertIn("module", line)
+
     def test_the_changelog_has_a_line_for_a_covers_item_naming_more_than_one_test(self):
         with open(os.path.join(HOME, "CHANGELOG.md"), encoding="utf-8") as f:
             text = f.read()

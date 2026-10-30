@@ -378,6 +378,21 @@ class WatchLoopTest(RepoCase):
         p = self.covers_test("tests.test_red.Red.test_cheese_ghost")
         self.assert_stopped_before_the_maker(p, "test_cheese_ghost")
 
+    def test_a_covers_name_with_an_empty_test_part_after_colons_stops_before_the_maker(self):
+        p = self.covers_test("tests/test_red.py::")
+        self.assert_stopped_before_the_maker(p, "tests/test_red.py::")
+
+    def test_a_covers_name_with_an_empty_test_part_after_a_dot_stops_before_the_maker(self):
+        self.assert_stopped_before_the_maker(self.covers_test("Red."), "Red.")
+
+    def test_a_covers_name_with_a_red_module_and_class_but_an_empty_test_part_stops_before_the_maker(self):
+        p = self.covers_test("tests.test_red.Red.")
+        self.assert_stopped_before_the_maker(p, "tests.test_red.Red.")
+
+    def test_a_covers_list_with_a_name_whose_test_part_is_empty_stops_before_the_maker(self):
+        extra = json.dumps({"covers": [{"item": "milk today", "test": ["test_milk_today", "Red."]}]})
+        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "Red.")
+
     def test_a_command_whose_words_are_apart_in_the_red_stops_before_the_maker(self):
         self.amend("A person runs `xv slice amend`.")
         p = self.scenario_with_env(FAKE_RED_TEXT="slice a list of other things, then amend")
