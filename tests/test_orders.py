@@ -56,7 +56,7 @@ class OrdersTest(unittest.TestCase):
         d["checks"]["maker"] = {"suite": "green", "wall": {"unrecorded": ["tests/test_a.py"]}}
         self.assertEqual(self.stop(d, "maker")["order"], "unrecorded_move")
 
-    def test_a_stall_opens_the_shape_conversation(self):
+    def test_a_stall_question_offers_to_reshape_the_slice(self):
         d = with_report(rec(), "maker", "stopped", stop={"reason": "repeated_failure"})
         d["checks"]["maker"] = {"suite": "red"}
         self.assertIn("reshape the slice", self.stop(d, "maker")["question"])

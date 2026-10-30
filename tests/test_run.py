@@ -569,6 +569,48 @@ class AcceptedShapeChangeTest(WatchLoopTest):
             del os.environ["FAKE_SHAPE_CHANGE"], os.environ["FAKE_PACKET_EXTRA"]
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "shape_or_pitch", p.stdout + p.stderr)
 
+    def record_packet(self, shape, accepted_by=None):
+        extra = f"accepted_by: {accepted_by}\n" if accepted_by else ""
+        packet = os.path.join(self.wt, "hand-packet.md")
+        with open(packet, "w") as f:
+            f.write(f"---\nshape_change: {shape}\npitch_contradiction: no\n{extra}---\nA packet.\n")
+        self.xv("record", "packet", "s1", packet, cwd=self.wt)
+        return self.record()["shape_change"]
+
+    def test_record_packet_keeps_accepted_with_a_listed_shape_or_pitch_decision(self):
+        rel = self.decide()
+        self.assertEqual(self.record_packet("accepted", rel), "accepted")
+
+    def test_record_packet_reads_accepted_without_accepted_by_as_yes(self):
+        self.decide()
+        self.assertEqual(self.record_packet("accepted"), "yes")
+
+    def test_record_packet_reads_accepted_by_an_unlisted_file_as_yes(self):
+        rel = self.decide(listed=False)
+        self.assertEqual(self.record_packet("accepted", rel), "yes")
+
+    def test_record_packet_reads_accepted_by_a_missing_file_as_yes(self):
+        self.decide()
+        self.assertEqual(self.record_packet("accepted", ".xv/decisions/no-such-record.md"), "yes")
+
+    def test_record_packet_reads_accepted_by_a_decision_of_another_order_as_yes(self):
+        rel = self.decide(order="accept_moves")
+        self.assertEqual(self.record_packet("accepted", rel), "yes")
+
+    def test_the_guardian_brief_allows_accepted_and_names_accepted_by(self):
+        text = open(os.path.join(HOME, "skills", "guardian", "SKILL.md")).read()
+        may_not = text[text.index("## May not"):text.index("## Writes to the slice record")]
+        self.assertNotIn("anything but `yes` or `no`", may_not)
+        self.assertIn("accepted", may_not)
+        self.assertIn("accepted_by", text)
+        fields = [l for l in text.splitlines() if "pitch_contradiction" in l and "fixed fields" in l][0]
+        self.assertNotIn("each `yes` or `no`, nothing else", fields)
+
+    def test_the_stall_test_is_named_for_what_it_checks(self):
+        text = open(os.path.join(HOME, "tests", "test_orders.py")).read()
+        self.assertNotIn("def test_a_stall_opens_the_shape_conversation", text)
+        self.assertIn("def test_a_stall_question_offers_to_reshape_the_slice", text)
+
 
 if __name__ == "__main__":
     unittest.main()
