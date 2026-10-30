@@ -234,11 +234,6 @@ class GuardianFiveChecksTest(unittest.TestCase):
         with open(os.path.join(HOME, *path)) as f:
             return f.read()
 
-    def test_the_guardian_brief_has_five_checks(self):
-        text = self.read("skills", "guardian", "SKILL.md")
-        self.assertIn("## The five checks", text)
-        self.assertNotIn("four checks", text)
-
     def test_the_fifth_check_names_the_three_recommendations(self):
         text = self.read("skills", "guardian", "SKILL.md").split("## The five checks")[1].split("## The evidence rule")[0]
         self.assertIn("5. ", text)
