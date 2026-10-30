@@ -1276,3 +1276,58 @@ class AcceptWallFlagTest(RepoCase):
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--next", "maker",
                 "--settled", "x", cwd=wt)
         self.assertEqual(self.show(wt)["decisions"], [])
+
+
+class ScenarioMissStandingOrderTest(RepoCase):
+    """The send-back for a scenario miss is read from the record, so `xv record packet` and `xv orders` see it."""
+
+    def show(self, wt):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+
+    def packet(self, wt, line, name="p.md"):
+        path = os.path.join(wt, name)
+        with open(path, "w") as f:
+            f.write("---\nslice: s1\nshape_change: no\npitch_contradiction: no\nscenario_miss: yes\n---\n\n"
+                    "# Packet\n\n## Scenario misses\n\n- %s (evidence: tests/test_red.py:7)\n" % line)
+        self.xv("record", "packet", "s1", path, cwd=wt)
+
+    def guardian_done(self, wt):
+        report = os.path.join(wt, "r.json")
+        with open(report, "w") as f:
+            f.write("```xv-report\n" + json.dumps({"agent": "guardian", "status": "done", "summary": "done"})
+                    + "\n```\n")
+        self.xv("record", "report", "s1", "guardian", report, cwd=wt)
+
+    def orders(self, wt):
+        p = self.xv("orders", "s1", "--after", "guardian", cwd=wt, check=False)
+        return json.loads(p.stdout)
+
+    def test_record_packet_sends_a_miss_back_to_the_maker_without_a_stop(self):
+        wt = self.new_slice("s1")
+        self.guardian_done(wt)
+        self.packet(wt, "Point 2: milk that runs out today is left out, to: maker")
+        data = self.show(wt)
+        self.assertEqual(data["scenario_miss"], "yes")
+        self.assertEqual(data["next"], "maker")
+        self.assertEqual([s for s in data["stops"] if s.get("answer") is None], [])
+        self.assertIn("milk that runs out today", json.dumps(data["stops"]))
+        v = self.orders(wt)
+        self.assertIsNone(v["stop"])
+        self.assertNotIn("ready_to_merge", [f["order"] for f in v["fired"]])
+
+    def test_xv_orders_stops_for_a_miss_marked_amend_yes(self):
+        wt = self.new_slice("s1")
+        self.guardian_done(wt)
+        self.packet(wt, "Point 2: the scenario itself is wrong, to: maker, amend: yes")
+        v = self.orders(wt)
+        self.assertEqual((v["stop"] or {}).get("order"), "scenario_miss")
+        self.assertEqual(v["stop"]["seat"], "originator")
+
+    def test_xv_orders_stops_when_the_same_point_comes_back_worded_differently(self):
+        wt = self.new_slice("s1")
+        self.guardian_done(wt)
+        self.packet(wt, "Point 2 is not met: milk that runs out today is left out, to: maker")
+        self.packet(wt, "2: the list still skips milk, to: maker", name="p2.md")
+        v = self.orders(wt)
+        self.assertEqual((v["stop"] or {}).get("order"), "scenario_miss")
+        self.assertEqual(v["stop"]["seat"], "originator")

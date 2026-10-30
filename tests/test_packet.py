@@ -77,6 +77,15 @@ class PacketTest(unittest.TestCase):
         self.assertIn("scenario_miss", text)
         self.assertRegex(text, r"(?i)binding decision")
 
+    def test_a_miss_is_keyed_by_its_point_not_by_its_wording(self):
+        def ref(line):
+            body = "## Scenario misses\n\n- %s (evidence: tests/test_red.py:7)\n" % line
+            return packet.misses(body)[0]["ref"]
+        self.assertEqual(ref("Point 2 is not met: milk is left out, to: maker"),
+                         ref("2: the list still skips milk, to: maker"))
+        self.assertEqual(ref("Decision 10 is broken: the order sits in run.py"),
+                         ref("decision 10: another wording"))
+
     MISSES = GOOD.replace("door: two-way\n---", "door: two-way\nscenario_miss: yes\n---", 1) + """
 ## Scenario misses
 
