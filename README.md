@@ -39,7 +39,7 @@ Then [try it on a repo](#try-it-on-a-repo).
 
 ## The one rule
 
-An agent may stop. It may not decide. A person is responsible for every change, including one made entirely by agents, so the harness is built to hand back, not to approve. There is no agent that says yes. When the conditions are met, nobody else has to say yes either: the person who set the work going merges.
+An agent may stop. It may not decide. Ultimately, a person is responsible for what the code does, even when agents wrote all of it.
 
 ## The words
 
