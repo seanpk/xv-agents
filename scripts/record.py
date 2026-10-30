@@ -15,6 +15,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import orders  # noqa: E402
 from spend import row_tokens  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, emit, git, load_config, now, read_doc, solo,  # noqa: E402
                    record_path, repo_root, slice_root, today, write_doc)
@@ -533,7 +534,6 @@ def cmd_packet(a):
     found = packetlib.misses(read_doc(a.file)[1]) if pdata.get("scenario_miss") == "yes" else []
     data["scenario_miss"] = "yes" if found else "no"
     checks = data.setdefault("checks", {}).setdefault("guardian", {})
-    import orders
     checks["misses"] = found
     checks["miss_repeat"] = sorted({m["ref"] for m in found} & orders.sent_back(data, "scenario_miss", None))
     for f in orders.evaluate(data, "guardian", load_config(slice_root(path))):
