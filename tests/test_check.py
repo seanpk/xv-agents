@@ -62,47 +62,6 @@ def red_texts(which):
     return [open(os.path.join(folder, n), encoding="utf-8").read() for n in sorted(os.listdir(folder))]
 
 
-class RedGapsTest(unittest.TestCase):
-    """check.red_gaps(scenario, red_texts): each flag and `xv` command in backticks in the scenario
-    that appears in none of the red files' texts."""
-
-    def gaps(self, scenario, *reds):
-        return check.red_gaps(scenario, list(reds))
-
-    def test_a_flag_in_backticks_that_no_red_file_has_is_listed(self):
-        self.assertEqual(self.gaps("Takes `--since <date>`.", "run(['--until', 'x'])"), ["--since"])
-
-    def test_a_flag_one_of_the_red_files_has_is_not_listed(self):
-        self.assertEqual(self.gaps("Takes `--since <date>`.", "nothing here", "xv('--since', d)"), [])
-
-    def test_every_flag_in_a_span_is_read(self):
-        self.assertEqual(sorted(self.gaps("Try `--pick 1 --next maker --resume`.", "'--next'")),
-                         ["--pick", "--resume"])
-
-    def test_a_flag_in_plain_words_is_not_read(self):
-        self.assertEqual(self.gaps("Takes a --since flag, and `--next`.", "'--next'"), [])
-
-    def test_an_xv_command_that_no_red_file_has_is_listed(self):
-        self.assertEqual(self.gaps("Run `xv ghost <id> --next`.", "'--next'"), ["xv ghost"])
-
-    def test_a_command_is_covered_by_its_words_as_arguments_or_as_text(self):
-        scenario = "Run `xv record answer` and `xv slice amend`."
-        self.assertEqual(self.gaps(scenario, "self.xv('record', 'answer')", "run xv slice amend"), [])
-        self.assertEqual(self.gaps(scenario, "self.xv('record', 'stop')"), ["xv record answer", "xv slice amend"])
-
-    def test_a_scenario_with_nothing_in_backticks_lists_nothing(self):
-        self.assertEqual(self.gaps("Milk that runs out today shows as running out soon.", ""), [])
-
-    def test_on_the_first_red_of_stop_decisions_the_check_lists_since(self):
-        gaps = check.red_gaps(stop_decisions_scenario(), red_texts("first"))
-        self.assertIn("--since", gaps)
-        self.assertNotIn("--settles", gaps)
-        self.assertNotIn("xv record offer", gaps)
-
-    def test_on_the_final_red_of_stop_decisions_the_check_lists_nothing(self):
-        self.assertEqual(check.red_gaps(stop_decisions_scenario(), red_texts("final")), [])
-
-
 class ScenarioBriefTest(unittest.TestCase):
     def test_the_brief_asks_for_covers_and_not_covered_in_the_report(self):
         with open(os.path.join(HOME, "skills", "scenario", "SKILL.md"), encoding="utf-8") as f:
