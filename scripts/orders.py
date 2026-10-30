@@ -121,6 +121,13 @@ def evaluate(data, after, config):
             out.append(fire("scenario_not_red", "originator",
                             "The scenario passes on the code as it is. The behaviour may exist already, "
                             "or the scenario may be wrong."))
+        marks = [m for m in data.get("slice_only") or [] if isinstance(m, dict)]
+        if marks:
+            listed = "; ".join(f"{m.get('test')} in {m.get('file')} ({m.get('why')})" for m in marks)
+            out.append(fire("slice_only_marks", "originator",
+                            f"{owner}: the scenario agent marked {len(marks)} test(s) slice-only, so the cleaner may "
+                            f"remove them and they do not join the wall: {listed}. Accept the marks, or unmark a "
+                            "test so it joins the wall and the cleaner keeps it."))
 
     wall = checks.get("wall") or {}
     if wall.get("unrecorded"):
@@ -192,10 +199,13 @@ def evaluate(data, after, config):
                             f"The shape change is {actual}; the forecast expected {fc}. Two people decide."))
         moved = [m for m in data.get("moved_tests") or [] if not m.get("slice_only")]
         picture = checks.get("picture_change") == "yes"
-        if not out and (moved or picture):
+        recs = [r for r in data.get("wall_recommendations") or [] if not r.get("accepted")]
+        if not out and (moved or picture or recs):
             parts = []
             if moved:
                 parts.append(f"{len(moved)} old test(s) moved with a record")
+            if recs:
+                parts.append(f"{len(recs)} wall recommendation(s) from the guardian")
             if picture:
                 parts.append("the picture changed")
             out.append(fire("accept_moves", "originator",

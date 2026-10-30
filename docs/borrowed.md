@@ -8,7 +8,7 @@ The nearest neighbour to XV. It already encodes make it work then make it right 
 
 - `tdd`: expected values come from an independent source, never recomputed the way the code does ("tautological" tests). Used in the scenario agent's brief. Also "refactoring is not part of the loop", which is the line between the maker and the cleaner.
 - `implement-spec`: an orchestrator talks to its workers through pointers, not restated context. Used for the prompt `xv prompt` builds: the brief, then pointers.
-- `code-review`: the Fowler smell baseline, "the repo overrides" the baseline, and every finding cites a rule or quotes a line. Used in the cleaner's baseline and the guardian's evidence rule. XV replaces the spec axis with its four checks.
+- `code-review`: the Fowler smell baseline, "the repo overrides" the baseline, and every finding cites a rule or quotes a line. Used in the cleaner's baseline and the guardian's evidence rule. XV replaces the spec axis with its five checks.
 - `retro`: a mechanical miss gets a deterministic check, and only judgement calls become prose in the standards file; a candidate that cannot be traced to a moment is discarded. Used in `xv-retro`.
 - `pr`: the door line (one-way or two-way) and the blast radius. Used in the guardian's packet. Pocock's `pr` credits Dex Horthy's `show-me` skill (HumanLayer, MIT) for its summary visuals.
 

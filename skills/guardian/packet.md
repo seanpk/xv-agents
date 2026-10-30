@@ -48,6 +48,10 @@ Slice-only tests removed: <the tests, on one line, or none>. Kept: <each kept sl
 
 <Each line of `.xv/picture.md` this change makes untrue or incomplete, and the proposed edit.>
 
+## 5. The wall
+
+<Each new test that should join the wall or leave it, and each test already on the wall that should be removed: the file, the test, the recommendation, and the citation. Or say what you looked at.>
+
 ## Door
 
 **Door:** <one-way|two-way>. **Blast radius:** <one word>.

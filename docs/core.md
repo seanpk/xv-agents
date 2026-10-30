@@ -7,7 +7,7 @@ Local versions of a shared checklist drop the social prompts first. In XV the so
 1. **The contexts are kept apart.** The scenario agent, the maker, the cleaner and the guardian each run in a fresh context. No context grades its own work.
 2. **The scenario agent is never the maker.** A context that writes the red and then makes it green is agreeing with itself.
 3. **A test moves only with a record.** An old test changes only when the scenario forces it, and the move is recorded with the file, the assertion and why. The wall check fails on an unrecorded move.
-4. **The guardian makes four checks**: a shape change, a contradiction of the pitch, any old test that changed, and what the change does to the picture. Every finding cites evidence.
+4. **The guardian makes five checks**: a shape change, a contradiction of the pitch, any old test that changed, what the change does to the picture, and which new tests join the wall or leave it. Every finding cites evidence.
 5. **The stops wake a person.** The standing orders in [`scripts/orders.py`](../scripts/orders.py) run after every step, and a stop ends the watch's turn until a person answers.
    A one-person team may declare `seats.two_people: solo`: the two-person stops still fire and still wait, one person answers them, and the answer is written down. `xv check` lists the setting.
 6. **The may-not lists hold.** No agent merges, approves, ranks the value queue, settles a shape, edits the pitch, raises a budget, or accepts its own change.
