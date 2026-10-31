@@ -39,7 +39,9 @@ Then [try it on a repo](#try-it-on-a-repo).
 
 ## The one rule
 
-An agent may stop. It may not decide. Ultimately, a person is responsible for what the code does, even when agents wrote all of it.
+Even when agents write all of the code, a person is responsible for what it does. An agent may write the tests, write the code, and deploy. It stops and hands the change to a person when the change would move the system away from its stated purpose or widen it (the pitch), or change its structure or its contracts (the shape and the wall). The method names a third, a change to what users experience without evidence from real use (Go and see); these agents do not stop on it yet.
+
+The rule that holds this in place: an agent may stop. It may not decide. No agent here says yes. The method's form of it is [Own the result](https://xtremevibing.com/agents/#own-the-result).
 
 ## The words
 
@@ -69,9 +71,9 @@ XV has its own words. This README and the method use them from here on.
 Generated from the same source as the site. It states the method's positions; the agents here are the first attempt to hold them. Since v0.3.0 they have run on real changes: this repo's own slices, decided by Sean solo, and trial slices on one large Rails and TypeScript app.
 
 <!-- xv:method begin -->
-<!-- Generated on 2026-10-27 from the map at https://xtremevibing.com/map/. Edits here are overwritten at the next publish; say what is wrong in an issue on this repo. -->
+<!-- Generated on 2026-10-31 from the map at https://xtremevibing.com/map/. Edits here are overwritten at the next publish; say what is wrong in an issue on this repo. -->
 
-The method is written up at [xtremevibing.com](https://xtremevibing.com/): [the summary](https://xtremevibing.com/), [the map](https://xtremevibing.com/map/) of values, principles and practices, [the loop](https://xtremevibing.com/loop/) one turn of delivery runs through, and [the agents](https://xtremevibing.com/agents/). This is the map in brief, as of 2026-10-27.
+The method is written up at [xtremevibing.com](https://xtremevibing.com/): [the summary](https://xtremevibing.com/), [the map](https://xtremevibing.com/map/) of values, principles and practices, [the loop](https://xtremevibing.com/loop/) one turn of delivery runs through, and [the agents](https://xtremevibing.com/agents/). This is the map in brief, as of 2026-10-31.
 
 **Values**
 
@@ -85,7 +87,7 @@ The method is written up at [xtremevibing.com](https://xtremevibing.com/): [the 
 - **Lead with conviction.** One person who is accountable decides from experience, responsibility, and judgment.
 - **Go and see.** Lean's genchi genbutsu: go to the real place and look at the real thing before you decide.
 - **Ship at will.** The gate is released to the person. The harness sets the conditions: red before green, the test wall, the three agents, and a build that returns in minutes.
-- **Own the result.** A person is responsible for the consequences of every change, including one made entirely by agents.
+- **Own the result.** Even when agents write all of the code, a person is responsible for what it does.
 
 **Practices of the team**
 
