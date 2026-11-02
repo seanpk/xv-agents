@@ -2,7 +2,7 @@
 id: 2026-11-02-own-the-result
 title: Briefs lead with Own the result
 kind: feature
-status: open
+status: stopped
 set_by: Sean Kennedy
 created: 2026-11-02
 branch: xv/2026-11-02-own-the-result
@@ -20,12 +20,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: []
-stops: []
+spend: [{"harness": "claude", "model": "haiku", "model_id": "haiku", "tokens_in": 0, "tokens_out": 0, "cache_read": 0, "cache_write": 0, "tokens": 0, "usd": 0.0, "turns": 1, "wall_s": 0.4, "session": "86c33c73-5148-4613-9795-2306ece83af4", "step": "forecaster", "at": "2026-11-02T20:56:03+00:00", "exit": 1, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-02-own-the-result/01-forecaster.out"}]
+stops: [{"at": "2026-11-02T20:56:03+00:00", "step": "forecaster", "order": "no_report", "seat": "originator", "question": "The forecaster ended without a report. Read its log and decide whether to re-run it.", "answered_by": [], "answer": null, "also": ["budget_not_set"], "budget_seen": null}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {}
+checks: {"reports": [{"agent": "forecaster", "status": "no-report", "summary": "ended without an xv-report block"}], "forecaster": {"at": "2026-11-02T20:56:03+00:00", "wrote": []}}
 ---
 # Briefs lead with Own the result
 
@@ -50,3 +50,5 @@ None. A feature starts from words.
 
 ## Log
 - 2026-11-02T20:55:58+00:00 watch: slice opened by Sean Kennedy
+- 2026-11-02T20:56:03+00:00 forecaster: ended without an xv-report block
+- 2026-11-02T20:56:03+00:00 watch: stop (no_report) for originator: The forecaster ended without a report. Read its log and decide whether to re-run it.
