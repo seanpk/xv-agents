@@ -104,13 +104,6 @@ class OwnTheResultTest(unittest.TestCase):
         self.assertRegex(item, r"(?i)stop line")
         self.assertNotRegex(item, r"(?i)opens with the one rule")
 
-    def test_changelog_has_an_unreleased_line_for_the_reword_naming_107(self):
-        text = brief("CHANGELOG.md")
-        m = re.search(r"^## Unreleased\n(.*?)(?=^## |\Z)", text, re.S | re.M)
-        self.assertTrue(m, "no Unreleased section")
-        self.assertRegex(m.group(1), r"(?s)Own the result.*#107|#107.*Own the result")
-        self.assertIn("Sean", m.group(1))
-
     def test_ci_pins_and_readme_mentions_say_v0_4_1(self):
         for rel in ["ci/github/xv-wall.yml", "ci/github/xv-guardian.yml", "ci/github/xv-listener.yml"]:
             with self.subTest(file=rel):

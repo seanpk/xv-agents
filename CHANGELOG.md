@@ -2,9 +2,11 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
-## Unreleased
+## 0.4.1, 2026-11-02
 
-- Own the result opens each brief (#107), agreed by Sean Kennedy. The 15 brief openers say "Own the result: even when agents write all of the code, a person is responsible for what it does." before the stop line, and the "The one rule:" label is gone; the stop line, "An agent may stop. It may not decide.", stays. This changes every brief's opener and moves no rule; the CI example pins and README mentions move to `v0.4.1`.
+One change from this repo's own slices, run by the watch and decided by Sean solo: the briefs lead with Own the result, as the README and the method do since 2026-10-31.
+
+- Own the result opens each brief. The 15 brief openers say "Own the result: even when agents write all of the code, a person is responsible for what it does." before the stop line, and the "The one rule:" label is gone; the stop line, "An agent may stop. It may not decide.", stays. This changes every brief's opener and moves no rule; the CI example pins and README mentions move to `v0.4.1`. The watch's opener drops "A person is responsible for every change, including one made entirely by agents.", which Own the result now says. Sean decided it, solo (#107). It moves no position on xtremevibing.com.
 
 ## 0.4.0, 2026-10-30
 
