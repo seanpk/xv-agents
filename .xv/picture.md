@@ -72,7 +72,7 @@ Drafted from the repo's docs; Sean cut and added on 2026-10-24.
 10. The standing orders all live in `scripts/orders.py`, a pure function of the record and the config. A stop raised because an action failed (`setup_failed`, `axis_not_named`) is not a standing order; the command that failed raises it, or `orders` raises it from what the record says failed. (`docs/decisions.md` 10, 11)
 11. Exit codes are a contract with CI: 10 a person must act, 0 nothing left, 2 an error or a refusal. (`docs/decisions.md` 12)
 12. A check whose input is broken or that cannot run stops for a person; it never passes. Read-only agents are checked, not trusted. (`docs/decisions.md` 13, 51, 78)
-13. Every brief opens with the one rule, ends with its may-not list, what it writes to the record, and when to stop, and points to files rather than restating them. (`docs/briefs.md`, "Every brief")
+13. Every brief opens with Own the result, keeps the stop line, ends with its may-not list, what it writes to the record, and when to stop, and points to files rather than restating them. (`docs/briefs.md`, "Every brief")
 14. A version that renames anything in `.xv/` carries its upgrade steps in `CHANGELOG.md`. (`docs/decisions.md` 74)
 15. Python 3.10 through 3.13 are supported; CI tests both. (`.github/workflows/tests.yml`)
 
