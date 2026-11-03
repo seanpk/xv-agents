@@ -52,6 +52,24 @@ OPENERS = [
 OWN = ("Own the result: even when agents write all of the code, a person is responsible "
        "for what it does. An agent may stop. It may not decide.")
 
+# The rest each brief already had after the stop line. The watch brief is
+# absent: the scenario amendment lets it drop its old last sentence.
+OPENER_RESTS = {
+    "skills/maker/prototype.md": "You do not pick, and you do not say which version is better.",
+    "skills/guardian/SKILL.md": "You give findings. You never fix, approve, or merge.",
+    "skills/xv-promote/SKILL.md": "You list, search and draft. People promote, approve, post and decide.",
+    "skills/xv-init/outsider-read.md": "You describe; you do not decide what the system is for.",
+    "skills/xv-init/SKILL.md": "You may not invent what the system is for.",
+    "skills/xv-retro/SKILL.md": ("The retro proposes. The person who set the work going picks. "
+                                 "A standard enters `.xv/standards.md` only when they accept it."),
+    "skills/xv-check/SKILL.md": "You report; people remove, keep, or re-agree.",
+    "skills/xv-slice/SKILL.md": ("The scenario is the person's statement of what must be true; "
+                                 "you write it down, you do not choose it."),
+    "skills/maker/SKILL.md": ("Stopping is a good outcome. A green you had to cheat for is the "
+                              "worst one."),
+    "skills/xv-retro/retro-brief.md": "You propose; you never write a rule, a check, or a brief.",
+}
+
 
 class OwnTheResultTest(unittest.TestCase):
     def test_each_of_the_15_brief_openers_names_own_the_result_first(self):
@@ -61,6 +79,13 @@ class OwnTheResultTest(unittest.TestCase):
                 stop = [l for l in lines if "An agent may stop. It may not decide." in l]
                 self.assertTrue(stop, "no stop line")
                 self.assertTrue(stop[0].startswith(OWN), stop[0])
+
+    def test_each_opener_keeps_its_agent_specific_rest_after_the_stop_line(self):
+        for rel, rest in OPENER_RESTS.items():
+            with self.subTest(brief=rel):
+                stop = [l for l in brief(*rel.split("/")).splitlines()
+                        if "An agent may stop. It may not decide." in l]
+                self.assertEqual(stop[0], OWN + " " + rest)
 
     def test_the_one_rule_label_is_gone_from_the_openers(self):
         for rel in OPENERS:
