@@ -1,8 +1,14 @@
+import json
 import os
+import stat
+import subprocess
+import sys
+import tempfile
 import unittest
 
 from helpers import HOME
 
+import agentcli
 import spend
 
 DATA = os.path.join(HOME, "tests", "data")
@@ -40,6 +46,61 @@ class SpendTest(unittest.TestCase):
                           {"step": "guardian", "usd": 9, "tokens": 99999}]}
         state = spend.budget_state(data)
         self.assertEqual((state["over"], state["spent"]["tokens"]), (["tokens", "usd"], 103999))
+
+    # Codex: `codex exec --json` prints one event per line. Each turn.completed carries
+    # usage; its input_tokens include the cached ones. Worked by hand from the fixture:
+    # turn 1 in 1000 (800 cached) out 50; turn 2 in 2000 (1500 cached) out 100.
+    # Reasoning (20, 60) is already inside output_tokens (settled), so it is not added.
+    def test_codex_result_adds_the_turns_and_keeps_cache_out_of_input(self):
+        s = spend.from_codex_result(open(os.path.join(DATA, "codex-result.jsonl")).read(), "gpt-5")
+        self.assertEqual(s["harness"], "codex")
+        self.assertEqual((s["tokens_in"], s["tokens_out"], s["cache_read"]), (200 + 500, 150, 2300))
+        self.assertEqual(s["tokens"], 700 + 150)
+        self.assertEqual((s["session"], s["turns"], s["usd"]), ("019a-thread-0001", 2, None))
+
+    def test_a_codex_step_records_a_codex_row(self):
+        with tempfile.TemporaryDirectory() as d:
+            fake = os.path.join(d, "codex")
+            with open(fake, "w") as f:
+                f.write("#!/bin/sh\ncat " + os.path.join(DATA, "codex-result.jsonl") + "\n")
+            os.chmod(fake, os.stat(fake).st_mode | stat.S_IXUSR)
+            r = agentcli.run([fake, "exec", "--json", "{prompt}"], "hi", d)
+        s = spend.from_run(r)
+        self.assertEqual((s["harness"], s["tokens"], s["cache_read"], s["turns"], s["usd"], s["session"]),
+                         ("codex", 850, 2300, 2, None, "019a-thread-0001"))
+
+    def test_xv_spend_reads_a_saved_codex_run(self):
+        # `xv spend codex-result <file>`, called like the other readers: `xv spend read <reader> <file>`
+        p = subprocess.run([sys.executable, os.path.join(HOME, "bin", "xv"), "spend", "read", "codex-result",
+                            os.path.join(DATA, "codex-result.jsonl")],
+                           capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        s = json.loads(p.stdout)
+        self.assertEqual((s["harness"], s["tokens"], s["turns"]), ("codex", 850, 2))
+
+    def test_the_agent_cli_gets_a_closed_stdin(self):
+        # the parent keeps this child's stdin open and silent; a CLI that reads stdin must still see EOF
+        code = ("import sys, json; sys.path.insert(0, %r); import agentcli; "
+                "r = agentcli.run([sys.executable, '-c', 'import sys; print(len(sys.stdin.read()))', '{prompt}'],"
+                " 'p', '.', timeout=5); print(json.dumps([r['code'], r['stdout'].strip()]))"
+                % os.path.join(HOME, "scripts"))
+        p = subprocess.Popen([sys.executable, "-c", code], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        try:
+            out = p.stdout.readline()  # not communicate(): that would close the stdin we mean to keep open
+        finally:
+            p.kill()
+            p.wait()
+            p.stdout.close()
+            p.stdin.close()
+        self.assertEqual(json.loads(out), [0, "0"])
+
+    def test_harness_notes_say_what_was_checked_on_codex(self):
+        text = open(os.path.join(HOME, "docs", "harness-notes.md")).read()
+        self.assertNotIn("**codex: not checked.**", text)
+        self.assertNotIn("`codex exec`: has the flags. Not run.", text)
+        for needle in ("2026-11-03", "codex exec --json", "turn.completed", "AGENTS.md",
+                       "--ignore-user-config", "--ignore-rules"):
+            self.assertIn(needle, text)
 
 
 if __name__ == "__main__":

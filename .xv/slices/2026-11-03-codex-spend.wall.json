@@ -2,6 +2,7 @@
  "assertions": {
   "tests/data/claude-result.json": 0,
   "tests/data/claude-session.jsonl": 0,
+  "tests/data/codex-result.jsonl": 0,
   "tests/data/grok-result.json": 0,
   "tests/data/opencode-export.json": 0,
   "tests/data/stop-decisions-red/final/test_answer_in_prompt.py.txt": 27,
@@ -49,7 +50,7 @@
   "tests/test_retro_accept_fields.py": 8,
   "tests/test_run.py": 205,
   "tests/test_slice_skill_readback.py": 4,
-  "tests/test_spend.py": 13,
+  "tests/test_spend.py": 24,
   "tests/test_suite_red_quote.py": 7,
   "tests/test_token_cap.py": 3,
   "tests/test_token_cap_one_count.py": 8,
@@ -58,10 +59,11 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "655eeda455add12e21e3ce4870e88a10ae16ae2e",
+ "commit": "39e419a131ead184c3c70ed57118b207af173bdf",
  "files": {
   "tests/data/claude-result.json": "d97d2788e30ab2c1dcefc61594ffaaf6892217e088255672a7ead5be9747a331",
   "tests/data/claude-session.jsonl": "f334175619c11a34eabde629fe45e0def44aa43becec22059c9c9841ffccf073",
+  "tests/data/codex-result.jsonl": "23476aa89a96e66e47455af15079849d943835cf1f3f465631ef23049d96b154",
   "tests/data/grok-result.json": "f91389a8c6defa4051a74fa543f7bac4c61c4846fe5dd3287524ae30c8d3fe92",
   "tests/data/opencode-export.json": "e8f543242fc9ebbee4c1b908f070e211a6ba24cd05a4b9c84e4dd7ccad566cb7",
   "tests/data/stop-decisions-red/final/test_answer_in_prompt.py.txt": "c985bb085d88ee1c6a2b00dcee0443e62a50490b2352f82b14e05e749104e7bf",
@@ -109,7 +111,7 @@
   "tests/test_retro_accept_fields.py": "df9b34fb48da5dbfcf795914d4d284e3ec1b7335104191a792fa66a17862f89b",
   "tests/test_run.py": "6275a3194934a107881998858a21f5264e82bc81acadd8d8d58878346c02f5c3",
   "tests/test_slice_skill_readback.py": "1d016e8e5211bdf73914c5f9e66a55aa44885226dc6251c31d174bb7498c3930",
-  "tests/test_spend.py": "ef8eba4c546fa370f6d4ec67380096c370d581d3d3c2d2d0119a2f1831bd44c2",
+  "tests/test_spend.py": "7b5dde139e3bdafcd8edf928fb5963455d05cb9868780be8abc2cd2c6cae0911",
   "tests/test_suite_red_quote.py": "f920a670c696b5300ee665f20f7d25394edd17ce802fbda197ab1ae2f07f7435",
   "tests/test_token_cap.py": "0a3ec20650a1c7417dbdee06ddea8eac8cd6c34e8bdcf99738f3073475732192",
   "tests/test_token_cap_one_count.py": "aeaced04f5ea4810758e8ee95b8cb78c3d9f11c5303abb0bb6a19331cd073956",
