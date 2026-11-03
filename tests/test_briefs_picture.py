@@ -42,5 +42,62 @@ class PictureInTheBriefsTest(unittest.TestCase):
         self.assertRegex(text, r"(?is)picture[^\n]*own commit[^\n]*(names|naming)[^\n]*person")
 
 
+OPENERS = [
+    "skills/cleaner/SKILL.md", "skills/forecaster/SKILL.md", "skills/guardian/SKILL.md",
+    "skills/listener/SKILL.md", "skills/maker/SKILL.md", "skills/maker/prototype.md",
+    "skills/scenario/SKILL.md", "skills/watch/SKILL.md", "skills/xv-check/SKILL.md",
+    "skills/xv-init/SKILL.md", "skills/xv-init/outsider-read.md", "skills/xv-promote/SKILL.md",
+    "skills/xv-retro/SKILL.md", "skills/xv-retro/retro-brief.md", "skills/xv-slice/SKILL.md",
+]
+OWN = ("Own the result: even when agents write all of the code, a person is responsible "
+       "for what it does. An agent may stop. It may not decide.")
+
+
+class OwnTheResultTest(unittest.TestCase):
+    def test_each_of_the_15_brief_openers_names_own_the_result_first(self):
+        for rel in OPENERS:
+            with self.subTest(brief=rel):
+                lines = brief(*rel.split("/")).splitlines()
+                stop = [l for l in lines if "An agent may stop. It may not decide." in l]
+                self.assertTrue(stop, "no stop line")
+                self.assertTrue(stop[0].startswith(OWN), stop[0])
+
+    def test_the_one_rule_label_is_gone_from_the_openers(self):
+        for rel in OPENERS:
+            with self.subTest(brief=rel):
+                self.assertNotIn("The one rule:", brief(*rel.split("/")))
+
+    def test_briefs_doc_says_own_the_result_opens_each_brief_and_the_stop_line_stays(self):
+        every = section(brief("docs", "briefs.md"), "Every brief")
+        self.assertRegex(every, r"(?i)own the result opens each brief")
+        self.assertRegex(every, r"(?i)stop line")
+        self.assertNotRegex(every, r"(?i)the one rule opens")
+
+    def test_picture_item_13_says_own_the_result_opens_each_brief(self):
+        item = re.search(r"^13\. (.*)$", brief(".xv", "picture.md"), re.M).group(1)
+        self.assertRegex(item, r"(?i)own the result")
+        self.assertRegex(item, r"(?i)stop line")
+        self.assertNotRegex(item, r"(?i)opens with the one rule")
+
+    def test_changelog_has_an_unreleased_line_for_the_reword_naming_107(self):
+        text = brief("CHANGELOG.md")
+        m = re.search(r"^## Unreleased\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+        self.assertTrue(m, "no Unreleased section")
+        self.assertRegex(m.group(1), r"(?s)Own the result.*#107|#107.*Own the result")
+        self.assertIn("Sean", m.group(1))
+
+    def test_ci_pins_and_readme_mentions_say_v0_4_1(self):
+        for rel in ["ci/github/xv-wall.yml", "ci/github/xv-guardian.yml", "ci/github/xv-listener.yml"]:
+            with self.subTest(file=rel):
+                text = brief(*rel.split("/"))
+                self.assertRegex(text, r"ref: v0\.4\.1")
+                self.assertNotIn("v0.4.0", text)
+        readme = brief("README.md")
+        self.assertIn("git checkout v0.4.1", readme)
+        self.assertIn("pin `v0.4.1`", readme)
+        self.assertNotIn("git checkout v0.4.0", readme)
+        self.assertNotIn("pin `v0.4.0`", readme)
+
+
 if __name__ == "__main__":
     unittest.main()
