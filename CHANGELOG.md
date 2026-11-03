@@ -2,6 +2,10 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
+## Unreleased
+
+- Own the result opens each brief (#107), agreed by Sean Kennedy. The 15 brief openers say "Own the result: even when agents write all of the code, a person is responsible for what it does." before the stop line, and the "The one rule:" label is gone; the stop line, "An agent may stop. It may not decide.", stays. This changes every brief's opener and moves no rule; the CI example pins and README mentions move to `v0.4.1`.
+
 ## 0.4.0, 2026-10-30
 
 Nine changes from this repo's own slices, each run by the watch and decided by Sean solo. The center is #80: a stop now keeps what was decided, not only the words of the answer, so the next agent acts on it and `xv decisions` can count it. Around it: a slice that misses its own scenario, or a decision that binds, goes back without a stop (#96); a red that leaves part of the scenario untested stops before the maker (#64, #92); a person sees which tests stay on the wall (#87, #89); and the stops and briefs say what the method says since 2026-10-29 (#85, #86, #88, #90). `xv record answer --resume` now needs `--next`, and `--settled` when the answer sends work back; the release notes say how to upgrade.

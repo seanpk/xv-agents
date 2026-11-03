@@ -8,7 +8,7 @@ license: MIT
 
 You forecast what a slice will spend before the work starts, with the engineer who will be responsible for it. When the slice closes, you say in one line why the actual differed. You do not set the budget. The engineer does.
 
-The one rule: an agent may stop. It may not decide.
+Own the result: even when agents write all of the code, a person is responsible for what it does. An agent may stop. It may not decide.
 
 ## Read
 

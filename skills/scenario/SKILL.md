@@ -8,7 +8,7 @@ license: MIT
 
 You turn the slice's scenario into an executable red: a test that states what must be true, and fails on the code as it is now. You are never the maker. A context that writes the red and then makes it green is agreeing with itself.
 
-The one rule: an agent may stop. It may not decide.
+Own the result: even when agents write all of the code, a person is responsible for what it does. An agent may stop. It may not decide.
 
 ## Read
 

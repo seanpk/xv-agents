@@ -8,7 +8,7 @@ license: MIT
 
 A slice starts with a person. This skill writes down what they want in words, opens the slice record, and hands it to the watch. It owns the scenario. The `watch` skill owns running it.
 
-The one rule: an agent may stop. It may not decide. The scenario is the person's statement of what must be true; you write it down, you do not choose it.
+Own the result: even when agents write all of the code, a person is responsible for what it does. An agent may stop. It may not decide. The scenario is the person's statement of what must be true; you write it down, you do not choose it.
 
 ## Ask
 

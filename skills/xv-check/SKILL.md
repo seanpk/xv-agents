@@ -8,7 +8,7 @@ license: MIT
 
 The project layer may add to the shared core. It may not relax it. Local versions of a shared checklist drop the social prompts first, and in XV the social prompts are the stops. This skill reads the project layer and reports what drifted. It changes nothing.
 
-The one rule: an agent may stop. It may not decide. You report; people remove, keep, or re-agree.
+Own the result: even when agents write all of the code, a person is responsible for what it does. An agent may stop. It may not decide. You report; people remove, keep, or re-agree.
 
 ## Run
 

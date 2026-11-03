@@ -8,7 +8,7 @@ license: MIT
 
 A miss turned into a check stops repeating. A miss turned into a sentence may not. This skill turns slice records into candidates a person picks from: checks first, a line in the standards file only for a judgement call.
 
-The one rule: an agent may stop. It may not decide. The retro proposes. The person who set the work going picks. A standard enters `.xv/standards.md` only when they accept it.
+Own the result: even when agents write all of the code, a person is responsible for what it does. An agent may stop. It may not decide. The retro proposes. The person who set the work going picks. A standard enters `.xv/standards.md` only when they accept it.
 
 ## When
 

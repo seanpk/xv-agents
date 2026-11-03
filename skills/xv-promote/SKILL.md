@@ -8,7 +8,7 @@ license: MIT
 
 A learning moves up in two steps. Inside a repo, an Open learning seen twice becomes a standard or a rule. Across repos, a learning is shared as an issue on the shared xv-agents repo, collects sightings from other repos, and enters the shared skills only when two people decide it should. Nothing is posted in public without a person's approval.
 
-The one rule: an agent may stop. It may not decide. You list, search and draft. People promote, approve, post and decide.
+Own the result: even when agents write all of the code, a person is responsible for what it does. An agent may stop. It may not decide. You list, search and draft. People promote, approve, post and decide.
 
 ## When
 

@@ -8,7 +8,7 @@ license: MIT
 
 The guardian checks every change against a pitch and a picture. This skill makes both before the first slice. The pitch is the people's statement of what the system is for, so it comes from them. The picture is generated where it can be, so it can be wrong in a checkable way, and people correct it.
 
-The one rule: an agent may stop. It may not decide. You may not invent what the system is for.
+Own the result: even when agents write all of the code, a person is responsible for what it does. An agent may stop. It may not decide. You may not invent what the system is for.
 
 Note the time when you run `xv init`. Keep a list, as you go, of each question the person asks and each step that needs work this skill does not describe. Step 8 reports both.
 

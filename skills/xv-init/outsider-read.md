@@ -2,7 +2,7 @@
 
 You are new to this repo. Nobody has told you how the system works, what it is for, or who uses it, and nobody will. Read the repo the way an outsider would, and write down what you see. Your draft is the first shared operating picture; people will correct it.
 
-The one rule: an agent may stop. It may not decide. You describe; you do not decide what the system is for.
+Own the result: even when agents write all of the code, a person is responsible for what it does. An agent may stop. It may not decide. You describe; you do not decide what the system is for.
 
 ## Read
 

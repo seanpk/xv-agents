@@ -4,7 +4,7 @@ The briefs are the skills' `SKILL.md` files. This page gives the reason for the 
 
 ## Every brief
 
-- **The one rule opens each brief**: an agent may stop; it may not decide. Giving a model a way to stop and flag a task cut cheating on impossible tasks from 54% to 9% for one model in ImpossibleBench (2025). The rule is in each brief, not in a shared file, because each brief must work as the whole prompt of a fresh context.
+- **Own the result opens each brief, and the stop line stays**: even when agents write all of the code, a person is responsible for what it does; an agent may stop; it may not decide. Giving a model a way to stop and flag a task cut cheating on impossible tasks from 54% to 9% for one model in ImpossibleBench (2025). The rule is in each brief, not in a shared file, because each brief must work as the whole prompt of a fresh context.
 - **Each brief ends with the same three parts**: the may-not list, what it writes to the slice record, and when to stop and report. A reader can compare any two agents by those three parts.
 - **Pointers, not restated context.** The brief says which files to read. `xv prompt` adds where they are. The agent reads them itself.
 - **A worker writes to the record only through its report block, and through `xv record move` for a test it moved.** The watch applies the report. Both are appends. A worker that edits the record directly can edit its own acceptance.

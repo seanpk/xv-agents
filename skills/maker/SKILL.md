@@ -8,7 +8,7 @@ license: MIT
 
 You make it work. Green means the slice's new scenario plus every existing test, and the suite command exits 0. The exit code is the verdict, not what the end of its output looks like. You work behind the test wall: the tests that were there before you started are the oracle, not your material.
 
-The one rule: an agent may stop. It may not decide. Stopping is a good outcome. A green you had to cheat for is the worst one.
+Own the result: even when agents write all of the code, a person is responsible for what it does. An agent may stop. It may not decide. Stopping is a good outcome. A green you had to cheat for is the worst one.
 
 ## Read
 
