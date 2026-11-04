@@ -39,16 +39,22 @@ DEFAULT_POSITIONS = [
     "puts a different object at the centre of the interaction",
 ]
 EXIT_STOP = 10
+SETUP_LOCK = threading.Lock()
 
 
 def run_one(name, axis, position, slice_id, slice_wt, config, budget, spent, out):
     root = slice_wt
     branch = f"xv/{slice_id}-proto-{name}"
     wt = os.path.join(worktrees_dir(root, config), f"{slice_id}-proto-{name}")
-    if os.path.exists(wt):
-        git(["worktree", "remove", "--force", wt], root, check=False)
-    git(["branch", "-D", branch], root, check=False)
-    git(["worktree", "add", "-q", "-b", branch, wt, "HEAD"], root)
+    try:
+        with SETUP_LOCK:  # one variant's git setup at a time; the agents still run together
+            if os.path.exists(wt):
+                git(["worktree", "remove", "--force", wt], root, check=False)
+            git(["branch", "-D", branch], root, check=False)
+            git(["worktree", "add", "-q", "-b", branch, wt, "HEAD"], root)
+    except XVError as e:
+        out[name] = {"name": name, "branch": None, "axis_position": position, "error": str(e), "recording": False}
+        return
     rec_dir = f"{XV_DIR}/prototypes/{slice_id}/{name}"
     extra = [f"Your variant: {name}. The axis: {axis}. Your position on it: {position}.",
              f"Write your recording script and `recording.md` under `{rec_dir}/`.",
@@ -163,7 +169,10 @@ def start(slice_id, axis=None, positions=None, serial=False):
             lines.append(open(p["recording_path"]).read().strip())
         else:
             lines.append("No recording. This prototype cannot be compared with the others.")
-        if p and not p.get("kept"):
+            if p.get("error"):
+                lines += ["", f"Not finished: {p['error']}"]
+                body = record.log_line(body, "watch", f"variant {n} not finished: {p['error']}")
+        if p and not p.get("kept") and not p.get("error"):
             s = p.get("spend") or {}
             s.update(step=f"prototype-{n}", at=now())
             data["spend"].append(s)
