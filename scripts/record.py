@@ -16,8 +16,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orders  # noqa: E402
+import packet as packetlib  # noqa: E402
 from spend import row_tokens  # noqa: E402
-from xvlib import (XV_DIR, XVError, die, emit, git, load_config, now, read_doc, solo,  # noqa: E402
+from xvlib import (XV_DIR, XVError, die, emit, git, load_config, names_test, now, read_doc, solo,  # noqa: E402
                    record_path, repo_root, slice_root, today, write_doc)
 
 FIELDS = [
@@ -180,18 +181,27 @@ def cmd_unmark(a):
     save(path, data, body)
 
 
+def same_move(moves, entry):
+    """The move already recorded for this file and assertion, if any: one move is recorded once."""
+    return next((m for m in moves if m.get("file") == entry.get("file")
+                 and m.get("assertion") == entry.get("assertion")), None)
+
+
 def cmd_move(a):
     path, data, body = load(repo_root(), a.id)
     for name in ("file", "assertion", "why"):
         if not getattr(a, name):
             raise XVError(f"a moved test names its {name}")
     entry = {"file": a.file, "assertion": a.assertion, "why": a.why, "by": a.by or "maker", "at": now()}
-    listed = any(s.get("file") == a.file and s.get("test")
-                 and re.match(re.escape(s["test"]) + r"(?!\w)", a.assertion)
+    listed = any(s.get("file") == a.file and s.get("test") and names_test(a.assertion, s["test"], start=True)
                  for s in data.get("slice_only") or [] if isinstance(s, dict))
     if a.slice_only and listed:
         entry["slice_only"] = True
-    data["moved_tests"].append(entry)
+    same = same_move(data["moved_tests"], entry)
+    if same:
+        same.update({k: v for k, v in entry.items() if k == "slice_only"})
+    else:
+        data["moved_tests"].append(entry)
     body = log_line(body, a.by or "maker", f"moved a test in {a.file}: {a.why}")
     if a.to and a.deleted:
         raise XVError("a moved test goes --to a path or is --deleted, not both")
@@ -278,6 +288,34 @@ def cmd_offer(a):
     save(path, data, body)
 
 
+def answer_wall(data, stop, a):
+    """--accept-wall and --refuse-wall answer an accept_moves stop's wall recommendations, and only that."""
+    wall_flags = (("--accept-wall", a.accept_wall), ("--refuse-wall", a.refuse_wall))
+    if stop["order"] != "accept_moves":
+        for flag, names in wall_flags:
+            if names:
+                raise XVError(f"{flag} only answers an accept_moves stop, not {stop['order']}")
+        return
+    recs = data.get("wall_recommendations") or []
+    known = {r.get("test") for r in recs}
+    for t in sorted(set(a.accept_wall or []) & set(a.refuse_wall or [])):
+        raise XVError(f"--accept-wall and --refuse-wall both name {t}; give one")
+    for flag, names in wall_flags:
+        for t in names or []:
+            if t not in known:
+                raise XVError(f"{flag} {t}: no wall recommendation names that test")
+    stop["accepted_wall"] = list(a.accept_wall or [])
+    stop["refused_wall"] = list(a.refuse_wall or [])
+    for r in recs:
+        test = r.get("test")
+        r["accepted"] = test in stop["accepted_wall"] or (
+            bool(r.get("accepted")) and test not in stop["refused_wall"])
+        if r["accepted"]:
+            r.pop("refused", None)
+        else:
+            r["refused"] = True
+
+
 def cmd_answer(a):
     root = repo_root()
     path, data, body = load(root, a.id)
@@ -309,12 +347,12 @@ def cmd_answer(a):
         else:
             raise XVError("--pick is the number of an offered option, or other")
     stopped_at = stop.get("step") or data["next"]
-    # a stop raised before its work started has nothing to send back; the watch's
-    # pre-step budget stop is the one budget_spent stop saved without budget_seen
+    # a stop raised before its work started has nothing to send back; `xv step` marks
+    # its pre-step budget stop `pre_step`, and a prototype that ran out of budget has started
     not_started = ((stop["order"] == "setup_failed" and stop.get("step") == "setup")
-                   or (stop.get("step") == "prototype" and stop["order"] != "prototypes_ready")
-                   or (stop["order"] == "budget_spent" and "budget_seen" not in stop
-                       and a.next == stop.get("step")))
+                   or (stop.get("step") == "prototype"
+                       and stop["order"] not in ("prototypes_ready", "prototype_budget_spent"))
+                   or (stop["order"] == "budget_spent" and stop.get("pre_step") and a.next == stop.get("step")))
     sends_back = bool(a.next) and a.next != "close" and not not_started and not (
         a.next in STEPS and stopped_at in STEPS and STEPS.index(a.next) > STEPS.index(stopped_at))
     if (pick == "other" and not a.settled) or (sends_back and not settled):
@@ -334,30 +372,11 @@ def cmd_answer(a):
         stop["budget_change"] = {"from": amounts(seen), "to": amounts(data.get("budget"))}
     scribed = [name for name, value in (("settled", settled), ("new_info", a.new_info),
                                         ("cause", a.cause)) if value]
-    wall_flags = (("--accept-wall", a.accept_wall), ("--refuse-wall", a.refuse_wall))
-    if stop["order"] != "accept_moves":
-        for flag, names in wall_flags:
-            if names:
-                raise XVError(f"{flag} only answers an accept_moves stop, not {stop['order']}")
-    if stop["order"] == "accept_moves":
-        recs = data.get("wall_recommendations") or []
-        known = {r.get("test") for r in recs}
-        for t in sorted(set(a.accept_wall or []) & set(a.refuse_wall or [])):
-            raise XVError(f"--accept-wall and --refuse-wall both name {t}; give one")
-        for flag, names in wall_flags:
-            for t in names or []:
-                if t not in known:
-                    raise XVError(f"{flag} {t}: no wall recommendation names that test")
-        stop["accepted_wall"] = list(a.accept_wall or [])
-        stop["refused_wall"] = list(a.refuse_wall or [])
-        for r in recs:
-            test = r.get("test")
-            r["accepted"] = test in stop["accepted_wall"] or (
-                bool(r.get("accepted")) and test not in stop["refused_wall"])
-            if r["accepted"]:
-                r.pop("refused", None)
-            else:
-                r["refused"] = True
+    answer_wall(data, stop, a)
+    if stop["order"] == "slice_only_marks":
+        for m in data.get("slice_only") or []:
+            if isinstance(m, dict):
+                m["accepted"] = True
     data["status"] = "working" if a.resume else data["status"]
     if a.next:
         data["next"] = a.next
@@ -365,7 +384,7 @@ def cmd_answer(a):
         rec = write_decision(slice_root(path), data["id"], who, stop, a.answer
                              + ("\n\nDecided by one person: this repo runs solo (seats.two_people: solo)."
                                 if stop.get("solo") else ""))
-        entry = {"date": today(), "who": ",".join(who), "decision": a.answer, "record": rec}
+        entry = {"date": today(), "who": who, "decision": a.answer, "record": rec}
         if stop.get("settled"):
             entry["settled"] = stop["settled"]
         data["decisions"].append(entry)
@@ -448,7 +467,7 @@ def apply_report(data, body, agent, text):
         if isinstance(mv, dict) and all(mv.get(k) for k in ("file", "assertion", "why")):
             mv.setdefault("by", agent)
             mv.setdefault("at", now())
-            if mv not in data["moved_tests"]:
+            if not same_move(data["moved_tests"], mv):
                 data["moved_tests"].append(mv)
     if agent == "scenario" and report.get("red"):
         old = data.get("red")
@@ -462,7 +481,9 @@ def apply_report(data, body, agent, text):
         kept = [m for m in data.get("slice_only") or []
                 if not any(isinstance(n, dict) and n.get("test") == m.get("test")
                            for n in report["slice_only"])]
-        data["slice_only"] = kept + report["slice_only"]
+        accepted = {m.get("test"): m for m in data.get("slice_only") or [] if isinstance(m, dict) and m.get("accepted")}
+        data["slice_only"] = kept + [accepted.get(n.get("test"), n) if isinstance(n, dict) else n
+                                     for n in report["slice_only"]]
     if agent == "guardian" and isinstance(report.get("wall_recommendations"), list):
         old = data.get("wall_recommendations") or []
         accepted_before = {r.get("test") for r in old if r.get("accepted")}
@@ -503,12 +524,6 @@ def accepted_by_listed_decision(root, data, pdata):
     return ddata.get("order") == "shape_or_pitch"
 
 
-def sent_back(data, order):
-    """Keys of what the watch has already sent back for this order: the points, or the miss refs."""
-    return {k for st in data.get("stops") or [] if st.get("order") == order and st.get("seat") == "watch"
-            for k in st.get("keys") or []}
-
-
 def send_back(data, body, agent, order, keys, summary, target):
     """The watch's own send-back, kept like an answered stop so that `xv prompt` and `xv decisions` read it."""
     at = now()
@@ -516,7 +531,8 @@ def send_back(data, body, agent, order, keys, summary, target):
     data["stops"].append({"at": at, "step": agent, "order": order, "seat": "watch", "question": question,
                           "answered_by": ["watch"], "answer": f"sent back to the {target}", "answered_at": at,
                           "settled": f"The slice came back to the {target} without a stop. {summary}",
-                          "cause": "watch: the slice missed its scenario", "keys": keys})
+                          "cause": "watch: the slice missed its scenario", "keys": keys,
+                          "report_n": orders.report_index(data, agent), "packet": data.get("packet")})
     data["next"] = target
     return log_line(body, "watch", f"sent back to the {target}, answered {order}: {summary}")
 
@@ -526,28 +542,56 @@ def cmd_packet(a):
     root = repo_root()
     path, data, body = load(root, a.id)
     pdata, _ = read_doc(a.file)
-    for field in ("shape_change", "pitch_contradiction"):
-        value = pdata.get(field)
-        allowed = ("yes", "no", "accepted") if field == "shape_change" else ("yes", "no")
-        if value not in allowed:
-            raise XVError(f"the packet's {field} must be {' or '.join(allowed)}, found {value!r}")
-        if field == "shape_change" and value == "accepted" and not accepted_by_listed_decision(root, data, pdata):
-            value = "yes"
-        data[field] = value
-    data["packet"] = os.path.relpath(os.path.abspath(a.file), slice_root(path))
+    for field, allowed in packetlib.ALLOWED.items():
+        if pdata.get(field) not in allowed:
+            raise XVError(f"the packet's {field} must be {' or '.join(allowed)}, found {pdata.get(field)!r}")
+    checks = data.setdefault("checks", {}).setdefault("guardian", {})
+    guardian_facts(root, data, checks, os.path.abspath(a.file))
     body = log_line(body, "guardian", f"packet: shape_change={data['shape_change']}, "
                                       f"pitch_contradiction={data['pitch_contradiction']}")
-    import packet as packetlib
-    found = packetlib.misses(read_doc(a.file)[1]) if pdata.get("scenario_miss") == "yes" else []
-    data["scenario_miss"] = "yes" if found else "no"
-    checks = data.setdefault("checks", {}).setdefault("guardian", {})
-    checks["misses"] = found
-    checks["miss_repeat"] = sorted({m["ref"] for m in found} & orders.sent_back(data, "scenario_miss", None))
-    for f in orders.evaluate(data, "guardian", load_config(slice_root(path))):
-        if f.get("send_back"):
-            body = send_back(data, body, "guardian", f["order"], f["send_back"]["misses"],
-                             f["question"], f["send_back"]["to"])
+    v = orders.verdict(data, "guardian", load_config(slice_root(path)))
+    body = apply_verdict(data, body, "guardian", v)
     save(path, data, body)
+
+
+def guardian_facts(root, data, checks, packet_file):
+    """The guardian's packet, as facts in the record: the fields the watch reads, and the checks orders reads."""
+    pdata, pbody = read_doc(packet_file)
+    for field in packetlib.ALLOWED:
+        v = pdata.get(field)
+        # a missing or malformed field waits for people, never for no one
+        if field == "shape_change" and v == "accepted" and accepted_by_listed_decision(root, data, pdata):
+            data[field] = v
+        else:
+            data[field] = v if v in packetlib.YES_NO else "yes"
+    found = packetlib.misses(pbody) if pdata.get("scenario_miss") == "yes" else []
+    data["scenario_miss"] = "yes" if found else "no"
+    report = orders.last_report(data, "guardian") or {}
+    checks["misses"] = found
+    checks["miss_amend"] = any(m["amend"] for m in found)
+    checks["picture_change"] = pdata.get("picture_change") or report.get("picture_change")
+    checks["shape_breadth"] = pdata.get("shape_breadth") or report.get("shape_breadth")
+    data["packet"] = os.path.relpath(packet_file, root)
+
+
+def apply_verdict(data, body, agent, v):
+    """Write what orders returned into the record: the stop, or the send-backs, and where `next` goes."""
+    st = v["stop"]
+    if st:
+        data["stops"].append({"at": now(), "step": agent, "order": st["order"], "seat": st["seat"],
+                              "question": st["question"], "answered_by": [], "answer": None,
+                              "also": [f["order"] for f in v["fired"] if f is not st],
+                              "budget_seen": data.get("budget")})
+        data["status"] = "ready" if st["order"] == "ready_to_merge" else "stopped"
+        body = log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
+    else:
+        for f in v["fired"]:
+            if f.get("send_back"):
+                body = send_back(data, body, agent, f["order"], f["send_back"]["misses"],
+                                 f["question"], f["send_back"]["to"])
+    if v.get("next"):
+        data["next"] = v["next"]
+    return body
 
 
 def cmd_export(a):

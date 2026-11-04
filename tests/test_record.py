@@ -1265,7 +1265,7 @@ class AcceptWallFlagTest(RepoCase):
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "merge it", cwd=wt)
         data = self.show(wt)
         self.assertEqual(len(data["decisions"]), 1)
-        self.assertEqual(data["decisions"][0]["who"], "pat")
+        self.assertEqual(data["decisions"][0]["who"], ["pat"])
         with open(os.path.join(wt, data["decisions"][0]["record"])) as f:
             self.assertIn("merge it", f.read())
 

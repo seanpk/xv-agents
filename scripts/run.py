@@ -340,7 +340,8 @@ def step(agent, slice_id, review_again=False):
     budget_stop = orders.budget_before(data)
     if budget_stop:
         st = {"at": now(), "step": agent, "order": budget_stop["order"], "seat": budget_stop["seat"],
-              "question": budget_stop["question"], "answered_by": [], "answer": None, "also": []}
+              "question": budget_stop["question"], "answered_by": [], "answer": None, "also": [],
+              "pre_step": True, "budget_seen": data.get("budget")}
         data["stops"].append(st)
         data["status"] = "stopped"
         body = record.log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
@@ -387,23 +388,8 @@ def step(agent, slice_id, review_again=False):
     record.save(path, data, body)
 
     v = orders.verdict(data, agent, config)
-    if v["stop"]:
-        st = v["stop"]
-        if st["order"] != "ready_to_merge" and not checks.get("red_joined"):
-            data["next"] = agent  # a step that stopped is not done: a later step must not start on missing work
-        data["stops"].append({"at": now(), "step": agent, "order": st["order"], "seat": st["seat"],
-                              "question": st["question"], "answered_by": [], "answer": None,
-                              "also": [f["order"] for f in v["fired"] if f is not st],
-                              "budget_seen": data.get("budget")})
-        data["status"] = "ready" if st["order"] == "ready_to_merge" else "stopped"
-        body = record.log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
-        record.save(path, data, body)
-    else:
-        for f in v["fired"]:
-            if f.get("send_back"):
-                body = record.send_back(data, body, agent, f["order"], f["send_back"]["misses"],
-                                        f["question"], f["send_back"]["to"])
-                record.save(path, data, body)
+    body = record.apply_verdict(data, body, agent, v)  # a step that stopped is not done: next stays on it
+    record.save(path, data, body)
     commit_step(agent, root, slice_id, checks)
     v["record"] = os.path.relpath(path, root)
     v["worktree"] = root
@@ -466,7 +452,6 @@ def post_step(agent, root, data, config, head_before, pre, report):
         checks["unreadable"] = unreadable_input(root, data, report)
         checks["not_covered"] = [n for n in (report.get("not_covered") or []) if isinstance(n, dict)]
         checks["missed_points"] = missed_points(root, data, report)
-        checks["missed_repeat"] = bool(set(checks["missed_points"]) & record.sent_back(data, "red_misses_point"))
         wb = wall_baseline(root, data, config)
         if wb:
             data["wall_baseline"] = wb
@@ -506,22 +491,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
             except XVError as e:
                 checks["packet_problems"] = [str(e)]
             append_cleaner_proposals(packet, data)
-            pdata, _ = record.read_doc(packet)
-            for field in ("shape_change", "pitch_contradiction"):
-                v = pdata.get(field)
-                # a missing or malformed field waits for people, never for no one
-                if field == "shape_change" and v == "accepted" and record.accepted_by_listed_decision(root, data, pdata):
-                    data[field] = v
-                else:
-                    data[field] = v if v in ("yes", "no") else "yes"
-            found = packetlib.misses(record.read_doc(packet)[1]) if pdata.get("scenario_miss") == "yes" else []
-            data["scenario_miss"] = "yes" if found else "no"
-            checks["misses"] = found
-            checks["miss_amend"] = any(m["amend"] for m in found)
-            checks["miss_repeat"] = sorted({m["ref"] for m in found} & record.sent_back(data, "scenario_miss"))
-            data["packet"] = os.path.relpath(packet, root)
-            checks["picture_change"] = pdata.get("picture_change") or report.get("picture_change")
-            checks["shape_breadth"] = pdata.get("shape_breadth") or report.get("shape_breadth")
+            record.guardian_facts(root, data, checks, packet)
         else:
             data["shape_change"] = data["pitch_contradiction"] = "yes"
             checks["missing_packet"] = True
@@ -622,18 +592,6 @@ def red_file_texts(root, red):
         except OSError:
             pass
     return texts
-
-
-def accepted_by_listed_decision(root, data, pdata):
-    """accepted holds only when accepted_by is a decision on this slice that answered a shape_or_pitch stop."""
-    rel = pdata.get("accepted_by")
-    if not rel or rel not in [d.get("record") for d in data.get("decisions") or []]:
-        return False
-    full = os.path.join(root, rel)
-    if not os.path.exists(full):
-        return False
-    ddata, _ = record.read_doc(full)
-    return ddata.get("order") == "shape_or_pitch"
 
 
 def append_cleaner_proposals(packet, data):
@@ -873,8 +831,8 @@ def cmd_guard(a):
         import packet as packetlib
         packetlib.fix(full)
         pdata, _ = record.read_doc(full)
-        for field in ("shape_change", "pitch_contradiction"):
-            data[field] = pdata.get(field) if pdata.get(field) in ("yes", "no") else "yes"
+        for field in packetlib.ALLOWED:
+            data[field] = pdata.get(field) if pdata.get(field) in packetlib.YES_NO else "yes"
         data["checks"]["guardian"] = {"picture_change": pdata.get("picture_change")}
         if pdata.get("moved_tests"):
             data["moved_tests"] = [{"file": "see the packet"}] * int(pdata.get("moved_tests") or 0)
