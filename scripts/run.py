@@ -31,7 +31,7 @@ import orders  # noqa: E402
 import prompt as promptlib  # noqa: E402
 import record  # noqa: E402
 import spend as spendlib  # noqa: E402
-from xvlib import (XV_DIR, XVError, die, git, load_config, match_any, now,  # noqa: E402
+from xvlib import (XV_DIR, XVError, die, git, load_config, match_any, names_test, now,  # noqa: E402
                    record_path, repo_root, slice_root, today, worktrees_config, worktrees_dir)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -563,9 +563,8 @@ def covers_name_found(name, files):
                      if ("." + f.removesuffix(".py").replace("/", ".")).endswith("." + module)}
     if not test.strip():
         return False
-    whole = re.compile(r"(?<!\w)" + re.escape(test) + r"(?!\w)")
     for t in files.values():
-        if not whole.search(t):
+        if not names_test(t, test):
             continue
         if klass is None or re.search(r"(?m)^\s*class\s+" + re.escape(klass) + r"(?!\w)", t):
             return True
