@@ -489,6 +489,13 @@ class OneHomeTest(unittest.TestCase):
         d["checks"]["guardian"] = {"shape_breadth": "wide"}
         self.assertEqual(orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"]["order"], "shape_wider_than_forecast")
 
+    def test_a_shape_wider_answer_that_sent_the_work_back_does_not_accept_the_shape(self):
+        sent = {"order": "shape_wider_than_forecast", "seat": "two_people", "answered_by": ["pat", "sam"],
+                "answer": "narrow it", "sent_back": True, "at": "2026-01-01T00:00:00+00:00"}
+        d = self.guardian(forecast={"shape": "none"}, stops=[sent])
+        d["checks"]["guardian"] = {"shape_breadth": "wide"}
+        self.assertEqual(orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"]["order"], "shape_wider_than_forecast")
+
     def test_accept_moves_counts_moves_not_record_entries(self):
         same = {"file": "tests/a.py", "assertion": "was: 1; now: 2", "why": "forced"}
         d = self.guardian(moved_tests=[dict(same, by="maker", at="2026-01-01T00:00:00+00:00"),
