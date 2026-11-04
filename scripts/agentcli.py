@@ -111,4 +111,12 @@ def session_of(harness, out):
                 continue
             if isinstance(ev, dict) and ev.get("sessionID"):
                 return ev["sessionID"]
+    if harness == "codex":
+        for line in out.splitlines():
+            try:
+                ev = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(ev, dict) and ev.get("type") == "thread.started" and ev.get("thread_id"):
+                return ev["thread_id"]
     return None

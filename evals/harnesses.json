@@ -41,6 +41,18 @@
     ],
     "note": "A dry run: tests the setup and the grader, runs no model."
   },
+  "codex": {
+    "argv": [
+      "codex",
+      "exec",
+      "--json",
+      "--model",
+      "gpt-6.1-terra",
+      "--dangerously-bypass-approvals-and-sandbox",
+      "{prompt}"
+    ],
+    "note": "Codex headless on gpt-6.1-terra (Terra stands for Sonnet, Sol for Opus). The sandbox is off, as Grok's permission checks are; each eval runs on a throwaway copy of the fixture. The brief is not the whole prompt: AGENTS.md and the skills load."
+  },
   "grok": {
     "argv": [
       "grok",

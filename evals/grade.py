@@ -223,14 +223,20 @@ def final_text(ctx):
     except (json.JSONDecodeError, AttributeError):
         pass
     parts = []
+    codex = []
     for line in out.splitlines():
         try:
             ev = json.loads(line)
         except json.JSONDecodeError:
             continue
+        item = ev.get("item") if isinstance(ev, dict) else None
+        if isinstance(item, dict) and item.get("type") == "agent_message":
+            codex.append(item.get("text", ""))
         part = ev.get("part") if isinstance(ev, dict) else None
         if isinstance(part, dict) and part.get("type") == "text":
             parts.append(part.get("text", ""))
+    if codex:
+        return codex[-1]
     return "\n".join(parts)
 
 

@@ -10,5 +10,6 @@ Each entry is one line: `- <what depends on it> | <url> | "<the sentence, verbat
 - the scenario agent with the Playwright MCP server | https://code.claude.com/docs/en/cli-reference | "Only use MCP servers from --mcp-config , ignoring all other MCP configurations."
 - the scenario agent's planner and generator, and leaving out the healer | https://playwright.dev/docs/test-agents | "Playwright comes with three Playwright Test Agents out of the box: 🎭 planner , 🎭 generator and 🎭 healer ."
 - `xv playwright install` | https://playwright.dev/docs/test-agents | "npx playwright init-agents --loop = opencode"
+- `spend.py` and the report reader reading Codex's `agent_message` events | https://developers.openai.com/codex/noninteractive | "codex exec --json"
 - `spend.py` reading opencode's events | https://opencode.ai/docs/cli/ | "--format Format: default (formatted) or json (raw JSON events)"
 - the opencode `agents:` config | https://opencode.ai/docs/cli/ | "--auto Auto-approve permissions that are not explicitly denied"

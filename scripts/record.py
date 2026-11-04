@@ -407,14 +407,21 @@ def extract_report(text):
             pass
         # opencode --format json: one event per line, text parts carry the message
         texts = []
+        last_codex = None
         for line in text.splitlines():
             try:
                 ev = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            item = ev.get("item") if isinstance(ev, dict) else None
+            if isinstance(item, dict) and item.get("type") == "agent_message":
+                last_codex = item.get("text", "")
             part = ev.get("part") if isinstance(ev, dict) else None
             if isinstance(part, dict) and part.get("type") == "text":
                 texts.append(part.get("text", ""))
+        # codex exec --json: the report is in the last agent_message
+        if last_codex is not None:
+            return extract_report(last_codex) if REPORT_RE.search(last_codex) else None
         if texts:
             joined = "\n".join(texts)
             if REPORT_RE.search(joined):

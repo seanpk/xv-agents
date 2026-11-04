@@ -66,7 +66,7 @@ Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a t
 
 ## Increment 6: the forecaster
 
-48. **`spend.py` reads three sources**: the JSON `claude -p --output-format json` prints, a Claude Code session transcript with its subagent transcripts, and `opencode session export`. Codex is not read in v0.1; its tokens are recorded as zero and its dollars as null, never guessed.
+48. **`spend.py` reads four sources**: the JSON `claude -p --output-format json` prints, a Claude Code session transcript with its subagent transcripts, `opencode session export`, and the events `codex exec --json` prints. Codex reports tokens and no dollars, so its dollars are null, never guessed.
 49. **The budget covers every step.** All the slice's spend counts against it, red or green; the prototypes have budgets of their own, one per variant. Before each step the watch checks it, and on Claude Code it passes what is left as `--max-budget-usd` and `--max-turns`; on opencode, which has no cap, the watch's check after the step is the cap.
 50. **Wall clock is the watch's own clock around each CLI call**, the same measure on every harness. It overwrites what a harness reports, so wall clock compares across all of them.
 51. **The read-only agents are checked, not trusted.** If the forecaster changes any file, or the guardian changes anything but its packet, the step stops for the person who set the work going.
