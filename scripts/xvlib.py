@@ -347,6 +347,12 @@ def sha256_file(path):
     return h.hexdigest()
 
 
+def names_test(text, test, start=False):
+    """Whether `text` names the test `test` as a whole name, not as the front of a longer one."""
+    rx = re.escape(test) + r"(?!\w)"
+    return bool(re.match(rx, text) if start else re.search(r"(?<!\w)" + rx, text))
+
+
 def now():
     return _dt.datetime.now(_dt.timezone.utc).replace(microsecond=0).isoformat()
 

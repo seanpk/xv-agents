@@ -36,9 +36,22 @@ def fire(order, seat, question, blocking=True, send_back=None):
 def sent_back(data, order, after):
     """Keys of what the watch sent back for this order before the report now being read: the points, or the miss refs."""
     report = last_report(data, after) or {}
+    here = report_index(data, after)
+
+    def earlier(st):
+        if st.get("report_n") is not None and here is not None:
+            # the same report and the same packet is the same pass; a new packet for one report is a new pass
+            return st["report_n"] < here or st.get("packet") != data.get("packet")
+        return not (report.get("at") and st.get("at") and st["at"] >= report["at"])
+
     return {k for st in data.get("stops") or [] if st.get("order") == order and st.get("seat") == "watch"
-            and not (report.get("at") and st.get("at") and st["at"] >= report["at"])
-            for k in st.get("keys") or []}
+            and earlier(st) for k in st.get("keys") or []}
+
+
+def report_index(data, step):
+    """Where the last report of `step` sits among the record's reports, or None."""
+    reports = (data.get("checks") or {}).get("reports", [])
+    return next((i for i in range(len(reports) - 1, -1, -1) if reports[i].get("agent") == step), None)
 
 
 def first_failing_step(output):
@@ -130,7 +143,7 @@ def evaluate(data, after, config):
             out.append(fire("red_misses_scenario", "originator",
                             f"The scenario agent did not cover {n.get('item')}: {n.get('why')}"))
         points = [str(p) for p in checks.get("missed_points") or []]
-        if checks.get("missed_repeat") or set(points) & sent_back(data, "red_misses_point", after):
+        if set(points) & sent_back(data, "red_misses_point", after):
             out.append(fire("red_misses_point", "originator",
                             "The same scenario points are still in neither covers nor not_covered after a send-back: "
                             + "; ".join(points) + ". " + STALL_CHOICES))
@@ -138,7 +151,7 @@ def evaluate(data, after, config):
             out.append(fire("scenario_not_red", "originator",
                             "The scenario passes on the code as it is. The behaviour may exist already, "
                             "or the scenario may be wrong."))
-        marks = [m for m in data.get("slice_only") or [] if isinstance(m, dict)]
+        marks = [m for m in data.get("slice_only") or [] if isinstance(m, dict) and not m.get("accepted")]
         if marks:
             listed = "; ".join(f"{m.get('test')} in {m.get('file')} ({m.get('why')})" for m in marks)
             out.append(fire("slice_only_marks", "originator",
@@ -211,10 +224,12 @@ def evaluate(data, after, config):
                             f"The guardian's packet says {' and '.join(what)}. Two people decide from the packet."))
         fc = (data.get("forecast") or {}).get("shape")
         actual = (data.get("checks") or {}).get("guardian", {}).get("shape_breadth")
-        if fc in BREADTH and actual in BREADTH and BREADTH[actual] > BREADTH[fc]:
+        accepted_shape = data.get("shape_change") == "accepted" or any(
+            s.get("order") == "shape_wider_than_forecast" and s.get("answer") for s in data.get("stops") or [])
+        if not accepted_shape and fc in BREADTH and actual in BREADTH and BREADTH[actual] > BREADTH[fc]:
             out.append(fire("shape_wider_than_forecast", "two_people",
                             f"The shape change is {actual}; the forecast expected {fc}. Two people decide."))
-        moved = [m for m in data.get("moved_tests") or [] if not m.get("slice_only")]
+        moved = {(m.get("file"), m.get("assertion")) for m in data.get("moved_tests") or [] if not m.get("slice_only")}
         picture = checks.get("picture_change") == "yes"
         recs = [r for r in data.get("wall_recommendations") or [] if not r.get("accepted") and not r.get("refused")]
         miss = data.get("scenario_miss") == "yes"
@@ -225,7 +240,7 @@ def evaluate(data, after, config):
                                 f"The budget is spent ({', '.join(state['over'])}) and the packet says scenario_miss: yes. "
                                 "Continue with a new budget, reshape, or set it aside."))
             found = checks.get("misses") or []
-            repeat = checks.get("miss_repeat") or sorted({m["ref"] for m in found} & sent_back(data, "scenario_miss", after))
+            repeat = sorted({m["ref"] for m in found} & sent_back(data, "scenario_miss", after))
             if checks.get("miss_amend") or any(m.get("amend") for m in found):
                 out.append(fire("scenario_miss", "originator",
                                 "The packet lists a scenario miss marked amend: yes: meeting it would change the scenario, "
@@ -299,6 +314,16 @@ def evaluate(data, after, config):
     return out
 
 
+def next_step(data, after, stop, fired):
+    """Where `next` goes after this step, or None when it stays where the step left it."""
+    if stop:
+        if ((data.get("checks") or {}).get(after) or {}).get("red_joined"):
+            return "scenario"
+        return None if stop["order"] == "ready_to_merge" else after
+    back = [f for f in fired if f.get("send_back")]
+    return back[-1]["send_back"]["to"] if back else None
+
+
 def verdict(data, after, config):
     fired = evaluate(data, after, config)
     from xvlib import solo
@@ -309,7 +334,8 @@ def verdict(data, after, config):
                                   "the decision record keeps it.")
     blocking = [f for f in fired if f["blocking"]]
     stop = max(blocking, key=lambda f: SEAT_RANK[f["seat"]]) if blocking else None
-    return {"slice": data.get("id"), "after": after, "stop": stop, "fired": fired}
+    return {"slice": data.get("id"), "after": after, "stop": stop, "fired": fired,
+            "next": next_step(data, after, stop, fired)}
 
 
 def main(argv=None):

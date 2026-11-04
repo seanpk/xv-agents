@@ -37,11 +37,15 @@ MISS_REF = re.compile(r"^\s*[-*]\s+((?:point\s+|decision\s+|amendment\s+)?\d+(?:
 EVIDENCE = re.compile(r"\bevidence\s*:", re.I)
 
 
+YES_NO = ("yes", "no")
+ALLOWED = {"shape_change": YES_NO + ("accepted",), "pitch_contradiction": YES_NO}
+
+
 def lint(text):
     data, body = split_front_matter(text)
     problems = []
     for field in ("shape_change", "pitch_contradiction"):
-        allowed = ("yes", "no", "accepted") if field == "shape_change" else ("yes", "no")
+        allowed = ALLOWED[field]
         if data.get(field) not in allowed:
             problems.append(f"front matter {field} must be {' or '.join(allowed)}, found {data.get(field)!r}")
     if data.get("door") not in ("one-way", "two-way"):

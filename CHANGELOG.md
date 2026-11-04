@@ -2,6 +2,10 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
+## Unreleased
+
+- Every stop rule is decided in `scripts/orders.py` (#105, with #103, #84, #99, #109). A repeated scenario miss is read from the record alone, and `xv step`, `xv run`, `xv record packet` and the session path leave the same verdict: one function applies what `orders` returns, including where `next` goes. A shape the person accepted does not stop again as `shape_wider_than_forecast`; `accept_moves` counts moves, not record entries; a slice-only mark the person accepted is not asked about again; one move is recorded once; the pre-step `budget_spent` stop and `prototype_budget_spent` follow the `--settled` rule; a new decision writes `who` as a list. A test fails when the docs miss an allowed value of `shape_change` or `pitch_contradiction`. Decided by Sean, solo. It moves no position on xtremevibing.com.
+
 ## 0.4.1, 2026-11-02
 
 One change from this repo's own slices, run by the watch and decided by Sean solo: the briefs lead with Own the result, as the README and the method do since 2026-10-31.
