@@ -243,10 +243,10 @@ def pick(slice_id, variant, by, with_user=None, scenario_file=None):
     if variant != "none" and variant not in names:
         raise XVError(f"no prototype {variant!r}; one of {sorted(names)} or none")
     ran_out = ((data.get("checks") or {}).get("prototype") or {}).get("ran_out") or {}
-    if variant != "none" and next(p for p in data["prototypes"] if p["name"] == variant).get("error"):
+    picked = next((p for p in data["prototypes"] if p["name"] == variant), None)
+    if variant != "none" and picked.get("error"):
         raise XVError(f"prototype {variant} did not finish: its setup or run failed, and it has nothing to pick")
-    if variant != "none" and (variant in ran_out or
-                              not next(p for p in data["prototypes"] if p["name"] == variant).get("branch")):
+    if variant != "none" and (variant in ran_out or not picked.get("branch")):
         raise XVError(f"prototype {variant} stopped at its budget and has nothing to pick")
     # discard every prototype, the pick too: the context that built it never builds the pick
     for p in data.get("prototypes") or []:
