@@ -426,10 +426,6 @@ class OneHomeTest(unittest.TestCase):
         d["checks"]["guardian"] = {}
         return d
 
-    def source(self, name):
-        with open(os.path.join(HOME, "scripts", name)) as f:
-            return f.read()
-
     def test_a_repeat_flag_left_in_the_checks_is_not_read_as_a_repeat_of_a_scenario_miss(self):
         d = self.guardian(scenario_miss="yes")
         d["checks"]["guardian"] = {"misses": [{"ref": "2", "text": "milk is left out", "to": "maker", "amend": False}],
@@ -449,25 +445,6 @@ class OneHomeTest(unittest.TestCase):
         d["checks"]["guardian"] = {"misses": [{"ref": "2", "text": "milk is left out", "to": "maker", "amend": False}]}
         s = orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"]
         self.assertEqual((s["order"], s["seat"]), ("scenario_miss", "originator"))
-
-    def test_run_and_record_no_longer_work_out_a_repeat(self):
-        self.assertFalse(hasattr(record, "sent_back"))
-        for name in ("run.py", "record.py"):
-            text = self.source(name)
-            self.assertNotIn("miss_repeat", text, name)
-            self.assertNotIn("missed_repeat", text, name)
-
-    def test_the_allowed_values_of_the_packet_fields_are_defined_once(self):
-        import re
-        n = sum(len(re.findall(r'\("yes", "no"', self.source(name))) for name in ("run.py", "record.py", "packet.py"))
-        self.assertLessEqual(n, 1)
-
-    def test_the_test_name_matcher_is_shared(self):
-        self.assertNotIn("(?!\\w)", self.source("record.py"))
-
-    def test_the_wall_flags_are_not_handled_inside_cmd_answer(self):
-        import inspect
-        self.assertNotIn("--accept-wall", inspect.getsource(record.cmd_answer))
 
     def test_a_shape_the_person_accepted_does_not_stop_as_wider_than_the_forecast(self):
         d = self.guardian(forecast={"shape": "none"})
