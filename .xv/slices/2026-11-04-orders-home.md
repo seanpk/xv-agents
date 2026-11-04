@@ -2,13 +2,13 @@
 id: 2026-11-04-orders-home
 title: "Every stop rule is decided in orders.py: #105, with #103, #84, #99 and #109"
 kind: feature
-status: open
+status: stopped
 set_by: Sean Kennedy
 created: 2026-11-04
 branch: xv/2026-11-04-orders-home
 base: c7b8bbff58fc46160ba83d08d0e899d7beffaaf2
 next: forecaster
-forecast: null
+forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 674000, "turns": null, "usd": 3.87, "basis": ["2026-10-29-stop-decisions", "2026-10-30-test-marks", "2026-10-27-prototype-budgets"], "note": "Median of the three basis rows (actuals 395k to 869k tokens); the guide has no turn column, so turns are null."}, {"harness": "claude", "model": "opus", "tokens": 392000, "turns": null, "usd": 4.89, "basis": ["2026-10-29-stop-decisions", "2026-10-30-test-marks", "2026-10-27-prototype-budgets"], "note": "Median of the three basis rows (actuals 230k to 478k tokens); the guide has no turn column, so turns are null. Guardian passes carry heavy output, so usd runs high relative to tokens."}], "wall_s": 2864, "shape": "wide", "breadth": "Moves the stop rules out of run.py and record.py into orders.py, rewires xv step, xv run, xv record packet and the session path onto one applier, and touches the shared allowed-values definition, the docs and the packet-field test; the stop changes, not the code size, will set the spend, and the reopen history in the basis rows is the main risk."}
 budget: null
 red: null
 wall_baseline: null
@@ -20,12 +20,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: []
-stops: []
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 3792, "cache_read": 23903, "cache_write": 25594, "tokens": 29390, "usd": 0.0073, "turns": 3, "wall_s": 19.8, "session": "4175a274-b9f8-4911-9058-2141a441bf90", "step": "forecaster", "at": "2026-11-04T16:56:42+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-04-orders-home/01-forecaster.out"}]
+stops: [{"at": "2026-11-04T16:56:42+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-04-orders-home budget ... --by <name>`).", "answered_by": [], "answer": null, "also": [], "budget_seen": null}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "claude/sonnet ~674k tokens and $3.87; claude/opus ~392k tokens and $4.89; shape wide; wall ~2864 s.", "at": "2026-11-04T16:56:42+00:00"}], "forecaster": {"at": "2026-11-04T16:56:42+00:00", "wrote": []}}
 ---
 # Every stop rule is decided in orders.py: #105, with #103, #84, #99 and #109
 
@@ -55,3 +55,5 @@ None. A feature starts from words.
 
 ## Log
 - 2026-11-04T16:56:16+00:00 watch: slice opened by Sean Kennedy
+- 2026-11-04T16:56:42+00:00 forecaster: done: claude/sonnet ~674k tokens and $3.87; claude/opus ~392k tokens and $4.89; shape wide; wall ~2864 s.
+- 2026-11-04T16:56:42+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-04-orders-home budget ... --by <name>`).
