@@ -78,6 +78,9 @@ if m and op in ("worktree remove", "worktree add", "branch -D"):
         note("end")
         sys.exit(128)
     p = subprocess.run([os.environ["REAL_GIT"]] + args)
+    if op == "worktree add" and p.returncode == 0 and os.environ.get("FAKE_GIT_VANISH") == m.group(1):
+        import shutil
+        shutil.rmtree(args[-2])  # the worktree is gone before the agent can start in it
     note("end")
     sys.exit(p.returncode)
 os.execv(os.environ["REAL_GIT"], [os.environ["REAL_GIT"]] + args)
@@ -185,6 +188,56 @@ class PrototypesGitSetupTest(PrototypesTest):
         self.assertEqual(ran, ["b"], "only the variant that did not finish runs again")
         protos = {p["name"]: p for p in self.record()["prototypes"]}
         self.assertTrue(all(protos[n]["recording"] for n in "abc"))
+
+    def unfinished_b_is_recorded(self):
+        protos = {p["name"]: p for p in self.record()["prototypes"]}
+        self.assertEqual(sorted(protos), ["a", "b", "c"], "b is recorded, not dropped")
+        self.assertTrue(protos["a"]["recording"] and protos["c"]["recording"], "a and c still finish")
+        self.assertFalse(protos["b"]["recording"], "b did not finish")
+        side = self.side()
+        self.assertIn("## b:", side)
+        b_section = side.split("## b:")[1].split("## c:")[0]
+        self.assertRegex(b_section, r"Not finished: \S", "the side-by-side file shows b's error")
+
+    def block_b_run_log(self):
+        common = sh(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], self.wt).stdout.strip()
+        # the run log for b cannot be written: a directory sits where the file goes
+        os.makedirs(os.path.join(common, "xv", "runs", "p1", "prototype-b.out"))
+
+    def test_an_error_after_setup_records_the_variant_not_finished_with_its_error(self):
+        os.environ["FAKE_GIT_VANISH"] = "b"
+        self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
+        self.unfinished_b_is_recorded()
+
+    def test_an_error_that_is_not_an_xverror_records_the_variant_not_finished_with_its_error(self):
+        self.block_b_run_log()
+        self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
+        self.unfinished_b_is_recorded()
+        self.assertIn("prototype-b.out", open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read(),
+                      "the record keeps b's error")
+
+    def pick_b_after(self):
+        scen = os.path.join(self.tmp, "restated.md")
+        open(scen, "w").write("Restated.")
+        self.xv("record", "answer", "p1", "--by", "pat,sam", "--answer", "look", cwd=self.wt, check=False)
+        return self.xv("prototype", "pick", "p1", "--variant", "b", "--by", "pat,sam",
+                       "--scenario-file", scen, cwd=self.wt, check=False)
+
+    def test_pick_refuses_a_variant_whose_setup_failed_and_says_so(self):
+        os.environ["FAKE_GIT_REFUSE"] = "b"
+        self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
+        p = self.pick_b_after()
+        self.assertNotEqual(p.returncode, 0)
+        self.assertNotIn("budget", p.stderr)
+        self.assertRegex(p.stderr, r"(?i)setup|failed|did not finish")
+
+    def test_pick_refuses_a_variant_whose_run_failed_and_says_so(self):
+        self.block_b_run_log()
+        self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
+        p = self.pick_b_after()
+        self.assertNotEqual(p.returncode, 0, "b did not finish and cannot be picked")
+        self.assertNotIn("budget", p.stderr)
+        self.assertRegex(p.stderr, r"(?i)setup|failed|did not finish")
 
 
 if __name__ == "__main__":
