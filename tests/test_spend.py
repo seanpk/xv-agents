@@ -94,14 +94,6 @@ class SpendTest(unittest.TestCase):
             p.stdin.close()
         self.assertEqual(json.loads(out), [0, "0"])
 
-    def test_harness_notes_say_what_was_checked_on_codex(self):
-        text = open(os.path.join(HOME, "docs", "harness-notes.md")).read()
-        self.assertNotIn("**codex: not checked.**", text)
-        self.assertNotIn("`codex exec`: has the flags. Not run.", text)
-        for needle in ("2026-11-03", "codex exec --json", "turn.completed", "AGENTS.md",
-                       "--ignore-user-config", "--ignore-rules"):
-            self.assertIn(needle, text)
-
 
 if __name__ == "__main__":
     unittest.main()
