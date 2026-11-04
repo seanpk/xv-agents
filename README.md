@@ -71,9 +71,9 @@ XV has its own words. This README and the method use them from here on.
 Generated from the same source as the site. It states the method's positions; the agents here are the first attempt to hold them. Since v0.3.0 they have run on real changes: this repo's own slices, decided by Sean solo, and trial slices on one large Rails and TypeScript app.
 
 <!-- xv:method begin -->
-<!-- Generated on 2026-10-31 from the map at https://xtremevibing.com/map/. Edits here are overwritten at the next publish; say what is wrong in an issue on this repo. -->
+<!-- Generated on 2026-11-04 from the map at https://xtremevibing.com/map/. Edits here are overwritten at the next publish; say what is wrong in an issue on this repo. -->
 
-The method is written up at [xtremevibing.com](https://xtremevibing.com/): [the summary](https://xtremevibing.com/), [the map](https://xtremevibing.com/map/) of values, principles and practices, [the loop](https://xtremevibing.com/loop/) one turn of delivery runs through, and [the agents](https://xtremevibing.com/agents/). This is the map in brief, as of 2026-10-31.
+The method is written up at [xtremevibing.com](https://xtremevibing.com/): [the summary](https://xtremevibing.com/), [the map](https://xtremevibing.com/map/) of values, principles and practices, [the loop](https://xtremevibing.com/loop/) one turn of delivery runs through, and [the agents](https://xtremevibing.com/agents/). This is the map in brief, as of 2026-11-04.
 
 **Values**
 
@@ -96,7 +96,7 @@ The method is written up at [xtremevibing.com](https://xtremevibing.com/): [the 
 - **The value queue.** One person ranks the work by customer value, so the ranking is a decision and the product stays one product.
 - **The pitch.** A short page in the repo: what the system does, why, and for whom.
 - **Contact.** Sit with the people who use the software, or with data about how they actually use it.
-- **Parallel prototypes.** For a change where the scenario does not settle the design, and a wrong design would be felt in use.
+- **Build to find out.** When we do not yet know what to build, we build to find out, in one of two ways.
 - **Attention.** A person who is too tired or spread too thin does not make the call today.
 
 **Practices of the machine**
