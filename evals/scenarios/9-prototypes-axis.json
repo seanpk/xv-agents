@@ -11,7 +11,26 @@
     "ignore": "The expiring list.",
     "axis": "what the household acts on when it marks food used"
   },
-  "setup": [],
+  "setup": [
+    {
+      "op": "record-set",
+      "field": "prototype_budgets",
+      "value": {
+        "a": {
+          "tokens": 1000000,
+          "usd": 3
+        },
+        "b": {
+          "tokens": 1000000,
+          "usd": 3
+        },
+        "c": {
+          "tokens": 1000000,
+          "usd": 3
+        }
+      }
+    }
+  ],
   "skill_cmd": [
     "run",
     "{id}"
