@@ -55,6 +55,14 @@ def run_one(name, axis, position, slice_id, slice_wt, config, budget, spent, out
     except XVError as e:
         out[name] = {"name": name, "branch": None, "axis_position": position, "error": str(e), "recording": False}
         return
+    try:
+        out[name] = build_one(name, axis, position, slice_id, root, wt, branch, config, budget, spent)
+    except Exception as e:  # a variant that raises is recorded as not finished, never dropped
+        out[name] = {"name": name, "branch": branch, "axis_position": position, "error": str(e) or repr(e),
+                     "recording": False}
+
+
+def build_one(name, axis, position, slice_id, root, wt, branch, config, budget, spent):
     rec_dir = f"{XV_DIR}/prototypes/{slice_id}/{name}"
     extra = [f"Your variant: {name}. The axis: {axis}. Your position on it: {position}.",
              f"Write your recording script and `recording.md` under `{rec_dir}/`.",
@@ -72,9 +80,9 @@ def run_one(name, axis, position, slice_id, slice_wt, config, budget, spent, out
     except XVError:
         pass
     recording = os.path.join(wt, rec_dir, "recording.md")
-    out[name] = {"name": name, "branch": branch, "worktree": wt, "axis_position": position,
-                 "report": report, "spend": spendlib.from_run(result), "session": result.get("session"),
-                 "recording": os.path.exists(recording), "recording_path": recording}
+    return {"name": name, "branch": branch, "worktree": wt, "axis_position": position,
+            "report": report, "spend": spendlib.from_run(result), "session": result.get("session"),
+            "recording": os.path.exists(recording), "recording_path": recording}
 
 
 def start(slice_id, axis=None, positions=None, serial=False):
@@ -181,7 +189,7 @@ def start(slice_id, axis=None, positions=None, serial=False):
                                    "costs": (p.get("report") or {}).get("costs"),
                                    "run": (p.get("report") or {}).get("run"),
                                    "recording": f"{XV_DIR}/prototypes/{slice_id}/{n}/recording.md" if p.get("recording") else None,
-                                   "session": p.get("session")})
+                                   "session": p.get("session"), "error": p.get("error")})
     packet = os.path.join(root, XV_DIR, "slices", f"{slice_id}.prototypes.md")
     with open(packet, "w") as f:
         f.write("\n".join(lines) + "\n")
@@ -235,6 +243,8 @@ def pick(slice_id, variant, by, with_user=None, scenario_file=None):
     if variant != "none" and variant not in names:
         raise XVError(f"no prototype {variant!r}; one of {sorted(names)} or none")
     ran_out = ((data.get("checks") or {}).get("prototype") or {}).get("ran_out") or {}
+    if variant != "none" and next(p for p in data["prototypes"] if p["name"] == variant).get("error"):
+        raise XVError(f"prototype {variant} did not finish: its setup or run failed, and it has nothing to pick")
     if variant != "none" and (variant in ran_out or
                               not next(p for p in data["prototypes"] if p["name"] == variant).get("branch")):
         raise XVError(f"prototype {variant} stopped at its budget and has nothing to pick")
