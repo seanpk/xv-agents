@@ -1,6 +1,6 @@
 # xv-agents
 
-Skills for the seven agents of Xtreme Vibing (XV): the watch, the forecaster, the scenario agent, the maker, the cleaner, the guardian, and the listener. Three of them work on one change: the maker, the cleaner, and the guardian. Each agent is a skill in the open Agent Skills format, a folder with a `SKILL.md`, so it is meant for any harness that reads skills. v0.1 ran on Claude Code, on Grok, and on opencode with a local model; Codex now runs headless as a step, and Cursor reads the same format and has not been tried. Beside the skills are Python scripts for the parts a check can hold, and GitHub Actions examples that run them in CI.
+Skills for the seven agents of Xtreme Vibing (XV): the watch, the forecaster, the scenario agent, the maker, the cleaner, the guardian, and the listener. Three of them work on one change: the maker, the cleaner, and the guardian. Each agent is a skill in the open Agent Skills format, a folder with a `SKILL.md`, so it is meant for any harness that reads skills. v0.1 ran on Claude Code, on Grok, and on opencode with a local model; Codex can run headless as a step, and Cursor reads the same format and has not been tried. Beside the skills are Python scripts for the parts a check can hold, and GitHub Actions examples that run them in CI.
 
 It is not a plugin and not any one vendor's subagent format. v0.1 was built from a plan without use. The versions after it are earned by use.
 
