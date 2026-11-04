@@ -489,10 +489,51 @@ class WatchLoopTest(RepoCase):
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
+    def in_the_scenario(self, text):
+        """Put numbered points in the scenario itself, not in an amendment."""
+        path = os.path.join(self.wt, ".xv", "slices", "s1.md")
+        with open(path) as f:
+            body = f.read()
+        with open(path, "w") as f:
+            f.write(body.replace("## Scenario\n", "## Scenario\n\n" + text + "\n", 1))
+
     def covered_by_number(self, scenario, items):
-        self.amend(scenario)
+        self.in_the_scenario(scenario)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         return self.scenario_covering(covered=items)
+
+    P3 = "3. A household sees the pantry list in order."
+
+    def test_a_number_does_not_cover_a_point_an_amendment_adds(self):
+        self.in_the_scenario(f"{self.P1}\n{self.P2}")
+        self.amend(self.P3)
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        p = self.scenario_covering(covered=["1", "2", "3"])
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.record()["next"], "scenario")
+        self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and self.P3 in l])
+
+    def test_a_number_and_text_item_does_not_cover_an_amendments_point_either(self):
+        self.in_the_scenario(f"{self.P1}\n{self.P2}")
+        self.amend(self.P3)
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario_covering(covered=["1", "2", "3. Pantry list order"])
+        self.assertEqual(self.record()["next"], "scenario")
+
+    def test_an_amendments_point_is_still_covered_by_its_own_words(self):
+        self.in_the_scenario(f"{self.P1}\n{self.P2}")
+        self.amend(self.P3)
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        p = self.scenario_covering(covered=["1", "2", self.P3])
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.record()["next"], "maker")
+
+    def test_a_number_does_not_cover_an_amendments_point_that_shares_the_scenarios_number(self):
+        self.in_the_scenario(f"{self.P1}\n{self.P2}")
+        self.amend("2. A household sees a restock hint.")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario_covering(covered=["1", "2"])
+        self.assertEqual(self.record()["next"], "scenario")
 
     def test_a_covers_item_that_is_a_points_number_covers_it(self):
         p = self.covered_by_number(f"{self.P1}\n{self.P2}", ["1", "2"])
@@ -516,7 +557,7 @@ class WatchLoopTest(RepoCase):
         self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and ten in l])
 
     def test_a_number_item_in_not_covered_still_stops_for_the_person(self):
-        self.amend(f"{self.P1}\n{self.P2}")
+        self.in_the_scenario(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         p = self.scenario_covering(covered=["1"], not_covered=["2"])
         self.assert_stopped_before_the_maker(p, "no seam to start the app")
@@ -994,12 +1035,12 @@ class NamedByTheScenarioReachTheMakerTest(RepoCase):
         data = {"id": "s1", "may_not_files": [self.FILE]}
         self.assertNotIn("the red needs a new binding decision", pointers("cleaner", self.wt, {}, data))
 
-    def maker_check(self, *, named, changes):
+    def maker_check(self, *, named, changes, text="changed by the maker\n"):
         from run import post_step
         for name in changes:
             os.makedirs(os.path.dirname(os.path.join(self.wt, name)), exist_ok=True)
             with open(os.path.join(self.wt, name), "a") as f:
-                f.write("changed by the maker\n")
+                f.write(text)
             sh(["git", "add", name], self.wt)
         sh(["git", "commit", "-qm", "maker"], self.wt)
         data = {"id": "s1", "base": self.baseline, "wall_baseline": {"commit": self.baseline},
@@ -1017,6 +1058,50 @@ class NamedByTheScenarioReachTheMakerTest(RepoCase):
 
     def test_a_protected_file_nobody_named_is_still_protected_changed(self):
         self.assertEqual(self.maker_check(named=[], changes=[".xv/picture.md"]), [".xv/picture.md"])
+
+    def named_but_protected(self, name, text="changed by the maker\n"):
+        named = [{"file": name, "why": "the red wants it"}]
+        self.assertEqual(self.maker_check(named=named, changes=[name], text=text), [name])
+
+    def test_naming_the_pitch_does_not_let_the_maker_change_it(self):
+        self.named_but_protected(".xv/pitch.md")
+
+    def test_naming_the_config_does_not_let_the_maker_change_it(self):
+        self.named_but_protected(".xv/config.yml")
+
+    def test_naming_the_slices_wall_file_does_not_let_the_maker_change_it(self):
+        self.named_but_protected(".xv/slices/s1.wall.json", text='{"commit": "x", "files": {}}\n')
+
+    def test_naming_the_rules_does_not_let_the_maker_change_it(self):
+        self.named_but_protected(".xv/rules.md")
+
+    def test_naming_picture_and_pitch_licenses_only_the_picture(self):
+        named = [self.FILE, {"file": ".xv/pitch.md", "why": "the red wants it"}]
+        self.assertEqual(self.maker_check(named=named, changes=[".xv/picture.md", ".xv/pitch.md"]),
+                         [".xv/pitch.md"])
+
+    def second_report(self, data, **keys):
+        import record
+        text = "```xv-report\n" + json.dumps({"agent": "scenario", "status": "red", "summary": "s", **keys}) + "\n```\n"
+        record.apply_report(data, "", "scenario", text)
+
+    def test_a_scenario_report_that_leaves_the_lists_out_clears_the_earlier_ones(self):
+        data = self.report("scenario", old_tests_forced=[self.OLD], may_not_files=[self.FILE])
+        self.second_report(data)
+        self.assertEqual(data.get("may_not_files") or [], [])
+        self.assertEqual(data.get("old_tests_forced") or [], [])
+
+    def test_a_report_that_leaves_out_only_one_list_clears_only_that_one(self):
+        data = self.report("scenario", old_tests_forced=[self.OLD], may_not_files=[self.FILE])
+        self.second_report(data, may_not_files=[self.FILE])
+        self.assertEqual(data.get("old_tests_forced") or [], [])
+        self.assertEqual(data.get("may_not_files"), [self.FILE])
+
+    def test_a_report_with_a_value_that_is_not_a_list_clears_the_earlier_lists(self):
+        data = self.report("scenario", old_tests_forced=[self.OLD], may_not_files=[self.FILE])
+        self.second_report(data, old_tests_forced="none", may_not_files=None)
+        self.assertEqual(data.get("may_not_files") or [], [])
+        self.assertEqual(data.get("old_tests_forced") or [], [])
 
     def test_a_malformed_name_licenses_nothing(self):
         self.assertEqual(self.maker_check(named=[dict(file=".xv/picture.md"), ".xv/picture.md"],
