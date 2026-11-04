@@ -123,5 +123,60 @@ class PacketTest(unittest.TestCase):
         self.assertNotIn("scenario_miss: yes", out)
 
 
+class PacketFieldDocsTest(unittest.TestCase):
+    """Every value the code allows for a packet field is named where the docs name the field."""
+
+    FIELDS = ("shape_change", "pitch_contradiction")
+    CANDIDATES = ("yes", "no", "accepted")
+
+    def allowed(self, field):
+        # asked of the code itself: the values the packet lint lets through
+        return [v for v in self.CANDIDATES
+                if not any(field in p for p in packet.lint(GOOD.replace(f"{field}: yes", f"{field}: {v}")
+                                                           .replace(f"{field}: no", f"{field}: {v}"))[2])]
+
+    def read(self, *path):
+        with open(os.path.join(HOME, *path)) as f:
+            return f.read()
+
+    def lines_naming(self, text, field):
+        return [ln for ln in text.splitlines() if field in ln]
+
+    def check(self, text, where, rows_only=False):
+        for field in self.FIELDS:
+            lines = self.lines_naming(text, field)
+            if rows_only:
+                lines = [ln for ln in lines if ln.lstrip().startswith("|")]
+            for value in self.allowed(field):
+                self.assertTrue(any(value in ln for ln in lines),
+                                f"{where} never says {value} on a line that names {field}")
+
+    def test_the_code_allows_accepted_for_shape_change_only(self):
+        self.assertEqual(self.allowed("shape_change"), ["yes", "no", "accepted"])
+        self.assertEqual(self.allowed("pitch_contradiction"), ["yes", "no"])
+
+    def test_the_packet_template_names_every_allowed_value(self):
+        self.check(self.read("skills", "guardian", "packet.md"), "skills/guardian/packet.md")
+
+    def test_the_readme_names_every_allowed_value(self):
+        self.check(self.read("README.md"), "README.md")
+
+    def test_the_docs_tables_name_every_allowed_value(self):
+        docs = os.path.join(HOME, "docs")
+        for name in sorted(os.listdir(docs)):
+            text = self.read("docs", name)
+            if any(ln.lstrip().startswith("|") and f in ln for ln in text.splitlines() for f in self.FIELDS):
+                self.check(text, f"docs/{name}", rows_only=True)
+
+    def test_the_slice_record_doc_gives_the_stop_shape_and_the_decision_rules(self):
+        text = self.read("docs", "slice-record.md")
+        stops = [ln for ln in text.splitlines() if ln.lstrip().startswith("| `stops`")][0]
+        for key in ("accepted_wall", "refused_wall", "settled"):
+            self.assertIn(key, stops)
+        decisions = [ln for ln in text.splitlines() if ln.lstrip().startswith("| `decisions`")][0]
+        self.assertIn("ready_to_merge", decisions)
+        self.assertIn("list", decisions)
+
+
 if __name__ == "__main__":
     unittest.main()

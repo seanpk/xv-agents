@@ -1331,3 +1331,102 @@ class ScenarioMissStandingOrderTest(RepoCase):
         v = self.orders(wt)
         self.assertEqual((v["stop"] or {}).get("order"), "scenario_miss")
         self.assertEqual(v["stop"]["seat"], "originator")
+
+
+class OneHomeRecordTest(RepoCase):
+    """The record's own rules after every stop rule moved to orders.py."""
+
+    def show(self, wt):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+
+    def report(self, wt, agent, name="r.json", **fields):
+        path = os.path.join(wt, name)
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps({"agent": agent, "status": "done", "summary": "s", **fields})
+                    + "\n```\n")
+        self.xv("record", "report", "s1", agent, path, cwd=wt)
+
+    def fired(self, wt, after="scenario"):
+        p = self.xv("orders", "s1", "--after", after, cwd=wt, check=False)
+        return json.loads(p.stdout)["fired"]
+
+    def mark(self, test):
+        return {"file": "tests/test_x.py", "test": test, "why": "only proves the slice did its job"}
+
+    def scenario_reports(self, wt, *marks, name="s.json"):
+        self.report(wt, "scenario", name=name, status="red", red=RED, slice_only=list(marks))
+
+    def test_a_mark_the_person_accepted_is_not_asked_about_again_when_the_scenario_runs_again(self):
+        wt = self.new_slice("s1")
+        self.scenario_reports(wt, self.mark("test_a"))
+        self.assertEqual([f["order"] for f in self.fired(wt)], ["slice_only_marks"])
+        self.xv("record", "stop", "s1", "--order", "slice_only_marks", "--seat", "originator",
+                "--question", "Accept the marks?", "--step", "scenario", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "accepted", "--next", "maker", cwd=wt)
+        self.scenario_reports(wt, self.mark("test_a"), name="s2.json")
+        self.assertEqual([m["test"] for m in self.show(wt)["slice_only"]], ["test_a"])
+        self.assertNotIn("slice_only_marks", [f["order"] for f in self.fired(wt)])
+
+    def test_a_new_mark_beside_an_accepted_one_is_the_only_one_asked_about(self):
+        wt = self.new_slice("s1")
+        self.scenario_reports(wt, self.mark("test_a"))
+        self.xv("record", "stop", "s1", "--order", "slice_only_marks", "--seat", "originator",
+                "--question", "Accept the marks?", "--step", "scenario", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "accepted", "--next", "maker", cwd=wt)
+        self.scenario_reports(wt, self.mark("test_a"), self.mark("test_b"), name="s2.json")
+        asked = [f for f in self.fired(wt) if f["order"] == "slice_only_marks"]
+        self.assertEqual(len(asked), 1)
+        self.assertIn("test_b", asked[0]["question"])
+        self.assertNotIn("test_a", asked[0]["question"])
+
+    def test_a_move_the_command_and_a_report_both_record_is_one_move_with_its_flag(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "add", "s1", "slice_only", json.dumps(self.mark("test_a")), cwd=wt)
+        self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion", "test_a",
+                "--why", "w", "--slice-only", "--by", "maker", cwd=wt)
+        self.report(wt, "maker", status="green", moved_tests=[
+            {"file": "tests/test_x.py", "assertion": "test_a", "why": "w"}])
+        moves = self.show(wt)["moved_tests"]
+        self.assertEqual(len(moves), 1, moves)
+        self.assertIs(moves[0].get("slice_only"), True)
+
+    def test_a_move_a_report_records_and_the_command_records_again_is_one_move(self):
+        wt = self.new_slice("s1")
+        self.report(wt, "maker", status="green", moved_tests=[
+            {"file": "tests/test_x.py", "assertion": "test_a", "why": "w"}])
+        self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion", "test_a",
+                "--why", "w", "--by", "maker", cwd=wt)
+        self.assertEqual(len(self.show(wt)["moved_tests"]), 1)
+
+    def test_a_new_decision_writes_who_as_a_list(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "ready_to_merge", "--seat", "originator",
+                "--question", "Merge?", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "merge", cwd=wt)
+        self.assertEqual(self.show(wt)["decisions"][0]["who"], ["pat"])
+
+    def test_a_decision_in_an_old_record_with_who_as_a_string_still_reads(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "add", "s1", "decisions", json.dumps(
+            {"date": "2026-10-01", "who": "pat,sam", "decision": "keep it", "record": ".xv/decisions/old.md"}), cwd=wt)
+        self.assertEqual(self.xv("decisions", cwd=wt, check=False).returncode, 0)
+        self.assertEqual(self.xv("prompt", "maker", "s1", cwd=wt, check=False).returncode, 0)
+
+    def test_a_prototype_budget_spent_stop_counts_as_started_work_and_needs_settled(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "prototype_budget_spent", "--seat", "originator",
+                "--question", "Raise a budget?", "--step", "prototype", cwd=wt)
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "raised", "--next", "prototype",
+                    cwd=wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settled", p.stderr)
+
+    def test_a_budget_stop_raised_by_hand_needs_settled_to_go_back_to_the_step(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "set", "s1", "budget", '{"usd": 1}', "--by", "pat", cwd=wt)
+        self.xv("record", "stop", "s1", "--order", "budget_spent", "--seat", "originator",
+                "--question", "Spent.", "--step", "maker", cwd=wt)
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go on", "--next", "maker",
+                    cwd=wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--settled", p.stderr)

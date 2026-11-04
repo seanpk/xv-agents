@@ -417,5 +417,86 @@ class GuardianFiveChecksTest(unittest.TestCase):
         text = self.read("skills", "guardian", "packet.md")
         self.assertIn("## 5. ", text)
 
+
+class OneHomeTest(unittest.TestCase):
+    """Every stop rule is decided in orders.py, from the record alone."""
+
+    def guardian(self, **kw):
+        d = with_report(rec(shape_change="no", pitch_contradiction="no", **kw), "guardian")
+        d["checks"]["guardian"] = {}
+        return d
+
+    def source(self, name):
+        with open(os.path.join(HOME, "scripts", name)) as f:
+            return f.read()
+
+    def test_a_repeat_flag_left_in_the_checks_is_not_read_as_a_repeat_of_a_scenario_miss(self):
+        d = self.guardian(scenario_miss="yes")
+        d["checks"]["guardian"] = {"misses": [{"ref": "2", "text": "milk is left out", "to": "maker", "amend": False}],
+                                   "miss_repeat": ["2"]}
+        self.assertIsNone(orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"])
+
+    def test_a_repeat_flag_left_in_the_checks_is_not_read_as_a_repeat_of_a_missed_point(self):
+        d = with_report(rec(), "scenario", "red")
+        d["checks"]["scenario"] = {"missed_points": ["3"], "missed_repeat": True}
+        self.assertIsNone(orders.verdict(d, "scenario", DEFAULT_CONFIG)["stop"])
+
+    def test_a_send_back_before_the_guardian_report_makes_the_same_miss_a_repeat(self):
+        prior = {"order": "scenario_miss", "seat": "watch", "keys": ["2"], "at": "2026-01-01T00:00:00+00:00",
+                 "answer": "sent back to the maker"}
+        d = self.guardian(scenario_miss="yes", stops=[prior])
+        d["checks"]["reports"][-1]["at"] = "2026-01-02T00:00:00+00:00"
+        d["checks"]["guardian"] = {"misses": [{"ref": "2", "text": "milk is left out", "to": "maker", "amend": False}]}
+        s = orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"]
+        self.assertEqual((s["order"], s["seat"]), ("scenario_miss", "originator"))
+
+    def test_run_and_record_no_longer_work_out_a_repeat(self):
+        self.assertFalse(hasattr(record, "sent_back"))
+        for name in ("run.py", "record.py"):
+            text = self.source(name)
+            self.assertNotIn("miss_repeat", text, name)
+            self.assertNotIn("missed_repeat", text, name)
+
+    def test_the_allowed_values_of_the_packet_fields_are_defined_once(self):
+        import re
+        n = sum(len(re.findall(r'\("yes", "no"', self.source(name))) for name in ("run.py", "record.py", "packet.py"))
+        self.assertLessEqual(n, 1)
+
+    def test_the_test_name_matcher_is_shared(self):
+        self.assertNotIn("(?!\\w)", self.source("record.py"))
+
+    def test_the_wall_flags_are_not_handled_inside_cmd_answer(self):
+        import inspect
+        self.assertNotIn("--accept-wall", inspect.getsource(record.cmd_answer))
+
+    def test_a_shape_the_person_accepted_does_not_stop_as_wider_than_the_forecast(self):
+        d = self.guardian(forecast={"shape": "none"})
+        d["shape_change"] = "accepted"
+        d["checks"]["guardian"] = {"shape_breadth": "wide"}
+        self.assertNotEqual((orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"] or {}).get("order"),
+                            "shape_wider_than_forecast")
+
+    def test_a_shape_wider_stop_the_person_already_answered_does_not_stop_again(self):
+        answered = {"order": "shape_wider_than_forecast", "seat": "two_people", "answered_by": ["pat", "sam"],
+                    "answer": "go on", "at": "2026-01-01T00:00:00+00:00"}
+        d = self.guardian(forecast={"shape": "none"}, stops=[answered])
+        d["checks"]["guardian"] = {"shape_breadth": "wide"}
+        self.assertNotEqual((orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"] or {}).get("order"),
+                            "shape_wider_than_forecast")
+
+    def test_a_shape_wider_than_the_forecast_still_stops_when_nobody_accepted_it(self):
+        d = self.guardian(forecast={"shape": "none"})
+        d["checks"]["guardian"] = {"shape_breadth": "wide"}
+        self.assertEqual(orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"]["order"], "shape_wider_than_forecast")
+
+    def test_accept_moves_counts_moves_not_record_entries(self):
+        same = {"file": "tests/a.py", "assertion": "was: 1; now: 2", "why": "forced"}
+        d = self.guardian(moved_tests=[dict(same, by="maker", at="2026-01-01T00:00:00+00:00"),
+                                       dict(same, by="cleaner", at="2026-01-01T00:05:00+00:00")])
+        s = orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"]
+        self.assertEqual(s["order"], "accept_moves")
+        self.assertIn("1 old test(s) moved", s["question"])
+
+
 if __name__ == "__main__":
     unittest.main()
