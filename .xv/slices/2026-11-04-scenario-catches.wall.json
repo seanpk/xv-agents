@@ -49,7 +49,7 @@
   "tests/test_retro.py": 14,
   "tests/test_retro_accept_brief_shape.py": 13,
   "tests/test_retro_accept_fields.py": 8,
-  "tests/test_run.py": 219,
+  "tests/test_run.py": 233,
   "tests/test_slice_skill_readback.py": 4,
   "tests/test_spend.py": 21,
   "tests/test_suite_red_quote.py": 7,
@@ -60,7 +60,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "1edfb651600d50cc4ac3334991ff1edcacdc248e",
+ "commit": "4bf8ccc4f618c345c1693a64a79e29d89e0eb1f5",
  "files": {
   "tests/data/claude-result.json": "d97d2788e30ab2c1dcefc61594ffaaf6892217e088255672a7ead5be9747a331",
   "tests/data/claude-session.jsonl": "f334175619c11a34eabde629fe45e0def44aa43becec22059c9c9841ffccf073",
@@ -111,7 +111,7 @@
   "tests/test_retro.py": "fc883f817bdcf3e1c6e7631f1b2c97dc7f3f69c372552f8fb393b10ccbee1ef7",
   "tests/test_retro_accept_brief_shape.py": "03a7f68aa48f153ee4a69ff98cf2f256081d38a16970e93db13c37f626ee0839",
   "tests/test_retro_accept_fields.py": "df9b34fb48da5dbfcf795914d4d284e3ec1b7335104191a792fa66a17862f89b",
-  "tests/test_run.py": "517bac43555a35bca022bf3ba9b7c39c2c4b667b45b18f2e8a04e9dd06083515",
+  "tests/test_run.py": "5a6333921ed1b7703de14ee7440006f1ffbc2d76d062d65a6ef50b08b3e22d38",
   "tests/test_slice_skill_readback.py": "1d016e8e5211bdf73914c5f9e66a55aa44885226dc6251c31d174bb7498c3930",
   "tests/test_spend.py": "2a023d8a4b36d01cff5b2498f02cb3387c3dfb73d9f6922254584db629acc918",
   "tests/test_suite_red_quote.py": "f920a670c696b5300ee665f20f7d25394edd17ce802fbda197ab1ae2f07f7435",
