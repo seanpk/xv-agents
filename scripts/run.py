@@ -514,10 +514,11 @@ def missed_points(root, data, report):
     end = body.find("\n## May ignore")
     items = [norm(i.get("item")) for key in ("covers", "not_covered")
              for i in report.get(key) or [] if isinstance(i, dict) and i.get("item")]
+    numbers = {m.group(1) for i in items if (m := re.match(r"(\d+)\.?(?:\s|$)", i))}
     missed = []
     for num, text in POINT.findall(body[at:end if end > at else len(body)]):
         t = norm(text)
-        if not any(t in i or (len(i) >= 4 and i in t) or t[:40] in i for i in items):
+        if num not in numbers and not any(t in i or (len(i) >= 4 and i in t) or t[:40] in i for i in items):
             missed.append(f"{num}. {text.strip()}")
     return missed
 
