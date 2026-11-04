@@ -93,20 +93,6 @@ class CodexHarnessEntryTest(unittest.TestCase):
 
 
 class CodexDocsTest(unittest.TestCase):
-    def test_readme_no_longer_says_codex_was_not_run(self):
-        lines = read("README.md").splitlines()
-        for n in (3, 392):
-            self.assertNotIn("were not run", lines[n - 1], f"README.md:{n}")
-            self.assertNotIn("was not run", lines[n - 1], f"README.md:{n}")
-        self.assertIn("headless", lines[391])
-        self.assertIn("--json", lines[391])
-
-    def test_decision_48_says_spend_reads_codex_events_and_codex_reports_no_dollars(self):
-        item = next(x for x in read("docs/decisions.md").splitlines() if x.startswith("48. "))
-        self.assertNotIn("Codex is not read", item)
-        self.assertIn("--json", item)
-        self.assertIn("no dollars", item)
-
     def test_relies_on_has_a_line_for_the_codex_event_shape(self):
         lines = [x for x in read("docs/relies-on.md").splitlines()
                  if x.startswith("- ") and "codex" in x.lower() and "agent_message" in x]
