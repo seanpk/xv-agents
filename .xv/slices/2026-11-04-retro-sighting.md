@@ -2,13 +2,13 @@
 id: 2026-11-04-retro-sighting
 title: "Retro accept adds a sighting to an Open learning, and writes no empty field"
 kind: feature
-status: open
+status: stopped
 set_by: Sean Kennedy
 created: 2026-11-04
 branch: xv/2026-11-04-retro-sighting
 base: a6e023bd0ffeed4f6ce45990c668742a8f758419
 next: forecaster
-forecast: null
+forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 330000, "turns": null, "usd": 2.1, "basis": ["2026-10-27-retro-accept-fields", "2026-11-04-proto-start", "2026-11-04-orders-home"], "note": "turns not recorded in the guide; tokens and usd are the mean of the three basis rows' actuals (235k, 218k, 551k; $1.28, $1.22, $3.92)"}, {"harness": "claude", "model": "opus", "tokens": 215000, "turns": null, "usd": 2.6, "basis": ["2026-10-27-retro-accept-fields", "2026-11-04-proto-start", "2026-11-04-orders-home"], "note": "turns not recorded in the guide; tokens and usd are the mean of the three basis rows' actuals (192k, 128k, 325k; $2.29, $1.56, $3.97)"}], "wall_s": 2900, "shape": "wide", "breadth": "Touches retro accept (sighting path and no-empty-field writes), the field reader in scripts/check.py and scripts/promote.py, and the retro brief and skills/xv-retro/SKILL.md. The retro-accept-fields row reopened three times and orders-home ran 6189 s of wall, so wall is the most likely overrun; wall_s is the sum of the sonnet and opus wall for each basis row."}
 budget: null
 red: null
 wall_baseline: null
@@ -20,12 +20,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: []
-stops: []
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 4708, "cache_read": 26131, "cache_write": 25683, "tokens": 30395, "usd": 0.0078, "turns": 3, "wall_s": 24.1, "session": "dc3a0a89-5ded-4e6f-ab15-8937fb299602", "step": "forecaster", "at": "2026-11-04T23:00:17+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-04-retro-sighting/01-forecaster.out"}]
+stops: [{"at": "2026-11-04T23:00:17+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-04-retro-sighting budget ... --by <name>`).", "answered_by": [], "answer": null, "also": [], "budget_seen": null}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast from claude/sonnet and claude/opus rows: sonnet about 330k tokens and opus about 215k, wall about 2900 s; reopen risk is in the basis rows.", "at": "2026-11-04T23:00:17+00:00"}], "forecaster": {"at": "2026-11-04T23:00:17+00:00", "wrote": []}}
 ---
 # Retro accept adds a sighting to an Open learning, and writes no empty field
 
@@ -52,3 +52,5 @@ None. A feature starts from words.
 
 ## Log
 - 2026-11-04T22:59:45+00:00 watch: slice opened by Sean Kennedy
+- 2026-11-04T23:00:17+00:00 forecaster: done: Forecast from claude/sonnet and claude/opus rows: sonnet about 330k tokens and opus about 215k, wall about 2900 s; reopen risk is in the basis rows.
+- 2026-11-04T23:00:17+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-04-retro-sighting budget ... --by <name>`).
