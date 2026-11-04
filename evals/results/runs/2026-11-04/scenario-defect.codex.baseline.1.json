@@ -1,0 +1,65 @@
+{
+  "scenario": "scenario-defect",
+  "increment": 1,
+  "agent": "scenario",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:10:10.337591+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 34967,
+      "tokens_out": 999,
+      "cache_read": 212736,
+      "cache_write": 0,
+      "tokens": 35966,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 44.1,
+      "session": "01a1a6e5-5797-79d0-bd14-41a7229536a1"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "red_replays_recording",
+      "pass": true,
+      "detail": "uses the recording's milk and date"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "baseline printed a report block"
+    }
+  ],
+  "passed": 5,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "Reading additional input from stdin...\n2026-11-04T14:10:10.471315Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/analyze-meeting-transcript/SKILL.md: missing YAML frontmatter delimited by ---\n2026-11-04T14:10:10.471327Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/project-review/SKILL.md: missing YAML frontmatter delimited by ---\n",
+  "verdict": null,
+  "final_message": "ems, [milk, yogurt])\\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^\\nAssertionError: Lists differ: [{'name': 'yogurt', 'qty': 1, 'expires_on': '2026-10-23'}] != [{'name': 'milk', 'qty': 1, 'expires_on': '2026-10-2[57 chars]23'}]\\n\\nFirst differing element 0:\\n{'name': 'yogurt', 'qty': 1, 'expires_on': '2026-10-23'}\\n{'name': 'milk', 'qty': 1, 'expires_on': '2026-10-21'}\\n\\nSecond list contains 1 additional elements.\\nFirst extra element 1:\\n{'name': 'yogurt', 'qty': 1, 'expires_on': '2026-10-23'}\\n\\n- [{'expires_on': '2026-10-23', 'name': 'yogurt', 'qty': 1}]\\n?                           ^            ^^^^^^            ^\\n\\n+ [{'expires_on': '2026-10-21', 'name': 'milk', 'qty': 1},\\n?                           ^            ^^^^            ^\\n\\n+  {'expires_on': '2026-10-23', 'name': 'yogurt', 'qty': 1}]\\n\\n----------------------------------------------------------------------\\nRan 5 tests in 2.514s\\n\\nFAILED (failures=1)\\n\",\"exit_code\":1,\"status\":\"failed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_11\",\"type\":\"agent_message\",\"text\":\"I added the test in [tests/test_api.py](/tmp/xv-eval-scenario-defect-7ng3djeb/repo/.xv/worktrees/expiring-today/tests/test_api.py:49).\\n\\nIt fails as expected: the answer has yogurt but no milk. The defect is ready to fix.\\n\\n```xv-report\\n{\\\"agent\\\":\\\"scenario\\\",\\\"status\\\":\\\"red\\\",\\\"summary\\\":\\\"The API test reproduces the missing milk.\\\",\\\"red\\\":{\\\"files\\\":[\\\"tests/test_api.py\\\"],\\\"command\\\":\\\"python3 -m unittest tests.test_api\\\",\\\"failure\\\":\\\"AssertionError: Lists differ: the answer contains yogurt but omits milk\\\",\\\"watch_first_green\\\":null},\\\"covers\\\":[{\\\"item\\\":\\\"Milk expiring today and yogurt expiring on 2026-10-23 appear in the three-day list on 2026-10-21\\\",\\\"test\\\":\\\"ApiTest.test_expiring_includes_items_expiring_today\\\"}],\\\"not_covered\\\":[],\\\"slice_only\\\":[]}\\n```\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":247703,\"cached_input_tokens\":212736,\"cache_write_input_tokens\":0,\"output_tokens\":999,\"reasoning_output_tokens\":29}}\n"
+}

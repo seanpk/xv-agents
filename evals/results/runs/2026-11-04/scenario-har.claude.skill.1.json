@@ -1,0 +1,76 @@
+{
+  "scenario": "scenario-har",
+  "increment": 3,
+  "agent": "scenario",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:09:48.072352+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 1593,
+      "cache_read": 68096,
+      "cache_write": 11431,
+      "tokens": 13032,
+      "usd": 0.0685,
+      "turns": 7,
+      "wall_s": 14.2,
+      "session": "c34c4e9f-4a6b-482f-bf59-69c6b8dfa5ca",
+      "step": "scenario",
+      "at": "2026-11-04T14:10:02+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-scenario-har-6zyka7wc/repo/.git/xv/runs/expiring-today/01-scenario.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "red_replays_recording",
+      "pass": true,
+      "detail": "uses the recording's milk and date"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_api.py'], 'command': 'python3 -m unittest tests.test_api', 'failure': 'AssertionError: Lists differ: [yogurt] != [milk, yogurt] (milk expiring 2026-10-21 missing from expiring?days=3&today=2026-10-21)', 'watch_first_green': None}"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status red"
+    }
+  ],
+  "passed": 6,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "expiring-today",
+    "after": "scenario",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/expiring-today.md",
+    "worktree": "/tmp/xv-eval-scenario-har-6zyka7wc/repo/.xv/worktrees/expiring-today"
+  },
+  "final_message": "I added a test that replays the recorded requests against the API. It fails because milk, which runs out on the day asked, is missing from the answer. That is the failure the recording shows.\n\nThe test is `test_an_item_that_runs_out_today_is_in_what_runs_out_soon` in `tests/test_api.py`. It adds milk (2026-10-21) and yogurt (2026-10-23), then asks `GET /items/expiring?days=3&today=2026-10-21`. It expects milk and then yogurt. The expected list comes from the recording's `expected` field, not from the code. The run showed 5 tests with 1 failure; the other four still pass.\n\n```xv-report\n{\"agent\": \"scenario\", \"status\": \"red\", \"summary\": \"API replay of the recording: milk expiring today is missing from /items/expiring\",\n \"red\": {\"files\": [\"tests/test_api.py\"], \"command\": \"python3 -m unittest tests.test_api\", \"failure\": \"AssertionError: Lists differ: [yogurt] != [milk, yogurt] (milk expiring 2026-10-21 missing from expiring?days=3&today=2026-10-21)\",\n         \"watch_first_green\": null},\n \"covers\": [{\"item\": \"milk that runs out today (2026-10-21) is in the answer for days=3 on 2026-10-21, with yogurt (2026-10-23)\", \"test\": [\"test_an_item_that_runs_out_today_is_in_what_runs_out_soon\"]}],\n \"not_covered\": [],\n \"slice_only\": []}\n```"
+}

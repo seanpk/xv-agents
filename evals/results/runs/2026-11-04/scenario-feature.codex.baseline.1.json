@@ -1,0 +1,70 @@
+{
+  "scenario": "scenario-feature",
+  "increment": 3,
+  "agent": "scenario",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:15:19.941030+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 16484,
+      "tokens_out": 971,
+      "cache_read": 142592,
+      "cache_write": 0,
+      "tokens": 17455,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 40.0,
+      "session": "01a1a6ea-10f9-7492-a947-19c0ff75f6dc"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_at_user_surface",
+      "pass": true,
+      "detail": "the red calls the API"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "watch_first_green_noted",
+      "pass": false,
+      "detail": "no note for the first green"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "baseline printed a report block"
+    }
+  ],
+  "passed": 5,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "Reading additional input from stdin...\n2026-11-04T14:15:20.074843Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/analyze-meeting-transcript/SKILL.md: missing YAML frontmatter delimited by ---\n2026-11-04T14:15:20.074855Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/project-review/SKILL.md: missing YAML frontmatter delimited by ---\n",
+  "verdict": null,
+  "final_message": "^^^^^^^^^^^^^^^^^^^\\nAssertionError: Lists differ: [{'name': 'bread', 'qty': 0, 'expires_on': '2026-11-[56 chars]10'}] != [{'name': 'eggs', 'qty': 4, 'expires_on': '2026-11-10'}]\\n\\nFirst differing element 0:\\n{'name': 'bread', 'qty': 0, 'expires_on': '2026-11-10'}\\n{'name': 'eggs', 'qty': 4, 'expires_on': '2026-11-10'}\\n\\nFirst list contains 1 additional elements.\\nFirst extra element 1:\\n{'name': 'eggs', 'qty': 4, 'expires_on': '2026-11-10'}\\n\\n- [{'expires_on': '2026-11-10', 'name': 'bread', 'qty': 0},\\n-  {'expires_on': '2026-11-10', 'name': 'eggs', 'qty': 4}]\\n? ^\\n\\n+ [{'expires_on': '2026-11-10', 'name': 'eggs', 'qty': 4}]\\n? ^\\n\\n\\n----------------------------------------------------------------------\\nRan 5 tests in 2.515s\\n\\nFAILED (failures=1)\\n\",\"exit_code\":1,\"status\":\"failed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_10\",\"type\":\"agent_message\",\"text\":\"Added the test in [tests/test_api.py](/tmp/xv-eval-scenario-feature-m40wgz07/repo/.xv/worktrees/hide-used-up/tests/test_api.py:43).\\n\\nThe test fails as expected. Bread still appears with a quantity of zero. Eggs remain on the list.\\n\\nThe feature is ready to build.\\n\\n```xv-report\\n{\\\"agent\\\":\\\"scenario\\\",\\\"status\\\":\\\"red\\\",\\\"summary\\\":\\\"Test that used-up bread leaves the list while eggs remain.\\\",\\\"red\\\":{\\\"files\\\":[\\\"tests/test_api.py\\\"],\\\"command\\\":\\\"python3 -m unittest tests.test_api\\\",\\\"failure\\\":\\\"AssertionError: Lists differ: bread with qty 0 remains in GET /items\\\",\\\"watch_first_green\\\":\\\"Watch bread disappear and eggs remain in GET /items.\\\"},\\\"covers\\\":[{\\\"item\\\":\\\"Using the last loaf of bread takes bread off GET /items.\\\",\\\"test\\\":[\\\"test_using_last_item_removes_it_from_list\\\"]},{\\\"item\\\":\\\"Items with some left still show.\\\",\\\"test\\\":[\\\"test_using_last_item_removes_it_from_list\\\"]}],\\\"not_covered\\\":[],\\\"slice_only\\\":[]}\\n```\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":159076,\"cached_input_tokens\":142592,\"cache_write_input_tokens\":0,\"output_tokens\":971,\"reasoning_output_tokens\":14}}\n"
+}

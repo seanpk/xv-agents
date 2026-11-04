@@ -1,0 +1,60 @@
+{
+  "scenario": "retro-moments",
+  "increment": 5,
+  "agent": "retro",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:11:26.673330+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 3663,
+      "cache_read": 58348,
+      "cache_write": 9756,
+      "tokens": 13427,
+      "usd": 0.0815,
+      "turns": 4,
+      "wall_s": 30.6,
+      "session": "d86b253a-562f-4777-9f03-bfabf8f44dfb"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "retro_packet_exists",
+      "pass": true,
+      "detail": ".xv/retro/review.md"
+    },
+    {
+      "name": "retro_candidates_traced",
+      "pass": false,
+      "detail": "0 of 8 candidates name a slice"
+    },
+    {
+      "name": "retro_proposes_a_check",
+      "pass": false,
+      "detail": "proposes prose only"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "only_retro_written",
+      "pass": true,
+      "detail": "only the retro packet"
+    }
+  ],
+  "passed": 3,
+  "total": 5,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I've written the suggestions to `.xv/retro/review.md`. They come from reading the three slices and `standards.md`, `rules.md` and `config.yml`.\n\nIn priority order:\n\n1. **Weakened or deleted tests (2 of 3 slices).** In use-several the maker changed an `assertEqual` to `assertGreaterEqual(..., 0)`, and in expiring-days it deleted a test instead of fixing the default. Both were caught only after the maker finished, and a person had to revert them. I suggest:\n   - a rule in `rules.md` against weakening or deleting tests;\n   - a diff check on `tests/**` that runs before the wall;\n   - a stop message that names the test and shows the assertion diff.\n2. **Mechanical checks for the two existing standards.** Both are marked `check: none: judgement`, so only the cleaner enforces them, after the maker has already broken them. The date-name rule and the no-`print()` rule are both simple enough for an AST or grep check. I'd also reword the `print()` rule, because it needed an override in bulk-add for an intentional startup line. The cleaner also reported applying that rule at `api.py:88` in the same slice, so it's worth confirming what it did with the overridden line.\n3. **Fixed-port server collisions (bulk-add).** This cost about $3.10 and 96 turns. I suggest a rule that tests bind to port 0 and shut the server down, plus \"stop after the same failure twice\".\n4. **Budget and forecast.** The bulk-add forecast was about 300k tokens and the actual was 910k. I suggest noting in `estimation.md` that bulk variants should be forecast higher, and adding a turn cap.\n5. **Housekeeping on the records.** A green suite was recorded even where a test had been weakened. Every slice has `base: \"0000000\"` and `red: null`, which may be placeholders.\n\nThese are suggestions only. I haven't changed `standards.md`, `rules.md` or any check configuration."
+}

@@ -1,0 +1,80 @@
+{
+  "scenario": "guardian-moves",
+  "increment": 4,
+  "agent": "guardian",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:10:48.711363+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 1118,
+      "cache_read": 57266,
+      "cache_write": 5240,
+      "tokens": 6366,
+      "usd": 0.0379,
+      "turns": 4,
+      "wall_s": 12.3,
+      "session": "1beb9842-8aec-48a3-ad33-984eb3900fdf"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "review.md"
+    },
+    {
+      "name": "shape_not_flagged",
+      "pass": false,
+      "detail": "packet: shape_change: None"
+    },
+    {
+      "name": "pitch_not_flagged",
+      "pass": false,
+      "detail": "packet: pitch_contradiction: None"
+    },
+    {
+      "name": "moved_test_listed",
+      "pass": true,
+      "detail": "both moved test files listed"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": false,
+      "detail": "no boundary picture"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    },
+    {
+      "name": "stop_accept_moves",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I reviewed the branch and wrote the review to `review.md`. My verdict is to approve it, with no blocking issues.\n\n- **The change:** it rewords the bad-quantity error in `pantry/store.py` and updates the one matching assertion in each of `tests/test_store.py` and `tests/test_api.py`. The validation logic is untouched.\n- **Scope:** it matches the slice scenario and stays within \"may ignore other messages\". Both test edits are recorded as moved tests with reasons, and they change only the expected string.\n- **Leftovers:** no copy of the old wording remains anywhere in the repo. The API passes the error text straight through, so it picks up the new wording without edits.\n- **Tests:** the full suite passes (11 tests).\n- **Non-blocking note:** the new message has no trailing period and is capitalised differently from the other error in `store.py`. It's worth picking one style if more messages get reworded later.\n\nI changed no other file."
+}

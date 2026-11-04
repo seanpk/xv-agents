@@ -1,0 +1,104 @@
+{
+  "scenario": "guardian-moves",
+  "increment": 4,
+  "agent": "guardian",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:17:29.241225+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 13364,
+      "tokens_out": 2161,
+      "cache_read": 141056,
+      "cache_write": 0,
+      "tokens": 15525,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 51.9,
+      "session": "01a1a6ec-0a89-76d0-9052-2d652260e34b",
+      "step": "guardian",
+      "at": "2026-11-04T14:18:21+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-guardian-moves-9p8u8k_8/repo/.git/xv/runs/message-wording/01-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/message-wording.packet.md"
+    },
+    {
+      "name": "shape_not_flagged",
+      "pass": true,
+      "detail": "packet: shape_change: no"
+    },
+    {
+      "name": "pitch_not_flagged",
+      "pass": true,
+      "detail": "packet: pitch_contradiction: no"
+    },
+    {
+      "name": "moved_test_listed",
+      "pass": true,
+      "detail": "both moved test files listed"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": true,
+      "detail": "the boundary picture is in the packet"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "1 finding(s) dropped for citing nothing"
+    },
+    {
+      "name": "stop_accept_moves",
+      "pass": true,
+      "detail": "stop: accept_moves for originator"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    }
+  ],
+  "passed": 9,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "message-wording",
+    "after": "guardian",
+    "stop": {
+      "order": "accept_moves",
+      "seat": "originator",
+      "question": "2 old test(s) moved with a record; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "accept_moves",
+        "seat": "originator",
+        "question": "2 old test(s) moved with a record; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/message-wording.md",
+    "worktree": "/tmp/xv-eval-guardian-moves-9p8u8k_8/repo/.xv/worktrees/message-wording",
+    "packet": ".xv/slices/message-wording.packet.md"
+  },
+  "final_message": "# 5. The wall\\n\\nNo recommendations. The wall diff shows no new or deleted test files; the two changed tests still cover the store and the API (`tests/test_store.py:22`, `tests/test_api.py:34`). No tests are marked slice-only (`.xv/slices/message-wording.md:16`).\\n\\n## Scenario misses\\n\\n- The quantity error must end in a period (`.xv/slices/message-wording.md:34`). The store and API tests expect text without it (`tests/test_store.py:25`, `tests/test_api.py:36`), and the implementation omits it (`pantry/store.py:23`); to: scenario.\\n\\n## Door\\n\\n**Door:** two-way; a revert restores the prior message (`pantry/store.py:23`). **Blast radius:** household.\\n\\n## Raw data\\n\\n- Slice record: `.xv/slices/message-wording.md`\\n- Diff: `git diff 56e2d646296c237e9c505a1bee89c0ec2bec98a2..HEAD` and `git diff HEAD`\\n- Wall: `xv wall diff message-wording`\\n- Boundary: `.xv/slices/message-wording.boundary.md`\\n- Unaccepted estimation rows available to revert: `2026-10-07-add-items`; `2026-10-08-use-items` (two rows); `2026-10-14-expiring` (two rows).\\nEOF'\",\"aggregated_output\":\"\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_9\",\"type\":\"agent_message\",\"text\":\"The packet is ready: [message-wording.packet.md](/tmp/xv-eval-guardian-moves-9p8u8k_8/repo/.xv/worktrees/message-wording/.xv/slices/message-wording.packet.md).\\n\\nAll 11 tests pass. The message and tests miss the period required by the scenario. Send the slice back to the scenario step.\\n\\n```xv-report\\n{\\\"agent\\\":\\\"guardian\\\",\\\"status\\\":\\\"done\\\",\\\"summary\\\":\\\"The message and tests omit the period required by the scenario.\\\",\\\"packet\\\":\\\".xv/slices/message-wording.packet.md\\\",\\\"shape_change\\\":\\\"no\\\",\\\"pitch_contradiction\\\":\\\"no\\\",\\\"picture_change\\\":\\\"no\\\",\\\"moved_tests\\\":2,\\\"door\\\":\\\"two-way\\\",\\\"wall_recommendations\\\":[]}\\n```\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":154420,\"cached_input_tokens\":141056,\"cache_write_input_tokens\":0,\"output_tokens\":2161,\"reasoning_output_tokens\":78}}\n"
+}

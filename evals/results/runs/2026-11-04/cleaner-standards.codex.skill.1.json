@@ -1,0 +1,76 @@
+{
+  "scenario": "cleaner-standards",
+  "increment": 1,
+  "agent": "cleaner",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:04:57.966196+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 19241,
+      "tokens_out": 824,
+      "cache_read": 183040,
+      "cache_write": 0,
+      "tokens": 20065,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 38.9,
+      "session": "01a1a6e0-93c2-7430-99d5-4ecaf22c23b8",
+      "step": "cleaner",
+      "at": "2026-11-04T14:05:37+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-cleaner-standards-krr2u9ou/repo/.git/xv/runs/hide-used-up/01-cleaner.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "standards_violations_fixed",
+      "pass": true,
+      "detail": "both rules applied"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "agent_committed",
+      "pass": true,
+      "detail": "commits: ['xv(hide-used-up): make it right']"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    }
+  ],
+  "passed": 6,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "cleaner",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-cleaner-standards-krr2u9ou/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": " <HTTPError 400: 'Bad Request'>\\n  _warnings.warn(self.warn_message, ResourceWarning)\\n.............\\n----------------------------------------------------------------------\\nRan 13 tests in 2.513s\\n\\nOK\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_11\",\"type\":\"command_execution\",\"command\":\"/usr/bin/bash -lc \\\"git add pantry/store.py && git commit -m 'xv(hide-used-up): make it right' -m 'No print() in pantry/; the API reports errors as JSON\\nbaseline: Mysterious name' && git rev-parse HEAD && git status --short\\\"\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_11\",\"type\":\"command_execution\",\"command\":\"/usr/bin/bash -lc \\\"git add pantry/store.py && git commit -m 'xv(hide-used-up): make it right' -m 'No print() in pantry/; the API reports errors as JSON\\nbaseline: Mysterious name' && git rev-parse HEAD && git status --short\\\"\",\"aggregated_output\":\"[xv/hide-used-up e889cc2] xv(hide-used-up): make it right\\n 1 file changed, 2 insertions(+), 3 deletions(-)\\ne889cc25aed54b5ccb8d032e389bb60bd3754095\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_12\",\"type\":\"agent_message\",\"text\":\"I removed the debug print and made the names clear. All 13 tests pass.\\n\\nI saved the changes in commit `e889cc2`. You do not need to do anything now.\\n\\n```xv-report\\n{\\\"agent\\\":\\\"cleaner\\\",\\\"status\\\":\\\"done\\\",\\\"summary\\\":\\\"Removed debug output and clarified names.\\\",\\\"commit\\\":\\\"e889cc25aed54b5ccb8d032e389bb60bd3754095\\\",\\\"applied\\\":[{\\\"rule\\\":\\\".xv/standards.md: No print() in pantry/; the API reports errors as JSON\\\",\\\"where\\\":\\\"pantry/store.py:41\\\"},{\\\"rule\\\":\\\"baseline: Mysterious name\\\",\\\"where\\\":\\\"pantry/store.py:42\\\"}],\\\"moved_tests\\\":[],\\\"shape_proposals\\\":[],\\\"candidate_standards\\\":[]}\\n```\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":202281,\"cached_input_tokens\":183040,\"cache_write_input_tokens\":0,\"output_tokens\":824,\"reasoning_output_tokens\":40}}\n"
+}

@@ -1,0 +1,171 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:07:45.257879+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 4,
+      "tokens_out": 540,
+      "cache_read": 26745,
+      "cache_write": 4903,
+      "tokens": 5447,
+      "usd": 0.0277,
+      "turns": 3,
+      "wall_s": 5.3,
+      "session": "3b8c2b7d-1aa3-4d80-9943-058a6c8e3fa9",
+      "step": "forecaster",
+      "at": "2026-11-04T14:07:50+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-lj7aergu/repo/.git/xv/runs/expiring-today/01-forecaster.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 1421,
+      "cache_read": 67415,
+      "cache_write": 10181,
+      "tokens": 11610,
+      "usd": 0.0617,
+      "turns": 6,
+      "wall_s": 14.3,
+      "session": "0f7aac43-2567-405f-8663-7ce93a1ac07a",
+      "step": "scenario",
+      "at": "2026-11-04T14:08:05+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-lj7aergu/repo/.git/xv/runs/expiring-today/02-scenario.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 787,
+      "cache_read": 65150,
+      "cache_write": 8081,
+      "tokens": 8876,
+      "usd": 0.0467,
+      "turns": 6,
+      "wall_s": 10.3,
+      "session": "0665221d-faf6-4060-b5bc-834c676804b8",
+      "step": "maker",
+      "at": "2026-11-04T14:08:15+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-lj7aergu/repo/.git/xv/runs/expiring-today/03-maker.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 4,
+      "tokens_out": 532,
+      "cache_read": 27289,
+      "cache_write": 11519,
+      "tokens": 12055,
+      "usd": 0.0541,
+      "turns": 2,
+      "wall_s": 8.4,
+      "session": "85510e4e-bc68-4ff2-b12c-dfe45ae815ca",
+      "step": "cleaner",
+      "at": "2026-11-04T14:08:26+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-lj7aergu/repo/.git/xv/runs/expiring-today/04-cleaner.out"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 2579,
+      "cache_read": 77210,
+      "cache_write": 15116,
+      "tokens": 17703,
+      "usd": 0.094,
+      "turns": 5,
+      "wall_s": 19.9,
+      "session": "2cc7c5ed-6773-48fd-8977-185d924f182e",
+      "step": "guardian",
+      "at": "2026-11-04T14:08:49+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-lj7aergu/repo/.git/xv/runs/expiring-today/05-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": true,
+      "detail": "ran: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_api.py'], 'command': 'python3 -m unittest tests.test_api.ApiTest.test_an_item_that_runs_out_today_is_expiring_soon', 'failure': 'AssertionError: lists differ: [yogurt] != [milk, yogurt] (milk expiring 2026-10-21 missing)', 'watch_first_green': None}"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": true,
+      "detail": "wall baseline: {'commit': '2bc16d846e5c2a7ff0d1e750325a775200cc58e6', 'count': 3, 'digest': '41b5926a53625844', 'file': '.xv/slices/expiring-today.wall.json'}"
+    },
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/expiring-today.packet.md"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": true,
+      "detail": "stop: ready_to_merge for originator"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 8,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "expiring-today",
+    "after": "guardian",
+    "stop": {
+      "order": "ready_to_merge",
+      "seat": "originator",
+      "question": "The suite is green and nothing stopped. The merge is yours.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "ready_to_merge",
+        "seat": "originator",
+        "question": "The suite is green and nothing stopped. The merge is yours.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/expiring-today.md",
+    "worktree": "/tmp/xv-eval-watch-headless-lj7aergu/repo/.xv/worktrees/expiring-today",
+    "packet": ".xv/slices/expiring-today.packet.md"
+  },
+  "final_message": "2026-10-23, days=3, today=2026-10-21)\", \"test\": [\"ApiTest.test_an_item_that_runs_out_today_is_expiring_soon\"]}], \"not_covered\": [], \"slice_only\": []}\n```\n---\nThe fix was a one-character change in `pantry/store.py:47`. The expiring query now includes items that expire today (`today <= i.expires_on <= last`, where it was `today < i.expires_on`). The red test passes, and the whole suite passes: 12 tests, exit code 0. No old tests were changed, and the changes are left uncommitted.\n\n```xv-report\n{\"agent\": \"maker\", \"status\": \"green\", \"summary\": \"expiring() now includes items expiring today (today <= expires_on <= last)\", \"moved_tests\": [], \"stop\": null}\n```\n---\nThe maker's change is a single comparison in `pantry/store.py:47`, from `today < i.expires_on` to `today <= i.expires_on`. Against the baseline smells and `.xv/standards.md` it needs no fix:\n\n- **Names:** `today`, `last` and `expires_on` follow the date-naming rule.\n- **`print()`:** none added.\n- **Tests:** the maker added one test and changed no old test, so no assertion got weaker and there is nothing to record as a move. `slice_only` is empty.\n- **Suite:** the whole suite exits 0 with 12 tests passing.\n\nI committed nothing.\n\n```xv-report\n{\"agent\": \"cleaner\", \"status\": \"done\", \"summary\": \"nothing to fix: one-comparison change is clean, suite green, no commit\", \"commit\": null,\n \"applied\": [],\n \"moved_tests\": [], \"shape_proposals\": [],\n \"candidate_standards\": []}\n```\n---\nThe packet is written to `.xv/slices/expiring-today.packet.md`. I found nothing that needs a decision, so the merge is the originator's.\n\n- **The change:** one comparison in `pantry/store.py:47` moves from `today < i.expires_on` to `today <= i.expires_on`. Milk that runs out today now shows with the yogurt.\n- **Shape:** no change. The boundary picture shows no new module, edge, table or surface, and no shape hints.\n- **Pitch:** no contradiction. The change serves \"shows ... what runs out soon\", and I found no I/O or new audience in the diff.\n- **Scenario:** no miss. The red test replays the recording and goes green, and the whole suite is green at 12 tests.\n- **Moved tests:** none. `xv wall diff` shows no changed or deleted wall files, matching the empty `moved_tests` in the record. The only test change is the one new test.\n- **Picture:** nothing in `.xv/picture.md` becomes untrue.\n- **Wall:** I would leave the new test as it is, since it guards a boundary that can regress. No existing wall test is made dead.\n- **Door:** two-way, small blast radius.\n\nI listed the five forecaster rows added to `.xv/estimation.md` under Raw data so a person can revert any of them.\n\n```xv-report\n{\"agent\": \"guardian\", \"status\": \"done\", \"summary\": \"One-comparison boundary fix inside the current shape; no shape change, no pitch contradiction, no moved tests\", \"packet\": \".xv/slices/expiring-today.packet.md\",\n \"shape_change\": \"no\", \"pitch_contradiction\": \"no\", \"picture_change\": \"no\", \"moved_tests\": 0, \"door\": \"two-way\",\n \"wall_recommendations\": []}\n```"
+}

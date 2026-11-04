@@ -1,0 +1,117 @@
+{
+  "scenario": "prototypes-axis",
+  "increment": 9,
+  "agent": "prototype",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:38:44.463946+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 8346,
+      "tokens_out": 2146,
+      "cache_read": 180480,
+      "cache_write": 0,
+      "tokens": 10492,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 62.0,
+      "session": "01a1a6ff-7fbd-7fb0-a627-2f5458736d58",
+      "step": "prototype-a",
+      "at": "2026-11-04T14:39:48+00:00"
+    },
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 5528,
+      "tokens_out": 2054,
+      "cache_read": 153088,
+      "cache_write": 0,
+      "tokens": 7582,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 52.9,
+      "session": "01a1a6ff-7fbc-7502-b3bb-0dbc3287d0ee",
+      "step": "prototype-b",
+      "at": "2026-11-04T14:39:48+00:00"
+    },
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 13253,
+      "tokens_out": 2187,
+      "cache_read": 175360,
+      "cache_write": 0,
+      "tokens": 15440,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 63.6,
+      "session": "01a1a6ff-7fc0-7af2-9142-2d528f3e6e94",
+      "step": "prototype-c",
+      "at": "2026-11-04T14:39:48+00:00"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "three_prototypes_recorded",
+      "pass": true,
+      "detail": "recordings: ['a', 'b', 'c']"
+    },
+    {
+      "name": "prototypes_differ",
+      "pass": true,
+      "detail": "3 distinct recordings of 3"
+    },
+    {
+      "name": "side_by_side_packet",
+      "pass": true,
+      "detail": "three sections side by side"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": true,
+      "detail": "stop: prototypes_ready for two_people"
+    },
+    {
+      "name": "no_pick_made",
+      "pass": true,
+      "detail": "no pick"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 6,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "quick-use",
+    "after": "prototype",
+    "stop": {
+      "order": "prototypes_ready",
+      "seat": "two_people",
+      "question": "3 prototype(s) are ready to pick from, or none. Two people pick, with a user when one can be reached.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "prototypes_ready",
+        "seat": "two_people",
+        "question": "3 prototype(s) are ready to pick from, or none. Two people pick, with a user when one can be reached.",
+        "blocking": true
+      }
+    ],
+    "packet": ".xv/slices/quick-use.prototypes.md"
+  },
+  "final_message": ""
+}

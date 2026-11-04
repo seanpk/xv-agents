@@ -1,0 +1,104 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:06:17.183385+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 22813,
+      "tokens_out": 2287,
+      "cache_read": 131968,
+      "cache_write": 0,
+      "tokens": 25100,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 56.9,
+      "session": "01a1a6e1-c8fc-79e0-abca-fb8527b0eb3a",
+      "step": "guardian",
+      "at": "2026-11-04T14:07:14+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-guardian-pitch-b7r92qxs/repo/.git/xv/runs/share-with-grocer/01-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/share-with-grocer.packet.md"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": true,
+      "detail": "packet: pitch_contradiction: yes"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": true,
+      "detail": "packet: shape_change: yes"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": true,
+      "detail": "quotes or cites a pitch line"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": true,
+      "detail": "stop: shape_or_pitch for two_people"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": true,
+      "detail": "the boundary picture is in the packet"
+    },
+    {
+      "name": "findings_cited",
+      "pass": false,
+      "detail": "2 finding(s) dropped for citing nothing"
+    }
+  ],
+  "passed": 8,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "share-with-grocer",
+    "after": "guardian",
+    "stop": {
+      "order": "shape_or_pitch",
+      "seat": "two_people",
+      "question": "The guardian's packet says shape_change and pitch_contradiction. Two people decide from the packet.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "shape_or_pitch",
+        "seat": "two_people",
+        "question": "The guardian's packet says shape_change and pitch_contradiction. Two people decide from the packet.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/share-with-grocer.md",
+    "worktree": "/tmp/xv-eval-guardian-pitch-b7r92qxs/repo/.xv/worktrees/share-with-grocer",
+    "packet": ".xv/slices/share-with-grocer.packet.md"
+  },
+  "final_message": "address, so it cannot establish delivery to the named partner (pantry/grocer.py:6, 11-13; tests/test_grocer.py:16-17). to: scenario. The record has no red (.xv/slices/share-with-grocer.md:13).\\n- Binding decision: data stays on the household'\\\"'s machine (.xv/picture.md:29). The code sends item data out (pantry/grocer.py:10-13). to: scenario. The record has no red (.xv/slices/share-with-grocer.md:13).\\n\\n## Door\\n\\n**Door:** one-way. A successful outbound call sends household data to a partner; a revert cannot recall it (pantry/grocer.py:10-13). **Blast radius:** household.\\n\\n## Raw data\\n\\n- Record: \\\"'`.xv/slices/share-with-grocer.md`\\n- Diff: `git diff 20482a0013bbe7d9cea590f3197d6586615d287f..HEAD` and `git diff HEAD`\\n- Wall: `xv wall diff share-with-grocer` (failed: no baseline)\\n- Boundary: `.xv/slices/share-with-grocer.boundary.md`\\n- Unaccepted estimation rows named for review or revert: `2026-10-07-add-items`; `2026-10-08-use-items` twice; `2026-10-14-expiring` twice.\\nEOF'\",\"aggregated_output\":\"\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_12\",\"type\":\"agent_message\",\"text\":\"I wrote the [guardian packet](/tmp/xv-eval-guardian-pitch-b7r92qxs/repo/.xv/worktrees/share-with-grocer/.xv/slices/share-with-grocer.packet.md).\\n\\nThe change conflicts with the pitch. It also adds an outside connection. Two people need to review it.\\n\\nAll 12 tests passed. The wall check could not run because the record has no baseline.\\n\\n```xv-report\\n{\\\"agent\\\":\\\"guardian\\\",\\\"status\\\":\\\"done\\\",\\\"summary\\\":\\\"Stop for shape and pitch review; the wall baseline is missing.\\\",\\\"packet\\\":\\\".xv/slices/share-with-grocer.packet.md\\\",\\\"shape_change\\\":\\\"yes\\\",\\\"pitch_contradiction\\\":\\\"yes\\\",\\\"picture_change\\\":\\\"yes\\\",\\\"moved_tests\\\":0,\\\"door\\\":\\\"one-way\\\",\\\"wall_recommendations\\\":[]}\\n```\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":154781,\"cached_input_tokens\":131968,\"cache_write_input_tokens\":0,\"output_tokens\":2287,\"reasoning_output_tokens\":85}}\n"
+}

@@ -1,0 +1,80 @@
+{
+  "scenario": "guardian-moves",
+  "increment": 4,
+  "agent": "guardian",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:18:21.370629+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 5551,
+      "tokens_out": 555,
+      "cache_read": 98304,
+      "cache_write": 0,
+      "tokens": 6106,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 21.3,
+      "session": "01a1a6ec-d604-78e1-a5cc-a97b594edf3e"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "review.md"
+    },
+    {
+      "name": "shape_not_flagged",
+      "pass": false,
+      "detail": "packet: shape_change: None"
+    },
+    {
+      "name": "pitch_not_flagged",
+      "pass": false,
+      "detail": "packet: pitch_contradiction: None"
+    },
+    {
+      "name": "moved_test_listed",
+      "pass": true,
+      "detail": "both moved test files listed"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": false,
+      "detail": "no boundary picture"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    },
+    {
+      "name": "stop_accept_moves",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "Reading additional input from stdin...\n2026-11-04T14:18:21.588637Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/analyze-meeting-transcript/SKILL.md: missing YAML frontmatter delimited by ---\n2026-11-04T14:18:21.588649Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/project-review/SKILL.md: missing YAML frontmatter delimited by ---\n",
+  "verdict": null,
+  "final_message": "-----------------------------------------------\\nRan 11 tests in 2.012s\\n\\nOK\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_5\",\"type\":\"command_execution\",\"command\":\"/usr/bin/bash -lc \\\"cat > review.md <<'EOF'\\n# Review\\n\\n- **[P3] Add the period to the error message** \u2014 \\\"'`pantry/store.py:23` returns `Quantity must be a whole number above zero` without the final period. The slice asks for `Quantity must be a whole number above zero.` This also affects the API response. Add the period and update both changed tests so they check the requested text.\\n\\nBoth existing tests for this message were changed: `tests/test_store.py:25` and `tests/test_api.py:36`. They now pass with the missing period.\\n\\nAll 11 tests passed.\\nEOF'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_5\",\"type\":\"command_execution\",\"command\":\"/usr/bin/bash -lc \\\"cat > review.md <<'EOF'\\n# Review\\n\\n- **[P3] Add the period to the error message** \u2014 \\\"'`pantry/store.py:23` returns `Quantity must be a whole number above zero` without the final period. The slice asks for `Quantity must be a whole number above zero.` This also affects the API response. Add the period and update both changed tests so they check the requested text.\\n\\nBoth existing tests for this message were changed: `tests/test_store.py:25` and `tests/test_api.py:36`. They now pass with the missing period.\\n\\nAll 11 tests passed.\\nEOF'\",\"aggregated_output\":\"\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_6\",\"type\":\"agent_message\",\"text\":\"I wrote the review to [review.md](/tmp/xv-eval-guardian-moves-pm95egqj/repo/.xv/worktrees/message-wording/review.md).\\n\\nI found one issue: the error message is missing the requested period. All 11 tests passed.\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":103855,\"cached_input_tokens\":98304,\"cache_write_input_tokens\":0,\"output_tokens\":555,\"reasoning_output_tokens\":92}}\n"
+}

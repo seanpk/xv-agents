@@ -1,0 +1,76 @@
+{
+  "scenario": "cleaner-standards",
+  "increment": 1,
+  "agent": "cleaner",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:04:57.967716+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 6,
+      "tokens_out": 879,
+      "cache_read": 34562,
+      "cache_write": 19475,
+      "tokens": 20360,
+      "usd": 0.0902,
+      "turns": 3,
+      "wall_s": 12.9,
+      "session": "d0f4f614-c999-466b-9748-4576a89ec89f",
+      "step": "cleaner",
+      "at": "2026-11-04T14:05:11+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-cleaner-standards-w7364wyd/repo/.git/xv/runs/hide-used-up/01-cleaner.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "standards_violations_fixed",
+      "pass": true,
+      "detail": "both rules applied"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "agent_committed",
+      "pass": true,
+      "detail": "commits: ['xv(hide-used-up): make it right']"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    }
+  ],
+  "passed": 6,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "cleaner",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-cleaner-standards-w7364wyd/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "I removed a stray debug `print` and renamed two one-letter variables in `Store.items()`. The suite is green (13 tests, exit 0) and the fix is committed.\n\nThe maker's test change is a legitimate move. The old test asserted bread listed with qty 0. The new one asserts the list is empty, and that matches the scenario. No test asserts less than before.\n\n```xv-report\n{\"agent\": \"cleaner\", \"status\": \"done\", \"summary\": \"Removed debug print and renamed one-letter variables in Store.items; suite green\", \"commit\": \"e3a39fa\",\n \"applied\": [{\"rule\": \".xv/standards.md: No print() in pantry/; the API reports errors as JSON\", \"where\": \"pantry/store.py:42\"},\n {\"rule\": \"baseline: mysterious name (d -> by_name, x -> item)\", \"where\": \"pantry/store.py:42\"}],\n \"moved_tests\": [], \"shape_proposals\": [],\n \"candidate_standards\": []}\n```"
+}

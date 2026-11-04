@@ -1,8 +1,39 @@
 # Eval results
 
-Each scenario runs on a fresh copy of the fixture repo ([`evals/fixture/`](../fixture/), a household pantry app), once with the skill through `xv step` or `xv run`, and once without it: the same task typed as a person would, with no brief. Claude Code ran Sonnet through `claude -p --safe-mode`. opencode ran `gpt-oss:20b` on one local GPU. Grok ran `grok-4.7` through `grok -p`. Every step of a scenario used the same model.
+Each scenario runs on a fresh copy of the fixture repo ([`evals/fixture/`](../fixture/), a household pantry app), once with the skill through `xv step` or `xv run`, and once without it: the same task typed as a person would, with no brief. Claude Code ran Sonnet through `claude -p --safe-mode`. opencode ran `gpt-oss:20b` on one local GPU. Grok ran `grok-4.7` through `grok -p`. Codex ran `gpt-6.1-terra` through `codex exec --json`. Every step of a scenario used the same model.
 
 One run per cell. A cell is a count of assertions passed, not a rate, and a single run cannot separate a small difference from run-to-run noise. Each scenario's assertions read the repo after the run, not the agent's account of it ([`evals/grade.py`](../grade.py)). Some assertions read the slice record, which only the skill arm keeps; on those the baseline fails by construction, and that is what they measure.
+
+## Claude and Codex
+
+Run 2026-11-04 on commit 9c9a98d, all 13 scenarios on Claude Code and on Codex. `runs/2026-11-04/`. The first run of prototypes-axis stopped on `prototype_budgets_not_set` on both harnesses: since v0.3.1 (#55) a prototype slice with no `prototype_budgets` stops before any variant is built, and the scenario set none. It ran again after ad83760 gave each variant a budget.
+
+Codex ran `gpt-6.1-terra` with codex-cli 0.165.0 and the sandbox off, as Grok runs with its permission checks off; each run is on a throwaway copy of the fixture. Claude Code ran Sonnet. Terra is the Codex model paired with Sonnet; Sol is paired with Opus.
+
+| inc | scenario | claude skill | claude baseline | codex skill | codex baseline |
+| --- | --- | --- | --- | --- | --- |
+| 1 | cleaner-standards | 6/6 | 5/6 | 6/6 | 4/6 |
+| 1 | guardian-pitch | 9/9 | 4/9 | 8/9 | 4/9 |
+| 1 | maker-feature | 7/7 | 4/7 | 7/7 | 4/7 |
+| 1 | scenario-defect | 6/6 | 4/6 | 6/6 | 5/6 |
+| 2 | watch-headless | 8/8 | 4/8 | 8/8 | 3/8 |
+| 3 | scenario-feature | 7/7 | 4/7 | 7/7 | 5/7 |
+| 3 | scenario-har | 6/6 | 4/6 | 6/6 | 5/6 |
+| 4 | guardian-moves | 9/9 | 4/9 | 9/9 | 4/9 |
+| 5 | retro-moments | 5/5 | 3/5 | 4/5 | 3/5 |
+| 6 | forecaster-keys | 4/4 | 3/4 | 4/4 | 3/4 |
+| 7 | listener-packet | 6/6 | 4/6 | 6/6 | 5/6 |
+| 8 | retro-adopt | 5/5 | | 5/5 | |
+| 9 | prototypes-axis | 6/6 | | 6/6 | |
+| | **total** | **84/84** | **43/73** | **82/84** | **45/73** |
+
+Claude spent $1.08 with the skills and $0.50 without. Codex reports tokens and no dollars: 262,341 tokens with the skills and 165,896 without. A token count means something only within one model, so the two are not compared here.
+
+- **Both harnesses ran the method end to end with the briefs.** Claude passed every assertion. Codex missed two: in guardian-pitch the evidence rule dropped two findings that cited nothing, and in retro-moments the retro proposed prose and no check.
+- **Codex runs as a step.** The watch read each Codex worker's report from its last `agent_message`, and no step ended without a report.
+- **Without the briefs, neither model kept the method.** Neither recorded the moved test in maker-feature, so the wall fails on an unrecorded change to `tests/test_store.py`. Neither stopped a guardian review for a person, and neither ran the watch's steps.
+- **Codex's baseline is not a clean baseline.** Codex loads `~/.codex/AGENTS.md` and lists the skills in `~/.agents/skills`, which on this machine include the XV skills, and `--ignore-user-config --ignore-rules` do not turn that off (see [`docs/harness-notes.md`](../../docs/harness-notes.md)). Its baseline wrote `xv-report` blocks in scenario-defect, scenario-feature and scenario-har, a format only the briefs describe. As with Grok, the gap between the arms on Codex measures the briefs on top of a person's own setup.
+- **Claude's skill arm went from 80/84 in v0.1 to 84/84**, on briefs that changed through v0.4.1. One run per cell, and three of v0.1's misses passed when rerun the same day, so this alone does not show the briefs got better.
 
 ## v0.1
 
@@ -77,5 +108,6 @@ Earlier runs, on the code as each increment left it. The early ones found bugs t
 | `runs/pre-review/` | 3d9e9cf | 1 to 9 | Claude, opencode partly | The listener's front matter and ranking check; then a fresh-context review of the code found nine more bugs, and the run was stopped and redone as v0.1. |
 | `runs/v0.1/` | 776764c | 1 to 9 | Claude, opencode | Above. |
 | `runs/grok/` | f919f02 | 1 to 9 | Grok | Above. |
+| `runs/2026-11-04/` | 9c9a98d, ad83760 | 1 to 9 | Claude, Codex | Above. The prototypes eval had fallen behind the budget order from v0.3.1. |
 
 Run them yourself with `python3 evals/run.py --all --harness claude opencode grok` and summarise with `python3 evals/report.py evals/results/runs/<dir> --details`. The spend the Claude run recorded for all thirteen scenarios, both arms, was $1.52; the retro and listener runs record no spend, so the real figure is somewhat higher.

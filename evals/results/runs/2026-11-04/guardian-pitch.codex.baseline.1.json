@@ -1,0 +1,80 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:07:14.186450+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 14387,
+      "tokens_out": 481,
+      "cache_read": 86656,
+      "cache_write": 0,
+      "tokens": 14868,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 23.2,
+      "session": "01a1a6e2-a789-7261-9388-21d319b132a9"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "review.md"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": true,
+      "detail": "the review names a conflict with the pitch"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": false,
+      "detail": "no shape change named"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": false,
+      "detail": "no pitch line cited"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": false,
+      "detail": "no boundary picture"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    }
+  ],
+  "passed": 4,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "Reading additional input from stdin...\n2026-11-04T14:07:15.211771Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/analyze-meeting-transcript/SKILL.md: missing YAML frontmatter delimited by ---\n2026-11-04T14:07:15.211783Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/project-review/SKILL.md: missing YAML frontmatter delimited by ---\n",
+  "verdict": null,
+  "final_message": "cannot reach the real service. Use the real service address before shipping.\\n- **P2 \u2014 A failed grocery call closes the API connection.** `pantry/api.py:49` does not catch `HTTPError` or `URLError` from `urlopen`. A rejected token or an unavailable service therefore gives the caller no JSON response. Return an error response so the household can see that the list was not sent.\\nEOF'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_3\",\"type\":\"command_execution\",\"command\":\"/usr/bin/bash -lc \\\"cat > review.md <<'EOF'\\n# Review\\n\\n- **P1 \u2014 This sends household data outside the machine.** \\\"'`pantry/grocer.py:12-13` sends item names, quantities, and dates to a grocer. This conflicts with `.xv/pitch.md`, which says the app never sends household data elsewhere and is not for grocers. The household needs to change that rule before this can merge.\\n- **P1 \u2014 The grocery service address is a placeholder.** `pantry/grocer.py:6` uses `api.grocernow.example`. The `.example` domain is reserved for examples, so the call cannot reach the real service. Use the real service address before shipping.\\n- **P2 \u2014 A failed grocery call closes the API connection.** `pantry/api.py:49` does not catch `HTTPError` or `URLError` from `urlopen`. A rejected token or an unavailable service therefore gives the caller no JSON response. Return an error response so the household can see that the list was not sent.\\nEOF'\",\"aggregated_output\":\"\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_4\",\"type\":\"agent_message\",\"text\":\"I wrote the review to [review.md](review.md).\\n\\nI found three issues. The change sends data outside the home, uses a placeholder address, and does not handle failed grocery calls.\\n\\nPlease review those issues before merging.\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":101043,\"cached_input_tokens\":86656,\"cache_write_input_tokens\":0,\"output_tokens\":481,\"reasoning_output_tokens\":26}}\n"
+}

@@ -1,0 +1,81 @@
+{
+  "scenario": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:06:15.595982+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 14,
+      "tokens_out": 1644,
+      "cache_read": 124940,
+      "cache_write": 9795,
+      "tokens": 11453,
+      "usd": 0.0681,
+      "turns": 7,
+      "wall_s": 27.2,
+      "session": "09b263be-a6f3-4c28-ac04-603874d99173",
+      "step": "maker",
+      "at": "2026-11-04T14:06:43+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-maker-feature-dww0jwz3/repo/.git/xv/runs/hide-used-up/01-maker.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "preset_red_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "red_file_unchanged",
+      "pass": true,
+      "detail": "the scenario agent's red is untouched"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "moved_test_recorded",
+      "pass": true,
+      "detail": "recorded moves: ['tests/test_store.py', 'tests/test_store.py']"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status green"
+    },
+    {
+      "name": "wall_holds",
+      "pass": true,
+      "detail": "unrecorded: [], recorded: ['tests/test_store.py']"
+    }
+  ],
+  "passed": 7,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "maker",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-maker-feature-dww0jwz3/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "The slice is green. The red command and the whole suite pass (13 tests, exit 0).\n\n- **Change:** `Store.items()` in `pantry/store.py` now leaves out items with `qty` 0. That fixes the store test and `GET /items`.\n- **Expiring list:** `expiring()` now reads from a new private `_all()`, which is the old unfiltered listing. This keeps the expiring list behaving as before, as the slice asked.\n- **Moved test:** `test_used_up_item_stays_listed` in `tests/test_store.py` asserted that a used-up bread still lists as `(\"bread\", 0)`. The scenario reverses that, so I changed only that assertion to expect an empty list. The move is recorded with `xv record move`.\n- **Slice record:** that command also edited `.xv/slices/hide-used-up.md`, which now shows as modified.\n- **Commits:** nothing is committed.\n\n```xv-report\n{\"agent\": \"maker\", \"status\": \"green\", \"summary\": \"Store.items() now omits items with qty 0; expiring() uses an unfiltered internal listing so it is unchanged\",\n \"moved_tests\": [{\"file\": \"tests/test_store.py\", \"assertion\": \"was: items() after using the last bread == [('bread', 0)]; now: == []\", \"why\": \"The scenario says an item with none left no longer shows in the list, which reverses what test_used_up_item_stays_listed asserted.\"}],\n \"stop\": null}\n```"
+}

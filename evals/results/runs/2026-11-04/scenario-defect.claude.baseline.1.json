@@ -1,0 +1,65 @@
+{
+  "scenario": "scenario-defect",
+  "increment": 1,
+  "agent": "scenario",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:07:28.695678+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 817,
+      "cache_read": 57458,
+      "cache_write": 6708,
+      "tokens": 7533,
+      "usd": 0.0408,
+      "turns": 4,
+      "wall_s": 11.3,
+      "session": "ffce401a-0a67-4ec8-b393-e43b065b8f4b"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "changed_only_tests",
+      "pass": true,
+      "detail": "only test files changed"
+    },
+    {
+      "name": "red_fails_on_assertion",
+      "pass": true,
+      "detail": "fails on an assertion"
+    },
+    {
+      "name": "red_replays_recording",
+      "pass": true,
+      "detail": "uses the recording's milk and date"
+    },
+    {
+      "name": "old_tests_green",
+      "pass": true,
+      "detail": "every old test passes"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 4,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I added a failing test, `test_an_item_that_runs_out_today_is_expiring`, in `tests/test_api.py`. It reproduces the defect, and it's the only failure in the suite. The other 11 tests pass.\n\nThe test follows the recording. It adds milk expiring 2026-10-21 and yogurt expiring 2026-10-23. It then asks `GET /items/expiring?days=3&today=2026-10-21` and expects both items, milk first. The API returns only the yogurt.\n\nThe cause is in `Store.expiring` in `pantry/store.py`. The filter is `today < i.expires_on <= last`, and the strict `<` drops anything that expires today. I haven't changed that code, and I haven't committed anything."
+}

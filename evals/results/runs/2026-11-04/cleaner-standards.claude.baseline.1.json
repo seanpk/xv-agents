@@ -1,0 +1,65 @@
+{
+  "scenario": "cleaner-standards",
+  "increment": 1,
+  "agent": "cleaner",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:05:16.188078+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 10,
+      "tokens_out": 780,
+      "cache_read": 75895,
+      "cache_write": 6629,
+      "tokens": 7419,
+      "usd": 0.0419,
+      "turns": 5,
+      "wall_s": 12.2,
+      "session": "bd2562ec-bbd9-4bd9-b0c6-71923d5e3f54"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "standards_violations_fixed",
+      "pass": true,
+      "detail": "both rules applied"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "agent_committed",
+      "pass": true,
+      "detail": "commits: ['xv(hide-used-up): tidy items()']"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    }
+  ],
+  "passed": 5,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I tidied `Store.items()` in `pantry/store.py`, the only code in that diff that needed it. The 13 tests pass and the change is committed as `d4c7ad1`.\n\n- **Debug print:** I removed `print(\"items:\", len(d))`. The repo's standards say no `print()` in `pantry/`.\n- **Names:** I renamed `d` to `by_name` and `x` to `i`.\n\nThe `print` in `pantry/api.py` is the server startup message and wasn't part of this diff, so I left it."
+}

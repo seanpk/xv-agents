@@ -1,0 +1,80 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:05:57.589685+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 1773,
+      "cache_read": 57206,
+      "cache_write": 6268,
+      "tokens": 8049,
+      "usd": 0.0485,
+      "turns": 4,
+      "wall_s": 17.9,
+      "session": "c5b609ed-74d8-476b-8306-f298aec2fc19"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "review.md"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": false,
+      "detail": "no pitch conflict named"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": true,
+      "detail": "the review names the new outbound module"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": false,
+      "detail": "no pitch line cited"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": false,
+      "detail": "no boundary picture"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "every finding cites a line, a rule, or a hunk"
+    }
+  ],
+  "passed": 4,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "I've written the review to `review.md`. I read the diff and `pantry/api.py`; I didn't run the tests or the endpoint, so none of this is confirmed by running it.\n\nMy verdict is that the change isn't ready to merge. The filtering logic itself is correct. The main problems:\n\n- **Upstream errors aren't handled:** if GroceryNow returns an error (for example 401 for a bad token) or is down, `urlopen` raises an exception the handler doesn't catch. The client would likely get a dropped connection rather than a response. It should return a 502 with an error body.\n- **Missing token gives the wrong error:** a `/share` request with no `token` falls into the existing `KeyError` handler and returns 404 \"no item 'token'\". It should be a 400.\n- **Empty lists are still sent:** when nothing is low, the code still POSTs an empty list to GroceryNow. It should skip the call and return `sent: 0`.\n\nI also flagged a few lesser points:\n\n- The partner URL is hard-coded.\n- Every item field is sent to a third party, including `expires_on`.\n- The only test calls `send_low_stock` directly with `urlopen` mocked, and covers just the success case. Nothing exercises `POST /share` through the HTTP handler.\n\nI changed no other file."
+}

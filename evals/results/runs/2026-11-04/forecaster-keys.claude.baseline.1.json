@@ -1,0 +1,55 @@
+{
+  "scenario": "forecaster-keys",
+  "increment": 6,
+  "agent": "forecaster",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:12:03.981009+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 4,
+      "tokens_out": 835,
+      "cache_read": 25310,
+      "cache_write": 3074,
+      "tokens": 3913,
+      "usd": 0.0232,
+      "turns": 3,
+      "wall_s": 7.8,
+      "session": "9fa5f5f4-cc28-472d-ad0b-060d6566fad8"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "forecast_uses_same_key",
+      "pass": true,
+      "detail": "numbers seen: [300000, 270000, 410000, 412000, 268000, 330000]"
+    },
+    {
+      "name": "forecast_has_shape",
+      "pass": true,
+      "detail": "names the expected shape change"
+    },
+    {
+      "name": "forecaster_read_only",
+      "pass": true,
+      "detail": "changed nothing"
+    },
+    {
+      "name": "stop_asks_for_budget",
+      "pass": false,
+      "detail": "stop: None"
+    }
+  ],
+  "passed": 3,
+  "total": 4,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "**Estimate for hide-used-up (claude/sonnet)**\n\n- **Tokens:** about 300,000. The range is 270,000 to 410,000.\n- **Cost:** about $1.20. The range is $1.05 to $1.60.\n- **Turns:** about 20 to 25. The log has no turns column, so this is my own guess and isn't backed by the log. The wall times of 420 to 610 s for similar tasks fit that range.\n- **Shape:** none. It should be a small change to the store's list query, plus a test or two, with no new route.\n\n**Basis:** the three past claude/sonnet rows in `.xv/estimation.md`. The codex and haiku rows don't count, because a forecast only uses rows with the same harness and model.\n\n| Past task | Actual tokens | Actual cost |\n| --- | --- | --- |\n| add-items | 412,000 | $1.61 |\n| use-items | 268,000 | $1.05 |\n| expiring | 330,000 | $1.30 |\n\nThis task looks closest to use-items and expiring. Those were a small store change and a new store query, and they came in at 268,000 and 330,000 tokens. The 300,000 figure sits between them.\n\n**Main risk:** add-items ran 37% over because the agent installed pytest before finding the unittest command. The agent should use `python -m unittest` directly, which I'd expect to avoid that overrun. If it repeats that mistake, expect the top of the range, about 410,000 tokens and $1.60.\n\nI did not read the store code, so this estimate is from the log alone. The $3 budget is well above the estimate."
+}

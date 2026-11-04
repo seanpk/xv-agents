@@ -1,0 +1,171 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:10:59.650933+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 26048,
+      "tokens_out": 305,
+      "cache_read": 49280,
+      "cache_write": 0,
+      "tokens": 26353,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 13.7,
+      "session": "01a1a6e6-1876-7d83-a64e-c1807a70024d",
+      "step": "forecaster",
+      "at": "2026-11-04T14:11:13+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-3nuwdtnk/repo/.git/xv/runs/expiring-today/01-forecaster.out"
+    },
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 24672,
+      "tokens_out": 1001,
+      "cache_read": 204672,
+      "cache_write": 0,
+      "tokens": 25673,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 32.7,
+      "session": "01a1a6e6-4de9-7ab2-a5a7-81ec8f22aca8",
+      "step": "scenario",
+      "at": "2026-11-04T14:11:46+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-3nuwdtnk/repo/.git/xv/runs/expiring-today/02-scenario.out"
+    },
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 7152,
+      "tokens_out": 813,
+      "cache_read": 213504,
+      "cache_write": 0,
+      "tokens": 7965,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 46.6,
+      "session": "01a1a6e6-d799-7850-abdd-63dfe91caa61",
+      "step": "maker",
+      "at": "2026-11-04T14:12:35+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-3nuwdtnk/repo/.git/xv/runs/expiring-today/03-maker.out"
+    },
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 12575,
+      "tokens_out": 704,
+      "cache_read": 207360,
+      "cache_write": 0,
+      "tokens": 13279,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 33.4,
+      "session": "01a1a6e7-9799-7203-b3ce-5904cf246314",
+      "step": "cleaner",
+      "at": "2026-11-04T14:13:11+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-3nuwdtnk/repo/.git/xv/runs/expiring-today/04-cleaner.out"
+    },
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 17073,
+      "tokens_out": 1806,
+      "cache_read": 152320,
+      "cache_write": 0,
+      "tokens": 18879,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 44.9,
+      "session": "01a1a6e8-2445-7870-a4c7-7e91984d19c5",
+      "step": "guardian",
+      "at": "2026-11-04T14:13:58+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-watch-headless-3nuwdtnk/repo/.git/xv/runs/expiring-today/05-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": true,
+      "detail": "ran: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']"
+    },
+    {
+      "name": "red_recorded",
+      "pass": true,
+      "detail": "red: {'files': ['tests/test_api.py'], 'command': 'python3 -m unittest tests.test_api', 'failure': \"AssertionError: Lists differ: [{'name': 'yogurt', 'qty': 1, 'expires_on': '2026-10-23'}] != [{'name': 'milk', 'qty': 1, 'expires_on': '2026-10-21'}, {'name': 'yogurt', 'qty': 1, 'expires_on': '2026-10-23'}]\", 'watch_first_green': None}"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": true,
+      "detail": "wall baseline: {'commit': '7fbe346d26279e1fea6dafd596619aca63cc24f6', 'count': 3, 'digest': '29dcb20a61344975', 'file': '.xv/slices/expiring-today.wall.json'}"
+    },
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/expiring-today.packet.md"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": true,
+      "detail": "stop: ready_to_merge for originator"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 8,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "expiring-today",
+    "after": "guardian",
+    "stop": {
+      "order": "ready_to_merge",
+      "seat": "originator",
+      "question": "The suite is green and nothing stopped. The merge is yours.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "ready_to_merge",
+        "seat": "originator",
+        "question": "The suite is green and nothing stopped. The merge is yours.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/expiring-today.md",
+    "worktree": "/tmp/xv-eval-watch-headless-3nuwdtnk/repo/.xv/worktrees/expiring-today",
+    "packet": ".xv/slices/expiring-today.packet.md"
+  },
+  "final_message": "tion\",\"command\":\"/usr/bin/bash -lc \\\"git add pantry/store.py && git commit -m 'xv(expiring-today): make it right' -m 'baseline: Mysterious name' && git status --short\\\"\",\"aggregated_output\":\"[xv/expiring-today 1120b50] xv(expiring-today): make it right\\n 1 file changed, 1 insertion(+), 1 deletion(-)\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_12\",\"type\":\"agent_message\",\"text\":\"I renamed `i` to `item` to make the code clearer. All 12 tests pass. I committed the fix as `1120b50`.\\n\\n```xv-report\\n{\\\"agent\\\":\\\"cleaner\\\",\\\"status\\\":\\\"done\\\",\\\"summary\\\":\\\"Made the item name clear; all tests pass.\\\",\\\"commit\\\":\\\"1120b50\\\",\\\"applied\\\":[{\\\"rule\\\":\\\"baseline: Mysterious name\\\",\\\"where\\\":\\\"pantry/store.py:47\\\"}],\\\"moved_tests\\\":[],\\\"shape_proposals\\\":[],\\\"candidate_standards\\\":[]}\\n```\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":219935,\"cached_input_tokens\":207360,\"cache_write_input_tokens\":0,\"output_tokens\":704,\"reasoning_output_tokens\":53}}\n\n---\n. Kept: none (.xv/slices/expiring-today.md:16).\\n\\n## 4. The picture\\n\\nNo edit proposed. The picture already assigns the query to the store and the API to the household (.xv/picture.md:18, .xv/picture.md:20). The new date boundary fits those statements (pantry/store.py:47).\\n\\n## 5. The wall\\n\\nNo recommendations. The new test guards the requested date boundary (tests/test_api.py:49). The record has no slice-only tests (.xv/slices/expiring-today.md:16), and the wall diff reports no deleted tests.\\n\\n## Door\\n\\n**Door:** two-way. **Blast radius:** household. Reverting the date comparison restores the prior behavior (pantry/store.py:47).\\n\\n## Raw data\\n\\n- Slice record: `.xv/slices/expiring-today.md`\\n- Diff: `git diff 0e9ddc9a3a80967dceb84cf8d2306cbea6928ad4..HEAD`, plus working-tree changes\\n- Wall: `xv wall diff expiring-today`\\n- Boundary: `.xv/slices/expiring-today.boundary.md`\\n- Unaccepted estimation rows: `2026-10-07-add-items`; `2026-10-08-use-items` twice; `2026-10-14-expiring` twice. A person can revert these rows in `.xv/estimation.md`.\\nEOF'\",\"aggregated_output\":\"\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_13\",\"type\":\"agent_message\",\"text\":\"I wrote the [review packet](/tmp/xv-eval-watch-headless-3nuwdtnk/repo/.xv/worktrees/expiring-today/.xv/slices/expiring-today.packet.md).\\n\\nAll 12 tests passed. I found no change that needs a two-person stop.\\n\\nThe person who set the work going can review the packet and decide what to do next.\\n\\n```xv-report\\n{\\\"agent\\\":\\\"guardian\\\",\\\"status\\\":\\\"done\\\",\\\"summary\\\":\\\"Reviewed the change; all 12 tests passed.\\\",\\\"packet\\\":\\\".xv/slices/expiring-today.packet.md\\\",\\\"shape_change\\\":\\\"no\\\",\\\"pitch_contradiction\\\":\\\"no\\\",\\\"picture_change\\\":\\\"no\\\",\\\"moved_tests\\\":0,\\\"door\\\":\\\"two-way\\\",\\\"wall_recommendations\\\":[]}\\n```\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":169393,\"cached_input_tokens\":152320,\"cache_write_input_tokens\":0,\"output_tokens\":1806,\"reasoning_output_tokens\":41}}\n"
+}

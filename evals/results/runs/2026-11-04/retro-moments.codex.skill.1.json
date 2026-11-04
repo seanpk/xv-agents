@@ -1,0 +1,53 @@
+{
+  "scenario": "retro-moments",
+  "increment": 5,
+  "agent": "retro",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:18:42.846140+00:00",
+  "exit": 0,
+  "spend": [],
+  "assertions": [
+    {
+      "name": "retro_packet_exists",
+      "pass": true,
+      "detail": ".xv/retro/2026-11-04.md"
+    },
+    {
+      "name": "retro_candidates_traced",
+      "pass": true,
+      "detail": "1 of 1 candidates name a slice"
+    },
+    {
+      "name": "retro_proposes_a_check",
+      "pass": false,
+      "detail": "proposes prose only"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "only_retro_written",
+      "pass": true,
+      "detail": "only the retro packet"
+    }
+  ],
+  "passed": 4,
+  "total": 5,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "packet": ".xv/retro/2026-11-04.md",
+    "candidates": 1,
+    "dropped": 0,
+    "exit": 0,
+    "kept": [
+      "1. Record the repeated fixed-port server collisions as a learning. [open]"
+    ]
+  },
+  "final_message": ""
+}

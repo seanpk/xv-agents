@@ -1,0 +1,55 @@
+{
+  "scenario": "forecaster-keys",
+  "increment": 6,
+  "agent": "forecaster",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:20:11.651847+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 3246,
+      "tokens_out": 332,
+      "cache_read": 70144,
+      "cache_write": 0,
+      "tokens": 3578,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 13.3,
+      "session": "01a1a6ee-8476-7cd2-97a1-ab69ae6e41fc"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "forecast_uses_same_key",
+      "pass": true,
+      "detail": "says there is no history for this key"
+    },
+    {
+      "name": "forecast_has_shape",
+      "pass": true,
+      "detail": "names the expected shape change"
+    },
+    {
+      "name": "forecaster_read_only",
+      "pass": true,
+      "detail": "changed nothing"
+    },
+    {
+      "name": "stop_asks_for_budget",
+      "pass": false,
+      "detail": "stop: None"
+    }
+  ],
+  "passed": 3,
+  "total": 4,
+  "workdir": null,
+  "stderr_tail": "Reading additional input from stdin...\n2026-11-04T14:20:12.593028Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/analyze-meeting-transcript/SKILL.md: missing YAML frontmatter delimited by ---\n2026-11-04T14:20:12.593040Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/project-review/SKILL.md: missing YAML frontmatter delimited by ---\n",
+  "verdict": null,
+  "final_message": "sed | harness | model | forecast tokens | actual tokens | gap | forecast usd | actual usd | wall s | shape forecast | shape actual | why |\\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\\n| 2026-10-07-add-items | 2026-10-07 | claude | sonnet | 300000 | 412000 | +37% | 1.2 | 1.61 | 610 | narrow | narrow | the maker installed pytest before finding the unittest command |\\n| 2026-10-08-use-items | 2026-10-08 | claude | sonnet | 300000 | 268000 | -11% | 1.2 | 1.05 | 420 | none | none | small change inside the store; one round |\\n| 2026-10-08-use-items | 2026-10-08 | claude | haiku | 40000 | 36000 | -10% | 0.05 | 0.04 | 60 | none | none | forecaster and close |\\n| 2026-10-14-expiring | 2026-10-14 | claude | sonnet | 350000 | 330000 | -6% | 1.4 | 1.3 | 540 | none | none | new query on the store and one route |\\n| 2026-10-14-expiring | 2026-10-14 | codex | gpt-5.5-codex | 200000 | 510000 | +155% | 2 | 4.4 | 900 | none | none | guardian run on another family; long diff read |\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_3\",\"type\":\"agent_message\",\"text\":\"There is no history for `codex/gpt-6.1-terra` in the team\u2019s log. I cannot estimate its tokens, turns, or cost from that log.\\n\\nA similar task took **420 seconds**. I expect a narrow change to the household list.\\n\\nYou can set the first budget by hand.\\n\\n```xv-report\\n{\\\"agent\\\":\\\"forecaster\\\",\\\"status\\\":\\\"done\\\",\\\"summary\\\":\\\"No history for codex/gpt-6.1-terra; a similar task took 420 seconds.\\\",\\\"forecast\\\":{\\\"keys\\\":[{\\\"harness\\\":\\\"codex\\\",\\\"model\\\":\\\"gpt-6.1-terra\\\",\\\"tokens\\\":null,\\\"turns\\\":null,\\\"usd\\\":null,\\\"basis\\\":[],\\\"note\\\":\\\"no history for codex/gpt-6.1-terra\\\"}],\\\"wall_s\\\":420,\\\"shape\\\":\\\"narrow\\\",\\\"breadth\\\":\\\"Change the household list to hide items when none remain.\\\"}}\\n```\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":73390,\"cached_input_tokens\":70144,\"cache_write_input_tokens\":0,\"output_tokens\":332,\"reasoning_output_tokens\":25}}\n"
+}

@@ -1,0 +1,110 @@
+{
+  "scenario": "guardian-pitch",
+  "increment": 1,
+  "agent": "guardian",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:05:31.095623+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 8,
+      "tokens_out": 3451,
+      "cache_read": 69649,
+      "cache_write": 12248,
+      "tokens": 15707,
+      "usd": 0.0905,
+      "turns": 4,
+      "wall_s": 26.4,
+      "session": "3f774bb3-15ef-4fdf-908c-aec781e8ad0c",
+      "step": "guardian",
+      "at": "2026-11-04T14:05:57+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-guardian-pitch-ckpvk33x/repo/.git/xv/runs/share-with-grocer/01-guardian.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": ".xv/slices/share-with-grocer.packet.md"
+    },
+    {
+      "name": "pitch_contradiction_flagged",
+      "pass": true,
+      "detail": "packet: pitch_contradiction: yes"
+    },
+    {
+      "name": "shape_flagged",
+      "pass": true,
+      "detail": "packet: shape_change: yes"
+    },
+    {
+      "name": "pitch_line_cited",
+      "pass": true,
+      "detail": "quotes or cites a pitch line"
+    },
+    {
+      "name": "guardian_did_not_edit",
+      "pass": true,
+      "detail": "only the packet written"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": true,
+      "detail": "stop: shape_or_pitch for two_people"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status done"
+    },
+    {
+      "name": "boundary_in_packet",
+      "pass": true,
+      "detail": "the boundary picture is in the packet"
+    },
+    {
+      "name": "findings_cited",
+      "pass": true,
+      "detail": "1 finding(s) dropped for citing nothing"
+    }
+  ],
+  "passed": 9,
+  "total": 9,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "share-with-grocer",
+    "after": "guardian",
+    "stop": {
+      "order": "shape_or_pitch",
+      "seat": "two_people",
+      "question": "The guardian's packet says shape_change and pitch_contradiction. Two people decide from the packet.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "shape_or_pitch",
+        "seat": "two_people",
+        "question": "The guardian's packet says shape_change and pitch_contradiction. Two people decide from the packet.",
+        "blocking": true
+      },
+      {
+        "order": "scenario_miss",
+        "seat": "originator",
+        "question": "The packet lists a scenario miss marked amend: yes: meeting it would change the scenario, which goes through `xv slice amend` and is yours.",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/share-with-grocer.md",
+    "worktree": "/tmp/xv-eval-guardian-pitch-ckpvk33x/repo/.xv/worktrees/share-with-grocer",
+    "packet": ".xv/slices/share-with-grocer.packet.md"
+  },
+  "final_message": "The packet is written to `.xv/slices/share-with-grocer.packet.md`. It stops the change for two people: the change sends household data to a partner, which the pitch forbids and the picture binds.\n\n- **Shape:** yes, wide. The change adds the `pantry/grocer` module, an edge `pantry/api \u2192 pantry/grocer`, an outbound call to `api.grocernow.example`, and a new surface, `POST /share`. All four contradict the picture's shape section.\n- **Pitch:** contradiction, yes. The pitch says \"It never sends the household's data anywhere else: no accounts, no sync service, no partners, no analytics.\" and \"It is not for shops, grocers, or anyone outside the household.\" (`.xv/pitch.md:14-15`).\n- **Scenario miss:** yes, with `amend: yes`. The scenario itself asks for the off-machine send, so it breaks the binding decision \"Data stays on the household's machine\" (`.xv/picture.md:31`). Meeting it means changing the scenario or the pitch.\n- **Moved tests:** none. `xv wall diff` returned no baseline because the red has not set one, so I took the changed test files from the diff alone. Only `tests/test_grocer.py` was added. That test mocks the network call, and `POST /share` itself has no test.\n- **Picture:** it needs edits to the shape section, the \"No database, no outbound network calls\" line, and the surface list. The packet proposes them in words. I did not write to the picture.\n- **Wall:** no recommendations. The one new test stays as it is.\n- **Door:** one-way. A sent list cannot be recalled, and the pitch promise is broken once data has left. Blast radius is household data.\n\n```xv-report\n{\"agent\": \"guardian\", \"status\": \"done\", \"summary\": \"Sends household data to a partner: contradicts the pitch and a binding decision; adds a module, an edge, an outbound call and a surface. Needs two people.\", \"packet\": \".xv/slices/share-with-grocer.packet.md\",\n \"shape_change\": \"yes\", \"pitch_contradiction\": \"yes\", \"picture_change\": \"yes\", \"moved_tests\": 0, \"door\": \"one-way\",\n \"wall_recommendations\": []}\n```"
+}

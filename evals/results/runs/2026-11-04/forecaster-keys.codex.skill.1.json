@@ -1,0 +1,78 @@
+{
+  "scenario": "forecaster-keys",
+  "increment": 6,
+  "agent": "forecaster",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:19:56.869477+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 13588,
+      "tokens_out": 315,
+      "cache_read": 61568,
+      "cache_write": 0,
+      "tokens": 13903,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 14.7,
+      "session": "01a1a6ee-4ad2-73a2-8506-8921c94d5ac8",
+      "step": "forecaster",
+      "at": "2026-11-04T14:20:11+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-forecaster-keys-2ds1ggt9/repo/.git/xv/runs/hide-used-up/01-forecaster.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "forecast_uses_same_key",
+      "pass": true,
+      "detail": "no history for ('codex', 'gpt-6.1-terra'); tokens: None"
+    },
+    {
+      "name": "forecast_has_shape",
+      "pass": true,
+      "detail": "shape: narrow"
+    },
+    {
+      "name": "forecaster_read_only",
+      "pass": true,
+      "detail": "changed nothing"
+    },
+    {
+      "name": "stop_asks_for_budget",
+      "pass": true,
+      "detail": "stop: budget_not_set"
+    }
+  ],
+  "passed": 4,
+  "total": 4,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "forecaster",
+    "stop": {
+      "order": "budget_not_set",
+      "seat": "originator",
+      "question": "eval-person: set the budget from the forecast (`xv record set hide-used-up budget ... --by <name>`).",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "budget_not_set",
+        "seat": "originator",
+        "question": "eval-person: set the budget from the forecast (`xv record set hide-used-up budget ... --by <name>`).",
+        "blocking": true
+      }
+    ],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-forecaster-keys-2ds1ggt9/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "dered row.\\n\\nA forecast uses only rows with the same harness and model.\\n\\n| slice | closed | harness | model | forecast tokens | actual tokens | gap | forecast usd | actual usd | wall s | shape forecast | shape actual | why |\\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\\n| 2026-10-07-add-items | 2026-10-07 | claude | sonnet | 300000 | 412000 | +37% | 1.2 | 1.61 | 610 | narrow | narrow | the maker installed pytest before finding the unittest command |\\n| 2026-10-08-use-items | 2026-10-08 | claude | sonnet | 300000 | 268000 | -11% | 1.2 | 1.05 | 420 | none | none | small change inside the store; one round |\\n| 2026-10-08-use-items | 2026-10-08 | claude | haiku | 40000 | 36000 | -10% | 0.05 | 0.04 | 60 | none | none | forecaster and close |\\n| 2026-10-14-expiring | 2026-10-14 | claude | sonnet | 350000 | 330000 | -6% | 1.4 | 1.3 | 540 | none | none | new query on the store and one route |\\n| 2026-10-14-expiring | 2026-10-14 | codex | gpt-5.5-codex | 200000 | 510000 | +155% | 2 | 4.4 | 900 | none | none | guardian run on another family; long diff read |\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_3\",\"type\":\"agent_message\",\"text\":\"The guide has no history for `codex/gpt-6.1-terra`. The engineer must set the first budget by hand.\\n\\nThe wall time estimate uses the `use-items` and `expiring` rows.\\n\\n```xv-report\\n{\\\"agent\\\":\\\"forecaster\\\",\\\"status\\\":\\\"done\\\",\\\"summary\\\":\\\"No history for codex/gpt-6.1-terra; the engineer sets the first budget.\\\",\\\"forecast\\\":{\\\"keys\\\":[{\\\"harness\\\":\\\"codex\\\",\\\"model\\\":\\\"gpt-6.1-terra\\\",\\\"tokens\\\":null,\\\"turns\\\":null,\\\"usd\\\":null,\\\"basis\\\":[],\\\"note\\\":\\\"no history for codex/gpt-6.1-terra\\\"}],\\\"wall_s\\\":480,\\\"shape\\\":\\\"narrow\\\",\\\"breadth\\\":\\\"The item list will filter out items with none left.\\\"}}\\n```\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":75156,\"cached_input_tokens\":61568,\"cache_write_input_tokens\":0,\"output_tokens\":315,\"reasoning_output_tokens\":35}}\n"
+}

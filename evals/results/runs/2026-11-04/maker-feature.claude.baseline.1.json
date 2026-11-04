@@ -1,0 +1,70 @@
+{
+  "scenario": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:06:48.719262+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 14,
+      "tokens_out": 1196,
+      "cache_read": 109508,
+      "cache_write": 6791,
+      "tokens": 8001,
+      "usd": 0.0501,
+      "turns": 7,
+      "wall_s": 18.9,
+      "session": "f9b2e6fc-ab50-49e0-8442-99f6f332f805"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "preset_red_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "red_file_unchanged",
+      "pass": true,
+      "detail": "the scenario agent's red is untouched"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "moved_test_recorded",
+      "pass": false,
+      "detail": "recorded moves: []"
+    },
+    {
+      "name": "report_present",
+      "pass": false,
+      "detail": "no report block"
+    },
+    {
+      "name": "wall_holds",
+      "pass": false,
+      "detail": "unrecorded: ['tests/test_store.py'], recorded: []"
+    }
+  ],
+  "passed": 4,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "Using the last of an item now takes it off `GET /items`, and the full suite passes (13 tests).\n\n- **The change:** `Store.items()` in `pantry/store.py` now returns only items with `qty > 0`. Items with some left still show.\n- **Expiring list:** `/items/expiring` is unchanged, as the slice says. It reads from a new private `_sorted()` helper, so it still includes used-up items.\n- **Old test updated:** `tests/test_store.py` had `test_used_up_item_stays_listed`, which asserted the old behavior (bread at qty 0 stays listed). It contradicted the new requirement, so I renamed it to `test_used_up_item_leaves_the_list` and made it assert an empty list.\n\nI haven't committed anything."
+}

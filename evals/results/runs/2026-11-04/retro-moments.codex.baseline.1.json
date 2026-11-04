@@ -1,0 +1,60 @@
+{
+  "scenario": "retro-moments",
+  "increment": 5,
+  "agent": "retro",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:19:21.510970+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 7158,
+      "tokens_out": 909,
+      "cache_read": 151552,
+      "cache_write": 0,
+      "tokens": 8067,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 35.3,
+      "session": "01a1a6ed-c053-7c91-9ebc-415855387804"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "retro_packet_exists",
+      "pass": true,
+      "detail": ".xv/retro/review.md"
+    },
+    {
+      "name": "retro_candidates_traced",
+      "pass": false,
+      "detail": "0 of 1 candidates name a slice"
+    },
+    {
+      "name": "retro_proposes_a_check",
+      "pass": false,
+      "detail": "proposes prose only"
+    },
+    {
+      "name": "standards_untouched",
+      "pass": true,
+      "detail": "standards.md unchanged"
+    },
+    {
+      "name": "only_retro_written",
+      "pass": true,
+      "detail": "only the retro packet"
+    }
+  ],
+  "passed": 3,
+  "total": 5,
+  "workdir": null,
+  "stderr_tail": "Reading additional input from stdin...\n2026-11-04T14:19:21.574370Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/analyze-meeting-transcript/SKILL.md: missing YAML frontmatter delimited by ---\n2026-11-04T14:19:21.574383Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/project-review/SKILL.md: missing YAML frontmatter delimited by ---\n",
+  "verdict": null,
+  "final_message": " change the current rules.\\n\\n1. **Check: protect existing tests.** Before the maker reports success, compare test changes with the base. Stop when an existing test is deleted or its assertions change without a recorded reason. Keep the current watch stop as a second check. On 2026-10-15, the maker changed \\\"'`assertEqual(..., 4)` to `assertGreaterEqual(..., 0)` in `test_use_takes_from_the_quantity`. On 2026-10-16, the maker deleted `test_expiring_within_three_days`. Pat reverted both changes. Test the check against both recorded changes and a valid, recorded test move.\\n\\n2. **Check: prevent test servers from sharing a fixed port.** Start each test server on an OS-assigned free port, pass that port to the client, and stop the server after the test. Add a check that runs two server instances at once and confirms both work. On 2026-10-17, the maker repeatedly started servers on a fixed port. They collided, and Pat raised the budget by $2.\\n\\n3. **Standard: clarify the print rule.** Keep errors as JSON and remove debug prints. Allow the intentional server startup message. On 2026-10-17, the cleaner applied the no-`print()` rule to `pantry/api.py:88`, and Pat overrode it because the startup line was intentional. Ask Pat to choose the exact wording.\\n\\n## Rule counts\\n\\nAcross these three records, the date-naming rule fired twice and had no recorded overrides. The no-`print()` rule fired once and had one recorded override. Neither reaches the five uses needed for a retirement flag. Keep watching both rules.\\nEOF'\",\"aggregated_output\":\"\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_6\",\"type\":\"agent_message\",\"text\":\"I wrote the suggestions to [review.md](/tmp/xv-eval-retro-moments-p7mo1ik1/repo/.xv/retro/review.md).\\n\\nThe file is ready for Pat to review and choose from.\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":158710,\"cached_input_tokens\":151552,\"cache_write_input_tokens\":0,\"output_tokens\":909,\"reasoning_output_tokens\":50}}\n"
+}

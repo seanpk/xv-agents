@@ -1,0 +1,81 @@
+{
+  "scenario": "maker-feature",
+  "increment": 1,
+  "agent": "maker",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:07:37.489810+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 8498,
+      "tokens_out": 1147,
+      "cache_read": 244736,
+      "cache_write": 0,
+      "tokens": 9645,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 56.4,
+      "session": "01a1a6e3-02f6-7c20-8a42-67a8930d6649",
+      "step": "maker",
+      "at": "2026-11-04T14:08:34+00:00",
+      "exit": 0,
+      "log": "/tmp/xv-eval-maker-feature-anwnqk0q/repo/.git/xv/runs/hide-used-up/01-maker.out"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "preset_red_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "red_file_unchanged",
+      "pass": true,
+      "detail": "the scenario agent's red is untouched"
+    },
+    {
+      "name": "no_new_source_files",
+      "pass": true,
+      "detail": "no new module"
+    },
+    {
+      "name": "moved_test_recorded",
+      "pass": true,
+      "detail": "recorded moves: ['tests/test_store.py', 'tests/test_store.py']"
+    },
+    {
+      "name": "report_present",
+      "pass": true,
+      "detail": "report status green"
+    },
+    {
+      "name": "wall_holds",
+      "pass": true,
+      "detail": "unrecorded: [], recorded: ['tests/test_store.py']"
+    }
+  ],
+  "passed": 7,
+  "total": 7,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "hide-used-up",
+    "after": "maker",
+    "stop": null,
+    "fired": [],
+    "record": ".xv/slices/hide-used-up.md",
+    "worktree": "/tmp/xv-eval-maker-feature-anwnqk0q/repo/.xv/worktrees/hide-used-up"
+  },
+  "final_message": "re.items()\\n-        self.assertEqual([(i.name, i.qty) for i in listed], [(\\\"bread\\\", 0)])\\n+        self.assertEqual([(i.name, i.qty) for i in listed], [])\\n \\n     def test_expiring_lists_items_within_the_window(self):\\n         self.store.add(\\\"yogurt\\\", 1, date(2026, 10, 23))\\n M .xv/slices/hide-used-up.md\\n M pantry/store.py\\n M tests/test_store.py\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_15\",\"type\":\"command_execution\",\"command\":\"/usr/bin/bash -lc 'python3 -m unittest discover -s tests -t .'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_15\",\"type\":\"command_execution\",\"command\":\"/usr/bin/bash -lc 'python3 -m unittest discover -s tests -t .'\",\"aggregated_output\":\"~/.local/share/mise/installs/python/3.15.2/lib/python3.15/tempfile.py:538: ResourceWarning: Implicitly cleaning up <HTTPError 400: 'Bad Request'>\\n  _warnings.warn(self.warn_message, ResourceWarning)\\n.............\\n----------------------------------------------------------------------\\nRan 13 tests in 2.513s\\n\\nOK\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_16\",\"type\":\"agent_message\",\"text\":\"Used-up items no longer show in `GET /items`. The expiring list stays the same.\\n\\nThe new tests and all 13 tests pass. The changes are not committed.\\n\\n```xv-report\\n{\\\"agent\\\":\\\"maker\\\",\\\"status\\\":\\\"green\\\",\\\"summary\\\":\\\"Hide used-up items from the item list and keep the expiring list unchanged.\\\",\\\"moved_tests\\\":[{\\\"file\\\":\\\"tests/test_store.py\\\",\\\"assertion\\\":\\\"was: self.assertEqual([(i.name, i.qty) for i in listed], [(\\\\\\\"bread\\\\\\\", 0)]); now: self.assertEqual([(i.name, i.qty) for i in listed], [])\\\",\\\"why\\\":\\\"The scenario says used-up items no longer show in the list.\\\"}],\\\"stop\\\":null}\\n```\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":253234,\"cached_input_tokens\":244736,\"cache_write_input_tokens\":0,\"output_tokens\":1147,\"reasoning_output_tokens\":67}}\n"
+}

@@ -1,0 +1,75 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:08:51.904354+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 6,
+      "tokens_out": 617,
+      "cache_read": 40740,
+      "cache_write": 4131,
+      "tokens": 4754,
+      "usd": 0.0268,
+      "turns": 5,
+      "wall_s": 10.1,
+      "session": "5c3a86ae-c0e2-49e9-9bbb-9e22d1541466"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": false,
+      "detail": "missing: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']; ran: []"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": false,
+      "detail": "no wall baseline"
+    },
+    {
+      "name": "packet_exists",
+      "pass": true,
+      "detail": "the review is in the final message, not a file"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 4,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": null,
+  "final_message": "Items that run out today now show up in the \"runs out soon\" list. Milk expiring 2026-10-21 is included when you ask for three days on that date. The full suite passes (11 tests), though I didn't replay the recording or add a test for the same-day case.\n\nThe cause was in `pantry/store.py`, in `expiring()`. The check was `today < i.expires_on <= last`, which dropped anything expiring on `today` itself. I changed it to `today <= i.expires_on <= last`.\n\nI haven't committed anything."
+}

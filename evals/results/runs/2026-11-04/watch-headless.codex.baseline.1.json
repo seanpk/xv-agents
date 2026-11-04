@@ -1,0 +1,75 @@
+{
+  "scenario": "watch-headless",
+  "increment": 2,
+  "agent": "watch",
+  "harness": "codex",
+  "model": "gpt-6.1-terra",
+  "arm": "baseline",
+  "n": 1,
+  "started": "2026-11-04T14:14:01.357229+00:00",
+  "exit": 0,
+  "spend": [
+    {
+      "harness": "codex",
+      "model": "gpt-6.1-terra",
+      "model_id": "gpt-6.1-terra",
+      "tokens_in": 15814,
+      "tokens_out": 807,
+      "cache_read": 112128,
+      "cache_write": 0,
+      "tokens": 16621,
+      "usd": null,
+      "turns": 1,
+      "wall_s": 28.1,
+      "session": "01a1a6e8-de1d-7073-877e-252f54644b26"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "defect_fixed",
+      "pass": true,
+      "detail": "['milk', 'yogurt']"
+    },
+    {
+      "name": "suite_green",
+      "pass": true,
+      "detail": "OK"
+    },
+    {
+      "name": "steps_ran",
+      "pass": false,
+      "detail": "missing: ['forecaster', 'scenario', 'maker', 'cleaner', 'guardian']; ran: []"
+    },
+    {
+      "name": "red_recorded",
+      "pass": false,
+      "detail": "no red in the record"
+    },
+    {
+      "name": "wall_baseline_recorded",
+      "pass": false,
+      "detail": "no wall baseline"
+    },
+    {
+      "name": "packet_exists",
+      "pass": false,
+      "detail": "no packet or review"
+    },
+    {
+      "name": "stop_ready_for_person",
+      "pass": false,
+      "detail": "stop: None for None"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 3,
+  "total": 8,
+  "workdir": null,
+  "stderr_tail": "Reading additional input from stdin...\n2026-11-04T14:14:01.519320Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/analyze-meeting-transcript/SKILL.md: missing YAML frontmatter delimited by ---\n2026-11-04T14:14:01.519332Z ERROR codex_core::session::session: failed to load skill ~/Making/RoleModel/standard/delivery/skills/project-review/SKILL.md: missing YAML frontmatter delimited by ---\n",
+  "verdict": null,
+  "final_message": "ror: Lists differ: ['cheese', 'yogurt'] != ['cheese', 'milk', 'yogurt']\\n\\nFirst differing element 1:\\n'yogurt'\\n'milk'\\n\\nSecond list contains 1 additional elements.\\nFirst extra element 2:\\n'yogurt'\\n\\n- ['cheese', 'yogurt']\\n+ ['cheese', 'milk', 'yogurt']\\n?            ++++++++\\n\\n\\n----------------------------------------------------------------------\\nRan 1 test in 0.507s\\n\\nFAILED (failures=1)\\n\",\"exit_code\":1,\"status\":\"failed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_8\",\"type\":\"file_change\",\"changes\":[{\"path\":\"/tmp/xv-eval-watch-headless-mzlyat1v/repo/.xv/worktrees/expiring-today/pantry/store.py\",\"kind\":\"update\"}],\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_8\",\"type\":\"file_change\",\"changes\":[{\"path\":\"/tmp/xv-eval-watch-headless-mzlyat1v/repo/.xv/worktrees/expiring-today/pantry/store.py\",\"kind\":\"update\"}],\"status\":\"completed\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_9\",\"type\":\"command_execution\",\"command\":\"/usr/bin/bash -lc 'python3 -m unittest discover -s tests -t .'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_9\",\"type\":\"command_execution\",\"command\":\"/usr/bin/bash -lc 'python3 -m unittest discover -s tests -t .'\",\"aggregated_output\":\"~/.local/share/mise/installs/python/3.15.2/lib/python3.15/tempfile.py:538: ResourceWarning: Implicitly cleaning up <HTTPError 400: 'Bad Request'>\\n  _warnings.warn(self.warn_message, ResourceWarning)\\n............\\n----------------------------------------------------------------------\\nRan 12 tests in 2.515s\\n\\nOK\\n\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_10\",\"type\":\"agent_message\",\"text\":\"Fixed the date check. Items that run out today now appear in the list.\\n\\nAll 12 tests passed. You do not need to do anything else.\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":127942,\"cached_input_tokens\":112128,\"cache_write_input_tokens\":0,\"output_tokens\":807,\"reasoning_output_tokens\":22}}\n"
+}

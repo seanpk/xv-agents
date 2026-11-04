@@ -1,0 +1,117 @@
+{
+  "scenario": "prototypes-axis",
+  "increment": 9,
+  "agent": "prototype",
+  "harness": "claude",
+  "model": "sonnet",
+  "arm": "skill",
+  "n": 1,
+  "started": "2026-11-04T14:38:44.482538+00:00",
+  "exit": 10,
+  "spend": [
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 10,
+      "tokens_out": 2207,
+      "cache_read": 80972,
+      "cache_write": 8513,
+      "tokens": 10730,
+      "usd": 0.0642,
+      "turns": 6,
+      "wall_s": 20.6,
+      "session": "6a51359c-a55b-478c-a4da-4fa164318c66",
+      "step": "prototype-a",
+      "at": "2026-11-04T14:39:19+00:00"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 10,
+      "tokens_out": 3747,
+      "cache_read": 82428,
+      "cache_write": 10541,
+      "tokens": 14298,
+      "usd": 0.0879,
+      "turns": 6,
+      "wall_s": 31.6,
+      "session": "9a10d959-bd46-4af6-a31e-ee659f3432f6",
+      "step": "prototype-b",
+      "at": "2026-11-04T14:39:19+00:00"
+    },
+    {
+      "harness": "claude",
+      "model": "sonnet",
+      "model_id": "claude-sonnet-5-5",
+      "tokens_in": 12,
+      "tokens_out": 4099,
+      "cache_read": 104504,
+      "cache_write": 11223,
+      "tokens": 15334,
+      "usd": 0.0964,
+      "turns": 7,
+      "wall_s": 34.5,
+      "session": "89bbd450-ea03-49ba-afba-e5f1fe9c04c9",
+      "step": "prototype-c",
+      "at": "2026-11-04T14:39:19+00:00"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "three_prototypes_recorded",
+      "pass": true,
+      "detail": "recordings: ['a', 'b', 'c']"
+    },
+    {
+      "name": "prototypes_differ",
+      "pass": true,
+      "detail": "3 distinct recordings of 3"
+    },
+    {
+      "name": "side_by_side_packet",
+      "pass": true,
+      "detail": "three sections side by side"
+    },
+    {
+      "name": "stop_for_two_people",
+      "pass": true,
+      "detail": "stop: prototypes_ready for two_people"
+    },
+    {
+      "name": "no_pick_made",
+      "pass": true,
+      "detail": "no pick"
+    },
+    {
+      "name": "no_merge_to_main",
+      "pass": true,
+      "detail": "main has 1 commit(s)"
+    }
+  ],
+  "passed": 6,
+  "total": 6,
+  "workdir": null,
+  "stderr_tail": "",
+  "verdict": {
+    "slice": "quick-use",
+    "after": "prototype",
+    "stop": {
+      "order": "prototypes_ready",
+      "seat": "two_people",
+      "question": "3 prototype(s) are ready to pick from, or none. Two people pick, with a user when one can be reached.",
+      "blocking": true
+    },
+    "fired": [
+      {
+        "order": "prototypes_ready",
+        "seat": "two_people",
+        "question": "3 prototype(s) are ready to pick from, or none. Two people pick, with a user when one can be reached.",
+        "blocking": true
+      }
+    ],
+    "packet": ".xv/slices/quick-use.prototypes.md"
+  },
+  "final_message": ""
+}
