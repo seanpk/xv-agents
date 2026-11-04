@@ -843,5 +843,68 @@ class AcceptedShapeChangeTest(WatchLoopTest):
         self.assertNotIn("each `yes` or `no`, nothing else", fields)
 
 
+class EveryPathOneVerdictTest(WatchLoopTest):
+    """`xv step`, `xv run` and the session path (`xv record report`, then `xv record packet`) are
+    given the same record and the same packet, and leave the same verdict."""
+
+    MISS = "Point 1 is not met: the list still leaves out milk that runs out today."
+
+    def view(self):
+        data = self.record()
+        open_stops = [s for s in data["stops"] if s.get("answer") is None]
+        return {"open": [(s["order"], s["seat"]) for s in open_stops], "status": data["status"],
+                "next": data["next"]}
+
+    def record_file(self):
+        return os.path.join(self.wt, ".xv", "slices", "s1.md")
+
+    def test_a_repeated_scenario_miss_gets_the_same_verdict_on_every_path(self):
+        from unittest import mock
+        for agent in ("forecaster", "scenario", "maker", "cleaner"):
+            self.xv("step", agent, "s1", cwd=self.wt)
+        with mock.patch.dict(os.environ, {"FAKE_SCENARIO_MISS": self.MISS}):
+            self.xv("step", "guardian", "s1", cwd=self.wt, check=False)  # the first miss: sent back
+        for agent in ("maker", "cleaner"):
+            self.xv("step", agent, "s1", cwd=self.wt)
+        before = open(self.record_file()).read()
+
+        with mock.patch.dict(os.environ, {"FAKE_SCENARIO_MISS": self.MISS}):
+            self.xv("step", "guardian", "s1", cwd=self.wt, check=False)
+        by_step = self.view()
+        self.assertEqual(by_step["open"], [("scenario_miss", "originator")], by_step)
+
+        with open(self.record_file(), "w") as f:
+            f.write(before)
+        with mock.patch.dict(os.environ, {"FAKE_SCENARIO_MISS": self.MISS}):
+            ran = self.xv("run", "s1", cwd=self.wt, check=False)
+        self.assertEqual(self.view(), by_step, ran.stdout + ran.stderr)
+
+        with open(self.record_file(), "w") as f:
+            f.write(before)
+        report = os.path.join(self.wt, "g.json")
+        with open(report, "w") as f:
+            f.write("```xv-report\n" + json.dumps({"agent": "guardian", "status": "done", "summary": "done"})
+                    + "\n```\n")
+        packet = os.path.join(self.wt, "hand-packet.md")
+        with open(packet, "w") as f:
+            f.write("---\nslice: s1\nshape_change: no\npitch_contradiction: no\nscenario_miss: yes\n---\n\n# Packet\n\n"
+                    "## Scenario misses\n\n- %s (evidence: tests/test_red.py:7)\n" % self.MISS)
+        self.xv("record", "report", "s1", "guardian", report, cwd=self.wt)
+        self.xv("record", "packet", "s1", packet, cwd=self.wt)
+        self.assertEqual(self.view(), by_step)
+
+
+class PreStepBudgetStopTest(WatchLoopTest):
+    def test_the_stop_xv_step_raises_before_a_step_is_answered_without_settled_once_the_budget_is_raised(self):
+        self.xv("record", "add", "s1", "spend", json.dumps({"step": "forecaster", "usd": 5, "tokens": 1}),
+                cwd=self.wt)
+        p = self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "budget_spent", p.stdout + p.stderr)
+        self.xv("record", "set", "s1", "budget", '{"usd": 20}', "--by", "pat", cwd=self.wt)
+        a = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "more", "--next", "scenario",
+                    cwd=self.wt, check=False)
+        self.assertEqual(a.returncode, 0, a.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()
