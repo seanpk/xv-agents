@@ -12,19 +12,19 @@ blast_radius: stops
 
 # Packet: Every stop rule is decided in orders.py: #105, with #103, #84, #99 and #109
 
-This is the third pass. It comes after Sean's 18:56 answer (pick 1: tests for A and B, the four source-text tests go to `slice_only` so the cleaner removes them, and the watch makes the picture edits) and his 19:04 answer (the coverage is accepted). Nothing stops for two people. The originator decides one thing: **the four tests Sean listed in `slice_only` are still on the wall.** The cleaner did not remove them and gave no reason to keep them (check 3). Everything else Sean asked for at 18:56 is done: A and B now have tests, and the picture edits are in. The merge is the originator's.
+This is the fourth pass. It follows Sean's 20:02 answer (pick 1), which sent the slice back so the cleaner would remove the four tests in `slice_only` and change nothing else. The cleaner removed them, plus the `source` helper they used, and recorded each removal. Nothing stops for two people, and no scenario point is missed. **Nothing is left open from the earlier packets.** One thing to know before merging: scenario points 1 and 3 now have no test of their own. The code still meets both (check 3). Sean accepted that trade at 18:14 and 18:56. The merge is the originator's.
 
 ## The scenario
 
 The stop rules move into `scripts/orders.py`. Whether a miss repeats is read from the record alone (1). `xv step`, `xv run`, `xv record packet` and the session path write the same facts, and one function applies what `orders` returns, `next` included (2). There is one shared definition of allowed values and one shared test-name matcher, and the wall-flag block is split out of `cmd_answer` (3). An accepted shape does not stop again as wider than forecast, `accept_moves` counts moves rather than entries, and the docs say `yes`, `no` or `accepted` (4). The pre-step `budget_spent` stop is marked, and `prototype_budget_spent` needs `--settled` (5). Accepted slice-only marks survive a scenario re-run and are not asked about again (6). A test fails when the docs miss an allowed packet value (7). A move is recorded once and keeps its slice-only flag (8). The `docs/slice-record.md` changes are in, and `who` is a list in new decisions (9).
 
-Settled on this slice (the record's `stops`): A, an answer that sends the work back does not accept the shape. B, `apply_verdict` adds no second open stop of the same order. C, the prototype path, waits for #117. The breadth of an accepted shape and the wall-mark gap go to a new issue (18:56).
+Settled on this slice (the record's `stops`): A, an answer that sends the work back does not accept the shape. B, `apply_verdict` adds no second open stop of the same order. C, the prototype path, waits for #117. The breadth of an accepted shape and the wall-mark gap go to a new issue (18:56). The four source-text tests are removed (20:02).
 
 May ignore: the new stops for #20, #15, #113 and #117; old slice records; brief wording unless a moved rule makes a brief untrue.
 
 ## The recording
 
-None: this is a feature. To replay, run the red command (in the record's `red.command`). I ran it at HEAD `0cd8b46`: 32 tests, OK. At `9ef4bdf`, before the maker, it had 19 failures and 3 errors (`checks.scenario.red_output`). Whole suite: 856 OK, from the record's `checks.cleaner` at 19:42. No script has changed since then (`git diff 482b628..HEAD` touches only `.xv/picture.md`, the record and two test files), so I did not run it again.
+None: this is a feature. To replay, run the red command (in the record's `red.command`). I ran it at HEAD `eda0be4`: 28 tests, OK. That is 32 at the last pass minus the four removed tests. `python3 -m unittest -q test_orders`: 62 OK. The whole suite gave 852 OK in the record's `checks.cleaner` at 20:12. That is the same code: `git diff 901445e..HEAD -- scripts tests` touches only `tests/test_orders.py`. So I did not run the whole suite again.
 
 ## The boundary picture
 
@@ -32,49 +32,48 @@ From `.xv/slices/2026-11-04-orders-home.boundary.md`, as given. Touched: `script
 
 ## What the suite asserts after
 
-Everything the last packet listed still holds. This pass adds:
+Everything the last packet listed still holds, except the four source-text checks. The suite no longer reads the source of `run.py`, `record.py` or `packet.py` to check that:
 
-- A `shape_wider_than_forecast` stop answered with `sent_back` does not accept the shape: a wider breadth still fires the stop (`tests/test_orders.py:492-497`).
-- `xv record answer` on that stop with `--next maker` sets `sent_back: true`. With `--next close` it does not (`tests/test_record.py:1401-1415`).
-- `apply_verdict` run twice with the same stop leaves one open stop and status `stopped`. An answered stop of the same order can open again. A stop of another order opens beside an open one (`tests/test_record.py:1417-1437`).
+- `miss_repeat` or `missed_repeat` is absent;
+- `("yes", "no"` appears at most once;
+- `(?!\w)` is absent from `record.py`;
+- `--accept-wall` is absent from `cmd_answer`.
+
+Diff hunk `tests/test_orders.py:453-470` at `901445e`, now deleted.
 
 ## 1. Shape
 
-shape_change: no. The boundary picture has no new module, edge, table, surface or outbound call, and no shape hints (`.xv/slices/2026-11-04-orders-home.boundary.md`: "Edges / added: none / removed: none"). `record` already reached `orders` and `packet` (`.xv/picture.md:21`). This pass changes no script: `git diff 482b628..HEAD` shows changes only to `.xv/picture.md`, `tests/test_orders.py` and `tests/test_record.py`, plus the record. Breadth is `none`, against a `wide` forecast.
-
-Findings inside the shape, for the originator:
-
-- **A and B are now tested.** This closes the last packet's two gaps. The tests are listed above. They passed before they were written, because the maker had already fixed both. The scenario agent said so (`checks.reports`, scenario at 18:57: "green guards, not reds").
-- **The side effect of B has no test.** When a stop of the same order is already open, `scripts/record.py:583-590` keeps the old stop's `question` and `also` and drops the new wording. `test_applying_the_same_stop_twice_leaves_one_open_stop` (`tests/test_record.py:1420`) uses the same question both times, so it does not show this.
+shape_change: no. The boundary picture has no new module, edge, table, surface or outbound call, and no shape hints (`.xv/slices/2026-11-04-orders-home.boundary.md`: "Edges / added: none / removed: none"). This pass changes no script: `git diff 901445e..HEAD -- scripts tests` shows only the `tests/test_orders.py` removals. Breadth is `none`, against a `wide` forecast.
 
 ## 2. Pitch
 
-pitch_contradiction: no. The pitch says "xv-agents makes it easy for a team or an individual to adopt Xtreme Vibing in a repo: to vibe with discipline" (`.xv/pitch.md:7`), and "xv-agents is not for people or projects that will not trust agents to write production code" (`.xv/pitch.md:25`). This pass adds only tests and the picture edits Sean asked for. It changes no user, no audience and no promise.
+pitch_contradiction: no. The pitch says "xv-agents makes it easy for a team or an individual to adopt Xtreme Vibing in a repo: to vibe with discipline" (`.xv/pitch.md:7`). This pass removes four tests the person had already marked slice-only. It changes no user, no audience and no promise.
 
 ## 3. Moved tests
 
-| File | Before | After | Why (the maker's record) | Forced by the scenario? |
+| File | Before | After | Why (the record) | Forced by the scenario? |
 | --- | --- | --- | --- | --- |
-| `tests/test_record.py` (`AcceptWallFlagTest`) | `assertEqual(data["decisions"][0]["who"], "pat")` | `assertEqual(data["decisions"][0]["who"], ["pat"])` | "scenario point 9: new decisions write who as a list" | Yes. Point 9 says "New decisions write `who` as a list". The assertion count did not drop (last packet). Sean accepted it at 18:14. |
+| `tests/test_record.py` (`AcceptWallFlagTest`) | `assertEqual(data["decisions"][0]["who"], "pat")` | `assertEqual(data["decisions"][0]["who"], ["pat"])` | "scenario point 9: new decisions write who as a list" (maker) | Yes. Point 9 says "New decisions write `who` as a list". Sean accepted it at 18:14. `moved_tests` still holds it twice (17:26:59 and 17:35:27); `accept_moves` counts it once. |
+| `tests/test_orders.py` `OneHomeTest.source` | a helper that reads `scripts/<name>` | removed | "dead helper left by the slice-only removals" (cleaner, 20:02:28) | Not a test and asserts nothing. No caller is left: `grep` for `self.source` in `tests/` finds nothing. |
 
-`moved_tests` still lists this move twice (17:26:59 and 17:35:27). `accept_moves` counts it once (`scripts/orders.py:232`, a set of `(file, assertion)`). This pass moved no old test. `xv wall diff` is empty, but note that the wall baseline was taken again at the red commit `4d8e6de` (`wall_baseline.commit: acb6ade`, with `tests/test_record.py` going from 253 to 259 assertions in `.xv/slices/2026-11-04-orders-home.wall.json`). So `xv wall diff` now shows only changes after this pass's red, and the record is the only source for the earlier move.
+**Slice-only removals:** all four removed, none kept: `test_run_and_record_no_longer_work_out_a_repeat`, `test_the_allowed_values_of_the_packet_fields_are_defined_once`, `test_the_test_name_matcher_is_shared`, `test_the_wall_flags_are_not_handled_inside_cmd_answer`. Each is recorded `slice_only: true` (cleaner, 20:02:26 to 20:02:28). `xv wall diff`: `tests/test_orders.py` assertions 106 → 100, all of them recorded.
 
-**Slice-only removals: none. All four listed tests were kept, and nobody gave a reason.** Sean's 18:56 settled line says "The four OneHomeTest source-text tests Sean accepted as slice-only are listed in slice_only, so the cleaner removes them." They are still there at HEAD:
+**Points 1 and 3 now have no test of their own, but the code still meets them.** At HEAD:
 
-- `tests/test_orders.py:453` `test_run_and_record_no_longer_work_out_a_repeat`
-- `tests/test_orders.py:460` `test_the_allowed_values_of_the_packet_fields_are_defined_once`
-- `tests/test_orders.py:465` `test_the_test_name_matcher_is_shared`
-- `tests/test_orders.py:468` `test_the_wall_flags_are_not_handled_inside_cmd_answer`
+- `grep miss_repeat|missed_repeat` in `scripts/run.py` and `scripts/record.py` finds nothing (point 1).
+- `ALLOWED` and `YES_NO` are defined once, at `scripts/packet.py:40-41` (point 3). The other `("yes", "no")`, at `scripts/xvlib.py:70`, is the front-matter dump rule, from before this slice, and not an allowed-values list.
+- `names_test` is at `scripts/xvlib.py:350`. Its callers are `scripts/record.py:196` and `scripts/run.py:567`. The `(?!\w)` left at `scripts/run.py:569` matches a class name, not a test name.
+- The wall flags are handled in their own function at `scripts/record.py:292-302`, outside `cmd_answer` (`scripts/record.py:319`).
 
-The cleaner brief says to remove each test in `slice_only` "unless you find a reason to keep it", and to report the reason if it keeps one (`skills/cleaner/SKILL.md:39`). The 19:42 cleaner report says "maker's test changes and slice_only list not checked", and it records no move. The record has no `xv record move --slice-only` for them. So no reason to keep them exists anywhere. As long as they stay, they forbid any later `(?!\w)` in `record.py`, any `"--accept-wall"` text in `cmd_answer`, and any `miss_repeat` string in `run.py` or `record.py`.
+From now on, nothing stops a later change from bringing any of these back.
 
 ## 4. The picture
 
-No edit proposed. The five edits from the last packet are in `.xv/picture.md:23` and `.xv/picture.md:26` (commit `acb6ade`). I checked them against the code. The `sent_back` rule matches `scripts/orders.py:227-228` and `scripts/record.py:362-363`. The note that it "adds no second open stop of the same order" matches `scripts/record.py:583`. "`budget_spent` stop that `xv step` marks `pre_step`" and "`prototype_budget_spent`" match `scripts/record.py:352-355`. This pass adds only tests, and none of them makes a picture line untrue.
+No edit proposed. `.xv/picture.md:23` names `names_test` in `xvlib`, `ALLOWED` and `YES_NO` in `packet`, and the repeat rule in `orders`. The code still matches each one (check 3). Removing tests changes no name, user, flow or binding decision.
 
 ## 5. The wall
 
-The same four tests: they are in `slice_only`, Sean accepted them at 18:14 and 18:56, and they should stay off the wall (`tests/test_orders.py:453-470`). I name them again because a guardian report replaces `wall_recommendations` and keeps `accepted` only for the tests it names (`scripts/record.py:489-496`). The new tests in this pass guard behaviour that point 4 and finding B need, so I have nothing to add about them. No wall test is dead.
+Nothing to recommend. The four slice-only tests are gone from the code (`tests/test_orders.py` at `eda0be4`), so they no longer need a "stay off the wall" line. This pass adds no test, and no wall test is dead.
 
 ## Door
 
@@ -83,6 +82,6 @@ The same four tests: they are in `slice_only`, Sean accepted them at 18:14 and 1
 ## Raw data
 
 - Slice record: `.xv/slices/2026-11-04-orders-home.md`
-- Diff: `git diff c7b8bbff58fc46160ba83d08d0e899d7beffaaf2..0cd8b46`. This pass alone is `git diff 482b628..0cd8b46`. The working tree is clean.
-- Wall: `xv wall diff 2026-11-04-orders-home` (empty: the baseline is the red commit)
+- Diff: `git diff c7b8bbff58fc46160ba83d08d0e899d7beffaaf2..eda0be4`. This pass alone is `git diff 901445e..eda0be4`. The working tree is clean.
+- Wall: `xv wall diff 2026-11-04-orders-home` (`tests/test_orders.py` 106 → 100, recorded)
 - Boundary: `.xv/slices/2026-11-04-orders-home.boundary.md`
