@@ -425,8 +425,10 @@ def post_step(agent, root, data, config, head_before, pre, report):
                  f"{XV_DIR}/picture.md", f"{XV_DIR}/estimation.md", f"{XV_DIR}/rules.md"]
     if agent in ("scenario", "maker", "cleaner"):
         changed = changed_files(root, head_before)
-        named = {e["file"] for e in data.get("may_not_files") or []
-                 if isinstance(e, dict) and isinstance(e.get("file"), str) and e.get("why")} if agent == "maker" else set()
+        named = set()
+        if agent == "maker":
+            named = {e["file"] for e in data.get("may_not_files") or []
+                     if isinstance(e, dict) and isinstance(e.get("file"), str) and e.get("why")}
         checks["protected_changed"] = [f for f in protected if f in changed and f not in named]
     if agent == "scenario":
         files = changed_files(root, head_before)
