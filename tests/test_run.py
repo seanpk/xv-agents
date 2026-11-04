@@ -938,5 +938,90 @@ class PreStepBudgetStopTest(WatchLoopTest):
         self.assertEqual(a.returncode, 0, a.stderr)
 
 
+class NamedByTheScenarioReachTheMakerTest(RepoCase):
+    """The scenario report's `old_tests_forced` and `may_not_files` are kept, shown to the maker, and honoured."""
+
+    OLD = {"file": "tests/test_api.py", "test": "test_message", "why": "the reply text changes"}
+    FILE = {"file": ".xv/picture.md", "why": "the red needs a new binding decision"}
+
+    def setUp(self):
+        super().setUp()
+        self.wt = self.new_slice("s1")
+        self.baseline = sh(["git", "rev-parse", "HEAD"], self.wt).stdout.strip()
+
+    def report(self, agent, **keys):
+        import record
+        text = "```xv-report\n" + json.dumps({"agent": agent, "status": "red", "summary": "s", **keys}) + "\n```\n"
+        data = {"moved_tests": [], "checks": {}}
+        record.apply_report(data, "", agent, text)
+        return data
+
+    def test_the_record_keeps_the_old_tests_the_scenario_report_names(self):
+        data = self.report("scenario", old_tests_forced=[self.OLD], may_not_files=[self.FILE])
+        self.assertEqual(data.get("old_tests_forced"), [self.OLD])
+
+    def test_the_record_keeps_the_may_not_files_the_scenario_report_names(self):
+        data = self.report("scenario", old_tests_forced=[self.OLD], may_not_files=[self.FILE])
+        self.assertEqual(data.get("may_not_files"), [self.FILE])
+
+    def test_an_entry_missing_its_file_or_why_is_not_kept(self):
+        bad = [{"why": "no file"}, {"file": ".xv/picture.md"}, {"file": "", "why": "empty"},
+               {"file": 7, "why": "wrong type"}, "just a string", None]
+        data = self.report("scenario", old_tests_forced=bad, may_not_files=bad)
+        self.assertEqual(data.get("may_not_files") or [], [])
+        self.assertEqual(data.get("old_tests_forced") or [], [])
+
+    def test_a_value_that_is_not_a_list_is_not_kept(self):
+        data = self.report("scenario", old_tests_forced="tests/test_api.py", may_not_files=dict(file=".xv/picture.md"))
+        self.assertEqual(data.get("may_not_files") or [], [])
+        self.assertEqual(data.get("old_tests_forced") or [], [])
+
+    def test_a_maker_that_writes_the_lists_about_itself_does_not_get_them_kept(self):
+        data = self.report("maker", old_tests_forced=[self.OLD], may_not_files=[self.FILE])
+        self.assertEqual(data.get("may_not_files") or [], [])
+        self.assertEqual(data.get("old_tests_forced") or [], [])
+
+    def test_the_makers_prompt_lists_the_named_tests_and_files(self):
+        from prompt import pointers
+        data = {"id": "s1", "old_tests_forced": [self.OLD], "may_not_files": [self.FILE]}
+        text = pointers("maker", self.wt, {}, data)
+        for word in ("tests/test_api.py", "test_message", "the reply text changes",
+                     ".xv/picture.md", "the red needs a new binding decision"):
+            self.assertIn(word, text)
+
+    def test_another_agents_prompt_does_not_license_the_files(self):
+        from prompt import pointers
+        data = {"id": "s1", "may_not_files": [self.FILE]}
+        self.assertNotIn("the red needs a new binding decision", pointers("cleaner", self.wt, {}, data))
+
+    def maker_check(self, *, named, changes):
+        from run import post_step
+        for name in changes:
+            os.makedirs(os.path.dirname(os.path.join(self.wt, name)), exist_ok=True)
+            with open(os.path.join(self.wt, name), "a") as f:
+                f.write("changed by the maker\n")
+            sh(["git", "add", name], self.wt)
+        sh(["git", "commit", "-qm", "maker"], self.wt)
+        data = {"id": "s1", "base": self.baseline, "wall_baseline": {"commit": self.baseline},
+                "may_not_files": named, "red": {"files": [], "command": "true", "failure": "f"},
+                "spend": [{"step": "maker"}], "checks": {"reports": []}}
+        config = {"tests": {"paths": ["tests/**"]}}
+        return post_step("maker", self.wt, data, config, self.baseline, {}, {})["protected_changed"]
+
+    def test_a_named_may_not_file_changed_by_the_maker_is_not_protected_changed(self):
+        self.assertEqual(self.maker_check(named=[self.FILE], changes=[".xv/picture.md"]), [])
+
+    def test_a_named_file_does_not_license_another_protected_file(self):
+        self.assertEqual(self.maker_check(named=[self.FILE], changes=[".xv/picture.md", ".xv/rules.md"]),
+                         [".xv/rules.md"])
+
+    def test_a_protected_file_nobody_named_is_still_protected_changed(self):
+        self.assertEqual(self.maker_check(named=[], changes=[".xv/picture.md"]), [".xv/picture.md"])
+
+    def test_a_malformed_name_licenses_nothing(self):
+        self.assertEqual(self.maker_check(named=[dict(file=".xv/picture.md"), ".xv/picture.md"],
+                                          changes=[".xv/picture.md"]), [".xv/picture.md"])
+
+
 if __name__ == "__main__":
     unittest.main()
