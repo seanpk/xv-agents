@@ -68,10 +68,12 @@ def run(argv, prompt, cwd, log_path=None, timeout=3600, env=None):
         stdin = None
     else:
         cmd, stdin = argv, prompt
+    # a CLI that reads stdin (codex exec) must see EOF, not the parent's open stdin
+    extra = {"input": stdin} if stdin is not None else {"stdin": subprocess.DEVNULL}
     start = time.time()
     try:
-        p = subprocess.run(cmd, cwd=cwd, input=stdin, capture_output=True, text=True,
-                           timeout=timeout, env=env)
+        p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True,
+                           timeout=timeout, env=env, **extra)
         out, err, code = p.stdout, p.stderr, p.returncode
     except subprocess.TimeoutExpired as e:
         out = e.stdout.decode() if isinstance(e.stdout, bytes) else (e.stdout or "")

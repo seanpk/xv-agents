@@ -4,6 +4,7 @@
 Readers:
   claude-result   the JSON `claude -p --output-format json` prints
   grok-result     the JSON `grok -p --output-format json` prints
+  codex-result    the events `codex exec --json` prints
   claude-session  a Claude Code session transcript (.jsonl), with its subagents
   opencode        an opencode session, via `opencode session export <id>`
 
@@ -80,6 +81,33 @@ def from_grok_result(text, model=None):
                 u.get("cache_creation_input_tokens", 0), usd, d.get("num_turns"), None, d.get("sessionId"))
 
 
+def from_codex_result(text, model=None):
+    """The events `codex exec --json` prints, one per line. Each turn.completed
+    carries usage; its input_tokens include the cached ones, and its
+    output_tokens include reasoning. Codex reports no dollars."""
+    tin = tout = cr = turns = 0
+    thread = None
+    for line in text.splitlines():
+        try:
+            ev = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(ev, dict):
+            continue
+        if ev.get("type") == "thread.started":
+            thread = ev.get("thread_id")
+        elif ev.get("type") == "turn.completed":
+            u = ev.get("usage") or {}
+            cached = u.get("cached_input_tokens", 0)
+            tin += u.get("input_tokens", 0) - cached
+            tout += u.get("output_tokens", 0)
+            cr += cached
+            turns += 1
+    if not turns:
+        raise XVError("not the events of `codex exec --json`")
+    return item("codex", model or "default", None, tin, tout, cr, 0, None, turns, None, thread)
+
+
 def from_claude_session(path, model=None):
     """Sum a session transcript and any subagent transcripts beside it."""
     files = [path]
@@ -151,6 +179,8 @@ def from_run(result):
             s = from_claude_result(result["stdout"], result.get("model"))
         elif h == "grok":
             s = from_grok_result(result["stdout"], result.get("model"))
+        elif h == "codex":
+            s = from_codex_result(result["stdout"], result.get("model"))
         elif h == "opencode" and result.get("session"):
             s = from_opencode(result["session"], result.get("model"))
         else:
@@ -204,7 +234,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(prog="xv spend", description=__doc__.split("\n")[0])
     sub = p.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("read")
-    r.add_argument("reader", choices=["claude-result", "grok-result", "claude-session", "opencode"])
+    r.add_argument("reader", choices=["claude-result", "grok-result", "codex-result", "claude-session", "opencode"])
     r.add_argument("source")
     r.add_argument("--model")
     b = sub.add_parser("budget")
@@ -216,6 +246,8 @@ def main(argv=None):
                 emit(from_claude_result(open(a.source).read(), a.model), True)
             elif a.reader == "grok-result":
                 emit(from_grok_result(open(a.source).read(), a.model), True)
+            elif a.reader == "codex-result":
+                emit(from_codex_result(open(a.source).read(), a.model), True)
             elif a.reader == "claude-session":
                 emit(from_claude_session(a.source, a.model), True)
             else:

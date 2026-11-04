@@ -9,7 +9,7 @@ Versions: Claude Code 2.1.302, opencode 2.0.32 with Ollama serving `gpt-oss:20b`
 - **Claude Code: yes, as the whole user prompt.** `claude -p --safe-mode --disable-slash-commands` starts with CLAUDE.md, skills, plugins, hooks and MCP servers off, and still uses the person's login. Claude Code's own system prompt is still there, as opencode's is; what is gone is everything the person or the project added. Asked directly, the model reported no CLAUDE.md in its context; that is the only check. `--bare` does the same but needs `ANTHROPIC_API_KEY`; a login session is not read. Checked by running it.
 - **opencode: partly.** `opencode run` cannot drop its own system prompt, so the brief arrives as the user message after opencode's. It reads `AGENTS.md` from the project. The fixture has none. Checked: a run in a repo with no `AGENTS.md` gets about 17,800 input tokens of opencode's own prompt before the brief.
 - **Grok: no.** Checked 2026-10-22 with grok 1.0.62. Grok always loads the home-level rules in `$GROK_HOME/rules/` (`~/.grok/rules/` by default) and lists every installed skill, whatever the flags. The Claude-compat scans and memory can be turned off by environment variables (`GROK_CLAUDE_RULES_ENABLED=0`, `GROK_CLAUDE_SKILLS_ENABLED=0`, `GROK_CLAUDE_AGENTS_ENABLED=0`, `GROK_MEMORY=0`), and project rules load only in a trusted folder. A run with all of those off still reported the person's four home rule files and their skills. Only a separate `GROK_HOME` would leave them out, and that is where Grok keeps its login. The evals run Grok as a person has it, and say so.
-- **codex: not checked.** `codex exec` takes a prompt and has `--json` and `--output-last-message`.
+- **codex: yes.** Checked 2026-11-03 with codex-cli 0.163.0. `AGENTS.md` and the skills still load with `--ignore-user-config --ignore-rules`. `codex exec` takes a prompt and has `--json` and `--output-last-message`.
 
 ## How does a harness start a fresh context from inside a session?
 
@@ -21,14 +21,14 @@ Versions: Claude Code 2.1.302, opencode 2.0.32 with Ollama serving `gpt-oss:20b`
 - `claude -p ... "<prompt>"`: yes. `--output-format json` returns one JSON object with `result`, `session_id`, `num_turns`, `duration_ms`, `total_cost_usd`, `usage` and `modelUsage`. Checked.
 - `opencode run --auto --format json --model ollama/<model> "<prompt>"`: yes. It prints one JSON event per line; each carries `sessionID`. Checked.
 - `grok -p "<prompt>" --output-format json`: yes. One JSON object with `text` (the final message), `sessionId`, `num_turns`, `usage`, `modelUsage` and `total_cost_usd`. `--max-turns` caps turns; there is no dollar cap. `--permission-mode bypassPermissions` approves tools; `--no-subagents` keeps the run in one context. Checked.
-- `codex exec`: has the flags. Not run.
+- `codex exec --json "<prompt>"`: yes, checked 2026-11-03. It prints one JSON event per line. It reads stdin when stdin is open and hangs waiting for it, so `agentcli.run` gives every agent CLI a closed stdin; with stdin closed a run finished in about 10 seconds.
 
 ## Where does each harness write usage, for `spend.py`?
 
 - **Claude Code**: the JSON result above, per run. Session transcripts are `.jsonl` files under `$CLAUDE_CONFIG_DIR/projects/<project>/`; each assistant line carries `message.usage` and `message.model`, and one API message can appear on several lines, so `spend.py` counts each message id once. Transcripts carry tokens, not dollars. Checked.
 - **opencode**: `opencode session export <id>` prints JSON whose `info` has `tokens` (`input`, `output`, `reasoning`, `cache.read`, `cache.write`), `cost`, the model, and the start and end times. Its `messages` count the turns. A local model reports a cost of 0. Checked.
 - **Grok**: the JSON result above. Its `input_tokens` are uncached only and its `output_tokens` include reasoning, so input, output, cache read and cache write add up to its own `total_tokens`. It reports dollars only when the cost is complete (`cost_is_partial` and `usage_is_incomplete` say when not), and `spend.py` keeps them null then. Checked against Grok's bundled headless docs and one run.
-- **codex**: not checked. `spend.py` records tokens as zero and dollars as null for a harness it cannot read, and the wall clock from the watch.
+- **codex**: the `--json` events, checked 2026-11-03. Each `turn.completed` carries `usage` (`input_tokens`, `cached_input_tokens`, `output_tokens`, `reasoning_output_tokens`); `thread.started` carries the `thread_id`. Its `input_tokens` include the cached ones and its `output_tokens` include reasoning, so `spend.py` adds the turns, keeps cache reads apart from input, and counts turns by `turn.completed`. Codex reports no dollars, so they stay null. For a harness `spend.py` cannot read, it records tokens as zero and dollars as null, and the wall clock from the watch.
 
 ## Is a pre-commit hook plus a CI check enough wall without tool-level hooks?
 
