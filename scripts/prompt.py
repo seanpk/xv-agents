@@ -110,6 +110,11 @@ def pointers(agent, root, config, data=None, extra=None):
             b = data["budget"]
             parts = [f"{k} {b[k]}" for k in ("tokens", "usd", "turns") if b.get(k)]
             lines.append(f"- Budget: {', '.join(parts)}. Stop when it is spent.")
+        if agent == "maker":
+            for e in data.get("old_tests_forced") or []:
+                lines.append(f"Named old test the red forces to change: {e['file']}, {e['test']}: {e['why']}.")
+            for e in data.get("may_not_files") or []:
+                lines.append(f"Named file you may change: {e['file']}: {e['why']}.")
     tests = config.get("tests", {})
     if tests.get("command"):
         lines.append(f"- Whole suite: `{tests['command']}`.")
