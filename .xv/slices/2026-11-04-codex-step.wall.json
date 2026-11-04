@@ -26,7 +26,7 @@
   "tests/test_budget_cap_turns_session.py": 86,
   "tests/test_by_name.py": 11,
   "tests/test_check.py": 12,
-  "tests/test_codex_step.py": 25,
+  "tests/test_codex_step.py": 28,
   "tests/test_diff_count.py": 2,
   "tests/test_guard.py": 3,
   "tests/test_init.py": 37,
@@ -60,7 +60,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "dc9e3b33571a63f8778fcc734cf6beac94686edb",
+ "commit": "615a6f24462fee427dfbe6f0a5429915e291b09e",
  "files": {
   "tests/data/claude-result.json": "d97d2788e30ab2c1dcefc61594ffaaf6892217e088255672a7ead5be9747a331",
   "tests/data/claude-session.jsonl": "f334175619c11a34eabde629fe45e0def44aa43becec22059c9c9841ffccf073",
@@ -88,7 +88,7 @@
   "tests/test_budget_cap_turns_session.py": "7f47afdbe012e437e83bfb11e399830b30211250784f491dba4d83201aa02bbc",
   "tests/test_by_name.py": "6c0d5333ca3caab2d3ce5fded81b4e32c38431cf7eb99fb0bd97a66af43989d0",
   "tests/test_check.py": "e6c8c27388e7252fbb7aa09edd47f64b698f6f230d76b9f171c511b8ce1780b2",
-  "tests/test_codex_step.py": "6c6771b5d66a460c42bd475ac73f9417b9542a7de59ac7855a9f0a6ab7c82497",
+  "tests/test_codex_step.py": "247ed642b557ee10f5d86e33461e4758f8d08d863855d343b63730bd07f9d287",
   "tests/test_diff_count.py": "79d1bc6da40541430d4e4e4e10e04e2f1734e789850fb716440da468dd18f301",
   "tests/test_guard.py": "ca4addd31074c2086571e3515fff74f8edf1ce2e97cabbc4170a93c2776b9ad2",
   "tests/test_init.py": "65c10dc55c9d806552a8305e1a5786b8a871e30d967822ff84f6734e5e94b9a3",

@@ -117,6 +117,16 @@ class CodexDocsTest(unittest.TestCase):
         self.assertTrue(quote.startswith('"') and quote.endswith('"') and len(quote) > 2)
 
 
+class CodexDriftTest(RepoCase):
+    def test_xv_check_drift_offline_lists_the_codex_event_shape_line(self):
+        out = self.xv("check", "drift", "--offline", "--json").stdout
+        items = [i for i in json.loads(out)["drift"]
+                 if "codex" in i["for"].lower() and "spend.py" in i["for"]]
+        self.assertEqual(len(items), 1, "the drift reader parses one Codex event-shape line")
+        self.assertTrue(items[0]["url"].startswith("https://"))
+        self.assertTrue(items[0]["sentence"])
+
+
 # Watch first: a real `codex exec --json` run of a step. Its xv-report should land in the
 # record, the spend row should carry the thread_id as its session, and the eval runner's
 # final message should read as the agent's last words, not a pile of events.
