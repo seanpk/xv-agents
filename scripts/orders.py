@@ -225,7 +225,7 @@ def evaluate(data, after, config):
         fc = (data.get("forecast") or {}).get("shape")
         actual = (data.get("checks") or {}).get("guardian", {}).get("shape_breadth")
         accepted_shape = data.get("shape_change") == "accepted" or any(
-            s.get("order") == "shape_wider_than_forecast" and s.get("answer") for s in data.get("stops") or [])
+            s.get("order") == "shape_wider_than_forecast" and s.get("answer") and not s.get("sent_back") for s in data.get("stops") or [])
         if not accepted_shape and fc in BREADTH and actual in BREADTH and BREADTH[actual] > BREADTH[fc]:
             out.append(fire("shape_wider_than_forecast", "two_people",
                             f"The shape change is {actual}; the forecast expected {fc}. Two people decide."))

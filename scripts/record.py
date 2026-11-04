@@ -359,6 +359,8 @@ def cmd_answer(a):
         raise XVError("--settled is required when the answer sends work back or the pick is other: "
                       "say what is now true, so the next agent can act without the chat")
     stop["answered_by"], stop["answer"], stop["answered_at"] = who, a.answer, now()
+    if sends_back:
+        stop["sent_back"] = True
     for key, value in (("pick", pick), ("settled", settled), ("new_info", a.new_info),
                        ("cause", a.cause), ("why", a.why)):
         if value is not None:
@@ -578,12 +580,14 @@ def apply_verdict(data, body, agent, v):
     """Write what orders returned into the record: the stop, or the send-backs, and where `next` goes."""
     st = v["stop"]
     if st:
-        data["stops"].append({"at": now(), "step": agent, "order": st["order"], "seat": st["seat"],
-                              "question": st["question"], "answered_by": [], "answer": None,
-                              "also": [f["order"] for f in v["fired"] if f is not st],
-                              "budget_seen": data.get("budget")})
+        already = any(s.get("order") == st["order"] and not s.get("answer") for s in data["stops"])
+        if not already:
+            data["stops"].append({"at": now(), "step": agent, "order": st["order"], "seat": st["seat"],
+                                  "question": st["question"], "answered_by": [], "answer": None,
+                                  "also": [f["order"] for f in v["fired"] if f is not st],
+                                  "budget_seen": data.get("budget")})
+            body = log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
         data["status"] = "ready" if st["order"] == "ready_to_merge" else "stopped"
-        body = log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
     else:
         for f in v["fired"]:
             if f.get("send_back"):
