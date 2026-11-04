@@ -489,6 +489,38 @@ class WatchLoopTest(RepoCase):
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
+    def covered_by_number(self, scenario, items):
+        self.amend(scenario)
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        return self.scenario_covering(covered=items)
+
+    def test_a_covers_item_that_is_a_points_number_covers_it(self):
+        p = self.covered_by_number(f"{self.P1}\n{self.P2}", ["1", "2"])
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.record()["next"], "maker")
+
+    def test_a_covers_item_that_starts_with_the_number_covers_the_point(self):
+        p = self.covered_by_number(f"{self.P1}\n{self.P2}", ["1. Whether a miss repeats", "2. Fresh bread"])
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.record()["next"], "maker")
+
+    def test_a_number_covers_only_its_own_point(self):
+        self.covered_by_number(f"{self.P1}\n{self.P2}", ["1"])
+        self.assertEqual(self.record()["next"], "scenario")
+        self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and self.P2 in l])
+
+    def test_the_number_one_does_not_cover_point_ten(self):
+        ten = "10. A household sees the pantry list in order."
+        self.covered_by_number(f"{self.P1}\n{ten}", ["1"])
+        self.assertEqual(self.record()["next"], "scenario")
+        self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and ten in l])
+
+    def test_a_number_item_in_not_covered_still_stops_for_the_person(self):
+        self.amend(f"{self.P1}\n{self.P2}")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        p = self.scenario_covering(covered=["1"], not_covered=["2"])
+        self.assert_stopped_before_the_maker(p, "no seam to start the app")
+
     def test_the_same_missed_point_on_the_next_pass_stops_for_the_person(self):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)

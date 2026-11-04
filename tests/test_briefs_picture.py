@@ -117,5 +117,76 @@ class OwnTheResultTest(unittest.TestCase):
         self.assertNotIn("pin `v0.4.0`", readme)
 
 
+def paragraphs(text, *words):
+    """Paragraphs and list items of a brief that hold every word, case aside."""
+    blocks = re.split(r"\n\s*\n|\n(?=\d+[a-z]?\. |- )", text)
+    return [b for b in blocks if all(w.lower() in b.lower() for w in words)]
+
+
+class ScenarioCatchesTest(unittest.TestCase):
+    def test_the_scenario_brief_marks_a_one_time_wording_check_slice_only(self):
+        text = brief("skills", "scenario", "SKILL.md")
+        self.assertTrue(paragraphs(text, "slice_only", "wording", "README"), "no slice_only line for a wording change")
+        self.assertTrue(paragraphs(text, "slice_only", "version pin"))
+
+    def test_the_scenario_report_names_each_old_test_the_red_forces_to_change(self):
+        text = brief("skills", "scenario", "SKILL.md")
+        hits = paragraphs(text, "old test", "force", "report", "why")
+        self.assertTrue([h for h in hits if "file" in h and "test" in h], "no report line naming old tests")
+
+    def test_the_scenario_report_names_the_may_not_files_the_red_needs_changed(self):
+        text = brief("skills", "scenario", "SKILL.md")
+        hits = paragraphs(text, "may-not", "report", ".xv/picture.md")
+        self.assertTrue(hits, "no report line naming may-not files")
+
+    def test_the_maker_may_change_a_named_old_test_without_stopping_and_records_it(self):
+        text = brief("skills", "maker", "SKILL.md")
+        hits = paragraphs(text, "scenario agent", "report", "names", "record")
+        self.assertTrue([h for h in hits if "stop" in h.lower() and "test" in h.lower()],
+                        "the maker brief does not let it change a test the report names")
+
+    def test_the_maker_may_change_a_named_may_not_file_and_no_other(self):
+        text = brief("skills", "maker", "SKILL.md")
+        hits = paragraphs(text, "scenario agent", "report", "may-not")
+        self.assertTrue([h for h in hits if re.search(r"(?i)no other|only", h)],
+                        "the maker brief does not limit the change to the files the report names")
+
+    def test_an_unnamed_old_test_still_follows_the_recorded_move_rule(self):
+        text = brief("skills", "maker", "SKILL.md")
+        self.assertRegex(text, r"(?is)not named[^\n]*(rule|stop|scenario forces)")
+
+    def test_the_guardian_lists_the_may_not_file_changes_in_the_packet(self):
+        text = brief("skills", "guardian", "SKILL.md") + brief("skills", "guardian", "packet.md")
+        self.assertTrue(paragraphs(text, "may-not", "packet", "scenario agent"),
+                        "the guardian brief does not list the changes the scenario agent's report allowed")
+
+    def test_the_scenario_brief_asks_a_red_case_for_each_way_a_value_can_be_wrong(self):
+        text = brief("skills", "scenario", "SKILL.md")
+        hits = paragraphs(text, "missing", "empty", "wrong type", "not_covered")
+        self.assertTrue([h for h in hits if re.search(r"(?i)on the list", h)],
+                        "no line asks for missing, empty, wrong type and off-list cases")
+        self.assertTrue([h for h in hits if re.search(r"(?i)flag|field|report key", h)])
+
+    def test_the_scenario_brief_asks_a_case_where_a_read_only_agent_claims_a_persons_word(self):
+        text = brief("skills", "scenario", "SKILL.md")
+        hits = paragraphs(text, "read-only agent", "only a person")
+        self.assertTrue(hits, "no case for an agent claiming what only a person may give")
+
+    def test_the_watch_names_four_things_in_each_amendment_it_drafts(self):
+        text = brief("skills", "watch", "SKILL.md")
+        hits = paragraphs(text, "amendment", "exact name", "where", "when it applies", "does not cover", "may-not")
+        self.assertTrue([h for h in hits if "binding decision" in h.lower()],
+                        "no watch line lists the four things an amendment names")
+
+    def test_the_changelog_has_a_line_for_each_brief_change(self):
+        text = brief("CHANGELOG.md")
+        unreleased = re.search(r"^## Unreleased\n(.*?)(?=^## |\Z)", text, re.S | re.M).group(1)
+        for issue in ("#119", "#110", "#111"):
+            with self.subTest(issue=issue):
+                self.assertIn(issue, unreleased)
+        self.assertRegex(unreleased, r"(?i)slice-only[^\n]*#119|#119[^\n]*slice-only")
+        self.assertRegex(unreleased, r"(?i)by number|point number|numbered")
+
+
 if __name__ == "__main__":
     unittest.main()
