@@ -8,7 +8,7 @@ From `a6e023bd0ffe` to the working tree. Source: xv boundary (ast and regex). Ge
 
 ## Modules
 
-- touched: scripts/run
+- touched: scripts/prompt, scripts/record, scripts/run
 - added: none
 - removed: none
 - now calling out of the process: none
@@ -121,6 +121,8 @@ flowchart LR
 {
  "base": "a6e023bd0ffeed4f6ce45990c668742a8f758419",
  "touched": [
+  "scripts/prompt",
+  "scripts/record",
   "scripts/run"
  ],
  "modules_added": [],
