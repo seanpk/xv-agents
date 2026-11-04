@@ -1398,6 +1398,44 @@ class OneHomeRecordTest(RepoCase):
                 "--why", "w", "--by", "maker", cwd=wt)
         self.assertEqual(len(self.show(wt)["moved_tests"]), 1)
 
+    def test_a_shape_wider_answer_that_sends_the_work_back_is_marked_sent_back(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "shape_wider_than_forecast", "--seat", "two_people",
+                "--question", "Wider than forecast?", "--step", "guardian", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat,sam", "--answer", "narrow it", "--next", "maker",
+                "--settled", "the shape is narrowed to the forecast", cwd=wt)
+        stop = self.show(wt)["stops"][0]
+        self.assertIs(stop.get("sent_back"), True, stop)
+
+    def test_a_shape_wider_answer_that_lets_the_work_go_on_is_not_marked_sent_back(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "shape_wider_than_forecast", "--seat", "two_people",
+                "--question", "Wider than forecast?", "--step", "guardian", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat,sam", "--answer", "go on", "--next", "close", cwd=wt)
+        self.assertFalse(self.show(wt)["stops"][0].get("sent_back"))
+
+    def verdict(self, order="scenario_miss"):
+        return {"stop": {"order": order, "seat": "originator", "question": "Why?"}, "fired": [], "next": "guardian"}
+
+    def test_applying_the_same_stop_twice_leaves_one_open_stop(self):
+        data = {"stops": [], "budget": None, "status": "working", "next": "guardian"}
+        body = record.apply_verdict(data, "", "guardian", self.verdict())
+        record.apply_verdict(data, body, "guardian", self.verdict())
+        self.assertEqual([s["order"] for s in data["stops"]], ["scenario_miss"])
+        self.assertEqual(data["status"], "stopped")
+
+    def test_a_stop_of_the_same_order_that_was_answered_may_open_again(self):
+        data = {"stops": [{"order": "scenario_miss", "seat": "originator", "answer": "sent back"}],
+                "budget": None, "status": "working", "next": "guardian"}
+        record.apply_verdict(data, "", "guardian", self.verdict())
+        self.assertEqual([bool(s.get("answer")) for s in data["stops"]], [True, False])
+
+    def test_a_stop_of_another_order_opens_beside_an_open_one(self):
+        data = {"stops": [{"order": "scenario_miss", "seat": "originator", "answer": None}],
+                "budget": None, "status": "working", "next": "guardian"}
+        record.apply_verdict(data, "", "guardian", self.verdict("accept_moves"))
+        self.assertEqual([s["order"] for s in data["stops"]], ["scenario_miss", "accept_moves"])
+
     def test_a_new_decision_writes_who_as_a_list(self):
         wt = self.new_slice("s1")
         self.xv("record", "stop", "s1", "--order", "ready_to_merge", "--seat", "originator",
