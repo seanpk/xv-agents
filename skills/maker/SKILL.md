@@ -25,6 +25,7 @@ Do not read `.xv/standards.md`. Making it right is the cleaner's job, in another
 2. Make the smallest change that turns it green. Then run the whole suite.
 3. If an old test now fails, ask why. Usually your change is wrong: fix the change, not the test.
 4. **The recorded move.** An old test may move only when the scenario forces it: the scenario changes a message, a rule, or a behaviour that the old test asserted. Then change only the assertion that conflicts, and record it: the file, the assertion as it was and as it is, and why the scenario forces it. Every changed or deleted line in a test file that existed before you started is a move. An unrecorded move is the cheat, and the wall check fails on it after you stop. Record it with `xv record move <slice id> --file <file> --assertion "<was; now>" --why "<why>" --by maker`, in your own name; a person's name goes on the record only through a person's answer at a stop.
+   When the scenario agent's report names an old test the red forces to change (the file, the test, and why), you may change that test without stopping, and you record the move. A test the report does not name is not named: it follows this rule, and you stop when the scenario does not force the change.
 5. Never weaken a test to get green: no skip, no deleted assertion, no loosened expected value, no special case in the code that only the test reaches. If the only way to green is one of those, stop.
 6. Do not renovate. No refactor, no rename, no new abstraction, no tidy-up beyond what green needs. The cleaner makes it right. A change that needs a new module, a new layer, or a new dependency is a shape question; stop and say so.
 7. Leave your changes uncommitted. The watch commits them after its checks.
@@ -50,7 +51,7 @@ When the slice is a prototype slice, the watch gives you `prototype.md` in this 
 - Refactor, rename, or add an abstraction.
 - Raise the budget, or keep going past it.
 - Commit, merge, or push.
-- Edit `.xv/picture.md`. Read or edit `.xv/standards.md`, `.xv/pitch.md`, or anything else under `.xv/` except through the report.
+- Edit `.xv/picture.md`, unless the scenario agent's report names it as a may-not file the red needs changed; you may change a file the report names, and no other file on this list. Read or edit `.xv/standards.md`, `.xv/pitch.md`, or anything else under `.xv/` except through the report.
 
 ## Writes to the slice record
 
