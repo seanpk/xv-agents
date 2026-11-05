@@ -401,18 +401,18 @@ class WatchLoopTest(WatchLoopSetup):
         self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "Red.")
 
     def test_a_command_whose_words_are_apart_in_the_red_stops_before_the_maker(self):
-        self.amend("A person runs `xv slice amend`.")
-        p = self.scenario_with_env(FAKE_RED_TEXT="slice a list of other things, then amend")
-        self.assert_stopped_before_the_maker(p, "xv slice amend")
+        self.amend("A person runs `xv slice ghost`.")
+        p = self.scenario_with_env(FAKE_RED_TEXT="slice a list of other things, then ghost")
+        self.assert_stopped_before_the_maker(p, "xv slice ghost")
 
     def test_a_command_whose_words_are_out_of_order_in_the_red_stops_before_the_maker(self):
-        self.amend("A person runs `xv slice amend`.")
-        p = self.scenario_with_env(FAKE_RED_TEXT="amend slice")
-        self.assert_stopped_before_the_maker(p, "xv slice amend")
+        self.amend("A person runs `xv slice ghost`.")
+        p = self.scenario_with_env(FAKE_RED_TEXT="ghost slice")
+        self.assert_stopped_before_the_maker(p, "xv slice ghost")
 
     def test_a_command_whose_words_are_together_in_order_in_the_red_goes_on_to_the_maker(self):
-        self.amend("A person runs `xv slice amend`.")
-        p = self.scenario_with_env(FAKE_RED_TEXT="self.xv('slice', 'amend', 's1')")
+        self.amend("A person runs `xv slice ghost`.")
+        p = self.scenario_with_env(FAKE_RED_TEXT="self.xv('slice', 'ghost', 's1')")
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
@@ -1273,8 +1273,8 @@ class ScenarioChecksAtTheBaseTest(RepoCase):
         self.assert_goes_on(self.scenario())
 
     def test_a_new_flag_on_an_existing_command_is_still_raised(self):
-        self.amend("A person runs `xv slice new --rename Old=New`.")
-        self.assert_stops(self.scenario(), "--rename")
+        self.amend("A person runs `xv slice new --priority high`.")
+        self.assert_stops(self.scenario(), "--priority")
 
     def test_an_existing_command_does_not_hide_a_flag_beside_it(self):
         self.amend("A person runs `xv slice amend --expect-moves imports`.")
