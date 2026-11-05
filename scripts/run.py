@@ -405,6 +405,7 @@ def rebase_stop(root, slice_id, state, config, fired=None, **checks):
     else:
         v = orders.verdict({**data, "checks": {"rebase": checks}}, "rebase", config)
     next_step = data["next"]
+    body = with_log(body, state.get("log") or [])  # the lines written before this stop, which git's copy lacks
     body = record.apply_verdict(data, body, "rebase", v)
     data["next"] = next_step
     record.save(path, data, body)
@@ -417,7 +418,14 @@ def rebase_stop(root, slice_id, state, config, fired=None, **checks):
         state["staged_record"] = ",".join(staged[0].split()[:2]) if staged else None
     rebase_state(root, slice_id, state)
     if not rebase_running(root):
-        commit(root, f"xv({slice_id}): the rebase stopped")
+        left = checks.get("maker_edited") or []  # the maker's edit stays in the tree for the person
+        if left and not os.environ.get("XV_NO_COMMIT"):
+            git(["add", "-A"], root)
+            git(["reset", "-q", "--"] + left, root)
+            if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=root).returncode != 0:
+                git(["commit", "-q", "--no-verify", "-m", f"xv({slice_id}): the rebase stopped"], root)
+        else:
+            commit(root, f"xv({slice_id}): the rebase stopped")
     v["worktree"] = root
     print(json.dumps(v, indent=2))
     if v["stop"]:

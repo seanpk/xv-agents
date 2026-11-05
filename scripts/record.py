@@ -454,11 +454,15 @@ def answer_wall(data, stop, a):
         if r["accepted"]:
             r.pop("refused", None)
             if r.get("recommend") == "mark slice-only" and not any(
-                    isinstance(m, dict) and m.get("test") == test for m in data.get("slice_only") or []):
+                    isinstance(m, dict) and (m.get("file"), m.get("test")) == (r.get("file"), test)
+                    for m in data.get("slice_only") or []):
                 data.setdefault("slice_only", []).append(
                     {"file": r.get("file"), "test": test, "why": r.get("why"), "accepted": True})
         else:
             r["refused"] = True
+            if test in stop["refused_wall"]:
+                data["slice_only"] = [m for m in data.get("slice_only") or [] if not (
+                    isinstance(m, dict) and (m.get("file"), m.get("test")) == (r.get("file"), test))]
 
 
 def cmd_answer(a):
