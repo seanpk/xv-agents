@@ -108,6 +108,16 @@ class RetroAcceptSightingTest(RepoCase):
         self.assertIn("- rule: an answer adds work -> read the gap as added work\n", text)
         self.assertIn("## Promoted\n", text)
 
+    def test_a_sighting_of_an_unknown_title_is_refused_and_writes_nothing(self):
+        with open(self.packet, "w") as f:
+            f.write(SIGHTING_CANDIDATE.replace("A forecast runs low when answers at a stop add work",
+                                               "A title nobody wrote"))
+        before = open(self.learnings).read()
+        with self.assertRaises(retro.XVError) as ctx:
+            retro.accept(self.repo, self.packet, 1, "pat")
+        self.assertIn("A title nobody wrote", str(ctx.exception))
+        self.assertEqual(open(self.learnings).read(), before)
+
 
 if __name__ == "__main__":
     unittest.main()
