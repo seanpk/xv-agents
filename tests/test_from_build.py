@@ -33,11 +33,14 @@ class FromBuildBase(RepoCase):
         self.prompts = os.path.join(self.tmp, "prompts.log")
         self.cwds = os.path.join(self.tmp, "cwds.log")
 
-    def make_build(self, fixed):
-        """An exploration built on a branch of its own: a marker file, and the fix when `fixed`."""
+    def make_build(self, fixed, files=None):
+        """An exploration built on a branch of its own: a marker file, the fix when `fixed`, and any `files`."""
         sh(["git", "checkout", "-q", "-b", BUILD], self.repo)
         with open(os.path.join(self.repo, MARKER), "w") as f:
             f.write("EXPLORED = True\n")
+        for rel, text in (files or {}).items():
+            with open(os.path.join(self.repo, rel), "w") as f:
+                f.write(text)
         if fixed:
             p = os.path.join(self.repo, "pantry", "store.py")
             text = open(p).read().replace("today < i.expires_on <= last", "today <= i.expires_on <= last")
@@ -89,6 +92,28 @@ class FromBuildBase(RepoCase):
 
     def open_stops(self):
         return [s for s in self.record()["stops"] if s.get("answer") is None]
+
+    def amend(self, text="The household also sees milk that expires tomorrow."):
+        f = os.path.join(self.tmp, "amend.md")
+        with open(f, "w") as fh:
+            fh.write(text)
+        self.xv("slice", "amend", "s1", "--by", "pat", "--scenario-file", f, cwd=self.wt)
+
+    def copies(self, log):
+        """The record copies each scenario agent run could read, in order."""
+        if not os.path.exists(log):
+            return []
+        rows = [json.loads(line) for line in open(log) if line.strip()]
+        return [r["record"] for r in rows if r["title"].startswith("# The scenario agent")]
+
+    def commits_at_the_build(self, text):
+        """Every commit named in `text` that has the build in it."""
+        found = []
+        for h in sorted(set(re.findall(r"\b[0-9a-f]{7,40}\b", text))):
+            p = sh(["git", "rev-parse", "--verify", "-q", f"{h}^{{commit}}"], self.repo, check=False)
+            if p.returncode == 0 and self.is_ancestor(self.build, p.stdout.strip()):
+                found.append(h)
+        return found
 
 
 class SliceNewFromTest(FromBuildBase):
@@ -284,6 +309,120 @@ class RedOnTheBuildTest(FromBuildBase):
         self.assertEqual(self.record()["next"], "maker")
 
 
+class SecondScenarioPassTest(FromBuildBase):
+    # 12. a second scenario pass starts at the base with the earlier red, and lands without a conflict
+    def setUp(self):
+        super().setUp()
+        self.make_build(fixed=False)
+        self.open_slice("--from", BUILD)
+        p = self.scenario_step()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.amend()
+
+    def test_the_second_pass_starts_at_the_base_with_the_earlier_red_in_it(self):
+        self.step("scenario", FAKE_RED_TEXT="SECOND-PASS")
+        ran = self.ran("# The scenario agent")
+        self.assertIsNotNone(ran, "the scenario agent did not run")
+        self.assertFalse(ran["exists"][MARKER], "the second pass's checkout has the build in it")
+        self.assertTrue(ran["exists"]["tests/test_red.py"], "the second pass's checkout does not have the earlier red")
+        self.assertFalse(self.is_ancestor(self.build, ran["head"]))
+
+    def test_the_second_pass_lands_on_the_slice_branch_without_a_conflict(self):
+        p = self.step("scenario", FAKE_RED_TEXT="SECOND-PASS")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertNotIn("red_conflicts_with_build", [s["order"] for s in self.record()["stops"]])
+        self.assertIn("SECOND-PASS", open(os.path.join(self.wt, "tests", "test_red.py")).read(),
+                      "the second pass's red is not on the slice branch")
+        self.assertTrue(os.path.exists(os.path.join(self.wt, MARKER)), "the slice branch lost the build")
+
+
+class BuildConflictTest(FromBuildBase):
+    # 13. a red that conflicts with the build stops with red_conflicts_with_build
+    def test_a_red_that_conflicts_with_the_build_stops(self):
+        self.make_build(fixed=False, files={"tests/test_red.py": "# the build's own test file\nBUILD_TEST = True\n"})
+        self.open_slice("--from", BUILD)
+        p = self.scenario_step()
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "red_conflicts_with_build")
+        self.assertEqual([s["order"] for s in self.open_stops()], ["red_conflicts_with_build"])
+        self.assertEqual(sh(["git", "status", "--porcelain", "--untracked-files=no"], self.wt).stdout.strip(), "",
+                         "the slice worktree is left mid cherry-pick")
+
+    # 13. a test file the build changed stops once, as a change with no record
+    def test_a_test_file_the_build_changed_stops_once_as_a_change_with_no_record(self):
+        old = open(os.path.join(self.repo, "tests", "test_store.py")).read()
+        self.make_build(fixed=False, files={"tests/test_store.py": old.replace('["yogurt"]', '["yogurt"] or []')})
+        self.open_slice("--from", BUILD)
+        self.step("forecaster")
+        for agent, after in (("scenario", "maker"), ("maker", "cleaner"), ("cleaner", "guardian")):
+            self.step(agent)
+            if self.open_stops():  # the person accepts the build's change and the slice goes on
+                self.xv("record", "answer", "s1", "--by", "pat", "--answer", "the build's change is accepted",
+                        "--next", after, cwd=self.wt)
+        named =[s for s in self.record()["stops"] if "tests/test_store.py" in s["question"]]
+        self.assertEqual([s["order"] for s in named], ["unrecorded_move"],
+                         "the build's change to tests/test_store.py did not stop exactly once as a change with no record")
+
+
+class RecordCopyTest(FromBuildBase):
+    # 14. when the build is not shared, the scenario agent's record copy names no branch or commit at the build
+    def setUp(self):
+        super().setUp()
+        self.make_build(fixed=False)
+        self.open_slice("--from", BUILD)
+        self.log = os.path.join(self.tmp, "records.log")
+
+    def assert_names_no_build(self, copy):
+        self.assertIsNotNone(copy, "the scenario agent's checkout has no copy of the record")
+        self.assertNotIn(BUILD, copy)
+        self.assertNotRegex(copy, r"(?<![\w.])xv/s1\b", "the copy names the slice branch, which is at the build")
+        self.assertEqual(self.commits_at_the_build(copy), [], "the copy names a commit at the build")
+
+    def test_the_first_pass_copy_names_no_branch_or_commit_at_the_build(self):
+        self.scenario_step(FAKE_RECORD_LOG=self.log)
+        copies = self.copies(self.log)
+        self.assertEqual(len(copies), 1, "the scenario agent did not run")
+        self.assert_names_no_build(copies[0])
+
+    def test_a_second_pass_copy_names_no_branch_or_commit_at_the_build(self):
+        self.scenario_step(FAKE_RECORD_LOG=self.log)
+        self.amend()
+        self.step("scenario", FAKE_RECORD_LOG=self.log)
+        copies = self.copies(self.log)
+        self.assertEqual(len(copies), 2, "the second scenario pass did not run")
+        self.assert_names_no_build(copies[1])
+
+
+class SessionScenarioTest(FromBuildBase):
+    # 15. with agents.scenario: session, xv step scenario makes the checkout at the base and names it
+    def setUp(self):
+        super().setUp()
+        cfg = os.path.join(self.repo, ".xv", "config.yml")
+        text = open(cfg).read().replace("agents:\n", "agents:\n  scenario: session\n", 1)
+        open(cfg, "w").write(text)
+        sh(["git", "commit", "-qam", "scenario in the session"], self.repo)
+        self.make_build(fixed=False)
+        self.open_slice("--from", BUILD)
+
+    def test_the_step_makes_the_checkout_at_the_base_and_names_it(self):
+        p = self.scenario_step()
+        self.assertNotEqual(p.returncode, 0, "the scenario step did not stop for the session")
+        out = p.stdout + p.stderr
+        seen = {os.path.realpath(self.repo), os.path.realpath(self.wt)}
+        named = []
+        for path in re.findall(r"/[^\s`'\"()]+", out):
+            path = path.rstrip(".,:;")
+            if os.path.isdir(path) and os.path.realpath(path) not in seen and \
+                    sh(["git", "rev-parse", "--is-inside-work-tree"], path, check=False).returncode == 0:
+                named.append(path)
+        self.assertTrue(named, "the stop names no checkout outside the slice worktree: " + out)
+        checkout = named[0]
+        head = sh(["git", "rev-parse", "HEAD"], checkout).stdout.strip()
+        self.assertTrue(self.is_ancestor(self.main, head), "the named checkout is not at the base")
+        self.assertFalse(self.is_ancestor(self.build, head), "the named checkout is at the build")
+        self.assertFalse(os.path.exists(os.path.join(checkout, MARKER)), "the named checkout has the build in it")
+
+
 class SliceSkillTest(unittest.TestCase):
     # 2. the scenario is written from what runs
     def test_the_skill_writes_the_scenario_from_what_runs_when_there_is_a_build(self):
@@ -323,6 +462,19 @@ class SliceSkillTest(unittest.TestCase):
         text = read("skills", "watch", "SKILL.md")
         self.assertRegex(text, r"(?is)exploration.{0,600}after the scenario step|after the scenario step.{0,600}exploration")
         self.assertRegex(text, r"(?is)exploration.{0,600}before the maker|before the maker.{0,600}exploration")
+
+
+class ChangelogTest(unittest.TestCase):
+    # 10. Slice-only: one CHANGELOG line
+    def test_unreleased_has_a_line_for_113_naming_each_brief_it_changes(self):
+        unreleased = read("CHANGELOG.md").split("## Unreleased", 1)[1].split("\n## ", 1)[0]
+        lines = [ln for ln in unreleased.splitlines() if "#113" in ln]
+        self.assertTrue(lines, "no Unreleased line names #113")
+        text = " ".join(lines)
+        self.assertIn("xv-slice", text)
+        self.assertIn("watch", text)
+        self.assertIn("scenario", text)
+        self.assertIn("--from", text)
 
 
 if __name__ == "__main__":
