@@ -15,8 +15,10 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import moves  # noqa: E402
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
+import wall  # noqa: E402
 from spend import row_tokens  # noqa: E402
 from suite import run_suite  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, emit, git, load_config, match_any, names_test, now, read_doc, solo,  # noqa: E402
@@ -713,6 +715,15 @@ def apply_report(data, body, agent, text):
     return log_line(body, agent, f"{report.get('status', '?')}: {report.get('summary', '')}"), report
 
 
+def expected_moves(root, data, config):
+    """Record the moves the slice expects; the wall reads the record from disk, so it is saved first."""
+    if not data.get("expect_moves"):
+        return
+    moves.apply(root, data, config)
+    path, _, body = load(root, data["id"])
+    save(path, data, body)
+
+
 def cmd_report(a):
     path, data, body = load(repo_root(), a.id)
     text = sys.stdin.read() if a.file == "-" else open(a.file).read()
@@ -720,11 +731,10 @@ def cmd_report(a):
     save(path, data, body)
     if a.agent in ("maker", "cleaner"):
         # the same move checks `xv step` runs after these agents; the wall reads the record from disk
-        import run as runlib
         root = repo_root()
         config = load_config(slice_root(path))
-        runlib.expected_moves(root, data, config)
-        data["checks"].setdefault(a.agent, {})["wall"] = runlib.wall_check(root, data, config)
+        expected_moves(root, data, config)
+        data["checks"].setdefault(a.agent, {})["wall"] = wall.check_or_note(root, data["id"], config)
         save(path, data, body)
     emit(report or {"agent": a.agent, "status": "no-report"}, True)
 
@@ -764,10 +774,9 @@ def cmd_packet(a):
             raise XVError(f"the packet's {field} must be {' or '.join(allowed)}, found {pdata.get(field)!r}")
     checks = data.setdefault("checks", {}).setdefault("guardian", {})
     # the packet checks `xv step` runs: the lint, and the packet's count of expected moves
-    import run as runlib
     try:
         lint = packetlib.fix(a.file)
-        checks["packet_problems"] = lint["problems"] + runlib.packet_expected_moves(a.file, data)
+        checks["packet_problems"] = lint["problems"] + packetlib.expected_moves_problems(a.file, data)
         checks["dropped_findings"] = len(lint["dropped"])
     except XVError as e:
         checks["packet_problems"] = [str(e)]

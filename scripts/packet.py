@@ -132,5 +132,19 @@ def main(argv=None):
     sys.exit(1 if res["problems"] else 0)
 
 
+def expected_moves_problems(packet, data):
+    """Problems with the packet's `expected_moves`: it is a whole number, and the record's count."""
+    with open(packet, encoding="utf-8") as f:
+        value = split_front_matter(f.read())[0].get("expected_moves")
+    count = len([m for m in data.get("moved_tests") or [] if m.get("expected")])
+    if value is None:
+        return ["front matter expected_moves is missing; it is the number of expected moves in the record"]
+    if not str(value).isdigit():
+        return [f"front matter expected_moves must be a whole number, found {value!r}"]
+    if int(value) != count:
+        return [f"front matter expected_moves is {value}, and the record holds {count}"]
+    return []
+
+
 if __name__ == "__main__":
     main()

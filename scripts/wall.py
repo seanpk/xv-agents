@@ -137,6 +137,14 @@ def check(root, slice_id, config=None):
     return d
 
 
+def check_or_note(root, slice_id, config=None):
+    """The wall check, or a note saying why it could not run."""
+    try:
+        return check(root, slice_id, config)
+    except XVError as e:
+        return {"note": str(e)}
+
+
 COMMENT = r"#.*|//.*|"
 JS_IMPORT = r"import\b.*|(const|let|var)\s+\S+\s*=\s*require\(.*\);?"
 # Import lines skipped per file type; a type with no entry skips only blank and comment lines.

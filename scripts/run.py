@@ -355,10 +355,14 @@ def tree_record_of_truth(root, slice_id, state):
     log = log_lines(body)
     log = (state.get("log") or []) + [l for l in log if l not in (state.get("log") or [])]
     stops, budget = (data["stops"], data.get("budget")) if state.get("stopped") else (state["stops"], state["budget"])
-    # a stop nobody answered goes from the record, and its line goes from the log
-    unanswered = [f"stop ({s['order']}) for {s['seat']}:" for s in stops
-                  if s.get("step") == "rebase" and s.get("answer") is None]
-    return stops, budget, [l for l in log if not any(u in l for u in unanswered)]
+    # a stop nobody answered goes from the record, and its own line (the last that names it) goes from the log
+    for s in stops:
+        if s.get("step") == "rebase" and s.get("answer") is None:
+            own = f"stop ({s['order']}) for {s['seat']}: {s.get('question')}"
+            hits = [i for i, l in enumerate(log) if own in l]
+            if hits:
+                log = log[:hits[-1]] + log[hits[-1] + 1:]
+    return stops, budget, log
 
 
 def log_lines(body):
@@ -877,8 +881,9 @@ def post_step(agent, root, data, config, head_before, pre, report):
                                    for x in line.split("\t")[:2] if x.isdigit())
         before = (data.get("checks") or {}).get(agent) or {}
         checks["diff_history"] = (before.get("diff_history") or []) + [checks["diff_lines"]]
-        expected_moves(root, data, config)
-        checks["wall"] = wall_check(root, data, config)
+        import wall
+        record.expected_moves(root, data, config)
+        checks["wall"] = wall.check_or_note(root, data["id"], config)
     if agent == "cleaner":
         sp = os.path.join(root, XV_DIR, "standards.md")
         now_text = open(sp).read() if os.path.exists(sp) else None
@@ -894,7 +899,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
             import packet as packetlib
             try:
                 lint = packetlib.fix(packet)
-                checks["packet_problems"] = lint["problems"] + packet_expected_moves(packet, data)
+                checks["packet_problems"] = lint["problems"] + packetlib.expected_moves_problems(packet, data)
                 checks["dropped_findings"] = len(lint["dropped"])
             except XVError as e:
                 checks["packet_problems"] = [str(e)]
@@ -1164,42 +1169,6 @@ def wall_baseline(root, data, config):
     except ImportError:
         return None
     return wall.baseline(root, data["id"], config)
-
-
-def expected_moves(root, data, config):
-    """Record the moves the slice expects; the wall reads the record from disk, so it is saved first."""
-    if not data.get("expect_moves"):
-        return
-    import moves
-    moves.apply(root, data, config)
-    path, _, body = record.load(root, data["id"])
-    record.save(path, data, body)
-
-
-def packet_expected_moves(packet, data):
-    """Problems with the packet's `expected_moves`: it is a whole number, and the record's count."""
-    from xvlib import split_front_matter
-    with open(packet, encoding="utf-8") as f:
-        value = split_front_matter(f.read())[0].get("expected_moves")
-    count = len([m for m in data.get("moved_tests") or [] if m.get("expected")])
-    if value is None:
-        return ["front matter expected_moves is missing; it is the number of expected moves in the record"]
-    if not str(value).isdigit():
-        return [f"front matter expected_moves must be a whole number, found {value!r}"]
-    if int(value) != count:
-        return [f"front matter expected_moves is {value}, and the record holds {count}"]
-    return []
-
-
-def wall_check(root, data, config):
-    try:
-        import wall
-    except ImportError:
-        return {}
-    try:
-        return wall.check(root, data["id"], config)
-    except XVError as e:
-        return {"note": str(e)}
 
 
 def boundary(root, data):
