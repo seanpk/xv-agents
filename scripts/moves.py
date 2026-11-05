@@ -51,19 +51,27 @@ def find(root, data, config):
         d = wall.diff(root, data["id"], config)
     except XVError:
         return []
-    commit = wall.load_baseline(root, data["id"])["commit"]
+    # Compare with the slice's base, not the wall baseline: each scenario step resets
+    # the baseline, and an expected move must stay while the file still differs from base.
+    commit = data.get("base") or wall.load_baseline(root, data["id"])["commit"]
     before = lambda rel: git(["show", f"{commit}:{rel}"], root, check=False)
     pairs = data.get("renames") or {}
+    held = [m for m in data.get("moved_tests") or [] if m.get("expected")]
+    exists = lambda rel: os.path.isfile(os.path.join(root, rel))
     out = []
     if "imports" in kinds:
-        for rel in d["changed"]:
-            if code_lines(rel, before(rel)) == code_lines(rel, read(root, rel)):
+        kept = {m["file"] for m in held if m["expected"] == "imports" and exists(m["file"])}
+        for rel in sorted(set(d["changed"]) | kept):
+            text = read(root, rel)
+            if text != before(rel) and code_lines(rel, before(rel)) == code_lines(rel, text):
                 out.append({"file": rel, "expected": "imports",
                             "assertion": "was: no code changed; now: import lines and whitespace only",
                             "why": "an import-only change, which the slice expects (--expect-moves imports)"})
     if "renames" in kinds:
-        added = list(d["added"])
-        for gone in d["deleted"]:
+        renamed_held = [m for m in held if m["expected"] == "renames"]
+        added = sorted(set(d["added"]) | {m["file"] for m in renamed_held if exists(m["file"])})
+        gones = {m["from"] for m in renamed_held if m.get("from") and not exists(m["from"])}
+        for gone in sorted(set(d["deleted"]) | gones):
             want = code_lines(gone, renamed(before(gone), pairs))
             new = next((a for a in added if code_lines(a, read(root, a)) == want), None)
             if new:
