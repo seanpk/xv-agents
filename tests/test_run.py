@@ -1341,13 +1341,33 @@ class ScenarioChecksAtTheBaseTest(RepoCase):
         self.assert_stops(self.scenario(), "--kind")
 
 
-class AtAnAdoptingReposBaseTest(WatchLoopSetup):
-    """9. A base without xv's source: points 3 and 8 check against the installed xv."""
+class AdoptingReposShared(WatchLoopSetup):
+    """The setup both adopting-repo classes share. It holds no tests, so neither inherits the other's."""
 
     amend = ScenarioChecksTest.amend
     scenario = ScenarioChecksTest.scenario
     assert_goes_on = ScenarioChecksTest.assert_goes_on
     assert_stops = ScenarioChecksTest.assert_stops
+
+    def check_a_subcommand_the_installed_xv_has_is_not_raised(self):
+        self.amend("A person runs `xv slice amend`.")
+        self.assert_goes_on(self.scenario())
+
+    def check_a_flag_the_installed_command_has_is_not_raised(self):
+        self.amend("A person runs `xv slice amend --scenario-file notes.md`.")
+        self.assert_goes_on(self.scenario())
+
+    def check_a_command_the_installed_xv_lacks_is_raised(self):
+        self.amend("A person runs `xv ghost <id>`.")
+        self.assert_stops(self.scenario(), "xv ghost")
+
+    def check_a_flag_the_installed_command_lacks_is_raised(self):
+        self.amend("A person runs `xv slice amend --expect-moves imports`.")
+        self.assert_stops(self.scenario(), "--expect-moves")
+
+
+class AtAnAdoptingReposBaseTest(AdoptingReposShared):
+    """9. A base without xv's source: points 3 and 8 check against the installed xv."""
 
     def setUp(self):
         super().setUp()
@@ -1357,23 +1377,19 @@ class AtAnAdoptingReposBaseTest(WatchLoopSetup):
         self.assertFalse(os.path.exists(os.path.join(self.wt, "scripts")))
 
     def test_a_subcommand_the_installed_xv_has_is_not_raised(self):
-        self.amend("A person runs `xv slice amend`.")
-        self.assert_goes_on(self.scenario())
+        self.check_a_subcommand_the_installed_xv_has_is_not_raised()
 
     def test_a_flag_the_installed_command_has_is_not_raised(self):
-        self.amend("A person runs `xv slice amend --scenario-file notes.md`.")
-        self.assert_goes_on(self.scenario())
+        self.check_a_flag_the_installed_command_has_is_not_raised()
 
     def test_a_command_the_installed_xv_lacks_is_raised(self):
-        self.amend("A person runs `xv ghost <id>`.")
-        self.assert_stops(self.scenario(), "xv ghost")
+        self.check_a_command_the_installed_xv_lacks_is_raised()
 
     def test_a_flag_the_installed_command_lacks_is_raised(self):
-        self.amend("A person runs `xv slice amend --expect-moves imports`.")
-        self.assert_stops(self.scenario(), "--expect-moves")
+        self.check_a_flag_the_installed_command_lacks_is_raised()
 
 
-class AtAnAdoptingReposBaseWithItsOwnBinAndScriptsTest(AtAnAdoptingReposBaseTest):
+class AtAnAdoptingReposBaseWithItsOwnBinAndScriptsTest(AdoptingReposShared):
     """9. The adopting repo has its own `bin/` and `scripts/`, but not xv's: the installed xv still answers."""
 
     def setUp(self):
@@ -1399,6 +1415,18 @@ class AtAnAdoptingReposBaseWithItsOwnBinAndScriptsTest(AtAnAdoptingReposBaseTest
         self.assertTrue(os.path.isdir(os.path.join(self.wt, "scripts")))
         self.assertTrue(os.path.isdir(os.path.join(self.wt, "bin")))
         self.assertFalse(os.path.exists(os.path.join(self.wt, "bin", "xv")))
+
+    def test_a_subcommand_the_installed_xv_has_is_not_raised(self):
+        self.check_a_subcommand_the_installed_xv_has_is_not_raised()
+
+    def test_a_flag_the_installed_command_has_is_not_raised(self):
+        self.check_a_flag_the_installed_command_has_is_not_raised()
+
+    def test_a_command_the_installed_xv_lacks_is_raised(self):
+        self.check_a_command_the_installed_xv_lacks_is_raised()
+
+    def test_a_flag_the_installed_command_lacks_is_raised(self):
+        self.check_a_flag_the_installed_command_lacks_is_raised()
 
 
 class SliceOnlyFilesTest(WatchLoopSetup):
