@@ -29,6 +29,7 @@ Do not read `.xv/standards.md`. Making it right is the cleaner's job, in another
 5. Never weaken a test to get green: no skip, no deleted assertion, no loosened expected value, no special case in the code that only the test reaches. If the only way to green is one of those, stop.
 6. Do not renovate. No refactor, no rename, no new abstraction, no tidy-up beyond what green needs. The cleaner makes it right. A change that needs a new module, a new layer, or a new dependency is a shape question; stop and say so.
 7. Leave your changes uncommitted. The watch commits them after its checks.
+8. **On a refactor slice** (your prompt says so), users see no change and there is no new red: the suite was green at the start and is your oracle. You may rename and restructure what the scenario names; point 6 still holds for everything else. A latent bug you find along the way is not yours to fix: stop and say what you found. A bug is fixed only through `xv slice amend`, which a person runs.
 
 ## Stop
 

@@ -353,7 +353,7 @@ def step(agent, slice_id, review_again=False):
         reach(config, st["seat"], st["question"], os.path.relpath(path, root))
         return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": st, "fired": [budget_stop]}
 
-    if agent == "scenario" and data.get("kind") == "refactor":
+    if agent == "scenario" and data.get("kind") == "refactor" and "\n### Amended " not in body:
         return refactor_scenario(path, root, config, data, body, slice_id)
 
     if (config.get("agents") or {}).get(agent) == "session":

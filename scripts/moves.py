@@ -53,20 +53,17 @@ def find(root, data, config):
         return []
     commit = wall.load_baseline(root, data["id"])["commit"]
     before = lambda rel: git(["show", f"{commit}:{rel}"], root, check=False)
-    by_hand = {m.get("file") for m in data.get("moved_tests") or [] if not m.get("expected")}
     pairs = data.get("renames") or {}
     out = []
     if "imports" in kinds:
         for rel in d["changed"]:
-            if rel not in by_hand and code_lines(rel, before(rel)) == code_lines(rel, read(root, rel)):
+            if code_lines(rel, before(rel)) == code_lines(rel, read(root, rel)):
                 out.append({"file": rel, "expected": "imports",
                             "assertion": "was: no code changed; now: import lines and whitespace only",
                             "why": "an import-only change, which the slice expects (--expect-moves imports)"})
     if "renames" in kinds:
         added = list(d["added"])
         for gone in d["deleted"]:
-            if gone in by_hand:
-                continue
             want = code_lines(gone, renamed(before(gone), pairs))
             new = next((a for a in added if code_lines(a, read(root, a)) == want), None)
             if new:
@@ -79,7 +76,11 @@ def find(root, data, config):
 
 
 def apply(root, data, config):
-    """Replace the record's expected moves with those the working tree holds now."""
-    kept = [m for m in data.get("moved_tests") or [] if not m.get("expected")]
+    """Replace the record's expected moves with those the working tree holds now.
+
+    An agent may have recorded such a move by hand; the script's entry replaces it."""
+    found = find(root, data, config)
+    files = {m["file"] for m in found}
+    kept = [m for m in data.get("moved_tests") or [] if not m.get("expected") and m.get("file") not in files]
     stamp = now()
-    data["moved_tests"] = kept + [{**m, "by": "xv", "at": stamp} for m in find(root, data, config)]
+    data["moved_tests"] = kept + [{**m, "by": "xv", "at": stamp} for m in found]

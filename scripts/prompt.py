@@ -35,6 +35,9 @@ AGENTS = {
 }
 
 
+REFACTOR_POINT = "8. **On a refactor slice**"  # the maker brief's point that only a refactor slice's prompt keeps
+
+
 def brief(agent):
     if agent not in AGENTS:
         raise XVError(f"no brief for {agent!r}; one of {sorted(AGENTS)}")
@@ -220,7 +223,10 @@ def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
         bpath = os.path.join(root, ".xv", "boundary-all.md")
         if os.path.exists(bpath):
             extra.insert(0, f"Boundary output: `.xv/boundary-all.md`.")
-    return (brief(agent) + "\n" + refactor_section(agent, data) + answer_section(data, body)
+    text = brief(agent)
+    if agent == "maker" and (data or {}).get("kind") != "refactor":
+        text = "\n".join(l for l in text.splitlines() if not l.startswith(REFACTOR_POINT))
+    return (text + "\n" + refactor_section(agent, data) + answer_section(data, body)
             + commands_section(config, agent)
             + pointers(agent, root, config, data, extra) + "\n")
 
