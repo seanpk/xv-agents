@@ -21,6 +21,30 @@ def report(**kw):
     print("done\n```xv-report\n" + json.dumps(kw) + "\n```")
 
 
+if os.environ.get("FAKE_PROMPT_LOG"):
+    with open(os.environ["FAKE_PROMPT_LOG"], "a") as f:
+        f.write(prompt + "\n=====\n")
+
+if title.startswith("# The maker") and "prototype" not in title and os.environ.get("FAKE_REBASE_MODE"):
+    # the maker's rebase job: no store edit, only what the mode says
+    mode = os.environ["FAKE_REBASE_MODE"]
+    path = os.environ.get("FAKE_REBASE_FILE")
+    if mode == "resolve":
+        with open(path, "w") as f:
+            f.write(os.environ.get("FAKE_REBASE_TEXT", "RESOLVED = True\n"))
+        os.system(f"git add {path}")
+        report(agent="maker", status="green", summary=f"resolved a conflict in {path}", moved_tests=[])
+    elif mode == "logical":
+        with open(path, "a") as f:
+            f.write(os.environ.get("FAKE_REBASE_TEXT", "# adjusted to the new base\n"))
+        report(agent="maker", status="green", summary=f"fixed a break in {path}", moved_tests=[])
+    elif mode == "stuck":
+        report(agent="maker", status="stopped", summary="a change in the new base contradicts the slice",
+               stop={"reason": "rebase", "question": "UNFIXABLE-MARK: the base removed the thing the slice extends"})
+    else:
+        report(agent="maker", status="green", summary="rebased; nothing to change", moved_tests=[])
+    sys.exit(0)
+
 if title.startswith("# The forecaster"):
     if "Mode: close" in prompt:
         report(agent="forecaster", status="done", summary="closed", why="as forecast", shape_actual="none")
