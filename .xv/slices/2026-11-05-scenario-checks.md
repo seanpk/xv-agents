@@ -2,13 +2,13 @@
 id: 2026-11-05-scenario-checks
 title: "The checks after the scenario step stop less often for no reason: #120, #136, #140"
 kind: feature
-status: open
+status: stopped
 set_by: Sean Kennedy
 created: 2026-11-05
 branch: xv/2026-11-05-scenario-checks
 base: 5d5e75fc7a7371d74a3884cfbae919785adbb4e7
 next: forecaster
-forecast: null
+forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 490000, "turns": null, "usd": 2.9, "basis": ["2026-10-30-covers-list", "2026-10-29-red-covers-scenario", "2026-10-30-stop-words"]}, {"harness": "claude", "model": "opus", "tokens": 280000, "turns": null, "usd": 3.4, "basis": ["2026-10-30-covers-list", "2026-10-29-red-covers-scenario", "2026-10-30-stop-words"]}], "wall_s": 2800, "shape": "narrow", "breadth": "Moves the covers matcher, the red_gaps accept memory, the wall.red_gaps subcommand check, the send-back path for points 4 and 5, the scenario brief sentence and CHANGELOG; reopen risk sits in points 4 and 5, which change the send-back path."}
 budget: null
 red: null
 wall_baseline: null
@@ -20,12 +20,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: []
-stops: []
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 3426, "cache_read": 24501, "cache_write": 31507, "tokens": 34937, "usd": 0.0083, "turns": 3, "wall_s": 17.2, "session": "0d288591-0f67-4e2e-ae9d-eaac44ed5e8c", "step": "forecaster", "at": "2026-11-05T18:30:04+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-05-scenario-checks/01-forecaster.out"}]
+stops: [{"at": "2026-11-05T18:30:04+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-05-scenario-checks budget ... --by <name>`).", "answered_by": [], "answer": null, "also": [], "budget_seen": null}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast sonnet ~490k tokens and opus ~280k tokens, narrow shape, from three covers and stop rows; no turns history in the guide.", "at": "2026-11-05T18:30:04+00:00"}], "forecaster": {"at": "2026-11-05T18:30:04+00:00", "wrote": []}}
 ---
 # The checks after the scenario step stop less often for no reason: #120, #136, #140
 
@@ -51,3 +51,5 @@ None. A feature starts from words.
 
 ## Log
 - 2026-11-05T18:29:42+00:00 watch: slice opened by Sean Kennedy
+- 2026-11-05T18:30:04+00:00 forecaster: done: Forecast sonnet ~490k tokens and opus ~280k tokens, narrow shape, from three covers and stop rows; no turns history in the guide.
+- 2026-11-05T18:30:04+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-05-scenario-checks budget ... --by <name>`).
