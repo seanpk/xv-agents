@@ -65,6 +65,13 @@ elif title.startswith("# The maker") and "prototype" not in title:
     if os.environ.get("FAKE_MAKER_MOVES"):
         moves = [{"file": "tests/test_store.py", "assertion": "was: ['yogurt']; now: ['yogurt'] or []",
                   "why": "a stand-in move for the test"}]
+    if os.environ.get("FAKE_MAKER_IMPORT_MOVE"):
+        t = open("tests/test_store.py").read().replace("import unittest\n", "import os  # noqa: F401\nimport unittest\n", 1)
+        open("tests/test_store.py", "w").write(t)
+    if os.environ.get("FAKE_MAKER_RENAME_MOVE"):
+        t = open("tests/test_store.py").read().replace("StoreTest", "StockTest")
+        open("tests/test_stock.py", "w").write(t)
+        os.remove("tests/test_store.py")
     if os.environ.get("FAKE_MAKER_EDITS_CONFIG"):
         with open(".xv/config.yml", "a") as f:
             f.write("# the maker was here\n")
