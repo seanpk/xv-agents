@@ -183,6 +183,100 @@ class RefactorKindCase(RepoCase):
         self.assertTrue(any("expected_moves" in p for p in self.packet_problems("0")))
 
 
+class FollowUpBase(RepoCase):
+    """Helpers for points 12 and 13 and the cleaner's moves; it holds no test."""
+
+    agent = FAKE
+
+    def setUp(self):
+        super().setUp()
+        cfg = os.path.join(self.repo, ".xv", "config.yml")
+        text = open(cfg).read()
+        start, end = text.index("agents:"), text.index("seats:")
+        text = text[:start] + f'agents:\n  default: ["{sys.executable}", "{self.agent}", "{{prompt}}"]\n' + text[end:]
+        open(cfg, "w").write(text)
+        sh(["git", "commit", "-qam", "fake agents"], self.repo)
+
+    def open_slice(self, *flags, kind="refactor"):
+        p = self.xv("slice", "new", "s1", "--by", "pat", "--kind", kind, "--scenario", SCENARIO, *flags)
+        self.wt = p.stdout.strip().splitlines()[-1]
+        self.xv("record", "set", "s1", "budget", '{"usd": 1}', "--by", "pat", cwd=self.wt)
+
+    def record(self):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+
+    def run_slice(self, env):
+        with mock.patch.dict(os.environ, env):
+            p = self.xv("run", "s1", cwd=self.wt, check=False)
+        return json.loads(p.stdout).get("stop") or {}
+
+
+class ExpectedMovesStopCase(FollowUpBase):
+    # 12. a wrong expected_moves stops
+    def test_a_packet_without_expected_moves_stops_the_originator(self):
+        self.open_slice()
+        stop = self.run_slice({"FAKE_PACKET_EXPECTED_MOVES": "omit"})
+        self.assertEqual((stop.get("order"), stop.get("seat")), ("expected_moves_wrong", "originator"))
+
+    def test_a_packet_whose_expected_moves_is_not_a_number_stops_the_originator(self):
+        self.open_slice()
+        self.assertEqual(self.run_slice({"FAKE_PACKET_EXPECTED_MOVES": "many"}).get("order"),
+                         "expected_moves_wrong")
+
+    def test_a_packet_whose_expected_moves_differs_from_the_record_stops_the_originator(self):
+        self.open_slice("--expect-moves", "imports")
+        stop = self.run_slice({"FAKE_PACKET_EXPECTED_MOVES": "0", "FAKE_MAKER_IMPORT_MOVE": "1"})
+        self.assertEqual(stop.get("order"), "expected_moves_wrong")
+
+    def test_the_expected_moves_stop_applies_to_a_feature_slice_too(self):
+        self.open_slice(kind="feature")
+        self.assertEqual(self.run_slice({"FAKE_PACKET_EXPECTED_MOVES": "3"}).get("order"), "expected_moves_wrong")
+
+    def test_a_packet_whose_expected_moves_matches_does_not_stop_with_it(self):
+        self.open_slice("--expect-moves", "imports")
+        stop = self.run_slice({"FAKE_PACKET_EXPECTED_MOVES": "1", "FAKE_MAKER_IMPORT_MOVE": "1"})
+        self.assertEqual(stop.get("order"), "ready_to_merge")
+
+
+class AmendedRefactorCase(FollowUpBase):
+    # 13. an amend on a refactor slice gets a red
+    def amended(self):
+        self.open_slice()
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        f = os.path.join(self.tmp, "amend.md")
+        with open(f, "w") as fh:
+            fh.write("12. The tally also shows milk.")
+        self.xv("slice", "amend", "s1", "--by", "pat", "--scenario-file", f, cwd=self.wt)
+        self.assertEqual(self.record()["next"], "scenario")
+        self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+
+    def test_an_amended_refactor_slice_writes_a_red_for_the_amendment(self):
+        self.amended()
+        red = self.record()["red"]
+        self.assertIsNotNone(red)
+        self.assertIn("tests/test_red.py", red["files"])
+        self.assertTrue(os.path.exists(os.path.join(self.wt, "tests", "test_red.py")))
+
+    def test_the_amendments_red_must_fail_before_the_maker_runs(self):
+        self.amended()
+        self.assertIs(self.record()["checks"]["scenario"].get("red_fails"), True)
+
+
+class CleanerMoveCase(FollowUpBase):
+    # 6 and 7. a move the cleaner makes in an expected kind
+    agent = os.path.join(HOME, "tests", "fake_cleaner_agent.py")
+
+    def test_an_import_change_the_cleaner_makes_is_an_expected_move_and_does_not_stop(self):
+        self.open_slice("--expect-moves", "imports")
+        stop = self.run_slice({})
+        self.assertEqual(stop.get("order"), "ready_to_merge", stop)
+        self.assertIn("tests/test_store.py", [m["file"] for m in self.record()["moved_tests"] if m.get("expected")])
+
+    def test_the_same_import_change_by_the_cleaner_still_stops_when_imports_are_not_expected(self):
+        self.open_slice()
+        self.assertEqual(self.run_slice({}).get("order"), "accept_moves")
+
+
 # What a person should watch on the first green run: open a refactor slice with
 # `--expect-moves imports`, let the maker add an import to an old test, and see the
 # slice reach the merge stop with no accept_moves question; then change one assertion

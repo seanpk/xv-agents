@@ -129,6 +129,24 @@ class OrdersTest(unittest.TestCase):
         d["checks"]["guardian"] = {}
         self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
 
+    def test_a_packet_problem_with_expected_moves_stops_the_originator(self):
+        for kind in ("feature", "refactor"):
+            d = with_report(rec(kind=kind, shape_change="no", pitch_contradiction="no"), "guardian")
+            d["checks"]["guardian"] = {"packet_problems": ["front matter expected_moves is missing"]}
+            s = self.stop(d, "guardian")
+            self.assertEqual((s["order"], s["seat"]), ("expected_moves_wrong", "originator"), kind)
+
+    def test_another_packet_problem_does_not_fire_the_expected_moves_stop(self):
+        d = with_report(rec(shape_change="no", pitch_contradiction="no"), "guardian")
+        d["checks"]["guardian"] = {"packet_problems": ["section 2 has no evidence"]}
+        fired = [f["order"] for f in orders.verdict(d, "guardian", DEFAULT_CONFIG)["fired"]]
+        self.assertNotIn("expected_moves_wrong", fired)
+
+    def test_a_clean_packet_does_not_fire_the_expected_moves_stop(self):
+        d = with_report(rec(shape_change="no", pitch_contradiction="no"), "guardian")
+        d["checks"]["guardian"] = {"packet_problems": []}
+        self.assertEqual(self.stop(d, "guardian")["order"], "ready_to_merge")
+
     def test_green_and_nothing_stopped_the_merge_is_theirs(self):
         d = with_report(rec(shape_change="no", pitch_contradiction="no"), "guardian")
         d["checks"]["guardian"] = {}
