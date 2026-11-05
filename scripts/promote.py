@@ -237,7 +237,8 @@ def local_accept(root, title, to, by):
     rest = text[:i] + text[end:].lstrip("\n")
     fields = dict(re.findall(r"^- (\w+):[ \t]*(.*)$", block, re.M))
     rule = fields.get("rule") or re.sub(r"^\d{4}-\d{2}-\d{2}:\s*", "", title)
-    entry = (f"\n### {rule}\n- added: {today()} by {by}\n- from: {fields.get('from', '')}\n"
+    from_line = f"- from: {fields['from']}\n" if fields.get("from") else ""
+    entry = (f"\n### {rule}\n- added: {today()} by {by}\n{from_line}"
              f"- miss: {fields.get('miss', fields.get('said', ''))}\n- seen: {fields.get('seen', '')}\n")
     if to == "standards":
         entry += "- check: none: judgement\n"
