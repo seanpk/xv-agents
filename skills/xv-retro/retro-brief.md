@@ -21,7 +21,7 @@ For each candidate:
 2. **Sort it.**
    - **A mechanical miss gets a check**: a lint rule, a test, a script, a CI step. Say what it checks and how to show it red on the recorded miss and green on the suite. Prefer a check to a sentence whenever a check can hold it.
    - **A judgement call gets one line** for `.xv/standards.md` (structure and style, for the cleaner) or `.xv/rules.md` (a fact the agents cannot infer: a command, a slow check, a convention).
-   - **A pattern seen once** that no check can hold goes to the Open list in `.xv/learnings.md`, as evidence, not a rule.
+   - **A pattern seen once** that no check can hold goes to the Open list in `.xv/learnings.md`, as evidence, not a rule. When it matches an entry already in Open, mark the candidate with `sighting of:` and that entry's title; accept adds the sighting to that entry and writes no new one.
    - **A change to a brief, a may-not list, or a standing order** is not yours to propose as a rule. Name it as a question for two people.
 3. **Adopt before you invent.** Before you propose a new standard or rule, run `xv promote search <a few words from the miss>`. It lists the open learning issues other repos have shared. If one fits this miss, compare its examples with this miss, and propose `kind: adopt` with `- adopts: <repo>#<n>` and `- into: standards` or `rules`. Adopting links the local entry to the shared issue and adds this repo's sighting, after a person approves it.
 4. **Write the rule without project names or concrete traces** where it can be abstract, and keep the concrete trace in the `miss` line.
@@ -47,6 +47,7 @@ The retro packet at the path your prompt names, in this shape, one block per can
 - check: <for a check: what it checks, red on the miss, green on the suite>
 - adopts: <for adopt: owner/repo#n>
 - into: <for adopt: standards or rules>
+- sighting of: <for open: the title of an entry already in Open that this repeats, as written after its date>
 ```
 
 End your final message with one report block:
