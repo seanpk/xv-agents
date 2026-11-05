@@ -32,7 +32,7 @@ import prompt as promptlib  # noqa: E402
 import record  # noqa: E402
 import spend as spendlib  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, git, load_config, match_any, names_test, now,  # noqa: E402
-                   record_path, repo_root, slice_root, today, worktrees_config, worktrees_dir)
+                   main_root, record_path, repo_root, slice_root, today, worktrees_config, worktrees_dir)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 XV_HOME = os.path.dirname(HERE)
@@ -290,6 +290,226 @@ def cmd_slice_amend(a):
     data["next"] = "scenario"
     body = record.log_line(body, a.by, "amended the scenario")
     record.save(path, data, body)
+
+
+# ---------------------------------------------------------------- slice rebase
+
+UNION_FILES = ("CHANGELOG.md", f"{XV_DIR}/estimation.md")
+PICTURE = f"{XV_DIR}/picture.md"
+
+
+def run_git(root, args, env=None):
+    return subprocess.run(["git"] + args, cwd=root, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                          env={**os.environ, **env} if env else None)
+
+
+def git_path(root, name):
+    return git(["rev-parse", "--path-format=absolute", "--git-path", name], root).strip()
+
+
+def rebase_running(root):
+    return any(os.path.isdir(git_path(root, d)) for d in ("rebase-merge", "rebase-apply"))
+
+
+def unmerged(root):
+    return git(["diff", "--name-only", "--diff-filter=U"], root).split()
+
+
+def commits_between(root, rng):
+    lines = git(["log", "--reverse", "--format=%H %s", rng], root).splitlines()
+    return [line.split(" ", 1) for line in lines]
+
+
+def keep_both_sides(root, rel):
+    """Resolve a conflicted file by keeping both sides, ours first. False when the file has no markers to strip."""
+    path = os.path.join(root, rel)
+    if not os.path.exists(path):
+        return False
+    with open(path, encoding="utf-8") as f:
+        lines = f.read().splitlines(keepends=True)
+    if not any(line.startswith("<<<<<<<") for line in lines):
+        return False
+    kept, in_base = [], False
+    for line in lines:
+        if line.startswith("|||||||"):
+            in_base = True
+        elif line.startswith("=======") and line.strip() == "=======":
+            in_base = False
+        elif not (in_base or line.startswith(("<<<<<<<", ">>>>>>>"))):
+            kept.append(line)
+    with open(path, "w", encoding="utf-8") as f:
+        f.writelines(kept)
+    git(["add", "--", rel], root)
+    return True
+
+
+def rebase_state(root, slice_id, state=None):
+    """The rebase's own notes, kept in the git dir: what to restore on --abort and what --continue still owes."""
+    path = git_path(root, f"xv-rebase-{slice_id}.json")
+    if state is None:
+        if not os.path.exists(path):
+            raise XVError(f"no rebase of {slice_id} is in progress here: start one with `xv slice rebase {slice_id}`")
+        with open(path) as f:
+            return json.load(f)
+    with open(path, "w") as f:
+        json.dump(state, f, indent=1)
+    return state
+
+
+def rebase_stop(root, slice_id, state, config, **checks):
+    rebase_state(root, slice_id, state)
+    data = record.load(root, slice_id)[1]
+    data["checks"] = {"rebase": checks}
+    v = orders.verdict(data, "rebase", config)
+    v["worktree"] = root
+    print(json.dumps(v, indent=2))
+    if v["stop"]:
+        reach(config, v["stop"]["seat"], v["stop"]["question"], os.path.join(XV_DIR, "slices", f"{slice_id}.md"))
+    sys.exit(EXIT_STOP)
+
+
+def rebase_maker(root, slice_id, config, state, files):
+    """One maker run for the rebase, in a fresh context. Returns the stop's question, or None."""
+    data = record.load(root, slice_id)[1]
+    note = [f"This is a rebase: the slice is replayed on `{state['onto']}`; it was on `{state['old_base']}`. "
+            f"The slice's diff is now `git diff {state['onto']}..HEAD`."]
+    if files:
+        note.append(f"Conflicted files to resolve: {', '.join(files)}.")
+    with open(os.path.join(promptlib.SKILLS, "maker", "rebase.md"), encoding="utf-8") as f:
+        part = f.read()
+    text = promptlib.build("maker", slice_id, root=root, extra=note, part=part)
+    spent = spendlib.slice_spend(data)
+    argv = agentcli.with_caps(agentcli.argv_for(config, "maker"), data.get("budget"), spent["usd"], spent["turns"])
+    n = len(data.get("spend") or []) + len(state["runs"]) + 1
+    log = os.path.join(runs_dir(root, slice_id), f"{n:02d}-maker.out")
+    result = agentcli.run(argv, text, root, log, int(config.get("step_timeout") or 3600))
+    s = spendlib.from_run(result)
+    s.update(step="maker", at=now(), exit=result["code"], log=log)
+    state["runs"].append({"stdout": result["stdout"], "spend": s})
+    state["maker_ran"] = True
+    report = record.extract_report(result["stdout"]) or {}
+    if report.get("status") == "stopped":
+        return (report.get("stop") or {}).get("question") or report.get("summary") or "the maker stopped"
+    return None
+
+
+def rebase_drive(root, slice_id, state, config):
+    """Carry the rebase through its conflicts to the end, then finish. Exits 10 at a stop."""
+    protected_paths = (config.get("tests") or {}).get("paths") or []
+    while rebase_running(root):
+        for f in unmerged(root):
+            if f in UNION_FILES:
+                keep_both_sides(root, f)
+        files = unmerged(root)
+        if files:
+            mine = [f for f in files if f == PICTURE or match_any(f, protected_paths)]
+            if mine:
+                rebase_stop(root, slice_id, state, config, conflicts=mine)
+            stuck = rebase_maker(root, slice_id, config, state, files)
+            state["conflicts"] += files
+            state["changed"] = True
+            git(["add", "-A", "--"] + files, root)
+            left = unmerged(root)
+            if stuck or left:
+                rebase_stop(root, slice_id, state, config, stuck=stuck or f"conflict markers remain in {', '.join(left)}.")
+        p = run_git(root, ["rebase", "--continue"], {"GIT_EDITOR": "true"})
+        if p.returncode != 0 and rebase_running(root) and not unmerged(root):
+            raise XVError(f"git rebase --continue failed: {(p.stderr or p.stdout).strip()}")
+    rebase_finish(root, slice_id, state, config)
+
+
+def rebase_finish(root, slice_id, state, config):
+    """The rebase is done in git: look for logical breaks, move the record, hash the wall, run the suite."""
+    if not state["maker_ran"] and not state.get("continued"):
+        stuck = rebase_maker(root, slice_id, config, state, [])
+        if run_git(root, ["status", "--porcelain"]).stdout.strip():
+            state["changed"] = True
+            commit(root, f"xv({slice_id}): fix what the new base breaks")
+        if stuck:
+            rebase_stop(root, slice_id, state, config, stuck=stuck)
+    new = commits_between(root, f"{state['onto']}..HEAD")
+    moved, at = {}, 0
+    for sha, subject in state["old"]:
+        for i in range(at, len(new)):
+            if new[i][1] == subject:
+                moved[sha], at = new[i][0], i + 1
+                break
+    moved[state["old_base"]] = state["onto"]
+    dropped = [k for k, old in state["named"].items() if old and old in {s for s, _ in state["old"]} and old not in moved]
+    if dropped and not state.get("continued"):
+        rebase_stop(root, slice_id, state, config, dropped=[f"{k} {state['named'][k][:10]}" for k in dropped])
+    path, data, body = record.load(root, slice_id)
+    data["base"] = state["onto"]
+    for key, old in state["named"].items():
+        if old:
+            data[key] = moved.get(old, None if key in dropped else old)
+    for run in state["runs"][state["applied"]:]:
+        data["spend"].append(run["spend"])
+        body = record.apply_report(data, body, "maker", run["stdout"])[0]
+    state["applied"] = len(state["runs"])
+    if state["changed"]:
+        data["status"], data["next"] = "working", "cleaner"
+    detail = f"; conflicts resolved: {', '.join(state['conflicts'])}" if state["conflicts"] else ""
+    detail += f"; cleared from the record, dropped by the rebase: {', '.join(dropped)}" if dropped else ""
+    body = record.log_line(body, "watch", f"rebased onto {state['onto'][:10]}{detail}")
+    record.save(path, data, body)
+    commit(root, f"xv({slice_id}): rebase")
+    import wall
+    if os.path.exists(wall.wall_file(root, slice_id)):
+        old_wall = wall.load_baseline(root, slice_id)
+        theirs = set(git(["diff", "--name-only", state["old_base"], state["onto"]], root).split())
+        mine = set(git(["diff", "--name-only", state["onto"], "HEAD"], root).split()) - theirs
+        wall.baseline(root, slice_id, config, keep={k: {f: v for f, v in (old_wall.get(k) or {}).items() if f in mine}
+                                                    for k in ("files", "assertions")})
+    suite, out = run_suite(root, config, state["onto"], slice_id)
+    path, data, body = record.load(root, slice_id)
+    data["suite"] = suite
+    record.save(path, data, body)
+    commit(root, f"xv({slice_id}): hash the wall and run the suite after the rebase")
+    if suite == "red":
+        rebase_stop(root, slice_id, state, config, suite="red", failing=failing_tests(out or ""),
+                    failing_step=orders.first_failing_step(out))
+    os.remove(git_path(root, f"xv-rebase-{slice_id}.json"))
+    print(json.dumps({"slice": slice_id, "status": data["status"], "next": data["next"], "base": data["base"],
+                      "stop": None}, indent=2))
+
+
+def cmd_slice_rebase(a):
+    root0 = repo_root()
+    root = slice_root(record_path(root0, a.id))
+    if a.cont and a.abort or ((a.cont or a.abort) and a.onto):
+        raise XVError("--continue and --abort stand alone: give one of them, without --onto or the other")
+    if a.abort:
+        state = rebase_state(root, a.id)
+        if rebase_running(root):
+            git(["rebase", "--abort"], root)
+        else:
+            git(["reset", "--hard", state["orig_head"]], root)
+        os.remove(git_path(root, f"xv-rebase-{a.id}.json"))
+        print(json.dumps({"slice": a.id, "aborted": True, "head": state["orig_head"]}, indent=2))
+        return
+    config = load_config(root)
+    if a.cont:
+        state = rebase_state(root, a.id)
+        state["continued"] = True
+        return rebase_drive(root, a.id, state, config)
+    if os.path.exists(git_path(root, f"xv-rebase-{a.id}.json")):
+        raise XVError(f"a rebase of {a.id} is in progress: finish it with `xv slice rebase {a.id} --continue` "
+                      f"or give it up with `--abort`")
+    main = main_root(root)
+    onto = resolve_base(main, a.onto or worktrees_config(load_config(main)).get("base"))
+    data = record.load(root, a.id)[1]
+    head = git(["rev-parse", "HEAD"], root).strip()
+    old_base = data.get("base") or git(["merge-base", onto, head], root).strip()
+    state = {"orig_head": head, "onto": onto, "old_base": old_base, "old": commits_between(root, f"{old_base}..{head}"),
+             "named": {k: data.get(k) for k in ("pre_maker_commit", "cleaner_commit")},
+             "runs": [], "applied": 0, "maker_ran": False, "changed": False, "conflicts": []}
+    rebase_state(root, a.id, state)
+    p = run_git(root, ["rebase", "--onto", onto, old_base], {"GIT_EDITOR": "true"})
+    if p.returncode != 0 and not rebase_running(root):
+        os.remove(git_path(root, f"xv-rebase-{a.id}.json"))
+        raise XVError(f"git rebase failed: {(p.stderr or p.stdout).strip()}")
+    rebase_drive(root, a.id, state, config)
 
 
 # ---------------------------------------------------------------- one step
@@ -1204,6 +1424,13 @@ def main(argv=None):
     m.add_argument("--by", required=True)
     m.add_argument("--scenario-file", required=True)
     m.set_defaults(fn=cmd_slice_amend)
+    rb = ss.add_parser("rebase", help="bring a slice up to date with its base")
+    rb.add_argument("id")
+    rb.add_argument("--onto", help="the ref to rebase onto (default: worktrees.base, then origin/HEAD, then HEAD)")
+    rb.add_argument("--continue", dest="cont", action="store_true",
+                    help="finish a rebase that stopped, once its files are resolved")
+    rb.add_argument("--abort", action="store_true", help="give up a rebase that stopped; branch and record go back")
+    rb.set_defaults(fn=cmd_slice_rebase)
 
     s = sub.add_parser("step")
     s.add_argument("agent")

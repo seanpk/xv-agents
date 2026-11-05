@@ -197,7 +197,7 @@ def refactor_section(agent, data):
     return "\n".join(lines) + "\n"
 
 
-def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
+def build(agent, slice_id=None, root=None, close=False, init=False, extra=None, part=None):
     root = root or repo_root()
     config = load_config(root)
     data = body = None
@@ -226,7 +226,7 @@ def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
     text = brief(agent)
     if agent == "maker" and (data or {}).get("kind") != "refactor":
         text = "\n".join(l for l in text.splitlines() if not l.startswith(REFACTOR_POINT))
-    return (text + "\n" + refactor_section(agent, data) + answer_section(data, body)
+    return (text + ("\n\n" + part.strip() if part else "") + "\n" + refactor_section(agent, data) + answer_section(data, body)
             + commands_section(config, agent)
             + pointers(agent, root, config, data, extra) + "\n")
 

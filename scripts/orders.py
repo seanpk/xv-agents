@@ -165,6 +165,26 @@ def evaluate(data, after, config):
                             f"remove them and they do not join the wall: {listed}. Accept the marks, or unmark a "
                             "test so it joins the wall and the cleaner keeps it."))
 
+    if after == "rebase":
+        resume = f"`xv slice rebase {data.get('id')} --continue`"
+        undo = f"or `xv slice rebase {data.get('id')} --abort` to give it up"
+        if checks.get("conflicts"):
+            out.append(fire("rebase_conflict", "originator",
+                            f"{owner}: the rebase stopped on a conflict in {', '.join(checks['conflicts'])}. "
+                            f"Resolve it in the slice worktree and run {resume}, {undo}."))
+        if checks.get("dropped"):
+            out.append(fire("rebase_dropped", "originator",
+                            f"{owner}: the rebase dropped a commit the record names: {', '.join(checks['dropped'])}. "
+                            f"Run {resume} to clear it from the record, {undo}."))
+        if checks.get("stuck"):
+            out.append(fire("rebase_stuck", "originator",
+                            f"{owner}: the maker could not fix a problem the new base brings: {checks['stuck']} "
+                            f"Fix it in the slice worktree and run {resume}, {undo}."))
+        if checks.get("suite") == "red":
+            out.append(fire("rebase_suite_red", "originator",
+                            f"The suite is red after the rebase.{failing_clause(checks)} "
+                            f"Fix it in the slice worktree and run {resume}, {undo}."))
+
     wall = checks.get("wall") or {}
     if wall.get("unrecorded"):
         out.append(fire("unrecorded_move", "originator",
