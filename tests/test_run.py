@@ -1030,6 +1030,15 @@ class NamedByTheScenarioReachTheMakerTest(RepoCase):
                      ".xv/picture.md", "the red needs a new binding decision"):
             self.assertIn(word, text)
 
+    def test_the_makers_prompt_does_not_license_a_named_file_other_than_the_picture(self):
+        from prompt import pointers
+        data = {"id": "s1", "may_not_files": [{"file": ".xv/pitch.md", "why": "the pitch changes"},
+                                              {"file": ".xv/config.yml", "why": "a setting"}, self.FILE]}
+        text = pointers("maker", self.wt, {}, data)
+        self.assertIn("Named file you may change: .xv/picture.md", text)
+        self.assertNotIn("you may change: .xv/pitch.md", text)
+        self.assertNotIn("you may change: .xv/config.yml", text)
+
     def test_another_agents_prompt_does_not_license_the_files(self):
         from prompt import pointers
         data = {"id": "s1", "may_not_files": [self.FILE]}
