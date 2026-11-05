@@ -183,15 +183,15 @@ def add_sighting(path, text, c, repo, by):
     end = text.find("\n## ", start + 1) if start >= 0 else -1
     end = len(text) if end < 0 else end
     m = None
-    for hit in re.finditer(r"^### (?:\d{4}-\d{2}-\d{2}:\s*)?(.+?)[ \t]*\n(.*?)(?=^### |^## |\Z)",
-                           text[max(start, 0):end], re.S | re.M):
-        if start >= 0 and hit.group(1).strip() == title:
-            m = hit
-            break
+    if start >= 0:
+        for hit in re.finditer(r"^### (?:\d{4}-\d{2}-\d{2}:\s*)?(.+?)[ \t]*\n(.*?)(?=^### |^## |\Z)",
+                               text[start:end], re.S | re.M):
+            if hit.group(1).strip() == title:
+                m = hit
+                break
     if not m:
         raise XVError(f"candidate {c['n']} is a sighting of {title!r}, and no Open entry has that title")
-    block = m.group(0)
-    new = block
+    block = new = m.group(0)
     if c.get("from"):
         if re.search(r"^- from:[ \t]*\S", new, re.M):
             new = re.sub(r"^(- from:[ \t]*\S.*)$", lambda x: x.group(1) + "; " + c["from"], new, count=1, flags=re.M)
@@ -201,7 +201,7 @@ def add_sighting(path, text, c, repo, by):
         new = re.sub(r"^(- seen: \[.*?)\]", lambda x: f"{x.group(1)}, {repo}@{today()}]", new, count=1, flags=re.M)
     else:
         new = new.rstrip("\n") + f"\n- seen: [{repo}@{today()}]\n"
-    off = max(start, 0) + m.start()
+    off = start + m.start()
     text = text[:off] + new + text[off + len(block):]
     with open(path, "w") as f:
         f.write(text)
