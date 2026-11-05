@@ -479,8 +479,8 @@ def apply_report(data, body, agent, text):
             data["red"] = {**report["red"], "files": files}
         else:
             data["red"] = report["red"]
-    for key, need in (("old_tests_forced", ("file", "test", "why")), ("may_not_files", ("file", "why"))):
-        if agent == "scenario":
+    if agent == "scenario":
+        for key, need in (("old_tests_forced", ("file", "test", "why")), ("may_not_files", ("file", "why"))):
             listed = report.get(key) if isinstance(report.get(key), list) else []
             data[key] = [e for e in listed
                          if isinstance(e, dict) and all(isinstance(e.get(k), str) and e[k] for k in need)]

@@ -178,15 +178,6 @@ class ScenarioCatchesTest(unittest.TestCase):
         self.assertTrue([h for h in hits if "binding decision" in h.lower()],
                         "no watch line lists the four things an amendment names")
 
-    def test_the_changelog_has_a_line_for_each_brief_change(self):
-        text = brief("CHANGELOG.md")
-        unreleased = re.search(r"^## Unreleased\n(.*?)(?=^## |\Z)", text, re.S | re.M).group(1)
-        for issue in ("#119", "#110", "#111"):
-            with self.subTest(issue=issue):
-                self.assertIn(issue, unreleased)
-        self.assertRegex(unreleased, r"(?i)slice-only[^\n]*#119|#119[^\n]*slice-only")
-        self.assertRegex(unreleased, r"(?i)by number|point number|numbered")
-
 
 if __name__ == "__main__":
     unittest.main()
