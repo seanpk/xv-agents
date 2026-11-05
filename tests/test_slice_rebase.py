@@ -287,6 +287,101 @@ class SliceRebaseTest(RepoCase):
         stop = self.assert_a_stop_for_the_originator(p)
         self.assertIn("test_broken", stop["question"])
 
+    # -- 14: a stop leaves the rebase in progress; --continue finishes it, --abort gives it up
+
+    def in_progress(self):
+        return os.path.isdir(sh(["git", "rev-parse", "--path-format=absolute", "--git-path", "rebase-merge"],
+                                self.wt).stdout.strip())
+
+    def conflict_in_a_test_file(self):
+        self.on_slice("tests/test_shared.py", "A = 1\n", "slice adds a test")
+        self.new = self.on_main("tests/test_shared.py", "B = 2\n", "main adds a test")
+        return self.rebase()
+
+    def resolve_by_hand(self):
+        self.write(self.wt, "tests/test_shared.py", "A = 1\nB = 2\n")
+        sh(["git", "add", "tests/test_shared.py"], self.wt)
+
+    def test_a_stop_leaves_the_rebase_in_progress_in_the_slice_worktree(self):
+        p = self.conflict_in_a_test_file()
+        self.assert_a_stop_for_the_originator(p)
+        self.assertTrue(self.in_progress())
+        self.assertIn("<<<<<<<", self.read(self.wt, "tests/test_shared.py"))
+
+    def test_continue_finishes_the_rebase_after_the_person_resolved_the_files(self):
+        self.conflict_in_a_test_file()
+        self.resolve_by_hand()
+        p = self.rebase("--continue")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertFalse(self.in_progress())
+        self.assertEqual(sh(["git", "merge-base", "HEAD", "main"], self.wt).stdout.strip(), self.new)
+        self.assertEqual(self.read(self.wt, "tests/test_shared.py"), "A = 1\nB = 2\n")
+        self.assertEqual(self.record()["base"], self.new)
+
+    def test_continue_hashes_the_wall_again_and_runs_the_suite(self):
+        self.run_loop()
+        before = self.record()["wall_baseline"]
+        self.conflict_in_a_test_file()
+        self.resolve_by_hand()
+        self.write(self.wt, "tests/test_broken.py", "import unittest\n\n\nclass Broken(unittest.TestCase):\n"
+                   "    def test_broken_after_resolving(self):\n        self.assertEqual(1, 2)\n")
+        sh(["git", "add", "tests/test_broken.py"], self.wt)
+        p = self.rebase("--continue")
+        stop = self.assert_a_stop_for_the_originator(p)  # a red suite stops the slice
+        self.assertIn("test_broken", stop["question"])
+        self.assertNotEqual(self.record()["wall_baseline"]["digest"], before["digest"])
+
+    def test_continue_after_a_resolved_conflict_in_the_picture_moves_the_record(self):
+        self.on_slice(".xv/picture.md", "\nthe slice's line\n", "slice edits the picture", "a")
+        new = self.on_main(".xv/picture.md", "\nmain's line\n", "main edits the picture", "a")
+        self.assert_a_stop_for_the_originator(self.rebase())
+        self.write(self.wt, ".xv/picture.md", "\nthe slice's line\nmain's line\n")
+        sh(["git", "add", ".xv/picture.md"], self.wt)
+        p = self.rebase("--continue")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(self.record()["base"], new)
+        self.assertFalse(self.in_progress())
+
+    def test_abort_puts_the_branch_and_the_record_back_as_they_were(self):
+        head, rec = rev(self.wt), open(os.path.join(self.wt, ".xv", "slices", "s1.md")).read()
+        self.conflict_in_a_test_file()
+        self.assertTrue(self.in_progress())
+        p = self.rebase("--abort")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertFalse(self.in_progress())
+        self.assertEqual(rev(self.wt), head)
+        self.assertEqual(sh(["git", "branch", "--show-current"], self.wt).stdout.strip(), "xv/s1")
+        self.assertEqual(open(os.path.join(self.wt, ".xv", "slices", "s1.md")).read(), rec)
+        self.assertEqual(sh(["git", "status", "--porcelain"], self.wt).stdout.strip(), "")
+
+    def test_continue_with_no_rebase_in_progress_is_refused_and_says_so(self):
+        p = self.rebase("--continue")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("in progress", (p.stdout + p.stderr).lower())
+
+    def test_abort_with_no_rebase_in_progress_is_refused_and_says_so(self):
+        before = rev(self.wt)
+        p = self.rebase("--abort")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("in progress", (p.stdout + p.stderr).lower())
+        self.assertEqual(rev(self.wt), before)
+
+    # -- 15: with no --onto the default comes from resolve_base, so worktrees.base comes first
+
+    def test_with_no_onto_the_configured_worktrees_base_is_the_default(self):
+        trunk = rev(self.repo)
+        sh(["git", "branch", "trunk", trunk], self.repo)
+        self.on_main("later.txt", "main moved on\n")
+        for root in (self.repo, self.wt):
+            cfg = os.path.join(root, ".xv", "config.yml")
+            text = open(cfg).read().replace("worktrees: .xv/worktrees\n", "worktrees:\n  base: trunk\n")
+            open(cfg, "w").write(text)
+        sh(["git", "commit", "-qam", "worktrees base"], self.wt)
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertFalse(os.path.exists(os.path.join(self.wt, "later.txt")))
+        self.assertEqual(self.record()["base"], trunk)
+
 
 # What a person should watch on the first green run: that a slice with a real change of its own
 # is replayed on a moved base, that the record's base and named commits point at the replayed
