@@ -69,6 +69,12 @@ class RetroAcceptBriefShapeTest(RepoCase):
         self.assertIn("- miss: what went wrong\n", text)
         self.assertNotIn("- from: - ", text)
 
+    def test_promote_local_writes_no_empty_from_for_an_entry_with_no_from(self):
+        text = self.promote_entry("- miss: what went wrong\n- rule: do the thing\n")
+        entry = text.split("### do the thing")[1]
+        self.assertNotIn("- from:", entry)
+        self.assertIn("- miss: what went wrong\n", entry)
+
     def test_the_retro_brief_and_skill_name_the_sighting_of_field(self):
         for path in (("skills", "xv-retro", "retro-brief.md"), ("skills", "xv-retro", "SKILL.md")):
             with self.subTest(path="/".join(path)):

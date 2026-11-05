@@ -108,6 +108,15 @@ class RetroAcceptSightingTest(RepoCase):
         self.assertIn("- rule: an answer adds work -> read the gap as added work\n", text)
         self.assertIn("## Promoted\n", text)
 
+    def test_a_sighting_on_an_entry_with_no_from_line_adds_one_with_the_candidates_slices(self):
+        with open(self.learnings, "w") as f:
+            f.write(SIGHTING_LEARNING.replace("- from: s1, the stop\n", ""))
+        retro.accept(self.repo, self.packet, 1, "pat")
+        text = open(self.learnings).read()
+        self.assertIn("- from: s2, the stop at 21:43; s3, the stop at 22:01\n", text)
+        self.assertEqual(text.count("\n### "), 1)
+        self.assertIn(f"- seen: [other/repo@2026-10-27, seanpk/xv-agents@{today()}]\n", text)
+
     def test_a_sighting_of_an_unknown_title_is_refused_and_writes_nothing(self):
         with open(self.packet, "w") as f:
             f.write(SIGHTING_CANDIDATE.replace("A forecast runs low when answers at a stop add work",
