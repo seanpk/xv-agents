@@ -830,12 +830,18 @@ def scenario_scratch(root, data, config):
         drop_scratch(root, scratch)
         raise XVError(f"the worktree setup `{failed[0]}` failed ({failed[1]}) in the scenario agent's checkout; "
                       f"its last output:\n{failed[2]}")
-    earlier = subprocess.run(["git", "diff", "--binary", build_commit(root, data), "HEAD", "--", ".", f":(exclude){XV_DIR}"],
-                             cwd=root, capture_output=True, text=True).stdout
-    if earlier:  # the red from the earlier passes, already on the slice branch
-        subprocess.run(["git", "apply", "--index", "-"], cwd=scratch, input=earlier, text=True, check=True)
-        git(["commit", "-q", "--no-verify", "-m", f"xv({data['id']}): earlier red"], scratch)
+    red_subject = f"xv({data['id']}): red"
+    rows = git(["log", "--reverse", "--format=%H %s", f"{build_commit(root, data)}..HEAD"], root).splitlines()
+    for sha in [r.split(" ", 1)[0] for r in rows if r.split(" ", 1)[1:] == [red_subject]]:
+        # only the red commits from the earlier passes: the maker's changes come after them
+        earlier = subprocess.run(["git", "diff", "--binary", f"{sha}^", sha, "--", ".", f":(exclude){XV_DIR}"],
+                                 cwd=root, capture_output=True, text=True).stdout
+        if earlier:
+            subprocess.run(["git", "apply", "--index", "-"], cwd=scratch, input=earlier, text=True, check=True)
+            git(["commit", "-q", "--no-verify", "-m", f"xv({data['id']}): earlier red"], scratch)
     copy = dict(data, build="none", branch=data["base"]) if data.get("build_shared") != "yes" else data
+    if data.get("build_shared") != "yes":
+        copy.pop("pre_maker_commit", None)
     path = os.path.join(scratch, XV_DIR, "slices", f"{data['id']}.md")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     record.save(path, copy, record.load(root, data["id"])[2])
