@@ -12,37 +12,48 @@ blast_radius: contained
 
 # Packet: A slice can be brought up to date with its base: #20
 
-No stop for two people. Five misses send the slice back: four scenario points the red does not reach (16, 5 and 11 on the `--continue` path, 6), and binding decision 1 (no `CHANGELOG.md` line). Sean also decides three findings that are not misses (checks 1 and 4) and accepts the picture edits.
+This is the second pass. There is no stop for two people. Four of the five misses from the first pass are closed: 5, 11, the deleted and added half of 6, and decision 1. Two misses remain, under points **16** and **6**. Both keys were sent back on the first pass, so the watch reads them as repeats, and they go to Sean as originator. Sean also decides four findings that are not misses (check 1) and accepts the picture edits (check 4).
 
 ## The scenario
 
-`xv slice rebase <id> [--onto <ref>]` replays the slice branch on a new base (default from `resolve_base`). Conflicts in a test file or `.xv/picture.md` stop for the person. `CHANGELOG.md` and `.xv/estimation.md` keep both sides. Other conflicts, and logical breaks that git does not show, go to the maker in a fresh context with a rebase part in its brief. The record's `base`, `pre_maker_commit` and `cleaner_commit` move, and a dropped named commit stops. The wall is hashed again for test files the slice did not touch. The suite runs again. A red suite stops, except for the slice's own red before the maker (point 16). Closed slices work too: a clean rebase leaves them closed, and a maker fix sends them to the cleaner. A stop leaves the rebase in progress, with `--continue` and `--abort` (point 14).
-May ignore: `--merge`, trial repos (#21), prototype variant branches, old slice records.
+`xv slice rebase <id> [--onto <ref>]` replays the slice branch on a new base (default from `resolve_base`). Conflicts in a test file or `.xv/picture.md` stop for the person. `CHANGELOG.md` and `.xv/estimation.md` keep both sides. The maker resolves other conflicts in a fresh context with a rebase part in its brief, and looks for logical breaks. `base`, `pre_maker_commit` and `cleaner_commit` move, and a dropped named commit stops. The wall is hashed again for test files the slice did not touch. The suite runs again. A red suite stops, except a test in the slice's own red before the maker has made the suite green (16). Closed slices work too. A stop leaves the rebase in progress, with `--continue` and `--abort` (14).
+May ignore: `--merge`, trial repos (#21), prototype variant branches, old slice records, and an `--onto` ref whose own suite is red.
 
 ## The recording
 
-None (a feature). Replay: `cd tests && python3 -m unittest test_slice_rebase`. Before the maker, all 24 failed on `invalid choice: 'rebase'` (record `red`). Now 24 pass: I ran it, `Ran 24 tests in 59.604s OK`. The whole suite is 953 OK per the cleaner's run in the record. I did not rerun it.
+None (a feature). Replay: `cd tests && python3 -m unittest test_slice_rebase`. Before the maker, the 7 tests added on this pass failed: 5 on the code, 2 guarding the other side of 16 (record, scenario report). I ran it now and got `Ran 31 tests in 75.729s OK`. The whole suite is 960 OK in the cleaner's run (record `checks.cleaner.suite_output`). I did not rerun the whole suite.
 
 ## The boundary picture
 
-From `.xv/slices/2026-11-04-slice-rebase.boundary.md`. Touched: `scripts/orders`, `scripts/prompt`, `scripts/run`, `scripts/wall`. Modules added or removed: none. Edges added or removed: none. Outbound added: none. Tables: none. Surface paths: none. Shape hints: none.
+From `.xv/slices/2026-11-04-slice-rebase.boundary.md`, as given. Touched: `scripts/orders`, `scripts/prompt`, `scripts/run`, `scripts/wall`. Modules added or removed: none. Edges added or removed: none. Outbound added: none. Tables: none. Surface paths: none. Shape hints: none.
 
 ## What the suite asserts after
 
-`tests/test_slice_rebase.py` (24 tests, with the stand-in maker in `tests/fake_agent.py`). A clean rebase moves the branch and `base` to the default or to `--onto`, not to the merge base. The maker runs once, with "rebase" in its brief. Test-file and picture conflicts stop for the originator, and the agent does not run. CHANGELOG and estimation conflicts keep both sides. The maker resolves other conflicts and logical breaks, and `next` becomes `cleaner`. A stuck maker stops. A closed slice stays closed on a clean rebase and opens again on a resolved conflict. Named commits move, and a dropped one stops. The wall count rises for a test file added on main, and `moved_tests` is kept. A red suite stops. A stop leaves the rebase in progress. `--continue` finishes it (base, wall, suite). `--abort` restores the branch and the record. Both flags are refused with no rebase in progress. `worktrees.base` is the default. No old assertion moved.
+There are 24 tests from the first pass (see the first packet, commit `5aaa0b6`), and this pass adds 7:
+- An open slice whose own red still fails rebases clean (exit 0).
+- The own red failing after the maker made the suite green stops.
+- A failing test outside the own red stops, even before the maker.
+- A dropped named commit stops after a `--continue` from a test-file conflict stop.
+- `--continue` runs the maker to look for logical breaks.
+- `--continue` stops when that maker cannot fix a problem.
+- The rehashed wall still shows the slice's own deleted test file (`tests/test_red.py`) and the test files it added.
+
+No old assertion moved.
 
 ## 1. Shape
 
-shape_change: no. shape_breadth: none (the forecast expected `wide`, so this is not wider).
-- No module, edge, table or outbound call is added (the boundary picture: all `none`).
-- `xv slice rebase` is a new subcommand inside the existing `xv` CLI surface (`.xv/picture.md:27` "Surfaces: the `xv` CLI"), and `slice` already lands in `run.py` (`.xv/picture.md:22`). It is not a new surface.
-- The four new stops (`rebase_conflict`, `rebase_dropped`, `rebase_stuck`, `rebase_suite_red`) are in `scripts/orders.py:162` `if after == "rebase":`, where the picture puts stop rules (`.xv/picture.md:23` "`orders` holds the stop rules").
-- Not a miss, for Sean to decide: the rebase stops never reach the record. `scripts/run.py:359-368` `rebase_stop` builds the verdict in memory, prints it and calls `reach`, then `sys.exit(EXIT_STOP)`. There is no `record.apply_verdict` and no save. The picture says that one function "writes the stop or the send-backs" (`.xv/picture.md:23`). So `xv record answer` finds no open stop for a rebase stop, and `decisions` never counts these stops. That may be on purpose, since `--abort` must put the record back (point 14), but nothing says so.
-- Not a miss: the rebase maker run skips the budget gate. `scripts/run.py:382` applies `agentcli.with_caps` but never calls `orders.budget_before`. That gate runs before every other step (`scripts/run.py:564`). The picture says "`orders.budget_before` checks it before every step" (`.xv/picture.md:23`).
+shape_change: no. shape_breadth: none (the forecast said `wide`, so this is not wider).
+- No module, edge, table or outbound call is added (the boundary picture: all `none`). `xv slice rebase` is a new subcommand inside the `xv` CLI surface (`.xv/picture.md:27`), landing in `run.py` (`.xv/picture.md:22`). The new stops sit in `orders`, where the picture puts stop rules (`.xv/picture.md:23`).
+- This pass adds `in_own_red` (`scripts/run.py:421`) and `wall.baseline(..., skip=())` (`scripts/wall.py:61`). Both are inside existing modules, so they are not a shape change. The cleaner proposed pulling the wall rehash block out of `rebase_finish` into a function of its own (record `checks.reports`, cleaner). That would also stay inside `run`, so it is not a shape change either.
+- These three are carried from the first pass. They are still true and are not misses; Sean decides them (`.xv/picture.md:23`).
+  - Rebase stops never reach the record. `scripts/run.py:359-366` `rebase_stop` puts `data["checks"] = {"rebase": checks}` in memory, prints the verdict and exits, with no `record.apply_verdict`. The picture says that function "writes the stop or the send-backs" (`.xv/picture.md:23`). So `xv record answer` and `decisions` never see a rebase stop.
+  - The rebase maker skips the budget gate. `scripts/run.py:382` calls `agentcli.with_caps` and never calls `orders.budget_before`, while `.xv/picture.md:23` says that check runs "before every step". `budget_before` runs for every other step at `scripts/run.py:575`.
+  - Spend from an aborted rebase is lost. Maker spend sits in the rebase state until `rebase_finish` copies it, and `--abort` deletes that state (`scripts/run.py:500` `os.remove(rebase_state_path(root, a.id))`). `spend` then undercounts the budget (`.xv/picture.md:23`, "`spend.slice_spend` is the count the slice budget uses").
+- New, not a miss, not run: when the maker resolves a conflict, only the conflicted files are staged (`scripts/run.py:411` `git(["add", "-A", "--"] + files, root)`). Then `git rebase --continue` runs. The brief tells that same run to "look for what the new base changed … Fix what you can" (`skills/maker/rebase.md:6`). A fix in another file is left unstaged when git continues. No test has the stand-in maker edit a second file in `resolve` mode (`tests/fake_agent.py`, `resolve` branch). I did not run a case to see whether git refuses the continue or the fix lands in the later `rebase` record commit.
 
 ## 2. Pitch
 
-pitch_contradiction: no. The pitch says nothing about rebasing. The only negative line, "not for people or projects that will not trust agents to write production code" (`.xv/pitch.md`, "Who it is not for"), is untouched: the maker resolving a conflict is the agent writing code, with test-file and picture conflicts kept for a person.
+pitch_contradiction: no. The pitch says nothing about rebasing. The one line this could touch, "xv-agents is not for people or projects that will not trust agents to write production code" (`.xv/pitch.md:25`), still holds: the maker resolves code conflicts, and test-file and picture conflicts stay with a person.
 
 ## 3. Moved tests
 
@@ -50,41 +61,42 @@ pitch_contradiction: no. The pitch says nothing about rebasing. The only negativ
 | --- | --- | --- | --- | --- |
 | none | | | | |
 
-`moved_tests: []`, and `xv wall diff` shows changed, deleted and added all empty against baseline `a671dab`. `tests/fake_agent.py` changed after the base (commit `2af37d8`, the scenario agent's red). It has 24 added lines, none removed, and no assertion. It is a new branch gated on `FAKE_REBASE_MODE` (`tests/fake_agent.py:28`), so no old test asserts less. `may_not_files: []` and `old_tests_forced: []`, so the packet lists no permitted may-not edits.
+`moved_tests: []`. `xv wall diff 2026-11-04-slice-rebase` against baseline `5aaa0b6` shows changed, deleted, added and fewer_assertions all empty. Since the base, `tests/fake_agent.py` has only additions (24 lines, gated on `FAKE_REBASE_MODE`). `tests/test_slice_rebase.py` is new, and this pass added 83 lines and removed none. `may_not_files: []` and `old_tests_forced: []`, so there are no may-not edits to list.
 
 Slice-only tests removed: none. Kept: none.
 
 ## 4. The picture
 
 Proposed edits for Sean to accept:
-- `.xv/picture.md:22`: add `xv slice rebase` to what `slice` runs in `run.py`.
-- `.xv/picture.md:23`: add that `orders` decides four stops after `rebase`, and that, unlike `xv step`/`xv run`/`xv record packet`, `xv slice rebase` prints its stop and reaches the seat without writing it to `stops` (`scripts/run.py:359-368`), or change the code first (check 1). Add that `prompt.build` takes a `part`, which the rebase uses to add `skills/maker/rebase.md` to the maker's brief (`scripts/prompt.py:177,203`). Add that `wall.baseline` takes `keep`, which holds the hashes of files the slice changed (`scripts/wall.py:61-68`).
-- `.xv/picture.md:26` (state is files): add that a slice can be rebased. `base` moves to the `--onto` commit, the named commits move by subject, and a rebase in progress keeps its notes in the git dir as `xv-rebase-<id>.json` (`scripts/run.py:342` `rebase_state_path`).
-- `.xv/picture.md:35` (what the maker may touch): the rebase brief adds "Do not touch a test file, `.xv/picture.md` or anything under `.xv/` to make a conflict go away" (`skills/maker/rebase.md:7`).
-
-Not checked against a person's view: the cleaner reports that its edits were uncommitted. Commit `3ae09ad` ("record the cleaner's pass") carries them, and the record still has `cleaner_commit: null`.
+- `.xv/picture.md:22`: add `xv slice rebase` (with `--onto`, `--continue`, `--abort`) to what `slice` runs in `run.py`.
+- `.xv/picture.md:23`:
+  - Add that `orders` decides four stops after `rebase` (`rebase_conflict`, `rebase_dropped`, `rebase_stuck`, `rebase_suite_red`) (`scripts/orders.py:162` `if after == "rebase":`).
+  - Add that `xv slice rebase` prints its stop without writing it to `stops` (`scripts/run.py:359-366`), or change the code first (check 1).
+  - Add that `prompt.build` takes a `part`, which the rebase uses to add `skills/maker/rebase.md` to the maker's brief.
+  - Add that `wall.baseline` takes `keep` (the hashes the slice changed or deleted) and `skip` (test files the slice added after the baseline) (`scripts/wall.py:61-71`).
+- `.xv/picture.md:26` (state is files): add that a rebase moves `base` to the `--onto` commit and moves the named commits by subject. A rebase in progress keeps its notes in the git dir as `xv-rebase-<id>.json` (`scripts/run.py:342`). After a rebase, a red suite whose failing tests are all in the slice's own red does not stop before the maker has made the suite green (`scripts/run.py:476`).
+- `.xv/picture.md` Names, maker line: the rebase brief adds "Do not touch a test file, `.xv/picture.md` or anything under `.xv/` to make a conflict go away" (`skills/maker/rebase.md:7`).
 
 ## 5. The wall
 
-No recommendations. I looked at all 24 new tests in `tests/test_slice_rebase.py`. Each checks behaviour that lasts, not a one-time wording change. None is marked slice-only (`slice_only: []`). None restates another: `test_a_stop_leaves_the_rebase_in_progress_in_the_slice_worktree` adds the in-progress and marker checks to the conflict-stop tests. No old wall test is made dead (`xv wall diff`: nothing changed).
+No recommendations. I looked at the 7 tests added on this pass (listed above) and the 24 from the first pass. None is marked slice-only (`slice_only: []`). Each checks behaviour that lasts. None restates another: the two guard tests for 16 check the other side of the exception (after the maker, and outside the red). No old wall test is made dead (`xv wall diff`: nothing changed).
 
 ## Scenario misses
 
-- 16: the exception for the slice's own red before the maker is not built. After the rebase the suite stops on any red: `scripts/run.py:464-470` `suite, out = run_suite(root, config, state["onto"], slice_id)` … `if suite == "red": rebase_stop(...)`. Nothing excludes the red files or checks whether the maker has made the suite green. The record's own `watch_first_green` expects "a clean rebase of an open slice with its own red still failing exits 0". Every red test that rebases an open slice either runs `run_loop()` first (the maker is done) or has no red yet (evidence: `tests/test_slice_rebase.py` `rebase()` callers; to: scenario).
-- 5: a dropped named commit does not stop when the rebase is continued after a different stop. Every `--continue` sets `continued`, which skips the `rebase_dropped` stop and clears the commit from the record, so a person who resolves a test-file conflict and continues never sees the drop. No red test combines a conflict stop with a dropped commit (evidence: `scripts/run.py:494` `state["continued"] = True`, `scripts/run.py:439` `if dropped and not state.get("continued"):`; to: scenario).
-- 11: on `--continue`, no agent looks for logical breaks unless a later commit conflicts. After a test-file or picture stop, the maker's look is skipped. Point 14 lists only "the record's commits move, the wall is hashed again, and the suite runs" as the work `--continue` finishes. If that list was meant to leave out the look, the scenario should say so. No red test checks whether the maker runs on `--continue` (evidence: `scripts/run.py:423` `if not state["maker_ran"] and not state.get("continued"):`; to: scenario).
-- 6: hashing the wall again erases the slice's own test-file deletions and its additions made after the baseline. An old hash is kept only for a file that still exists. So a test file the slice deleted drops out of the new baseline, and `xv wall diff`/`check` no longer report it as `deleted`. A test file the maker or cleaner added after the baseline is hashed in, so it no longer shows as `added`. The scenario says to hash again only "for test files the slice has not touched". The red checks only a file added on main (evidence: `scripts/wall.py:66-67` `for f, h in ((keep or {}).get("files") or {}).items(): if f in files:`; `test_the_wall_is_hashed_again_for_untouched_test_files_and_the_moves_are_kept`; to: scenario).
-- decision 1: the slice adds four standing orders and a part of the maker's brief with its own may-not lines, with no line in `CHANGELOG.md`. The decision says "A change to a brief, a may-not list, a standing order, or a check an agent is judged by needs two people and a line in `CHANGELOG.md`". Earlier slices add the line in their maker commit (e.g. `17bef83`). The repo runs solo for the two-people half (`.xv/picture.md:55`) (evidence: `.xv/picture.md:63`; `scripts/orders.py:162-180` `if after == "rebase":`; `skills/maker/rebase.md`; `CHANGELOG.md` absent from `git diff --stat 66570aa..HEAD`; to: maker).
+- 16: the exception covers more than "a test in the slice's own red", in two ways. The code excuses any failing test whose name contains a red file's stem (`scripts/run.py:424` `return any(f in name or os.path.splitext(os.path.basename(f))[0] in name for f in files)`). (a) Every test in a red file is excused, including old wall tests when the red file existed at the base. The repo already treats such a file as covered "only for the tests the slice added" (`.xv/picture.md:23`, `scripts/wall.py:185`). (b) It is a plain substring match, not the shared whole-name matcher `xvlib.names_test` (`.xv/picture.md:23`). So a red file `tests/test_run.py` (stem `test_run`) excuses a failure named `test_run_loop_x (test_other.T.test_run_loop_x)`. In both cases the new base breaks a test the slice did not write, the rebase exits 0, and `suite` is not updated (`scripts/run.py:476`). The red uses only a new one-test red file, `tests/test_own_red.py` (evidence: `scripts/run.py:424`, `scripts/run.py:476`, `own_red()` in `tests/test_slice_rebase.py`; to: scenario)
+- 6: a test file that both the slice and the new base changed is hashed again, so the slice's change to it leaves the wall. `scripts/run.py:467-468` `theirs = … diff --name-only old_base onto` … `mine = set(… log --name-only onto..HEAD) - theirs` takes those files out of `keep`, so `wall.baseline` hashes their merged content. Failure: the slice weakens an assertion in an old wall test, and main edits another line of the same file. Git merges it clean, and `xv wall diff` then shows the file unchanged, so an unrecorded move is not flagged. The same happens to a test-file conflict once the person resolves it and runs `--continue`. Point 6 hashes again only "for test files the slice has not touched". No red test touches one file on both sides and then reads the wall (`test_a_dropped_commit_stops_after_continue_from_a_conflict_stop` uses `tests/test_shared.py` on both sides and does not check the wall). (evidence: the hunk cited; to: scenario)
 
 ## Door
 
-**Door:** two-way: reverting the commits removes the subcommand, and no data, contract or message is migrated or sent. **Blast radius:** contained. Changes to existing paths are additive and default off: `prompt.build(part=None)`, `wall.baseline(keep=None)`, and the `FAKE_REBASE_MODE` gate in the stand-in agent.
-
-Outside the misses, for Sean: the maker runs' spend sits only in the rebase state until `rebase_finish` writes it (`scripts/run.py:388` `state["runs"].append(...)`). `--abort` deletes that state and resets the record (`cmd_slice_rebase` abort path, `os.remove(rebase_state_path(...))`), so spend from an aborted rebase never reaches `spend` and the budget undercounts (`.xv/picture.md:23`, "`spend.slice_spend` is the count the slice budget uses").
+**Door:** two-way. Reverting the commits removes the subcommand, and no data, contract or message is migrated or sent. **Blast radius:** contained. Changes to existing paths are additive and off by default: `prompt.build(part=None)`, `wall.baseline(keep=None, skip=())`, and the `FAKE_REBASE_MODE` gate in the stand-in agent.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-11-04-slice-rebase.md`
-- Diff: `git diff 66570aa785961973ad109e9db00dfc167a823e9b..3ae09ad`
+- Diff: `git diff 66570aa785961973ad109e9db00dfc167a823e9b..79a37bd` (this pass alone: `git diff 5aaa0b6..79a37bd`)
 - Wall: `xv wall diff 2026-11-04-slice-rebase`
 - Boundary: `xv boundary --base 66570aa785961973ad109e9db00dfc167a823e9b` (as `.xv/slices/2026-11-04-slice-rebase.boundary.md`)
+
+## From the cleaner
+
+- Shape proposal, for people: Extract the wall rehash block of rebase_finish (scripts/run.py) into a function of its own: it is a clear unit, but a new function boundary is a shape decision, not a cleanup.
