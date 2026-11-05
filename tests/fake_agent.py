@@ -34,6 +34,15 @@ if title.startswith("# The maker") and "prototype" not in title and os.environ.g
             f.write(os.environ.get("FAKE_REBASE_TEXT", "RESOLVED = True\n"))
         os.system(f"git add {path}")
         report(agent="maker", status="green", summary=f"resolved a conflict in {path}", moved_tests=[])
+    elif mode == "resolve_and_edit":
+        # resolves and stages its own file, and also edits a second file it leaves unstaged
+        with open(path, "w") as f:
+            f.write(os.environ.get("FAKE_REBASE_TEXT", "RESOLVED = True\n"))
+        os.system(f"git add {path}")
+        with open(os.environ["FAKE_REBASE_FILE2"], "a") as f:
+            f.write(os.environ.get("FAKE_REBASE_TEXT2", "# adjusted to the new base\n"))
+        report(agent="maker", status="green", summary=f"resolved {path} and fixed {os.environ['FAKE_REBASE_FILE2']}",
+               moved_tests=[])
     elif mode == "logical":
         with open(path, "a") as f:
             f.write(os.environ.get("FAKE_REBASE_TEXT", "# adjusted to the new base\n"))

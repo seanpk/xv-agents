@@ -538,6 +538,101 @@ class SliceRebaseTest(RepoCase):
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertFalse(os.path.exists(os.path.join(self.wt, "later.txt")))
         self.assertEqual(self.record()["base"], trunk)
+    # -- 17: every file the maker changed is staged; a test file or the picture goes to the person
+
+    def shared_conflict(self):
+        self.on_slice("pantry/shared.py", "SLICE = 1\n", "slice adds shared")
+        self.on_main("pantry/shared.py", "MAIN = 2\n", "main adds shared")
+
+    def test_a_fix_the_maker_makes_outside_the_conflicted_files_is_kept_in_the_rebase(self):
+        self.shared_conflict()
+        p = self.rebase(FAKE_REBASE_MODE="resolve_and_edit", FAKE_REBASE_FILE="pantry/shared.py",
+                        FAKE_REBASE_FILE2="pantry/store.py")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(self.read(self.wt, "pantry/shared.py"), "RESOLVED = True\n")
+        self.assertIn("# adjusted to the new base", self.read(self.wt, "pantry/store.py"))
+        self.assertFalse(self.in_progress())
+        self.assertEqual(sh(["git", "status", "--porcelain"], self.wt).stdout.strip(), "")
+        self.assertEqual(self.record()["next"], "cleaner")
+
+    def test_a_test_file_the_maker_changed_while_resolving_stops_with_rebase_conflict(self):
+        self.shared_conflict()
+        p = self.rebase(FAKE_REBASE_MODE="resolve_and_edit", FAKE_REBASE_FILE="pantry/shared.py",
+                        FAKE_REBASE_FILE2="tests/test_store.py")
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertEqual(stop["order"], "rebase_conflict")
+        self.assertIn("tests/test_store.py", stop["question"])
+
+    def test_the_picture_the_maker_changed_while_resolving_stops_with_rebase_conflict(self):
+        self.shared_conflict()
+        p = self.rebase(FAKE_REBASE_MODE="resolve_and_edit", FAKE_REBASE_FILE="pantry/shared.py",
+                        FAKE_REBASE_FILE2=".xv/picture.md")
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertEqual(stop["order"], "rebase_conflict")
+        self.assertIn(".xv/picture.md", stop["question"])
+
+    # -- 18: a rebase stop is written to the record, so the person's answer can be recorded
+
+    def test_a_rebase_stop_for_a_conflict_is_written_to_the_record(self):
+        self.assert_a_stop_for_the_originator(self.conflict_in_a_test_file())
+        data = self.record()
+        stop = data["stops"][-1]
+        self.assertEqual((stop["order"], stop["seat"], stop["answer"]), ("rebase_conflict", "originator", None))
+        self.assertIn("tests/test_shared.py", stop["question"])
+        self.assertEqual(data["status"], "stopped")
+
+    def test_a_rebase_stop_for_a_problem_the_maker_could_not_fix_is_written_to_the_record(self):
+        self.on_main("docs.txt", "news\n")
+        self.assert_a_stop_for_the_originator(self.rebase(FAKE_REBASE_MODE="stuck"))
+        data = self.record()
+        stop = data["stops"][-1]
+        self.assertEqual((stop["order"], stop["answer"]), ("rebase_stuck", None))
+        self.assertIn("UNFIXABLE-MARK", stop["question"])
+        self.assertEqual(data["status"], "stopped")
+
+    # -- 19: the budget is checked before the rebase maker runs
+
+    def spend_the_budget(self):
+        self.set_field("spend", [{"harness": "sh", "model": "default", "tokens": 10, "usd": 2.0, "turns": 1,
+                                  "step": "maker", "at": "2026-11-05T00:00:00+00:00", "exit": 0}])
+
+    def test_a_spent_budget_stops_with_budget_spent_before_the_rebase_maker_starts(self):
+        self.spend_the_budget()
+        self.on_main("docs.txt", "news\n")
+        p = self.rebase()
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertEqual(stop["order"], "budget_spent")
+        self.assertFalse(self.agent_ran())
+        self.assertEqual(self.record()["stops"][-1]["order"], "budget_spent")
+
+    def test_a_spent_budget_stops_the_maker_on_a_conflict_in_another_file_too(self):
+        self.spend_the_budget()
+        self.shared_conflict()
+        p = self.rebase(FAKE_REBASE_MODE="resolve", FAKE_REBASE_FILE="pantry/shared.py")
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertEqual(stop["order"], "budget_spent")
+        self.assertFalse(self.agent_ran())
+
+    # -- 20: --abort keeps the spend of the maker runs in that rebase
+
+    def test_abort_keeps_the_spend_of_the_maker_runs_of_that_rebase(self):
+        self.on_slice("pantry/shared.py", "SLICE = 1\n", "slice adds shared")
+        self.on_slice("tests/test_shared.py", "A = 1\n", "slice adds a test")
+        self.on_main("pantry/shared.py", "MAIN = 2\n", "main adds shared")
+        self.on_main("tests/test_shared.py", "B = 2\n", "main adds a test")
+        head = rev(self.wt)
+        before = self.record()["spend"]
+        # the maker resolves the first conflict; the second one, in a test file, stops for the person
+        p = self.rebase(FAKE_REBASE_MODE="resolve", FAKE_REBASE_FILE="pantry/shared.py")
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertEqual(stop["order"], "rebase_conflict")
+        self.assertTrue(self.agent_ran())
+        p = self.rebase("--abort")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(rev(self.wt), head)
+        after = self.record()["spend"]
+        self.assertEqual(after[:len(before)], before)
+        self.assertEqual([s["step"] for s in after[len(before):]], ["maker"])
 
 
 # What a person should watch on the first green run: that a slice with a real change of its own
