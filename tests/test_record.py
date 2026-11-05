@@ -2043,7 +2043,8 @@ class DirectedEditTest(RepoCase):
         for what, (text, name) in cases.items():
             with self.subTest(what=what):
                 self.write(self.STORE, text)
-                self.commit_all(what)
+                if text != base:
+                    self.commit_all(what)
                 self.stop()
                 self.refused(*rename_to(name))
 
