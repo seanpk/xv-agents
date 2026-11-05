@@ -773,6 +773,40 @@ class SliceRebaseTest(RepoCase):
         self.on_slice("tests/test_shared.py", "A = 1\n", "slice adds a test")
         self.new = self.on_main("tests/test_shared.py", "B = 2\n", "main adds a test")
 
+    def test_a_budget_set_during_the_stop_is_kept_by_abort(self):
+        self.spend_the_budget()
+        self.conflict_in_a_test_file_commit()
+        self.assert_a_stop_for_the_originator(self.rebase())
+        self.xv("record", "set", "s1", "budget", '{"usd": 10}', "--by", "pat", cwd=self.wt)
+        p = self.rebase("--abort")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertFalse(self.in_progress())
+        self.assertEqual(self.record()["budget"]["usd"], 10)
+
+    def test_continue_keeps_the_record_change_of_the_commit_it_stopped_on(self):
+        # the commit that conflicts also changes the record; the next commit changes the same line again
+        self.write(self.wt, "tests/test_shared.py", "A = 1\n")
+        sh(["git", "add", "tests/test_shared.py"], self.wt)
+        self.set_field("note", "a")  # commits the staged test file with the record change
+        self.set_field("note", "b")
+        self.new = self.on_main("tests/test_shared.py", "B = 2\n", "main adds a test")
+        self.assert_a_stop_for_the_originator(self.rebase())
+        self.resolve_by_hand()
+        p = self.rebase("--continue")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertFalse(self.in_progress())
+        self.assertIn('note: "b"', self.read(self.wt, ".xv/slices/s1.md"))
+        self.assertEqual(self.record()["base"], self.new)
+
+    def test_the_rebase_makers_brief_reads_the_saved_record_not_the_one_git_replays(self):
+        # the commit that conflicts names no red; the last commit names one
+        self.shared_conflict()
+        self.set_field("red", {"files": ["tests/test_late_mark.py"], "command": "python3 -m unittest tests.test_late_mark"})
+        p = self.rebase(FAKE_REBASE_MODE="resolve", FAKE_REBASE_FILE="pantry/shared.py")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertTrue(self.agent_ran())
+        self.assertIn("tests.test_late_mark", open(self.log).read())
+
 
 # What a person should watch on the first green run: that a slice with a real change of its own
 # is replayed on a moved base, that the record's base and named commits point at the replayed
