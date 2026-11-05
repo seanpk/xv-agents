@@ -294,6 +294,29 @@ class RerunScenarioCase(FollowUpBase):
         self.assertIn("tests/test_store.py", self.expected_files())
 
 
+class AddedTestFileMoveCase(FollowUpBase):
+    # record-state 4. a test file the slice added is compared with the file as the scenario step left it
+    def maker_after_red(self, env):
+        self.open_slice("--expect-moves", "imports", kind="feature")
+        for step in ("forecaster", "scenario"):
+            self.xv("step", step, "s1", cwd=self.wt)
+        self.assertTrue(os.path.exists(os.path.join(self.wt, "tests", "test_red.py")))
+        with mock.patch.dict(os.environ, env):
+            p = self.xv("step", "maker", "s1", cwd=self.wt, check=False)
+        return json.loads(p.stdout).get("stop") or {}
+
+    def test_an_import_only_change_to_a_test_file_the_slice_added_is_an_expected_move(self):
+        stop = self.maker_after_red({"FAKE_MAKER_IMPORT_MOVE_FILE": "tests/test_red.py"})
+        self.assertNotEqual(stop.get("order"), "unrecorded_move", stop)
+        moves = [m for m in self.record()["moved_tests"] if m.get("file") == "tests/test_red.py"]
+        self.assertEqual([m.get("expected") for m in moves], ["imports"], moves)
+
+    def test_a_changed_assertion_in_a_test_file_the_slice_added_still_stops(self):
+        stop = self.maker_after_red({"FAKE_MAKER_IMPORT_MOVE_FILE": "tests/test_red.py", "FAKE_MAKER_EDITS_RED": "1"})
+        self.assertEqual(stop.get("order"), "unrecorded_move", stop)
+        self.assertNotIn("tests/test_red.py", [m["file"] for m in self.record()["moved_tests"] if m.get("expected")])
+
+
 # What a person should watch on the first green run: open a refactor slice with
 # `--expect-moves imports`, let the maker add an import to an old test, and see the
 # slice reach the merge stop with no accept_moves question; then change one assertion

@@ -530,5 +530,21 @@ class OneHomeTest(unittest.TestCase):
         self.assertIn("1 old test(s) moved", s["question"])
 
 
+class RecordStateChangelogTest(unittest.TestCase):
+    """record-state 10: CHANGELOG.md has a line for each new or changed stop."""
+
+    def test_the_unreleased_lines_for_120_136_138_name_each_changed_stop(self):
+        with open(os.path.join(HOME, "CHANGELOG.md")) as f:
+            unreleased = f.read().split("## Unreleased", 1)[1].split("\n## ", 1)[0]
+        lines = [ln for ln in unreleased.splitlines() if any(n in ln for n in ("#120", "#136", "#138"))]
+        text = "\n".join(lines)
+        for issue in ("#120", "#136", "#138"):
+            self.assertIn(issue, text)
+        for order in ("shape_wider_than_forecast", "accept_moves", "expected_moves_wrong", "unrecorded_move",
+                      "rebase_conflict", "rebase_stuck"):
+            self.assertIn(order, text, f"no CHANGELOG line for #120, #136 or #138 names {order}")
+        self.assertIn("Sean", text)
+
+
 if __name__ == "__main__":
     unittest.main()

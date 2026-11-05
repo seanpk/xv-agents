@@ -2169,3 +2169,172 @@ class DirectedEditTest(RepoCase):
 # end, and pick a CHANGELOG edit at ready_to_merge: the new ready_to_merge stop should be in the record, answerable.
 # Then remove a decorated test, decorators and all, and read the commit: the next test carries no decorator, and after
 # the guardian the packet line is in that same commit.
+
+
+PACKET = ("---\nslice: s1\nshape_change: no\npitch_contradiction: no\npicture_change: no\nshape_breadth: {breadth}\n"
+          "{expected}door: two-way\n---\n\n# Packet\n\n## 1. Shape\n\n- One comparison in pantry/store.py:47.\n{more}")
+
+
+class RecordStateTest(RepoCase):
+    """Accepted answers and the record stay right on the session path (record-state, points 1 to 3)."""
+
+    def show(self, wt):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+
+    def open_stops(self, wt):
+        return [s["order"] for s in self.show(wt)["stops"] if s.get("answer") is None]
+
+    def report(self, wt, agent, name="r.json", **fields):
+        path = os.path.join(self.tmp, name)
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps({"agent": agent, "status": "done", "summary": "s", **fields})
+                    + "\n```\n")
+        self.xv("record", "report", "s1", agent, path, cwd=wt)
+
+    def packet(self, wt, breadth="none", expected="0", more=""):
+        path = os.path.join(wt, ".xv", "slices", "s1.packet.md")
+        with open(path, "w") as f:
+            f.write(PACKET.format(breadth=breadth, more=more,
+                                  expected="" if expected is None else f"expected_moves: {expected}\n"))
+        self.xv("record", "packet", "s1", path, cwd=wt)
+        return path
+
+    def guardian_slice(self, forecast_shape="none"):
+        wt = self.new_slice("s1")
+        self.xv("record", "set", "s1", "budget", '{"usd": 2}', "--by", "pat", cwd=wt)
+        self.xv("record", "set", "s1", "forecast", json.dumps({"shape": forecast_shape}), cwd=wt)
+        self.report(wt, "guardian", shape_change="no", pitch_contradiction="no")
+        return wt
+
+    # 1. the shape stop keeps the breadth it was accepted at
+    def accepted_at_narrow(self):
+        wt = self.guardian_slice()
+        self.packet(wt, breadth="narrow")
+        self.assertIn("shape_wider_than_forecast", self.open_stops(wt))
+        self.xv("record", "answer", "s1", "--by", "pat,sam", "--answer", "narrow is fine, go on", cwd=wt)
+        self.assertEqual(self.open_stops(wt), [])
+        return wt
+
+    def test_a_shape_accepted_at_narrow_stops_again_when_a_later_packet_reports_wide(self):
+        wt = self.accepted_at_narrow()
+        self.packet(wt, breadth="wide")
+        self.assertIn("shape_wider_than_forecast", self.open_stops(wt))
+
+    def test_a_shape_accepted_at_narrow_does_not_stop_again_at_narrow(self):
+        wt = self.accepted_at_narrow()
+        self.packet(wt, breadth="narrow")
+        self.assertNotIn("shape_wider_than_forecast", self.open_stops(wt))
+
+    # 2. an accepted "mark slice-only" wall recommendation lists the test in slice_only
+    RECS = [{"file": "tests/test_a.py", "test": "test_one_time_wording", "recommend": "mark slice-only",
+             "why": "it guards a one-time README line"},
+            {"file": "tests/test_a.py", "test": "test_keep_me", "recommend": "stay on the wall", "why": "w"}]
+
+    def stopped_on_accept_moves(self):
+        wt = self.new_slice("s1")
+        self.report(wt, "guardian", shape_change="no", pitch_contradiction="no", wall_recommendations=self.RECS)
+        self.xv("record", "stop", "s1", "--order", "accept_moves", "--seat", "originator",
+                "--question", "accept?", "--step", "guardian", cwd=wt)
+        return wt
+
+    def slice_only(self, wt):
+        return [(m.get("file"), m.get("test")) for m in self.show(wt)["slice_only"]]
+
+    def test_an_accepted_mark_slice_only_recommendation_lists_the_test_in_slice_only(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                "--accept-wall", "test_one_time_wording", cwd=wt)
+        self.assertIn(("tests/test_a.py", "test_one_time_wording"), self.slice_only(wt))
+
+    def test_a_refused_mark_slice_only_recommendation_is_not_listed_in_slice_only(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", cwd=wt)
+        self.assertEqual(self.slice_only(wt), [])
+
+    def test_an_accepted_stay_on_the_wall_recommendation_is_not_listed_in_slice_only(self):
+        wt = self.stopped_on_accept_moves()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--accept-wall", "test_keep_me", cwd=wt)
+        self.assertEqual(self.slice_only(wt), [])
+
+    def test_a_guardian_that_marks_its_own_slice_only_recommendation_accepted_lists_nothing(self):
+        wt = self.new_slice("s1")
+        self.report(wt, "guardian", shape_change="no", pitch_contradiction="no",
+                    wall_recommendations=[dict(r, accepted=True) for r in self.RECS])
+        self.assertEqual(self.slice_only(wt), [])
+
+    def test_an_accepted_recommendation_with_no_kind_is_not_listed_in_slice_only(self):
+        wt = self.new_slice("s1")
+        recs = [{"file": "tests/test_a.py", "test": "test_no_kind", "why": "w"},
+                {"file": "tests/test_a.py", "test": "test_empty_kind", "recommend": "", "why": "w"}]
+        self.report(wt, "guardian", shape_change="no", pitch_contradiction="no", wall_recommendations=recs)
+        self.xv("record", "stop", "s1", "--order", "accept_moves", "--seat", "originator",
+                "--question", "accept?", "--step", "guardian", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--accept-wall", "test_no_kind",
+                "--accept-wall", "test_empty_kind", cwd=wt)
+        self.assertEqual(self.slice_only(wt), [])
+
+    # 3. `xv record packet` runs the packet checks `xv step` runs
+    def test_record_packet_stops_when_the_packets_expected_moves_differs_from_the_record(self):
+        wt = self.guardian_slice()
+        self.packet(wt, expected="2")
+        self.assertIn("expected_moves_wrong", self.open_stops(wt))
+
+    def test_record_packet_stops_when_the_packet_has_no_expected_moves(self):
+        wt = self.guardian_slice()
+        self.packet(wt, expected=None)
+        self.assertIn("expected_moves_wrong", self.open_stops(wt))
+
+    def test_record_packet_moves_a_finding_with_no_evidence_out_of_the_count(self):
+        wt = self.guardian_slice()
+        path = self.packet(wt, more="\n## 3. Moved tests\n\n- the maker weakened a test somewhere\n")
+        with open(path) as f:
+            text = f.read()
+        self.assertIn("## Dropped by the evidence rule", text)
+
+    def test_record_packet_with_the_right_expected_moves_does_not_stop_with_it(self):
+        wt = self.guardian_slice()
+        self.packet(wt, expected="0")
+        self.assertNotIn("expected_moves_wrong", self.open_stops(wt))
+
+    # 3. `xv record report` runs the move checks `xv step` runs
+    def session_slice(self, *flags):
+        out = self.xv("slice", "new", "s1", "--by", "pat", "--scenario", "The household sees X.", *flags).stdout
+        wt = out.strip().splitlines()[-1]
+        self.xv("record", "set", "s1", "budget", '{"usd": 2}', "--by", "pat", cwd=wt)
+        self.xv("wall", "baseline", "s1", cwd=wt)
+        return wt
+
+    def edit_store_test(self, wt, old, new):
+        path = os.path.join(wt, "tests", "test_store.py")
+        with open(path) as f:
+            text = f.read()
+        with open(path, "w") as f:
+            f.write(text.replace(old, new, 1))
+
+    def expected_files(self, wt):
+        return [m["file"] for m in self.show(wt)["moved_tests"] if m.get("expected") == "imports"]
+
+    def test_record_report_for_the_maker_records_an_expected_move(self):
+        wt = self.session_slice("--expect-moves", "imports")
+        self.edit_store_test(wt, "import unittest\n", "import os  # noqa: F401\nimport unittest\n")
+        self.report(wt, "maker", status="green", moved_tests=[])
+        self.assertIn("tests/test_store.py", self.expected_files(wt))
+
+    def test_record_report_for_the_cleaner_records_an_expected_move(self):
+        wt = self.session_slice("--expect-moves", "imports")
+        self.edit_store_test(wt, "import unittest\n", "import os  # noqa: F401\nimport unittest\n")
+        self.report(wt, "cleaner", commit=None, applied=[])
+        self.assertIn("tests/test_store.py", self.expected_files(wt))
+
+    def test_record_report_for_the_maker_finds_an_unrecorded_move_for_the_orders(self):
+        wt = self.session_slice()
+        self.edit_store_test(wt, '["yogurt"])', '["yogurt"] or [])')
+        self.report(wt, "maker", status="green", moved_tests=[])
+        p = self.xv("orders", "s1", "--after", "maker", cwd=wt, check=False)
+        self.assertIn("unrecorded_move", [f["order"] for f in json.loads(p.stdout)["fired"]], p.stdout)
+
+
+# What a person should watch on the first green run of RecordStateTest: accept a narrow shape at
+# `shape_wider_than_forecast`, then attach a packet that says wide and see the stop come back; accept a
+# "mark slice-only" recommendation with `--accept-wall` and see the test in `slice_only`; and run the
+# session path (`xv record report`, `xv orders`, `xv record packet`) and see the same stops `xv step` gives.

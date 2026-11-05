@@ -807,6 +807,149 @@ class SliceRebaseTest(RepoCase):
         self.assertTrue(self.agent_ran())
         self.assertIn("tests.test_late_mark", open(self.log).read())
 
+    # -- record-state 5: the rebase maker's brief reads the record of truth, with the answers given during the rebase
+
+    def test_the_rebase_makers_brief_includes_the_answer_given_at_a_rebase_stop(self):
+        self.assert_a_stop_for_the_originator(self.conflict_in_a_test_file())
+        self.assertFalse(self.agent_ran())
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "ANSWER-MARK-138: keep both lines", cwd=self.wt)
+        self.resolve_by_hand()
+        p = self.rebase("--continue")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertTrue(self.agent_ran())
+        self.assertIn("ANSWER-MARK-138", open(self.log).read())
+
+    # -- record-state 6 and 9: on a replay with no conflict, a maker edit to a test file or the picture stops
+
+    def assert_the_makers_edit_stops_with_rebase_conflict(self, rel):
+        self.on_main("docs.txt", "news\n")
+        p = self.rebase(FAKE_REBASE_MODE="logical", FAKE_REBASE_FILE=rel)
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertTrue(self.agent_ran())
+        self.assertEqual(stop["order"], "rebase_conflict")
+        self.assertIn(rel, stop["question"])
+        # point 9: the question names the maker's edit, not a conflict
+        self.assertIn("maker", stop["question"].lower())
+        self.assertNotIn("stopped on a conflict", stop["question"])
+
+    def test_a_test_file_the_maker_changed_on_a_replay_with_no_conflict_stops_with_rebase_conflict(self):
+        self.assert_the_makers_edit_stops_with_rebase_conflict("tests/test_store.py")
+
+    def test_the_picture_the_maker_changed_on_a_replay_with_no_conflict_stops_with_rebase_conflict(self):
+        self.assert_the_makers_edit_stops_with_rebase_conflict(".xv/picture.md")
+
+    # -- record-state 7: after an error mid-rebase, --continue and --abort read the record of truth
+
+    def maker_cli_missing(self):
+        """The slice's agent CLI is a path with nothing there yet, so the rebase maker's run is an error."""
+        self.agent = os.path.join(self.tmp, "bin", "agent")
+        cfg = os.path.join(self.wt, ".xv", "config.yml")
+        text = open(cfg).read()
+        start, end = text.index("agents:"), text.index("seats:")
+        open(cfg, "w").write(text[:start] + f'agents:\n  default: ["{self.agent}", "{{prompt}}"]\n' + text[end:])
+        sh(["git", "commit", "-qam", "an agent CLI that is not there yet"], self.wt)
+
+    def maker_cli_back(self):
+        os.makedirs(os.path.dirname(self.agent), exist_ok=True)
+        with open(self.agent, "w") as f:
+            f.write(f'#!/bin/sh\nexec "{sys.executable}" "{FAKE}" "$@"\n')
+        os.chmod(self.agent, 0o755)
+
+    TRUTH = {"at": "2026-11-05T01:00:00+00:00", "step": "maker", "order": "repeated_failure", "seat": "originator",
+             "question": "The same tests failed twice.", "answered_by": ["pat"], "answer": "TRUTH-MARK: go on",
+             "answered_at": "2026-11-05T01:05:00+00:00"}
+
+    def error_mid_rebase(self):
+        """The commit that conflicts holds budget $1 with $2 spent and no stop; the record of truth holds
+        budget $10 and an answered stop. The maker's run fails on the conflict, mid-rebase."""
+        self.maker_cli_missing()
+        self.spend_the_budget()
+        self.shared_conflict()
+        self.set_field("budget", {"usd": 10})
+        self.set_field("stops", [self.TRUTH])
+        p = self.rebase(FAKE_REBASE_MODE="resolve", FAKE_REBASE_FILE="pantry/shared.py")
+        self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
+        self.assertTrue(self.in_progress())
+        self.maker_cli_back()
+
+    def assert_the_record_of_truth(self):
+        data = self.record()
+        self.assertEqual(data["budget"]["usd"], 10, data["budget"])
+        self.assertIn("TRUTH-MARK: go on", [s.get("answer") for s in data["stops"]], data["stops"])
+
+    def test_continue_after_an_error_mid_rebase_reads_the_stops_and_budget_of_the_record_of_truth(self):
+        self.error_mid_rebase()
+        p = self.rebase("--continue", FAKE_REBASE_MODE="resolve", FAKE_REBASE_FILE="pantry/shared.py")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertFalse(self.in_progress())
+        self.assert_the_record_of_truth()
+
+    def test_abort_after_an_error_mid_rebase_reads_the_stops_and_budget_of_the_record_of_truth(self):
+        self.error_mid_rebase()
+        p = self.rebase("--abort")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertFalse(self.in_progress())
+        self.assert_the_record_of_truth()
+
+    # -- record-state 8: the slice log keeps the stop and answer lines written mid-rebase
+
+    def log_of_the_record(self):
+        return self.read(self.wt, ".xv/slices/s1.md").split("## Log")[1]
+
+    def stopped_and_answered(self):
+        self.assert_a_stop_for_the_originator(self.conflict_in_a_test_file())
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "LOG-MARK: I will sort it out", cwd=self.wt)
+
+    def assert_the_log_keeps_the_stop_and_the_answer(self):
+        log = self.log_of_the_record()
+        self.assertIn("stop (rebase_conflict) for originator", log)
+        self.assertIn("answered rebase_conflict: LOG-MARK: I will sort it out", log)
+
+    def test_the_log_keeps_the_stop_and_answer_lines_after_continue(self):
+        self.stopped_and_answered()
+        self.resolve_by_hand()
+        p = self.rebase("--continue")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assert_the_log_keeps_the_stop_and_the_answer()
+
+    def test_the_log_keeps_the_stop_and_answer_lines_after_abort(self):
+        self.stopped_and_answered()
+        p = self.rebase("--abort")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assert_the_log_keeps_the_stop_and_the_answer()
+
+    # -- record-state 9: a staged record is not committed into the replayed commit; markers are checked before staging
+
+    def test_a_record_the_person_staged_before_continue_is_not_committed_into_the_replayed_commit(self):
+        self.stopped_and_answered()
+        self.resolve_by_hand()
+        sh(["git", "add", "-A"], self.wt)  # the person stages everything, the record with its answer too
+        p = self.rebase("--continue")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        replayed = [line.split(" ", 1)[0] for line in
+                    sh(["git", "log", "--format=%H %s", f"{self.new}..HEAD"], self.wt).stdout.splitlines()
+                    if line.split(" ", 1)[1] == "slice adds a test"]
+        self.assertEqual(len(replayed), 1)
+        files = sh(["git", "show", "--format=", "--name-only", replayed[0]], self.wt).stdout.split()
+        self.assertEqual(files, ["tests/test_shared.py"])
+        self.assertEqual(self.stops_of("rebase_conflict")[0]["answer"], "LOG-MARK: I will sort it out")
+
+    def test_conflict_markers_the_maker_left_stop_the_rebase(self):
+        self.shared_conflict()
+        p = self.rebase(FAKE_REBASE_MODE="clean")  # the maker runs and leaves the conflict as it is
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertTrue(self.agent_ran())
+        self.assertIn("conflict markers remain", stop["question"])
+        self.assertIn("pantry/shared.py", stop["question"])
+        self.assertTrue(self.in_progress())
+
+    def test_a_conflict_the_maker_resolved_without_staging_it_goes_on(self):
+        self.shared_conflict()
+        p = self.rebase(FAKE_REBASE_MODE="resolve_unstaged", FAKE_REBASE_FILE="pantry/shared.py")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(self.read(self.wt, "pantry/shared.py"), "RESOLVED = True\n")
+        self.assertFalse(self.in_progress())
+
 
 # What a person should watch on the first green run: that a slice with a real change of its own
 # is replayed on a moved base, that the record's base and named commits point at the replayed
