@@ -156,7 +156,7 @@ def parse_entries(path):
         for title, rest in ENTRY.findall(block):
             if "<" in title and ">" in title:
                 continue  # the template in the file's header
-            fields = dict(re.findall(r"^- (\w+):\s*(.+)$", rest, re.M))
+            fields = dict(re.findall(r"^- (\w+):[ \t]*(.*)$", rest, re.M))
             seen = re.findall(r"([\w.-]+)@(\d{4}-\d{2}-\d{2})", fields.get("seen", ""))
             out.append({"file": os.path.basename(path), "section": section, "entry": title.strip(),
                         "linked": fields.get("adopts") or fields.get("shared"),

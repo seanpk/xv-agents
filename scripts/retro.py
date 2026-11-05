@@ -114,7 +114,7 @@ BLOCK = re.compile(r"^### (\d+)\.\s*(.+?)\n(.*?)(?=^### \d+\.|\Z)", re.S | re.M)
 def parse_candidates(text):
     out = []
     for n, title, rest in BLOCK.findall(text):
-        fields = dict(re.findall(r"^- (\w+):\s*(.+)$", rest, re.M))
+        fields = dict(re.findall(r"^- (\w+(?: of)?):[ \t]*(.*)$", rest, re.M))
         out.append({"n": int(n), "title": title.strip(), **fields})
     return out
 
@@ -176,6 +176,39 @@ TARGET = {"standard": ("standards.md", "## Rules"), "rule": ("rules.md", "## Ent
           "open": ("learnings.md", "## Open")}
 
 
+def add_sighting(path, text, c, repo, by):
+    """Add this repo and the candidate's slices to the Open entry the candidate names."""
+    title = c["sighting of"].strip().strip("`")
+    start = text.find("## Open")
+    end = text.find("\n## ", start + 1) if start >= 0 else -1
+    end = len(text) if end < 0 else end
+    m = None
+    for hit in re.finditer(r"^### (?:\d{4}-\d{2}-\d{2}:\s*)?(.+?)[ \t]*\n(.*?)(?=^### |^## |\Z)",
+                           text[max(start, 0):end], re.S | re.M):
+        if start >= 0 and hit.group(1).strip() == title:
+            m = hit
+            break
+    if not m:
+        raise XVError(f"candidate {c['n']} is a sighting of {title!r}, and no Open entry has that title")
+    block = m.group(0)
+    new = block
+    if c.get("from"):
+        if re.search(r"^- from:[ \t]*\S", new, re.M):
+            new = re.sub(r"^(- from:[ \t]*\S.*)$", lambda x: x.group(1) + "; " + c["from"], new, count=1, flags=re.M)
+        else:
+            new = re.sub(r"^- from:[ \t]*$", lambda x: "- from: " + c["from"], new, count=1, flags=re.M)
+    if re.search(r"^- seen: \[.*\]", new, re.M):
+        new = re.sub(r"^(- seen: \[.*?)\]", lambda x: f"{x.group(1)}, {repo}@{today()}]", new, count=1, flags=re.M)
+    else:
+        new = new.rstrip("\n") + f"\n- seen: [{repo}@{today()}]\n"
+    off = max(start, 0) + m.start()
+    text = text[:off] + new + text[off + len(block):]
+    with open(path, "w") as f:
+        f.write(text)
+    return {"added_to": os.path.join(XV_DIR, os.path.basename(path)), "entry": title, "by": by,
+            "sighting": f"{repo}@{today()}"}
+
+
 def accept(root, packet, n, by):
     cands = {c["n"]: c for c in parse_candidates(open(packet).read())}
     if n not in cands:
@@ -198,6 +231,8 @@ def accept(root, packet, n, by):
     url = git(["config", "--get", "remote.origin.url"], root, check=False).strip()
     m = re.search(r"[:/]([^/:]+/[^/]+?)(?:\.git)?$", url)
     repo = m.group(1) if m else os.path.basename(main_root(root))
+    if kind == "open" and c.get("sighting of"):
+        return add_sighting(path, text, c, repo, by)
     if kind == "open":
         entry = f"\n### {today()}: {c['title']}\n- added: {today()} by {by}\n"
         if c.get("from"):
@@ -208,8 +243,12 @@ def accept(root, packet, n, by):
             entry += f"- said: {c['said']}\n"
         entry += f"- rule: {c.get('rule') or c['title']}\n- seen: [{repo}@{today()}]\n"
     else:
-        entry = (f"\n### {c['title']}\n- added: {today()} by {by}\n- from: {c.get('from', '')}\n"
-                 f"- miss: {c.get('miss', '')}\n- seen: [{repo}@{today()}]\n")
+        entry = f"\n### {c['title']}\n- added: {today()} by {by}\n"
+        if c.get("from"):
+            entry += f"- from: {c['from']}\n"
+        if c.get("miss"):
+            entry += f"- miss: {c['miss']}\n"
+        entry += f"- seen: [{repo}@{today()}]\n"
         if kind == "standard":
             entry += f"- check: {c.get('check', 'none: judgement')}\n"
         if adopts:

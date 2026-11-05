@@ -235,7 +235,7 @@ def local_accept(root, title, to, by):
     end = min(x for x in (j, k, len(text)) if x > 0)
     block = text[i:end].rstrip("\n")
     rest = text[:i] + text[end:].lstrip("\n")
-    fields = dict(re.findall(r"^- (\w+):\s*(.+)$", block, re.M))
+    fields = dict(re.findall(r"^- (\w+):[ \t]*(.*)$", block, re.M))
     rule = fields.get("rule") or re.sub(r"^\d{4}-\d{2}-\d{2}:\s*", "", title)
     entry = (f"\n### {rule}\n- added: {today()} by {by}\n- from: {fields.get('from', '')}\n"
              f"- miss: {fields.get('miss', fields.get('said', ''))}\n- seen: {fields.get('seen', '')}\n")
