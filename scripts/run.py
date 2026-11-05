@@ -360,10 +360,18 @@ def rebase_state(root, slice_id, state=None):
     return state
 
 
+def tree_stops(root, slice_id, fallback):
+    """The stops as the tree's record has them now: the person's answers are written there."""
+    try:
+        return record.load(root, slice_id)[1]["stops"]
+    except Exception:
+        return fallback
+
+
 def rebase_stop(root, slice_id, state, config, fired=None, **checks):
     """Write the stop to the record and exit. Mid-rebase the record is left changed in the tree, not committed."""
-    rebase_state(root, slice_id, state)
     path, data, body = record.load(root, slice_id)
+    data["stops"] = state["stops"]  # the record in the tree may be an older copy, replayed with the slice's commits
     if fired:
         v = {"slice": slice_id, "after": "rebase", "stop": fired, "fired": [fired], "next": None}
     else:
@@ -372,6 +380,8 @@ def rebase_stop(root, slice_id, state, config, fired=None, **checks):
     body = record.apply_verdict(data, body, "rebase", v)
     data["next"] = next_step
     record.save(path, data, body)
+    state["stops"] = data["stops"]
+    rebase_state(root, slice_id, state)
     if not rebase_running(root):
         commit(root, f"xv({slice_id}): the rebase stopped")
     v["worktree"] = root
@@ -384,8 +394,9 @@ def rebase_stop(root, slice_id, state, config, fired=None, **checks):
 def rebase_maker(root, slice_id, config, state, files):
     """One maker run for the rebase, in a fresh context. Returns the stop's question, or None."""
     data = record.load(root, slice_id)[1]
-    unapplied = [r["spend"] for r in state["runs"][state["applied"]:]]
-    spent_out = orders.budget_before({**data, "spend": data["spend"] + unapplied})
+    data = {**data, "spend": state["spend"] + [r["spend"] for r in state["runs"][state["applied"]:]],
+            "budget": state["budget"]}
+    spent_out = orders.budget_before(data)
     if spent_out:
         rebase_stop(root, slice_id, state, config, fired=spent_out)
     note = [f"This is a rebase: the slice is replayed on `{state['onto']}`; it was on `{state['old_base']}`. "
@@ -483,9 +494,10 @@ def rebase_finish(root, slice_id, state, config):
         state["dropped_seen"] = True
         rebase_stop(root, slice_id, state, config, dropped=[f"{k} {state['named'][k][:10]}" for k in dropped])
     path, data, body = record.load(root, slice_id)
-    stops = [s for s in data["stops"] if not (s.get("step") == "rebase" and s.get("answer") is None)]
-    if len(stops) != len(data["stops"]):
-        data["stops"], data["status"] = stops, state["status"]
+    stops = [s for s in state["stops"] if not (s.get("step") == "rebase" and s.get("answer") is None)]
+    if len(stops) != len(state["stops"]):
+        data["status"] = state["status"]
+    data["stops"] = stops
     data["base"] = state["onto"]
     for key, old in state["named"].items():
         if old:
@@ -536,20 +548,25 @@ def cmd_slice_rebase(a):
         raise XVError("--continue and --abort stand alone: give one of them, without --onto or the other")
     if a.abort:
         state = rebase_state(root, a.id)
+        state["stops"] = tree_stops(root, a.id, state["stops"])
         if rebase_running(root):
             git(["rebase", "--abort"], root)
         else:
             git(["reset", "--hard", state["orig_head"]], root)
         os.remove(rebase_state_path(root, a.id))
-        if state["runs"]:  # the maker's runs cost what they cost; the record keeps the spend, uncommitted
+        if state["runs"] or state["stops"] != state["first_stops"]:
+            # the maker's runs cost what they cost, and the stops and answers stay; the record keeps them, uncommitted
             path, data, body = record.load(root, a.id)
             data["spend"] += [r["spend"] for r in state["runs"]]
+            data["stops"] = state["stops"]
             record.save(path, data, body)
         print(json.dumps({"slice": a.id, "aborted": True, "head": state["orig_head"]}, indent=2))
         return
     config = load_config(root)
     if a.cont:
         state = rebase_state(root, a.id)
+        state["stops"] = tree_stops(root, a.id, state["stops"])
+        rebase_state(root, a.id, state)
         if rebase_running(root):  # git will not replay over the record the stop changed
             git(["checkout", "HEAD", "--", os.path.relpath(record.load(root, a.id)[0], root)], root)
         return rebase_drive(root, a.id, state, config)
@@ -563,6 +580,7 @@ def cmd_slice_rebase(a):
     old_base = data.get("base") or git(["merge-base", onto, head], root).strip()
     state = {"orig_head": head, "onto": onto, "old_base": old_base, "old": commits_between(root, f"{old_base}..{head}"),
              "named": {k: data.get(k) for k in ("pre_maker_commit", "cleaner_commit")}, "status": data["status"],
+             "stops": data["stops"], "first_stops": data["stops"], "spend": data["spend"], "budget": data.get("budget"),
              "runs": [], "applied": 0, "maker_ran": False, "changed": False, "conflicts": []}
     rebase_state(root, a.id, state)
     p = run_git(root, ["rebase", "--onto", onto, old_base], {"GIT_EDITOR": "true"})
