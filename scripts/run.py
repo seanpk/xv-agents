@@ -422,9 +422,15 @@ def rebase_drive(root, slice_id, state, config):
     rebase_finish(root, slice_id, state, config)
 
 
+def in_own_red(data, name):
+    """Is this failing test one of the slice's own red, named by its file's path or stem?"""
+    files = (data.get("red") or {}).get("files") or []
+    return any(f in name or os.path.splitext(os.path.basename(f))[0] in name for f in files)
+
+
 def rebase_finish(root, slice_id, state, config):
     """The rebase is done in git: look for logical breaks, move the record, hash the wall, run the suite."""
-    if not state["maker_ran"] and not state.get("continued"):
+    if not state["maker_ran"]:
         stuck = rebase_maker(root, slice_id, config, state, [])
         if run_git(root, ["status", "--porcelain"]).stdout.strip():
             state["changed"] = True
@@ -440,7 +446,8 @@ def rebase_finish(root, slice_id, state, config):
                 break
     moved[state["old_base"]] = state["onto"]
     dropped = [k for k, old in state["named"].items() if old and old in {s for s, _ in state["old"]} and old not in moved]
-    if dropped and not state.get("continued"):
+    if dropped and not state.get("dropped_seen"):
+        state["dropped_seen"] = True
         rebase_stop(root, slice_id, state, config, dropped=[f"{k} {state['named'][k][:10]}" for k in dropped])
     path, data, body = record.load(root, slice_id)
     data["base"] = state["onto"]
@@ -462,16 +469,21 @@ def rebase_finish(root, slice_id, state, config):
     if os.path.exists(wall.wall_file(root, slice_id)):
         old_wall = wall.load_baseline(root, slice_id)
         theirs = set(git(["diff", "--name-only", state["old_base"], state["onto"]], root).split())
-        mine = set(git(["diff", "--name-only", state["onto"], "HEAD"], root).split()) - theirs
+        mine = set(git(["log", "--format=", "--name-only", f"{state['onto']}..HEAD"], root).split()) - theirs
         wall.baseline(root, slice_id, config, keep={k: {f: v for f, v in (old_wall.get(k) or {}).items() if f in mine}
-                                                    for k in ("files", "assertions")})
+                                                    for k in ("files", "assertions")},
+                      skip=[f for f in mine if f not in old_wall["files"]])
     suite, out = run_suite(root, config, state["onto"], slice_id)
     path, data, body = record.load(root, slice_id)
-    data["suite"] = suite
+    failing = failing_tests(out or "")
+    tests = [name for name in failing if not name.startswith(("(failures=", "(errors="))]
+    own_red = data.get("suite") != "green" and tests and all(in_own_red(data, name) for name in tests)
+    if not own_red:
+        data["suite"] = suite
     record.save(path, data, body)
     commit(root, f"xv({slice_id}): hash the wall and run the suite after the rebase")
-    if suite == "red":
-        rebase_stop(root, slice_id, state, config, suite="red", failing=failing_tests(out or ""),
+    if suite == "red" and not own_red:
+        rebase_stop(root, slice_id, state, config, suite="red", failing=failing,
                     failing_step=orders.first_failing_step(out))
     os.remove(rebase_state_path(root, slice_id))
     print(json.dumps({"slice": slice_id, "status": data["status"], "next": data["next"], "base": data["base"],
@@ -495,7 +507,6 @@ def cmd_slice_rebase(a):
     config = load_config(root)
     if a.cont:
         state = rebase_state(root, a.id)
-        state["continued"] = True
         return rebase_drive(root, a.id, state, config)
     if os.path.exists(rebase_state_path(root, a.id)):
         raise XVError(f"a rebase of {a.id} is in progress: finish it with `xv slice rebase {a.id} --continue` "
