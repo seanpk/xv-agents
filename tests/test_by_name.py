@@ -64,19 +64,6 @@ class ByNameTest(RepoCase):
                             for s in sentences), "no sentence about setting every stand-in setting, not relying on a default")
 
 
-class ChangelogLinesTest(unittest.TestCase):
-    """7. slice-only: it checks one CHANGELOG line, which has no value after the slice."""
-
-    def test_the_unreleased_section_has_a_line_for_each_narrowed_stop_and_the_brief_change(self):
-        text = open(os.path.join(HOME, "CHANGELOG.md")).read()
-        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        lines = [l for l in unreleased.splitlines() if l.startswith("- ")]
-        for issue in ("#120", "#136", "#140"):
-            self.assertTrue(any(issue in l for l in lines), issue)
-        self.assertTrue(any("stand-in" in l and "default" in l for l in lines), "the brief change")
-        self.assertTrue(any("red_gaps" in l and "accepted" in l for l in lines), "the accepted red_gaps name")
-        self.assertTrue(any("covers" in l and "::" in l and "#" in l for l in lines), "the covers name forms")
-
 
 if __name__ == "__main__":
     unittest.main()

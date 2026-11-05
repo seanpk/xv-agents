@@ -939,11 +939,10 @@ def covers_name_found(name, files):
     each part after the path must be a whole name in that file, in order."""
     rest, best = name, None
     for f in files:
-        slashed, dotted = f.split("/"), os.path.splitext(f)[0].split("/")
-        dotted = ".".join(dotted).split(".")
+        slashed, dotted = f.split("/"), os.path.splitext(f)[0].replace("/", ".").split(".")
         forms = ["/".join(slashed[i:]) for i in range(len(slashed))] + [".".join(dotted[i:]) for i in range(len(dotted))]
         for form in forms:
-            m = re.match(re.escape(form) + r"(?:::|\s>\s|[.#/]|$)", name)
+            m = re.match(re.escape(form) + "(?:" + COVERS_SEPARATOR.pattern + "|$)", name)
             if m and (best is None or len(form) > best[1]):
                 best = (f, len(form), m.end())
     if best:
