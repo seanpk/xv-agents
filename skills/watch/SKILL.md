@@ -39,6 +39,14 @@ xv record offer <id> --option "<text>" --settles "<what is settled if picked>" [
 
 `--settles` and `--amends` belong to the `--option` just before them; `--amends` marks an option that changes what the slice must do. Number the options in your message to the person the way the record numbers them.
 
+## A directed edit
+
+An option can carry one directed edit: `--edit <file> --old <text> --new <text> --kind changelog|test-rename|test-remove|doc`, after the `--option` it belongs to, as `--settles` does. The person approves that diff, so the person approved every word, and the edit changes no behavior. The watch never words a change itself: the text is the person's, or an agent's that the person read. Any edit the watch would have to word goes to an agent.
+
+Only four kinds: a line in `CHANGELOG.md` (`changelog`); renaming a test (`test-rename`) or removing one (`test-remove`), in a file under the wall's `tests.paths`; a line in another Markdown doc that names what the code already does (`doc`). Anything else goes to an agent. `xv record offer` refuses an edit whose old text is not in the file exactly once, whose kind does not fit the file, a rename that changes more than the test's name, and a removal whose new text is not empty.
+
+When the person picks that option, `xv record answer --pick <n>` makes exactly that edit in its own commit; the message names the person who directed it. A test edit is a move in the person's name, and a rename updates the test in `slice_only` and `wall_recommendations` in the same commit. It then runs the suite and the standing orders and prints the verdict; exit 10 is a stop. If the guardian has not run, it reviews the edit in its normal pass. If it has, it does not run again: the packet gets a line under `## Directed edits after the guardian` for each edit, naming the edit and who directed it.
+
 When the person answers, write it down before anything else:
 
 ```
@@ -91,6 +99,7 @@ They are scripts (`xv orders <id>`), not this text. You do not interpret them, r
 - Set or raise a budget. The engineer sets it; past the team's limit, two people do.
 - Accept a moved test, a picture change, or a standard. Those are a person's.
 - Edit a standing order, a brief, or a check, or skip one.
+- Word an edit itself. The one edit it makes is a directed edit: a person approved every word of it, it is one of the four kinds, and `xv record answer --pick` makes it.
 - Do an agent's work itself: write the red, make it work, clean it, or review it.
 - Answer a stop on a person's behalf, or read silence as an answer.
 

@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
 from spend import row_tokens  # noqa: E402
-from xvlib import (XV_DIR, XVError, die, emit, git, load_config, names_test, now, read_doc, solo,  # noqa: E402
+from xvlib import (XV_DIR, XVError, die, emit, git, load_config, match_any, names_test, now, read_doc, solo,  # noqa: E402
                    record_path, repo_root, slice_root, today, write_doc)
 
 FIELDS = [
@@ -276,8 +276,13 @@ def cmd_stop(a):
     save(path, data, body)
 
 
+EDIT_FLAGS = {"--edit": "file", "--old": "old", "--new": "new", "--kind": "kind"}
+EDIT_KINDS = ("changelog", "test-rename", "test-remove", "doc")
+TEST_DECL = re.compile(r"\s*(?:async\s+)?(?:def|func|fn|function|it|test)\b")
+
+
 class OfferAction(argparse.Action):
-    """--option starts an option; --settles and --amends belong to the --option just before them."""
+    """--option starts an option; --settles, --amends and the edit flags belong to the --option just before them."""
 
     def __call__(self, parser, ns, values, option_string=None):
         opts = ns.options = list(getattr(ns, "options", None) or [])
@@ -288,8 +293,61 @@ class OfferAction(argparse.Action):
             parser.error(f"{option_string} needs an --option before it")
         if option_string == "--settles":
             opts[-1]["settles"] = values
+        elif option_string in EDIT_FLAGS:
+            opts[-1].setdefault("edit", {})[EDIT_FLAGS[option_string]] = values
         else:
             opts[-1]["amends"] = True
+
+
+def name_change(old, new):
+    """(old name, new name) where new differs from old in one stretch, widened to whole identifiers."""
+    n = min(len(old), len(new))
+    i = 0
+    while i < n and old[i] == new[i]:
+        i += 1
+    j = 0
+    while j < n - i and old[len(old) - 1 - j] == new[len(new) - 1 - j]:
+        j += 1
+    word = lambda c: c.isalnum() or c == "_"
+    while i > 0 and word(old[i - 1]):
+        i -= 1
+    while j > 0 and word(old[len(old) - j]):
+        j -= 1
+    return old[i:len(old) - j], new[i:len(new) - j]
+
+
+def check_edit(root, config, n, edit):
+    """Refuse an offered edit unless it is exactly one of the four kinds, and exact."""
+    for key in EDIT_FLAGS.values():
+        if edit.get(key) is None:
+            raise XVError(f"option {n}: an edit needs --edit, --old, --new and --kind; {key} is missing")
+    file, old, new, kind = edit["file"], edit["old"], edit["new"], edit["kind"]
+    if kind not in EDIT_KINDS:
+        raise XVError(f"option {n}: --kind is one of {', '.join(EDIT_KINDS)}; not {kind!r}")
+    full = os.path.normpath(os.path.join(root, file))
+    rel = os.path.relpath(full, root)
+    if os.path.isabs(file) or rel.startswith("..") or not os.path.isfile(full):
+        raise XVError(f"option {n}: {file} is not a file in this repo")
+    if kind == "changelog":
+        fits = rel == "CHANGELOG.md"
+    elif kind == "doc":
+        fits = rel.endswith(".md") and rel != "CHANGELOG.md"
+    else:
+        fits = match_any(rel, (config.get("tests") or {}).get("paths") or [])
+    if not fits:
+        raise XVError(f"option {n}: a {kind} edit does not fit {file}")
+    if not old:
+        raise XVError(f"option {n}: --old is empty")
+    with open(full) as f:
+        found = f.read().count(old)
+    if found != 1:
+        raise XVError(f"option {n}: --old is found {found} times in {file}; it must be found exactly once")
+    if kind == "test-rename":
+        one_line = "\n" not in old + new and old != new and TEST_DECL.match(old)
+        if not one_line or not all(re.fullmatch(r"\w+", x) for x in name_change(old, new)):
+            raise XVError(f"option {n}: a rename changes the test's name and nothing else")
+    if kind == "test-remove" and (new != "" or not TEST_DECL.match(old.lstrip("\n"))):
+        raise XVError(f"option {n}: a removal's --new is empty, and --old is a whole test")
 
 
 def cmd_offer(a):
@@ -303,6 +361,11 @@ def cmd_offer(a):
     for i, o in enumerate(options, 1):
         if not o["settles"]:
             raise XVError(f"option {i} has no --settles: say what is settled if it is picked")
+    root = repo_root()
+    config = load_config(slice_root(path))
+    for i, o in enumerate(options, 1):
+        if "edit" in o:
+            check_edit(root, config, i, o["edit"])
     if a.recommend is not None and not 1 <= a.recommend <= len(options):
         raise XVError(f"--recommend is one of 1..{len(options)}")
     stop = open_stops[-1]
@@ -361,7 +424,7 @@ def cmd_answer(a):
         raise XVError(f"cause is one of {sorted(CAUSES)}, then a free line after a colon")
     if a.resume and not a.next:
         raise XVError("--resume needs --next: every answer says where the slice goes")
-    pick, settled = None, a.settled
+    pick, settled, edit = None, a.settled, None
     if a.pick is not None:
         options = stop.get("options") or []
         if a.pick == "other":
@@ -369,8 +432,11 @@ def cmd_answer(a):
         elif a.pick.isdigit() and 1 <= int(a.pick) <= len(options):
             pick = int(a.pick)
             settled = settled or options[pick - 1]["settles"]
+            edit = options[pick - 1].get("edit")
         else:
             raise XVError("--pick is the number of an offered option, or other")
+    if edit:
+        check_edit(root, load_config(slice_root(path)), pick, edit)
     stopped_at = stop.get("step") or data["next"]
     # a stop raised before its work started has nothing to send back; `xv step` marks
     # its pre-step budget stop `pre_step`, and a prototype that ran out of budget has started
@@ -420,7 +486,59 @@ def cmd_answer(a):
     if scribed:
         body = log_line(body, "watch", f"scribe: wrote {', '.join(scribed)} for {stop['order']} "
                                        f"as the scribe of {','.join(who)}")
+    if edit:
+        make_directed_edit(root, path, data, body, stop, edit, who)
+        return
     save(path, data, body)
+
+
+def rename_in_record(data, file, old_name, new_name):
+    """A renamed test keeps its place in slice_only and wall_recommendations; other names are left alone."""
+    for field in ("slice_only", "wall_recommendations"):
+        for entry in data.get(field) or []:
+            test = entry.get("test") if isinstance(entry, dict) else None
+            if test and entry.get("file") in (None, file) and test.rsplit(".", 1)[-1] == old_name:
+                entry["test"] = test[:len(test) - len(old_name)] + new_name
+
+
+def make_directed_edit(root, path, data, body, stop, edit, who):
+    """Make exactly the edit the person picked, in its own commit, then run the suite and the orders."""
+    import run as runlib  # run imports this module
+
+    file, old, new, kind = edit["file"], edit["old"], edit["new"], edit["kind"]
+    full = os.path.join(root, file)
+    with open(full) as f:
+        text = f.read()
+    with open(full, "w") as f:
+        f.write(text.replace(old, new, 1))
+    by = " and ".join(who)
+    if kind in ("test-rename", "test-remove"):
+        data["moved_tests"].append({"file": file, "assertion": f"was: {old.strip()}; now: {new.strip() or 'removed'}",
+                                    "why": f"directed by {by}: {kind}", "by": ",".join(who), "at": now()})
+        if kind == "test-rename":
+            rename_in_record(data, file, *name_change(old, new))
+    body = log_line(body, ",".join(who), f"directed a {kind} edit in {file}")
+    config = load_config(slice_root(path))
+    data["suite"], out = runlib.run_suite(root, config, data.get("base"), data.get("id"))
+    save(path, data, body)
+    rel = os.path.relpath(path, root)
+    git(["add", "--", file, rel], root)
+    git(["commit", "-q", "--no-verify", "-m", f"xv({data['id']}): {kind} edit in {file}, directed by {by}",
+         "--", file, rel], root)
+    sha = git(["rev-parse", "HEAD"], root).strip()
+    if data.get("packet"):
+        packet = os.path.join(root, data["packet"])
+        with open(packet) as f:
+            text = f.read()
+        heading = "## Directed edits after the guardian"
+        text = text.rstrip("\n") + ("\n" if heading in text else f"\n\n{heading}\n\n") \
+            + f"- {file} ({kind}): directed by {by}, commit {sha[:7]}\n"
+        with open(packet, "w") as f:
+            f.write(text)
+    v = orders.verdict(data, stop.get("step") or data["next"], config)
+    emit(v, True)
+    if v["stop"]:
+        sys.exit(10)
 
 
 def write_decision(root, slice_id, who, stop, answer):
@@ -829,6 +947,8 @@ def main(argv=None):
     s.add_argument("--option", action=OfferAction)
     s.add_argument("--settles", action=OfferAction)
     s.add_argument("--amends", action=OfferAction, nargs=0)
+    for flag in EDIT_FLAGS:
+        s.add_argument(flag, action=OfferAction, help="a directed edit on the --option before it")
     s.add_argument("--recommend", type=int)
     s.set_defaults(fn=cmd_offer)
 
