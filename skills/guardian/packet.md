@@ -7,6 +7,7 @@ scenario_miss: no           # yes when a scenario line or a binding decision is 
 picture_change: no
 shape_breadth: none
 moved_tests: 0
+expected_moves: 0           # the number of moves the record marks expected; list them on one line under Moved tests
 door: two-way
 blast_radius: <one word>
 ---

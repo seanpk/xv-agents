@@ -115,6 +115,12 @@ def evaluate(data, after, config):
         out.append(fire("budget_not_set", "originator",
                         f"{owner}: set the budget from the forecast (`xv record set {data['id']} budget ... --by <name>`)."))
 
+    if after == "scenario" and data.get("kind") == "refactor" and checks.get("suite") != "green":
+        out.append(fire("suite_not_green_at_start", "originator",
+                        "A refactor slice needs a green suite at the start: it is the oracle, and the scenario step "
+                        "writes no red. The suite is not green." + failing_clause(checks)
+                        + " Fix it on its own slice, or set this one aside."))
+
     if after == "scenario":
         if checks.get("outside_tests"):
             out.append(fire("scenario_touched_source", "originator",
@@ -229,7 +235,8 @@ def evaluate(data, after, config):
         if not accepted_shape and fc in BREADTH and actual in BREADTH and BREADTH[actual] > BREADTH[fc]:
             out.append(fire("shape_wider_than_forecast", "two_people",
                             f"The shape change is {actual}; the forecast expected {fc}. Two people decide."))
-        moved = {(m.get("file"), m.get("assertion")) for m in data.get("moved_tests") or [] if not m.get("slice_only")}
+        moved = {(m.get("file"), m.get("assertion")) for m in data.get("moved_tests") or []
+                 if not m.get("slice_only") and not m.get("expected")}
         picture = checks.get("picture_change") == "yes"
         recs = [r for r in data.get("wall_recommendations") or [] if not r.get("accepted") and not r.get("refused")]
         miss = data.get("scenario_miss") == "yes"

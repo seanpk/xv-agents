@@ -101,7 +101,7 @@ def diff(root, slice_id, config=None):
 
 
 def recorded_files(data):
-    return {m.get("file") for m in data.get("moved_tests") or [] if m.get("file")}
+    return {f for m in data.get("moved_tests") or [] for f in (m.get("file"), m.get("from")) if f}
 
 
 def check(root, slice_id, config=None):

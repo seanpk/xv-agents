@@ -79,6 +79,27 @@ def log_line(body, who, text):
 
 # ---------------------------------------------------------------- commands
 
+MOVE_KINDS = ("imports", "renames")
+
+
+def parse_expect_moves(text):
+    kinds = [k.strip() for k in text.split(",")]
+    bad = [k for k in kinds if k not in MOVE_KINDS]
+    if bad:
+        raise XVError(f"--expect-moves takes {' and/or '.join(MOVE_KINDS)}, comma-separated; not {bad[0]!r}")
+    return sorted(set(kinds), key=MOVE_KINDS.index)
+
+
+def parse_renames(pairs):
+    out = {}
+    for pair in pairs:
+        old, eq, new = pair.partition("=")
+        if not (old.strip() and eq and new.strip()):
+            raise XVError(f"--rename takes Old=New, both names given; not {pair!r}")
+        out[old.strip()] = new.strip()
+    return out
+
+
 def cmd_new(a):
     root = repo_root()
     if not re.match(r"^[A-Za-z0-9][A-Za-z0-9._-]*$", a.id):
@@ -97,6 +118,10 @@ def cmd_new(a):
     if a.kind == "prototype":
         data["next"] = "prototype"
         data["axis"] = a.axis
+    if a.expect_moves is not None:
+        data["expect_moves"] = parse_expect_moves(a.expect_moves)
+    if a.rename:
+        data["renames"] = parse_renames(a.rename)
     body = BODY_TEMPLATE.format(title=data["title"], scenario=scenario,
                                 ignore=a.ignore or "Nothing stated.",
                                 recording=a.recording or "None. A feature starts from words.")
@@ -729,9 +754,11 @@ def main(argv=None):
     s.add_argument("id")
     s.add_argument("--title")
     s.add_argument("--by", help="who set the work going")
-    s.add_argument("--kind", choices=["feature", "defect", "prototype"], default="feature")
+    s.add_argument("--kind", choices=["feature", "defect", "prototype", "refactor"], default="feature")
     s.add_argument("--scenario")
     s.add_argument("--scenario-file")
+    s.add_argument("--expect-moves", help="the test changes the person expects: imports, renames, or both")
+    s.add_argument("--rename", action="append", help="Old=New, a name this slice renames; one flag per pair")
     s.add_argument("--ignore", help="what this slice may ignore")
     s.add_argument("--recording", help="path to the recording, for a defect")
     s.add_argument("--branch")

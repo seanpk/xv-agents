@@ -174,6 +174,26 @@ def answer_section(data, body=""):
             f"({st.get('question', '')}):\n\n{st['answer']}\n")
 
 
+def refactor_section(agent, data):
+    """The maker's lines for a refactor slice: what lifts, what does not, what the person expects."""
+    if agent != "maker" or (data or {}).get("kind") != "refactor":
+        return ""
+    lines = ["", "## This is a refactor slice", "",
+             "Users see no change, and there is no new red: the suite was green at the start, and it is your oracle. "
+             "The scenario names what to restructure. The \"no refactor, no rename\" line above does not apply to "
+             "those parts: you may rename and restructure them. It still applies to everything else.", "",
+             "A latent bug you find along the way is not yours to fix. Stop and say what you found: a bug is fixed "
+             "only through `xv slice amend`, which a person runs."]
+    kinds, pairs = data.get("expect_moves") or [], data.get("renames") or {}
+    if kinds:
+        lines += ["", f"The person expects these changes to old tests: {', '.join(kinds)}. A script compares each "
+                  "moved test file after your step and records the moves that fit; you do not record them. Any "
+                  "other change to an old test is a move, and you record it as above."]
+    if pairs:
+        lines.append("Names this slice renames: " + ", ".join(f"{o} to {n}" for o, n in pairs.items()) + ".")
+    return "\n".join(lines) + "\n"
+
+
 def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
     root = root or repo_root()
     config = load_config(root)
@@ -200,7 +220,8 @@ def build(agent, slice_id=None, root=None, close=False, init=False, extra=None):
         bpath = os.path.join(root, ".xv", "boundary-all.md")
         if os.path.exists(bpath):
             extra.insert(0, f"Boundary output: `.xv/boundary-all.md`.")
-    return (brief(agent) + "\n" + answer_section(data, body) + commands_section(config, agent)
+    return (brief(agent) + "\n" + refactor_section(agent, data) + answer_section(data, body)
+            + commands_section(config, agent)
             + pointers(agent, root, config, data, extra) + "\n")
 
 
