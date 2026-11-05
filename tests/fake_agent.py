@@ -72,6 +72,11 @@ elif title.startswith("# The scenario agent"):
                 "class Red(unittest.TestCase):\n    def test_milk_today(self):\n        s = Store()\n"
                 "        s.add('milk', 1, date(2026, 10, 21))\n"
                 "        self.assertEqual([i.name for i in s.expiring(3, date(2026, 10, 21))], ['milk'])\n")
+    if os.environ.get("FAKE_RED_SECOND_TEST"):  # a later scenario pass adds a test to the file
+        with open("tests/test_red.py", "a") as f:
+            f.write("\n    def test_milk_tomorrow(self):\n        s = Store()\n"
+                    "        s.add('milk', 1, date(2026, 10, 22))\n"
+                    "        self.assertEqual([i.name for i in s.expiring(3, date(2026, 10, 21))], ['milk'])\n")
     if os.environ.get("FAKE_RED_TEXT"):
         with open("tests/test_red.py", "a") as f:
             f.write("\n# " + os.environ["FAKE_RED_TEXT"] + "\n")

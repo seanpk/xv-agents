@@ -838,6 +838,22 @@ class SliceRebaseTest(RepoCase):
     def test_the_picture_the_maker_changed_on_a_replay_with_no_conflict_stops_with_rebase_conflict(self):
         self.assert_the_makers_edit_stops_with_rebase_conflict(".xv/picture.md")
 
+    # -- record-state 11: that edit is not committed before the person sees it; `git diff` shows it
+
+    def assert_git_diff_shows_the_makers_edit(self, rel):
+        self.on_main("docs.txt", "news\n")
+        p = self.rebase(FAKE_REBASE_MODE="logical", FAKE_REBASE_FILE=rel, FAKE_REBASE_TEXT="# MAKER-EDIT-11\n")
+        self.assertEqual(self.assert_a_stop_for_the_originator(p)["order"], "rebase_conflict")
+        self.assertIn(rel, sh(["git", "diff", "--name-only"], self.wt).stdout.split())
+        self.assertIn("+# MAKER-EDIT-11", sh(["git", "diff", "--", rel], self.wt).stdout)
+        self.assertNotIn("MAKER-EDIT-11", sh(["git", "show", f"HEAD:{rel}"], self.wt, check=False).stdout)
+
+    def test_a_test_file_the_maker_changed_on_a_replay_with_no_conflict_is_left_uncommitted(self):
+        self.assert_git_diff_shows_the_makers_edit("tests/test_store.py")
+
+    def test_the_picture_the_maker_changed_on_a_replay_with_no_conflict_is_left_uncommitted(self):
+        self.assert_git_diff_shows_the_makers_edit(".xv/picture.md")
+
     # -- record-state 7: after an error mid-rebase, --continue and --abort read the record of truth
 
     def maker_cli_missing(self):
@@ -911,6 +927,35 @@ class SliceRebaseTest(RepoCase):
         p = self.rebase("--continue")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assert_the_log_keeps_the_stop_and_the_answer()
+
+    def stopped_twice_on_the_same_order(self):
+        """Two slice commits conflict in test files: the first stop is answered, --continue stops on the second."""
+        self.on_slice("tests/test_shared.py", "A = 1\n", "slice adds a test")
+        self.on_slice("tests/test_other.py", "C = 3\n", "slice adds another test")
+        self.on_main("tests/test_shared.py", "B = 2\n", "main adds a test")
+        self.new = self.on_main("tests/test_other.py", "D = 4\n", "main adds another test")
+        self.assert_a_stop_for_the_originator(self.rebase())
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "FIRST-MARK: I will sort it out", cwd=self.wt)
+        self.resolve_by_hand()
+        self.assertEqual(self.assert_a_stop_for_the_originator(self.rebase("--continue"))["order"], "rebase_conflict")
+
+    def test_the_log_keeps_an_answered_stop_when_continue_stops_again_on_the_same_order(self):
+        self.stopped_twice_on_the_same_order()
+        log = self.log_of_the_record()
+        self.assertIn("answered rebase_conflict: FIRST-MARK: I will sort it out", log)
+        self.assertEqual(log.count("stop (rebase_conflict) for originator"), 2, log)
+
+    def test_the_log_keeps_both_stops_of_the_same_order_after_the_last_continue(self):
+        self.stopped_twice_on_the_same_order()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "SECOND-MARK: this one too", cwd=self.wt)
+        self.write(self.wt, "tests/test_other.py", "C = 3\nD = 4\n")
+        sh(["git", "add", "tests/test_other.py"], self.wt)
+        p = self.rebase("--continue")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        log = self.log_of_the_record()
+        self.assertIn("answered rebase_conflict: FIRST-MARK: I will sort it out", log)
+        self.assertIn("answered rebase_conflict: SECOND-MARK: this one too", log)
+        self.assertEqual(log.count("stop (rebase_conflict) for originator"), 2, log)
 
     def test_the_log_keeps_the_stop_and_answer_lines_after_abort(self):
         self.stopped_and_answered()

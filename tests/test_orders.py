@@ -465,6 +465,33 @@ class GuardianFiveChecksTest(unittest.TestCase):
         text = self.read("skills", "guardian", "packet.md")
         self.assertIn("## 5. ", text)
 
+    # record-state 12: `xv record answer --accept-wall` lists a test in slice_only only when its recommend is
+    # exactly "mark slice-only", so the brief gives that value word for word
+    def test_the_fifth_check_gives_mark_slice_only_as_the_exact_value(self):
+        text = self.read("skills", "guardian", "SKILL.md").split("## The five checks")[1].split("## The evidence rule")[0]
+        self.assertIn("`mark slice-only`", text)
+
+
+class RecordStateChangelogTest(unittest.TestCase):
+    """record-state 10 and 14: the CHANGELOG lines for this slice (both slice-only)."""
+
+    def unreleased(self):
+        with open(os.path.join(HOME, "CHANGELOG.md")) as f:
+            return f.read().split("## Unreleased")[1].split("\n## ")[0]
+
+    def test_an_unreleased_line_for_120_136_138_names_each_new_or_changed_stop(self):
+        lines = [line for line in self.unreleased().splitlines() if all(i in line for i in ("#120", "#136", "#138"))]
+        self.assertEqual(len(lines), 1, lines)
+        for order in ("shape_wider_than_forecast", "accept_moves", "unrecorded_move", "expected_moves_wrong",
+                      "rebase_conflict", "rebase_stuck"):
+            self.assertIn(order, lines[0])
+
+    def test_an_unreleased_line_names_the_guardian_brief_and_mark_slice_only(self):
+        unreleased = self.unreleased()
+        lines = [line for line in unreleased.splitlines()
+                 if ("guardian brief" in line or "skills/guardian/SKILL.md" in line) and "mark slice-only" in line]
+        self.assertTrue(lines, unreleased[:400])
+
 
 class OneHomeTest(unittest.TestCase):
     """Every stop rule is decided in orders.py, from the record alone."""

@@ -311,6 +311,20 @@ class AddedTestFileMoveCase(FollowUpBase):
         moves = [m for m in self.record()["moved_tests"] if m.get("file") == "tests/test_red.py"]
         self.assertEqual([m.get("expected") for m in moves], ["imports"], moves)
 
+    def test_an_import_only_change_after_a_second_scenario_pass_compares_with_that_pass(self):
+        self.open_slice("--expect-moves", "imports", kind="feature")
+        for step in ("forecaster", "scenario"):
+            self.xv("step", step, "s1", cwd=self.wt)
+        with mock.patch.dict(os.environ, {"FAKE_RED_SECOND_TEST": "1"}):
+            self.xv("step", "scenario", "s1", cwd=self.wt)
+        self.assertIn("test_milk_tomorrow", open(os.path.join(self.wt, "tests", "test_red.py")).read())
+        with mock.patch.dict(os.environ, {"FAKE_MAKER_IMPORT_MOVE_FILE": "tests/test_red.py"}):
+            p = self.xv("step", "maker", "s1", cwd=self.wt, check=False)
+        stop = json.loads(p.stdout).get("stop") or {}
+        self.assertNotEqual(stop.get("order"), "unrecorded_move", stop)
+        moves = [m for m in self.record()["moved_tests"] if m.get("file") == "tests/test_red.py"]
+        self.assertEqual([m.get("expected") for m in moves], ["imports"], moves)
+
     def test_a_changed_assertion_in_a_test_file_the_slice_added_still_stops(self):
         stop = self.maker_after_red({"FAKE_MAKER_IMPORT_MOVE_FILE": "tests/test_red.py", "FAKE_MAKER_EDITS_RED": "1"})
         self.assertEqual(stop.get("order"), "unrecorded_move", stop)

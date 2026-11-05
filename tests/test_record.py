@@ -2273,6 +2273,43 @@ class RecordStateTest(RepoCase):
                 "--accept-wall", "test_empty_kind", cwd=wt)
         self.assertEqual(self.slice_only(wt), [])
 
+    # 13. `--refuse-wall` on a test accepted earlier takes it out of `slice_only`; both match on the file and the test
+    OTHER = {"file": "tests/test_b.py", "test": "test_one_time_wording", "why": "the scenario marked it", "accepted": True}
+
+    def accepted_then_stopped_again(self, *seed):
+        wt = self.stopped_on_accept_moves()
+        for item in seed:
+            self.xv("record", "add", "s1", "slice_only", json.dumps(item), cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                "--accept-wall", "test_one_time_wording", cwd=wt)
+        self.xv("record", "stop", "s1", "--order", "accept_moves", "--seat", "originator",
+                "--question", "accept again?", "--step", "guardian", cwd=wt)
+        return wt
+
+    def test_refusing_a_mark_slice_only_recommendation_accepted_earlier_takes_it_out_of_slice_only(self):
+        wt = self.accepted_then_stopped_again()
+        self.assertIn(("tests/test_a.py", "test_one_time_wording"), self.slice_only(wt))
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "no, keep it on the wall",
+                "--refuse-wall", "test_one_time_wording", cwd=wt)
+        self.assertNotIn(("tests/test_a.py", "test_one_time_wording"), self.slice_only(wt))
+
+    def test_refusing_it_keeps_a_slice_only_test_of_the_same_name_in_another_file(self):
+        wt = self.accepted_then_stopped_again(self.OTHER)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "no, keep it on the wall",
+                "--refuse-wall", "test_one_time_wording", cwd=wt)
+        self.assertEqual(self.slice_only(wt), [("tests/test_b.py", "test_one_time_wording")])
+
+    def test_accepting_it_lists_it_beside_a_slice_only_test_of_the_same_name_in_another_file(self):
+        wt = self.accepted_then_stopped_again(self.OTHER)
+        self.assertEqual(sorted(self.slice_only(wt)), [("tests/test_a.py", "test_one_time_wording"),
+                                                       ("tests/test_b.py", "test_one_time_wording")])
+
+    def test_accepting_it_again_at_a_later_stop_lists_it_once(self):
+        wt = self.accepted_then_stopped_again()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
+                "--accept-wall", "test_one_time_wording", cwd=wt)
+        self.assertEqual(self.slice_only(wt), [("tests/test_a.py", "test_one_time_wording")])
+
     # 3. `xv record packet` runs the packet checks `xv step` runs
     def test_record_packet_stops_when_the_packets_expected_moves_differs_from_the_record(self):
         wt = self.guardian_slice()
@@ -2336,5 +2373,6 @@ class RecordStateTest(RepoCase):
 
 # What a person should watch on the first green run of RecordStateTest: accept a narrow shape at
 # `shape_wider_than_forecast`, then attach a packet that says wide and see the stop come back; accept a
-# "mark slice-only" recommendation with `--accept-wall` and see the test in `slice_only`; and run the
+# "mark slice-only" recommendation with `--accept-wall` and see the test in `slice_only`; at a later
+# `accept_moves`, `--refuse-wall` the same test and see it leave `slice_only`; and run the
 # session path (`xv record report`, `xv orders`, `xv record packet`) and see the same stops `xv step` gives.
