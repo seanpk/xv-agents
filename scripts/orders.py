@@ -168,7 +168,12 @@ def evaluate(data, after, config):
     if after == "rebase":
         resume = f"`xv slice rebase {data.get('id')} --continue`"
         undo = f"or `xv slice rebase {data.get('id')} --abort` to give it up"
-        if checks.get("conflicts"):
+        if checks.get("maker_edited"):
+            out.append(fire("rebase_conflict", "originator",
+                            f"{owner}: the maker changed {', '.join(checks['maker_edited'])} during the rebase, "
+                            "and a test file or the picture is a person's. Look at the change in the slice "
+                            f"worktree and run {resume}, {undo}."))
+        elif checks.get("conflicts"):
             out.append(fire("rebase_conflict", "originator",
                             f"{owner}: the rebase stopped on a conflict in {', '.join(checks['conflicts'])}. "
                             f"Resolve it in the slice worktree and run {resume}, {undo}."))
@@ -254,11 +259,15 @@ def evaluate(data, after, config):
                             f"The guardian's packet says {' and '.join(what)}. Two people decide from the packet."))
         fc = (data.get("forecast") or {}).get("shape")
         actual = (data.get("checks") or {}).get("guardian", {}).get("shape_breadth")
+        # a shape stays accepted at the breadth it was accepted at; a stop from before the breadth was kept covers any
         accepted_shape = data.get("shape_change") == "accepted" or any(
-            s.get("order") == "shape_wider_than_forecast" and s.get("answer") and not s.get("sent_back") for s in data.get("stops") or [])
+            s.get("order") == "shape_wider_than_forecast" and s.get("answer") and not s.get("sent_back")
+            and BREADTH.get(s.get("breadth"), BREADTH["wide"]) >= BREADTH.get(actual, 0)
+            for s in data.get("stops") or [])
         if not accepted_shape and fc in BREADTH and actual in BREADTH and BREADTH[actual] > BREADTH[fc]:
-            out.append(fire("shape_wider_than_forecast", "two_people",
-                            f"The shape change is {actual}; the forecast expected {fc}. Two people decide."))
+            out.append(dict(fire("shape_wider_than_forecast", "two_people",
+                                 f"The shape change is {actual}; the forecast expected {fc}. Two people decide."),
+                            breadth=actual))
         moved = {(m.get("file"), m.get("assertion")) for m in data.get("moved_tests") or []
                  if not m.get("slice_only") and not m.get("expected")}
         picture = checks.get("picture_change") == "yes"

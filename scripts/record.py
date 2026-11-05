@@ -451,6 +451,10 @@ def answer_wall(data, stop, a):
             bool(r.get("accepted")) and test not in stop["refused_wall"])
         if r["accepted"]:
             r.pop("refused", None)
+            if r.get("recommend") == "mark slice-only" and not any(
+                    isinstance(m, dict) and m.get("test") == test for m in data.get("slice_only") or []):
+                data.setdefault("slice_only", []).append(
+                    {"file": r.get("file"), "test": test, "why": r.get("why"), "accepted": True})
         else:
             r["refused"] = True
 
@@ -714,6 +718,14 @@ def cmd_report(a):
     text = sys.stdin.read() if a.file == "-" else open(a.file).read()
     body, report = apply_report(data, body, a.agent, text)
     save(path, data, body)
+    if a.agent in ("maker", "cleaner"):
+        # the same move checks `xv step` runs after these agents; the wall reads the record from disk
+        import run as runlib
+        root = repo_root()
+        config = load_config(slice_root(path))
+        runlib.expected_moves(root, data, config)
+        data["checks"].setdefault(a.agent, {})["wall"] = runlib.wall_check(root, data, config)
+        save(path, data, body)
     emit(report or {"agent": a.agent, "status": "no-report"}, True)
 
 
@@ -751,6 +763,14 @@ def cmd_packet(a):
         if pdata.get(field) not in allowed:
             raise XVError(f"the packet's {field} must be {' or '.join(allowed)}, found {pdata.get(field)!r}")
     checks = data.setdefault("checks", {}).setdefault("guardian", {})
+    # the packet checks `xv step` runs: the lint, and the packet's count of expected moves
+    import run as runlib
+    try:
+        lint = packetlib.fix(a.file)
+        checks["packet_problems"] = lint["problems"] + runlib.packet_expected_moves(a.file, data)
+        checks["dropped_findings"] = len(lint["dropped"])
+    except XVError as e:
+        checks["packet_problems"] = [str(e)]
     guardian_facts(root, data, checks, os.path.abspath(a.file))
     body = log_line(body, "guardian", f"packet: shape_change={data['shape_change']}, "
                                       f"pitch_contradiction={data['pitch_contradiction']}")
@@ -788,7 +808,8 @@ def apply_verdict(data, body, agent, v):
             data["stops"].append({"at": now(), "step": agent, "order": st["order"], "seat": st["seat"],
                                   "question": st["question"], "answered_by": [], "answer": None,
                                   "also": [f["order"] for f in v["fired"] if f is not st],
-                                  "budget_seen": data.get("budget")})
+                                  "budget_seen": data.get("budget"),
+                                  **({"breadth": st["breadth"]} if st.get("breadth") else {})})
             body = log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
         data["status"] = "ready" if st["order"] == "ready_to_merge" else "stopped"
     else:

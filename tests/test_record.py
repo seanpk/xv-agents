@@ -1288,7 +1288,7 @@ class ScenarioMissStandingOrderTest(RepoCase):
     def packet(self, wt, line, name="p.md"):
         path = os.path.join(wt, name)
         with open(path, "w") as f:
-            f.write("---\nslice: s1\nshape_change: no\npitch_contradiction: no\nscenario_miss: yes\n---\n\n"
+            f.write("---\nslice: s1\nshape_change: no\npitch_contradiction: no\nscenario_miss: yes\nexpected_moves: 0\n---\n\n"
                     "# Packet\n\n## Scenario misses\n\n- %s (evidence: tests/test_red.py:7)\n" % line)
         self.xv("record", "packet", "s1", path, cwd=wt)
 
