@@ -1373,6 +1373,34 @@ class AtAnAdoptingReposBaseTest(WatchLoopSetup):
         self.assert_stops(self.scenario(), "--expect-moves")
 
 
+class AtAnAdoptingReposBaseWithItsOwnBinAndScriptsTest(AtAnAdoptingReposBaseTest):
+    """9. The adopting repo has its own `bin/` and `scripts/`, but not xv's: the installed xv still answers."""
+
+    def setUp(self):
+        RepoCase.setUp(self)
+        cfg = os.path.join(self.repo, ".xv", "config.yml")
+        text = open(cfg).read()
+        start, end = text.index("agents:"), text.index("seats:")
+        text = text[:start] + f'agents:\n  default: ["{sys.executable}", "{FAKE}", "{{prompt}}"]\n' + text[end:]
+        open(cfg, "w").write(text)
+        os.makedirs(os.path.join(self.repo, "bin"), exist_ok=True)
+        os.makedirs(os.path.join(self.repo, "scripts"), exist_ok=True)
+        with open(os.path.join(self.repo, "bin", "deploy"), "w") as f:
+            f.write("#!/bin/sh\necho deploy\n")
+        with open(os.path.join(self.repo, "scripts", "build.py"), "w") as f:
+            f.write("print('build')\n")
+        sh(["git", "add", "-A"], self.repo)
+        sh(["git", "commit", "-qam", "fake agents and the adopting repo's own bin and scripts"], self.repo)
+        self.wt = self.new_slice("s1", "Milk that runs out today shows as running out soon.")
+        self.xv("record", "set", "s1", "budget", '{"usd": 1}', "--by", "pat", cwd=self.wt)
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+
+    def test_the_base_holds_no_xv_source(self):
+        self.assertTrue(os.path.isdir(os.path.join(self.wt, "scripts")))
+        self.assertTrue(os.path.isdir(os.path.join(self.wt, "bin")))
+        self.assertFalse(os.path.exists(os.path.join(self.wt, "bin", "xv")))
+
+
 class SliceOnlyFilesTest(WatchLoopSetup):
     """10. Marks on a file the config lists as always slice-only are accepted with no stop."""
 
@@ -1494,6 +1522,20 @@ class RemovedSliceOnlyTestInCoversTest(WatchLoopSetup):
         extra = {"covers": [{"item": "milk today", "test": "test_milk_today"},
                             {"item": "cheese", "test": "Red.test_cheese"}]}
         self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA=json.dumps(extra)))
+
+    def test_a_kept_name_goes_on_when_the_move_assertion_carries_the_cleaners_words(self):
+        self.removed(test="Red.test_cheese; removed")
+        self.assert_goes_on(self.milk_only())
+
+    def test_a_reported_name_goes_on_when_the_move_assertion_carries_the_cleaners_words(self):
+        self.removed(test="Red.test_cheese; removed")
+        extra = {"covers": [{"item": "milk today", "test": "test_milk_today"},
+                            {"item": "cheese", "test": "Red.test_cheese"}]}
+        self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA=json.dumps(extra)))
+
+    def test_a_name_still_stops_when_the_words_after_the_semicolon_name_another_test(self):
+        self.removed(test="Red.test_gouda; removed")
+        self.assert_stops(self.milk_only(), "test_cheese")
 
     def test_a_name_for_a_test_the_record_does_not_show_removed_still_stops(self):
         self.removed(test="Red.test_gouda")
