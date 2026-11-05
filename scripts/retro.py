@@ -81,18 +81,18 @@ def due(root):
         if order not in QUIET_ORDERS and len(ids) > 1:
             for i in ids:
                 reasons.setdefault(i, []).append(f"the same stop ({order}) on {len(ids)} slices")
-    for module, ids in reworked(recs, root).items():
+    for module, ids in reworked([d for _, d, _ in recs], root).items():
         for i in ids:
             reasons.setdefault(i, []).append(
                 f"module {module} was reworked: sent back to the maker on {len(ids)} closed slices ({', '.join(ids)})")
     return {"since": since or "the start", "slices": reasons}
 
 
-def reworked(recs, root):
+def reworked(slices, root):
     """Modules that at least `limits.rework_slices` closed slices touched, each sent back to the maker."""
     limit = int(((load_config(root).get("limits") or {}).get("rework_slices")) or 0)
     by_module = {}
-    for _, d, _ in recs:
+    for d in slices:
         if d.get("status") == "closed" and (d.get("maker_sendbacks") or 0) >= 1:
             for m in d.get("modules_touched") or []:
                 by_module.setdefault(m, []).append(d["id"])
@@ -175,7 +175,7 @@ def run(root, ids=None):
                                     for i in ids),
              f"Fire and override counts: `{cpath}`.",
              *[f"Module `{m}` was reworked on {', '.join(ids)}: propose a candidate with `kind: refactor` for it."
-               for m, ids in reworked([(None, d, None) for d, _ in recs.values()], root).items()],
+               for m, ids in reworked([d for d, _ in recs.values()], root).items()],
              f"Write the retro packet to `{out}`."]
     text = promptlib.brief("retro") + "\n" + promptlib.pointers("retro", root, config, None, extra)
     result = agentcli.run(agentcli.argv_for(config, "retro"), text, root, None,

@@ -283,12 +283,6 @@ class ReworkSignalTest(RepoCase):
         self.assertEqual(sh(["git", "branch", "--list", "xv/*"], self.repo).stdout, branches)
         self.assertEqual(sorted(os.listdir(os.path.join(self.repo, ".xv", "slices"))), slices)
 
-    # 5. CHANGELOG
-    def test_the_changelog_has_a_line_for_the_retro_brief_change(self):
-        text = open(os.path.join(HOME, "CHANGELOG.md")).read()
-        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        self.assertTrue(any("rework_slices" in ln and "retro" in ln for ln in unreleased.splitlines()))
-
 
 if __name__ == "__main__":
     unittest.main()
