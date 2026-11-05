@@ -452,6 +452,77 @@ class SliceRebaseTest(RepoCase):
         self.assertEqual(res["deleted"], ["tests/test_red.py"])
         self.assertEqual(res["added"], ["tests/test_late.py"])
 
+    # -- 16: only the tests the slice added are excused, matched by whole name
+
+    def slice_adds_a_failing_test_to_an_old_file(self):
+        """tests/test_store.py is old; the slice's red adds one failing test to it."""
+        text = self.read(self.wt, "tests/test_store.py").replace(
+            "\n\nif __name__", "\n    def test_slice_added_red(self):\n        self.assertEqual(1, 2)\n\n\nif __name__")
+        self.on_slice("tests/test_store.py", text, "the slice adds a red test to an old file")
+        self.set_field("red", {"files": ["tests/test_store.py"], "command": "cd tests && python3 -m unittest test_store",
+                               "failure": "1 != 2", "watch_first_green": None})
+        self.set_field("suite", "red")
+
+    def test_a_test_the_slice_added_to_an_old_red_file_is_excused_before_the_maker(self):
+        self.slice_adds_a_failing_test_to_an_old_file()
+        self.on_main("docs.txt", "news\n")
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+
+    def test_an_old_test_in_a_red_file_that_the_new_base_breaks_still_stops(self):
+        self.slice_adds_a_failing_test_to_an_old_file()
+        old = self.read(self.repo, "tests/test_store.py")
+        self.on_main("tests/test_store.py", old.replace('["beans", "rice"]', '["rice", "beans"]'), "main breaks an old test")
+        p = self.rebase()
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertIn("test_add_and_list", stop["question"])
+
+    def test_a_test_whose_name_only_contains_a_red_files_name_still_stops(self):
+        self.on_slice("tests/test_run.py", "import unittest\n\n\nclass Own(unittest.TestCase):\n"
+                      "    def test_run(self):\n        self.assertEqual(1, 2)\n", "the slice's red")
+        self.set_field("red", {"files": ["tests/test_run.py"], "command": "cd tests && python3 -m unittest test_run",
+                               "failure": "1 != 2", "watch_first_green": None})
+        self.set_field("suite", "red")
+        self.on_main("tests/test_other.py", "import unittest\n\n\nclass Other(unittest.TestCase):\n"
+                     "    def test_run_loop_x(self):\n        self.assertEqual(1, 2)\n")
+        p = self.rebase()
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertIn("test_run_loop_x", stop["question"])
+
+    # -- 6: a test file the slice and the new base both changed still shows the slice's change
+
+    QTY = "self.assertEqual(self.store.items()[0].qty, 4)"
+
+    def slice_weakens_an_old_test(self):
+        self.xv("wall", "baseline", "s1", cwd=self.wt)
+        sh(["git", "add", "-A"], self.wt)
+        sh(["git", "commit", "-qm", "wall baseline"], self.wt)
+        text = self.read(self.wt, "tests/test_store.py")
+        self.on_slice("tests/test_store.py", text.replace(self.QTY, self.QTY[:-1] + " or 1)"), "slice weakens an old test")
+
+    def wall_diff(self):
+        return json.loads(self.xv("wall", "diff", "s1", "--json", cwd=self.wt, check=False).stdout)
+
+    def test_a_test_file_both_sides_changed_cleanly_still_shows_the_slices_change_in_the_wall(self):
+        self.slice_weakens_an_old_test()
+        text = self.read(self.repo, "tests/test_store.py")
+        self.on_main("tests/test_store.py", "# a note from main\n" + text, "main edits the same file elsewhere")
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("4 or 1", self.read(self.wt, "tests/test_store.py"))
+        self.assertIn("tests/test_store.py", self.wall_diff()["changed"])
+
+    def test_a_test_file_resolved_by_hand_after_a_conflict_still_shows_the_slices_change_in_the_wall(self):
+        self.slice_weakens_an_old_test()
+        text = self.read(self.repo, "tests/test_store.py")
+        self.on_main("tests/test_store.py", text.replace(self.QTY, self.QTY + "  # main"), "main edits the same line")
+        self.assert_a_stop_for_the_originator(self.rebase())
+        self.write(self.wt, "tests/test_store.py", text.replace(self.QTY, self.QTY[:-1] + " or 1)  # main"))
+        sh(["git", "add", "tests/test_store.py"], self.wt)
+        p = self.rebase("--continue")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("tests/test_store.py", self.wall_diff()["changed"])
+
     # -- 15: with no --onto the default comes from resolve_base, so worktrees.base comes first
 
     def test_with_no_onto_the_configured_worktrees_base_is_the_default(self):
