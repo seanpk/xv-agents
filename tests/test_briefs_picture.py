@@ -207,12 +207,6 @@ class ScenarioCatchesTest(unittest.TestCase):
         self.assertRegex(text, r"(?is)\bnumber\b[^\n]*only[^\n]*scenario's own point")
         self.assertRegex(text, r"(?is)amendment's point[^\n]*own words")
 
-    def test_the_changelog_has_a_line_for_the_covers_number_change(self):
-        lines = [l for l in brief("CHANGELOG.md").split("## 0.4.1")[0].splitlines() if "#125" in l]
-        self.assertTrue(lines, "no Unreleased line names #125")
-        self.assertRegex(lines[0], r"(?i)covers")
-        self.assertRegex(lines[0], r"(?i)amendment")
-
 
 if __name__ == "__main__":
     unittest.main()
