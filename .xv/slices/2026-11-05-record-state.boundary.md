@@ -5,18 +5,19 @@ From `5d5e75fc7a73` to the working tree. Source: xv boundary (ast and regex). Ge
 ## Shape hints
 
 - an edge between modules was added
+- an edge between modules was removed
 
 ## Modules
 
-- touched: scripts/moves, scripts/orders, scripts/record, scripts/run
+- touched: scripts/moves, scripts/orders, scripts/packet, scripts/record, scripts/run, scripts/wall
 - added: none
 - removed: none
 - now calling out of the process: none
 
 ## Edges
 
-- added: scripts/record → scripts/run
-- removed: none
+- added: scripts/record → scripts/moves, scripts/record → scripts/wall
+- removed: scripts/run → scripts/moves
 
 ```mermaid
 flowchart LR
@@ -83,10 +84,11 @@ flowchart LR
   m16 --> m17
   m16 --> m21
   m16 --> m23
+  m17 ==> m10
   m17 --> m11
   m17 --> m12
-  m17 ==> m20
   m17 --> m21
+  m17 ==> m22
   m17 --> m23
   m18 --> m23
   m19 --> m4
@@ -96,7 +98,6 @@ flowchart LR
   m19 --> m23
   m20 --> m4
   m20 --> m5
-  m20 --> m10
   m20 --> m11
   m20 --> m12
   m20 --> m15
@@ -128,18 +129,29 @@ flowchart LR
  "touched": [
   "scripts/moves",
   "scripts/orders",
+  "scripts/packet",
   "scripts/record",
-  "scripts/run"
+  "scripts/run",
+  "scripts/wall"
  ],
  "modules_added": [],
  "modules_removed": [],
  "edges_added": [
   [
    "scripts/record",
-   "scripts/run"
+   "scripts/moves"
+  ],
+  [
+   "scripts/record",
+   "scripts/wall"
   ]
  ],
- "edges_removed": [],
+ "edges_removed": [
+  [
+   "scripts/run",
+   "scripts/moves"
+  ]
+ ],
  "outbound_added": [],
  "tables": {
   "added": [],
@@ -335,6 +347,10 @@ flowchart LR
    ],
    [
     "scripts/record",
+    "scripts/moves"
+   ],
+   [
+    "scripts/record",
     "scripts/orders"
    ],
    [
@@ -343,11 +359,11 @@ flowchart LR
    ],
    [
     "scripts/record",
-    "scripts/run"
+    "scripts/spend"
    ],
    [
     "scripts/record",
-    "scripts/spend"
+    "scripts/wall"
    ],
    [
     "scripts/record",
@@ -384,10 +400,6 @@ flowchart LR
    [
     "scripts/run",
     "scripts/boundary"
-   ],
-   [
-    "scripts/run",
-    "scripts/moves"
    ],
    [
     "scripts/run",
@@ -444,7 +456,8 @@ flowchart LR
  },
  "source": "xv boundary (ast and regex)",
  "shape_hints": [
-  "an edge between modules was added"
+  "an edge between modules was added",
+  "an edge between modules was removed"
  ]
 }
 ```
