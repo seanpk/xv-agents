@@ -288,11 +288,29 @@ def indent_of(line):
     return len(line) - len(line.lstrip())
 
 
+def decorator_start(lines, d):
+    """Index of the first decorator line above the declaration at `d`, or `d` when it has none."""
+    start, depth = d, indent_of(lines[d])
+    for j in range(d - 1, -1, -1):
+        stripped = lines[j].strip()
+        at_depth = indent_of(lines[j]) == depth
+        if not stripped or not (indent_of(lines[j]) > depth or (at_depth and stripped.startswith(("@", "#")))):
+            break
+        if at_depth and stripped.startswith("@"):
+            start = j
+    return start
+
+
 def is_whole_test(text, old):
-    """Whether `old` is one test from its declaration to its last line, with no other declaration in it."""
+    """Whether `old` is one test from its first decorator to its last line, with no other declaration in it."""
     lines = old.lstrip("\n").splitlines()
-    if not old.endswith("\n") or not lines or not TEST_DECL.match(lines[0]):
+    if not old.endswith("\n") or not lines:
         return False
+    first = text.count("\n", 0, text.index(old) + len(old) - len(old.lstrip("\n")))
+    decl = next((i for i, ln in enumerate(lines) if TEST_DECL.match(ln)), None)
+    if decl is None or decorator_start(text.splitlines(), first + decl) != first:
+        return False
+    lines = lines[decl:]
     depth = indent_of(lines[0])
     rest = [ln for ln in lines[1:] if ln.strip()]
     if not rest:
@@ -373,6 +391,9 @@ def check_edit(root, config, n, edit):
         one_line = "\n" not in old + new and old != new and TEST_DECL.match(old) and TEST_DECL.match(new)
         if not one_line or not all(re.fullmatch(r"\w+", x) for x in name_change(old, new)):
             raise XVError(f"option {n}: a rename changes one test's name to another test's name and nothing else")
+        name = name_change(old, new)[0]
+        if len(re.findall(rf"(?<!\w){re.escape(name)}(?!\w)", text)) != 1:
+            raise XVError(f"option {n}: the name {name} also appears elsewhere in {file}; a rename is one line")
     if kind == "test-remove" and (new != "" or not is_whole_test(text, old)):
         raise XVError(f"option {n}: a removal's --new is empty, and --old is a whole test")
 
@@ -550,19 +571,20 @@ def make_directed_edit(root, path, data, body, stop, edit, who):
     body = apply_verdict(data, body, step, v)
     save(path, data, body)
     rel = os.path.relpath(path, root)
-    git(["add", "--", file, rel], root)
-    git(["commit", "-q", "--no-verify", "-m", f"xv({data['id']}): {kind} edit in {file}, directed by {by}",
-         "--", file, rel], root)
-    sha = git(["rev-parse", "HEAD"], root).strip()
+    paths = [file, rel]
     if data.get("packet"):
         packet = os.path.join(root, data["packet"])
         with open(packet) as f:
             text = f.read()
         heading = "## Directed edits after the guardian"
         text = text.rstrip("\n") + ("\n" if heading in text else f"\n\n{heading}\n\n") \
-            + f"- {file} ({kind}): directed by {by}, commit {sha[:7]}\n"
+            + f"- {file} ({kind}): directed by {by}\n"
         with open(packet, "w") as f:
             f.write(text)
+        paths.append(data["packet"])
+    git(["add", "--", *paths], root)
+    git(["commit", "-q", "--no-verify", "-m", f"xv({data['id']}): {kind} edit in {file}, directed by {by}",
+         "--", *paths], root)
     emit(v, True)
     if v["stop"]:
         sys.exit(10)
