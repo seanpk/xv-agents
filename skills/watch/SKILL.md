@@ -67,6 +67,12 @@ A stop for two people needs two names; the script refuses one, unless the repo r
 
 When `next` is `prototype`, run `xv prototype start <id>`. It builds three versions on the record's axis, each in its own worktree and context, with their recordings side by side in `.xv/slices/<id>.prototypes.md`, and stops for two people. Show them the side-by-side file. They pick one or none, with a user when one can be reached, and restate the pick as the scenario. Write it with `xv prototype pick <id> --variant a|b|c|none --by <name>,<name> [--with-user <name>] --scenario-file <file>`. That discards all three prototypes and sends the slice to the forecaster, so a fresh maker builds the pick behind the wall.
 
+## A slice from a build
+
+A slice opened with `xv slice new --from <ref>` starts at a build that already exists. The scenario step runs the scenario agent in a checkout at `base`, without the build, unless the slice was opened with `--share-build`. The red must fail there; then it runs on the build. A red test that fails on the build goes to the maker as a miss, with no stop; a red that passes on it sends the slice to the cleaner with no maker. If the red does not apply to the build, the slice stops with `red_conflicts_with_build`.
+
+At a stop after the scenario step, before the maker runs, you may offer an exploration: the person builds with an agent, outside XV, to find out what they want, and opens a new slice with `--from <ref>` when the scenario can be written from what runs. Offer it when the person doubts the scenario; do not press it.
+
 ## The standing orders
 
 They are scripts (`xv orders <id>`), not this text. You do not interpret them, relax them, or edit them. A change to a standing order is a change to what you are, and it takes two people and a line in the shared repo's `CHANGELOG.md`.
@@ -79,6 +85,7 @@ They are scripts (`xv orders <id>`), not this text. You do not interpret them, r
 | The same failure repeats, or the diff keeps growing | the person who set the work going; the stall's four choices: continue, reshape the slice, raise the budget, or bring in a second person |
 | The scenario passed before the fix, or the scenario agent touched source | the person who set the work going |
 | A worker ended with no report | the person who set the work going |
+| In a slice from a build, the scenario agent's red does not apply to the build | the person who set the work going |
 | The scenario agent marked tests slice-only | the person who set the work going: accept the marks, or unmark a test so it joins the wall |
 | The guardian recommended which new tests join the wall or leave it | the person who set the work going, in `accept_moves` |
 | The budget is not set, or a prototype slice has no `prototype_budgets` | the person who set the work going |

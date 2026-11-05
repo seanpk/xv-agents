@@ -179,6 +179,10 @@ def run_worktree_command(command, wt, config):
 
 
 def cmd_slice_new(a):
+    if a.share_build and a.from_ref is None:
+        raise XVError("--share-build needs --from: it shares a build, and no build is given")
+    if a.from_ref is not None and not a.from_ref.strip():
+        raise XVError("--from needs a ref: the branch or commit of the build")
     root = repo_root()
     config = load_config(root)
     if not os.path.exists(os.path.join(root, XV_DIR, "config.yml")):
@@ -201,8 +205,13 @@ def cmd_slice_new(a):
                               capture_output=True).returncode != 0:
                 raise XVError(f"the base {base[:10]} has no committed {XV_DIR}/{name}: push .xv/ so the "
                               "remote's default branch has it, or pass --base HEAD")
+    start = base
+    if a.from_ref is not None:
+        start = git(["rev-parse", "--verify", "-q", a.from_ref + "^{commit}"], root, check=False).strip()
+        if not start:
+            raise XVError(f"--from {a.from_ref}: no such branch or commit")
     os.makedirs(os.path.dirname(wt), exist_ok=True)
-    git(["worktree", "add", "-q", "-b", branch, wt, base], root)
+    git(["worktree", "add", "-q", "-b", branch, wt, start], root)
     trial = is_trial(root)
     if trial:
         copy_layer(root, wt)
@@ -232,6 +241,9 @@ def cmd_slice_new(a):
     path = record_path(wt, a.id)
     data, body = record.load(wt, a.id)[1:]
     data["base"] = base
+    if a.from_ref is not None:
+        data["build"] = {"kind": "exploration", "ref": a.from_ref}
+        data["build_shared"] = "yes" if a.share_build else "no"
     if trial:
         data["trial"] = True
     record.save(path, data, body)
@@ -726,13 +738,23 @@ def step(agent, slice_id, review_again=False):
 
     head_before = git(["rev-parse", "HEAD"], root).strip()
     pre = pre_step(agent, root, data, config)
-    text = promptlib.build(agent, slice_id, root=root)
+    scratch = scenario_scratch(root, data, config) if agent == "scenario" and has_build(data) else None
+    extra = None
+    if scratch and data.get("build_shared") == "yes":
+        extra = [f"The build is at `{data['build']['ref']}`, a reference only: the red tests what the scenario says, "
+                 "and does not assume the code will look like the build."]
+    text = promptlib.build(agent, slice_id, root=scratch or root, extra=extra)
     argv = agentcli.argv_for(config, agent)
     spent = spendlib.slice_spend(data)
     argv = agentcli.with_caps(argv, data.get("budget"), spent["usd"], spent["turns"])
     n = len(data.get("spend") or []) + 1
     log = os.path.join(runs_dir(root, slice_id), f"{n:02d}-{agent}.out")
-    result = agentcli.run(argv, text, root, log, int(config.get("step_timeout") or 3600))
+    try:
+        result = agentcli.run(argv, text, scratch or root, log, int(config.get("step_timeout") or 3600))
+    except BaseException:
+        if scratch:
+            drop_scratch(root, scratch)
+        raise
 
     data, body = record.load(root, slice_id)[1:]  # an agent may have run `xv record` itself
     if pre.get("pre_maker_commit"):
@@ -754,7 +776,8 @@ def step(agent, slice_id, review_again=False):
     if reported and joined_unsafely(reported):
         data["red"] = red_before  # a refused red is not kept: the maker is never handed it
     record.save(path, data, body)  # the wall reads moved_tests from disk: the report's moves must be there
-    checks = post_step(agent, root, data, config, head_before, pre, report or {})
+    landed = land_scratch(root, scratch, data, config, report or {}) if scratch else None
+    checks = post_step(agent, root, data, config, head_before, pre, report or {}, landed)
     data["checks"][agent] = checks
     data["status"] = "working"
     data["next"] = "scenario" if checks.get("red_joined") else STEPS[STEPS.index(agent) + 1]
@@ -782,6 +805,58 @@ def accept_listed_marks(data, body, config):
             body = record.log_line(body, "watch", f"slice-only mark on {m.get('test')} accepted: it checks "
                                    f"{m['checks']}, which the config lists in tests.slice_only_files")
     return body
+
+
+def has_build(data):
+    return isinstance(data.get("build"), dict)
+
+
+def drop_scratch(root, scratch):
+    subprocess.run(["git", "worktree", "remove", "--force", scratch], cwd=root, capture_output=True)
+    shutil.rmtree(scratch, ignore_errors=True)
+
+
+def scenario_scratch(root, data, config):
+    """A checkout at the base, outside the slice worktree, where the scenario agent writes the red without the build."""
+    scratch = tempfile.mkdtemp(prefix="xv-scenario-")
+    git(["worktree", "add", "-q", "--detach", scratch, data["base"]], root)
+    if is_trial(root):
+        copy_layer(root, scratch)
+    failed = run_worktree_command(worktrees_config(config).get("setup"), scratch, config)
+    if failed:
+        drop_scratch(root, scratch)
+        raise XVError(f"the worktree setup `{failed[0]}` failed ({failed[1]}) in the scenario agent's checkout; "
+                      f"its last output:\n{failed[2]}")
+    copy = dict(data, build="none") if data.get("build_shared") != "yes" else data
+    path = os.path.join(scratch, XV_DIR, "slices", f"{data['id']}.md")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    record.save(path, copy, record.load(root, data["id"])[2])
+    return scratch
+
+
+def land_scratch(root, scratch, data, config, report):
+    """Run the red on the base, take the wall baseline there, and cherry-pick the agent's red onto the slice branch."""
+    landed = {"base_run": None, "wall": None, "conflict": None}
+    try:
+        red = data.get("red") or {}
+        reported = (report.get("red") or {}).get("command")
+        if red.get("command") and not (reported and joined_unsafely(reported)):
+            landed["base_run"] = shell(red["command"], scratch, 600)
+        import wall
+        landed["wall"] = (wall.baseline(scratch, data["id"], config),
+                          open(wall.wall_file(scratch, data["id"]), encoding="utf-8").read())
+        sid = data["id"]
+        git(["add", "-A", "--", ".", f":(exclude){XV_DIR}/slices/{sid}.*"], scratch)
+        if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=scratch).returncode != 0:
+            git(["commit", "-q", "--no-verify", "-m", f"xv({sid}): red"], scratch)
+            sha = git(["rev-parse", "HEAD"], scratch).strip()
+            p = subprocess.run(["git", "cherry-pick", sha], cwd=root, capture_output=True, text=True)
+            if p.returncode != 0:
+                landed["conflict"] = (p.stdout + p.stderr).strip()[-800:]
+                subprocess.run(["git", "cherry-pick", "--abort"], cwd=root, capture_output=True)
+    finally:
+        drop_scratch(root, scratch)
+    return landed
 
 
 def refactor_scenario(path, root, config, data, body, slice_id):
@@ -823,7 +898,7 @@ def pre_step(agent, root, data, config):
     return pre
 
 
-def post_step(agent, root, data, config, head_before, pre, report):
+def post_step(agent, root, data, config, head_before, pre, report, landed=None):
     """The mechanical checks after a step. Results go in the record; orders.py reads them."""
     checks = {"at": now()}
     tests = (config.get("tests") or {}).get("paths") or []
@@ -852,11 +927,17 @@ def post_step(agent, root, data, config, head_before, pre, report):
             checks["red_fails"] = None
             checks["red_joined"] = reported
         elif red.get("command"):
-            code, out = red_run(root, data, red, config)
+            # a slice from a build: the red ran on the base, in the agent's checkout; now it runs on the build
+            code, out = landed["base_run"] if landed else red_run(root, data, red, config)
             checks["red_fails"] = None if code is None else code != 0
             checks["red_output"] = out[-800:]
             if code is None:
                 checks["setup_failed"] = out
+            if landed and landed["conflict"]:
+                checks["cherry_pick_conflict"] = landed["conflict"]
+            elif landed and checks["red_fails"]:
+                code, out = shell(red["command"], root, 600)
+                checks["red_on_build"] = {"passes": code == 0, "failing": failing_tests(out)}
         else:
             checks["red_fails"] = None
         changed = old_red_changed(root, data, red, tests)
@@ -873,7 +954,14 @@ def post_step(agent, root, data, config, head_before, pre, report):
         checks["unreadable"] = unreadable_input(root, data, report)
         checks["not_covered"] = [n for n in (report.get("not_covered") or []) if isinstance(n, dict)]
         checks["missed_points"] = missed_points(root, data, report)
-        wb = wall_baseline(root, data, config)
+        if landed:  # the wall hashes the test files at the base, not at the build
+            wb, text = landed["wall"]
+            import wall
+            os.makedirs(os.path.dirname(wall.wall_file(root, data["id"])), exist_ok=True)
+            with open(wall.wall_file(root, data["id"]), "w", encoding="utf-8") as f:
+                f.write(text)
+        else:
+            wb = wall_baseline(root, data, config)
         if wb:
             data["wall_baseline"] = wb
     if agent == "maker" and data.get("prototype_sessions"):
@@ -1615,6 +1703,9 @@ def main(argv=None):
     n.add_argument("--recording")
     n.add_argument("--branch")
     n.add_argument("--base", help="the ref the slice branch starts from (default: worktrees.base, then origin/HEAD, then HEAD)")
+    n.add_argument("--from", dest="from_ref", help="a build that already exists: the slice branch starts at this ref")
+    n.add_argument("--share-build", action="store_true",
+                   help="name the build to the scenario agent as a reference (needs --from)")
     n.add_argument("--axis", help="for a prototype slice: the one axis the three differ on")
     n.set_defaults(fn=cmd_slice_new)
     m = ss.add_parser("amend")

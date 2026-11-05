@@ -28,6 +28,7 @@ FIELDS = [
     # name, default
     ("id", None), ("title", ""), ("kind", "feature"), ("status", "open"),
     ("set_by", ""), ("created", None), ("branch", ""), ("base", None), ("next", "forecaster"),
+    ("build", "none"), ("build_shared", "no"),
     ("forecast", None), ("budget", None), ("red", None), ("wall_baseline", None),
     ("moved_tests", []), ("slice_only", []), ("wall_recommendations", []), ("suite", None), ("cleaner_commit", None),
     ("packet", None), ("shape_change", None), ("pitch_contradiction", None),
