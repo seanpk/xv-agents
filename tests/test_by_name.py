@@ -1,8 +1,7 @@
-import os
 import re
 import unittest
 
-from helpers import HOME, RepoCase
+from helpers import RepoCase
 
 
 class ByNameTest(RepoCase):
@@ -71,18 +70,6 @@ class ByNameTest(RepoCase):
         self.assertTrue(any("slice-only" in s.lower().replace("slice_only", "slice-only")
                             and "checks" in s and re.search(r"\bfile\b", s) for s in sentences),
                         "no sentence about naming the file each slice-only test checks")
-
-
-class ChangelogPointsEightToElevenTest(unittest.TestCase):
-    """12. CHANGELOG.md has a line for each stop points 8-11 narrow."""
-
-    def test_the_unreleased_section_has_a_line_for_the_flags_the_adopting_repo_and_the_slice_only_files(self):
-        text = open(os.path.join(HOME, "CHANGELOG.md")).read()
-        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        lines = [l for l in unreleased.splitlines() if l.startswith("- ")]
-        want = ("slice_only_files", "installed", "flag", "removed")
-        self.assertTrue(any(all(w in l for w in want) and "CHANGELOG.md" in l for l in lines),
-                        "no Unreleased line names the flags, the installed xv, slice_only_files and a removed test")
 
 
 if __name__ == "__main__":

@@ -216,10 +216,10 @@ def red_gaps(scenario, red_texts, exists=None, has_flag=None):
     `has_flag(words, flag)` says that command already has the flag, so a flag written after it is not a gap."""
     gaps = []
     for span in re.findall(r"(?<!`)`([^`\n]+)`(?!`)", scenario):
-        first = re.search(r"(?<![\w-])xv((?:\s+[a-z][\w-]*)+)", span)
+        leading_command = re.search(r"(?<![\w-])xv((?:\s+[a-z][\w-]*)+)", span)
         for flag in re.findall(r"(?<![\w-])--[a-z][\w-]*", span):
             rx = re.compile(re.escape(flag) + r"(?![\w-])")
-            at_base = first and has_flag and has_flag(first.group(1).split(), flag)
+            at_base = leading_command and has_flag and has_flag(leading_command.group(1).split(), flag)
             if flag not in gaps and not any(rx.search(t) for t in red_texts) and not at_base:
                 gaps.append(flag)
         for m in re.finditer(r"(?<![\w-])xv((?:\s+[a-z][\w-]*)+)", span):
