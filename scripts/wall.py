@@ -209,15 +209,18 @@ def check_against_base(root, base, config=None):
     return out
 
 
-def red_gaps(scenario, red_texts, exists=None):
+def red_gaps(scenario, red_texts, exists=None, has_flag=None):
     """Each flag and `xv` command written in backticks in the scenario that appears in none of the red files.
     A command is covered only when its words come together, in order, in a red file.
-    `exists(words)` says a command is already an `xv` subcommand at the base, so it is not a gap."""
+    `exists(words)` says a command is already an `xv` subcommand at the base, so it is not a gap;
+    `has_flag(words, flag)` says that command already has the flag, so a flag written after it is not a gap."""
     gaps = []
     for span in re.findall(r"(?<!`)`([^`\n]+)`(?!`)", scenario):
+        first = re.search(r"(?<![\w-])xv((?:\s+[a-z][\w-]*)+)", span)
         for flag in re.findall(r"(?<![\w-])--[a-z][\w-]*", span):
             rx = re.compile(re.escape(flag) + r"(?![\w-])")
-            if flag not in gaps and not any(rx.search(t) for t in red_texts):
+            at_base = first and has_flag and has_flag(first.group(1).split(), flag)
+            if flag not in gaps and not any(rx.search(t) for t in red_texts) and not at_base:
                 gaps.append(flag)
         for m in re.finditer(r"(?<![\w-])xv((?:\s+[a-z][\w-]*)+)", span):
             words = m.group(1).split()

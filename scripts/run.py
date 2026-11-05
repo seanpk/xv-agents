@@ -16,6 +16,7 @@ Usage:
 """
 
 import argparse
+import io
 import json
 import os
 import re
@@ -23,6 +24,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -706,6 +708,8 @@ def step(agent, slice_id, review_again=False):
         data["checks"].setdefault("reports", []).append(
             {"agent": agent, "status": "no-report", "summary": f"the report could not be applied: {e}", "at": now()})
         body = record.log_line(body, agent, f"the report could not be applied: {e}")
+    if agent == "scenario":
+        body = accept_listed_marks(data, body, config)
     reported = ((report or {}).get("red") or {}).get("command") if agent == "scenario" else None
     if reported and joined_unsafely(reported):
         data["red"] = red_before  # a refused red is not kept: the maker is never handed it
@@ -727,6 +731,17 @@ def step(agent, slice_id, review_again=False):
     if v["stop"]:
         reach(config, v["stop"]["seat"], v["stop"]["question"], v["record"])
     return (EXIT_STOP if v["stop"] else 0), v
+
+
+def accept_listed_marks(data, body, config):
+    """A slice-only mark whose test checks a file the config lists in `tests.slice_only_files` is accepted."""
+    listed = (config.get("tests") or {}).get("slice_only_files") or []
+    for m in data.get("slice_only") or []:
+        if isinstance(m, dict) and not m.get("accepted") and isinstance(m.get("checks"), str) and m["checks"] in listed:
+            m["accepted"] = True
+            body = record.log_line(body, "watch", f"slice-only mark on {m.get('test')} accepted: it checks "
+                                   f"{m['checks']}, which the config lists in tests.slice_only_files")
+    return body
 
 
 def refactor_scenario(path, root, config, data, body, slice_id):
@@ -917,9 +932,12 @@ def unreadable_input(root, data, report):
         out.append("The report's `covers` is missing, empty, or has an item that names no test.")
     else:
         files = red_file_texts(root, data.get("red") or {})
+        removed = [COVERS_SEPARATOR.split(m["assertion"])[-1].strip() for m in data.get("moved_tests") or []
+                   if isinstance(m, dict) and m.get("by") == "cleaner" and m.get("slice_only")
+                   and isinstance(m.get("assertion"), str)]
         for c in covers:
             for name in covers_names(c["test"]):
-                if not covers_name_found(name, files):
+                if not covers_name_found(name, files) and COVERS_SEPARATOR.split(name)[-1].strip() not in removed:
                     out.append(f"The report says `{name}` covers {c['item']}, and no red file has that test.")
     return out
 
@@ -971,7 +989,8 @@ def scenario_red_gaps(root, data, red):
     if at < 0:
         return []
     gaps = wall.red_gaps(body[at:end if end > at else len(body)], list(red_file_texts(root, red).values()),
-                         exists=lambda words: xv_command_at_base(root, data.get("base"), words))
+                         exists=lambda words: xv_help_at_base(root, data.get("base"), words) is not None,
+                         has_flag=lambda words, flag: xv_flag_at_base(root, data.get("base"), words, flag))
     accepted = " ".join(s.get("question") or "" for s in data.get("stops") or []
                         if s.get("order") == "red_misses_scenario" and s.get("answer") and not s.get("sent_back"))
     return [g for g in gaps if f"`{g}`" not in accepted]
@@ -980,28 +999,37 @@ def scenario_red_gaps(root, data, red):
 _BASE_XV = {}
 
 
-def xv_command_at_base(root, base, words):
-    """Is `xv <words>` a command at the slice's base? Run the base's own `xv` with --help."""
-    if not base:
-        return False
+def base_xv_dir(root, base):
+    """A directory holding the slice base's `bin` and `scripts`; the installed xv's own when the base has none."""
     if (root, base) not in _BASE_XV:
-        tmp = tempfile.TemporaryDirectory(prefix="xv-base-")  # removed when the process ends
-        try:
-            tar = subprocess.run(["git", "archive", base, "bin", "scripts"], cwd=root,
-                                 capture_output=True, check=True).stdout
-            subprocess.run(["tar", "-x", "-C", tmp.name], input=tar, check=True)
-        except (OSError, subprocess.CalledProcessError):
-            tmp = None
-        _BASE_XV[(root, base)] = tmp
-    tmp = _BASE_XV[(root, base)]
-    if not tmp:
-        return False
+        tmp = None
+        if base:
+            try:
+                tar = subprocess.run(["git", "archive", base, "bin", "scripts"], cwd=root,
+                                     capture_output=True, check=True).stdout
+                tmp = tempfile.TemporaryDirectory(prefix="xv-base-")  # removed when the process ends
+                with tarfile.open(fileobj=io.BytesIO(tar)) as t:
+                    t.extractall(tmp.name)
+            except (OSError, subprocess.CalledProcessError, tarfile.TarError):
+                tmp = None
+        _BASE_XV[(root, base)] = (tmp, tmp.name if tmp else os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return _BASE_XV[(root, base)][1]
+
+
+def xv_help_at_base(root, base, words):
+    """The `--help` text of `xv <words>` at the slice's base, or None when it is not a command there."""
+    home = base_xv_dir(root, base)
     try:
-        p = subprocess.run([sys.executable, os.path.join(tmp.name, "bin", "xv"), *words, "--help"], cwd=tmp.name,
+        p = subprocess.run([sys.executable, os.path.join(home, "bin", "xv"), *words, "--help"], cwd=home,
                            capture_output=True, timeout=30)
     except (OSError, subprocess.TimeoutExpired):
-        return False
-    return p.returncode == 0
+        return None
+    return p.stdout.decode("utf-8", "replace") if p.returncode == 0 else None
+
+
+def xv_flag_at_base(root, base, words, flag):
+    help_text = xv_help_at_base(root, base, words)
+    return bool(help_text and re.search(r"(?<![\w-])" + re.escape(flag) + r"(?![\w-])", help_text))
 
 
 def red_file_texts(root, red):
