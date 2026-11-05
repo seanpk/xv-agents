@@ -376,6 +376,7 @@ def rebase_stop(root, slice_id, state, config, fired=None, **checks):
     """Write the stop to the record and exit. Mid-rebase the record is left changed in the tree, not committed."""
     path, data, body = record.load(root, slice_id)
     data["stops"] = state["stops"]  # the record in the tree may be an older copy, replayed with the slice's commits
+    data["budget"] = state["budget"]
     if fired:
         v = {"slice": slice_id, "after": "rebase", "stop": fired, "fired": [fired], "next": None}
     else:
