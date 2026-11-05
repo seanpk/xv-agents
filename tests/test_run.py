@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import sys
 import unittest
 
@@ -1119,6 +1120,245 @@ class NamedByTheScenarioReachTheMakerTest(RepoCase):
     def test_a_malformed_name_licenses_nothing(self):
         self.assertEqual(self.maker_check(named=[dict(file=".xv/picture.md"), ".xv/picture.md"],
                                           changes=[".xv/picture.md"]), [".xv/picture.md"])
+
+
+class ScenarioChecksTest(WatchLoopSetup):
+    """The checks after the scenario step: what they accept, and what they no longer raise for no reason."""
+
+    first = {}
+
+    def scenario(self, **env):
+        from unittest import mock
+        with mock.patch.dict(os.environ, env):
+            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+
+    def covers_with(self, test, **env):
+        extra = json.dumps({"covers": [{"item": "milk today", "test": test}]})
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        return self.scenario(FAKE_REPORT_EXTRA=extra, **env)
+
+    def assert_goes_on(self, p):
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.record()["next"], "maker")
+
+    def assert_stops(self, p, *named):
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["seat"], "originator")
+        for n in named:
+            self.assertIn(n, stop["question"])
+        self.assertNotIn("maker", [s["step"] for s in self.record()["spend"]])
+
+    def amend(self, text):
+        path = os.path.join(self.tmp, "amendment.md")
+        with open(path, "w") as f:
+            f.write(text)
+        self.xv("slice", "amend", "s1", "--scenario-file", path, "--by", "pat", cwd=self.wt)
+
+    # 1. a covers name that starts with the red file's path, split by :: . # / or ' > '
+    def test_a_covers_name_with_the_path_class_and_test_split_by_dots_goes_on(self):
+        self.assert_goes_on(self.covers_with("tests/test_red.py::Red.test_milk_today"))
+
+    def test_a_covers_name_split_by_double_colons_after_the_path_goes_on(self):
+        self.assert_goes_on(self.covers_with("tests/test_red.py::Red::test_milk_today"))
+
+    def test_a_covers_name_split_by_a_hash_goes_on(self):
+        self.assert_goes_on(self.covers_with("Red#test_milk_today"))
+
+    def test_a_covers_name_split_by_a_hash_after_the_path_goes_on(self):
+        self.assert_goes_on(self.covers_with("tests/test_red.py#Red#test_milk_today"))
+
+    def test_a_covers_name_split_by_slashes_goes_on_when_each_part_is_in_the_file(self):
+        p = self.covers_with("TestPantry/expiring_soon",
+                             FAKE_RED_TEXT='func TestPantry(t *testing.T) { t.Run("expiring_soon", nil) }')
+        self.assert_goes_on(p)
+
+    def test_a_covers_name_split_by_arrows_goes_on_when_each_part_is_in_the_file(self):
+        self.assert_goes_on(self.covers_with("tests/test_red.py > Red > test_milk_today"))
+
+    def test_a_jest_name_with_spaces_in_a_part_goes_on_when_each_part_is_in_the_file(self):
+        p = self.covers_with("tests/test_red.py > Case > does the thing",
+                             FAKE_RED_TEXT="describe('Case', () => { it('does the thing', f) })")
+        self.assert_goes_on(p)
+
+    def test_a_covers_name_whose_later_part_is_not_in_the_file_stops(self):
+        self.assert_stops(self.covers_with("tests/test_red.py::Red::test_cheese_ghost"), "test_cheese_ghost")
+
+    def test_a_covers_name_whose_middle_part_is_not_in_the_file_stops(self):
+        self.assert_stops(self.covers_with("tests/test_red.py > Ghost > test_milk_today"), "Ghost")
+
+    def test_a_covers_name_whose_parts_are_out_of_order_in_the_file_stops(self):
+        self.assert_stops(self.covers_with("tests/test_red.py > test_milk_today > Red"), "test_milk_today > Red")
+
+    def test_a_covers_name_with_a_path_that_is_not_a_red_file_stops(self):
+        self.assert_stops(self.covers_with("tests/test_store.py::Red::test_milk_today"), "tests/test_store.py")
+
+    def test_a_covers_name_with_an_empty_part_between_separators_stops(self):
+        self.assert_stops(self.covers_with("tests/test_red.py::Red::"), "tests/test_red.py::Red::")
+
+    def test_a_covers_part_that_is_only_the_front_of_a_longer_name_stops(self):
+        self.assert_stops(self.covers_with("tests/test_red.py::Red::test_milk"), "test_milk")
+
+    # 4. the coverage from earlier passes stays after a send-back
+    def send_back_to_the_scenario(self):
+        """Pass one stops on a not_covered item; a person sends the slice back to the scenario agent."""
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario(FAKE_NOT_COVERED='[{"item": "the grocer share", "why": "no seam"}]', **self.first)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go again", "--next", "scenario",
+                "--settled", "Pat said to cover the grocer share.", cwd=self.wt)
+
+    def test_an_empty_covers_on_a_pass_after_a_send_back_does_not_stop(self):
+        self.send_back_to_the_scenario()
+        self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA='{"covers": []}'))
+
+    def test_a_point_covered_on_the_earlier_pass_stays_covered_after_a_send_back(self):
+        point = "1. A household sees milk running out soon."
+        self.amend(point)
+        self.first = {"FAKE_REPORT_EXTRA": json.dumps({"covers": [{"item": point, "test": "test_milk_today"}]})}
+        self.send_back_to_the_scenario()
+        self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA='{"covers": []}'))
+
+    def test_a_kept_name_whose_test_is_gone_stops_on_the_pass_after_a_send_back(self):
+        self.first = {"FAKE_RED_TEXT": "def test_cheese(self): pass",
+                      "FAKE_REPORT_EXTRA": json.dumps({"covers": [{"item": "cheese", "test": "test_cheese"}]})}
+        self.send_back_to_the_scenario()
+        self.assert_stops(self.scenario(FAKE_REPORT_EXTRA='{"covers": []}'), "test_cheese")
+
+    def test_an_empty_covers_on_the_first_pass_still_stops(self):
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.assert_stops(self.scenario(FAKE_REPORT_EXTRA='{"covers": []}'), "covers")
+
+    def test_an_empty_covers_after_a_send_back_still_stops_when_nothing_was_kept(self):
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario(FAKE_REPORT_EXTRA='{"covers": []}')
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "again", "--next", "scenario",
+                "--settled", "Pat wants a covers list.", cwd=self.wt)
+        self.assert_stops(self.scenario(FAKE_REPORT_EXTRA='{"covers": []}'), "covers")
+
+
+class ScenarioChecksAtTheBaseTest(RepoCase):
+    """The base holds the xv code, so the checks can tell an existing subcommand from a new one."""
+
+    def setUp(self):
+        super().setUp()
+        for d in ("bin", "scripts"):
+            shutil.copytree(os.path.join(HOME, d), os.path.join(self.repo, d),
+                            ignore=shutil.ignore_patterns("__pycache__"))
+        cfg = os.path.join(self.repo, ".xv", "config.yml")
+        text = open(cfg).read()
+        start, end = text.index("agents:"), text.index("seats:")
+        text = text[:start] + f'agents:\n  default: ["{sys.executable}", "{FAKE}", "{{prompt}}"]\n' + text[end:]
+        open(cfg, "w").write(text)
+        sh(["git", "add", "-A"], self.repo)
+        sh(["git", "commit", "-qm", "xv at the base"], self.repo)
+        self.wt = self.new_slice("s1", "Milk that runs out today shows as running out soon.")
+        self.xv("record", "set", "s1", "budget", '{"usd": 1}', "--by", "pat", cwd=self.wt)
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+
+    record = WatchLoopSetup.record
+    amend = ScenarioChecksTest.amend
+    scenario = ScenarioChecksTest.scenario
+    assert_goes_on = ScenarioChecksTest.assert_goes_on
+    assert_stops = ScenarioChecksTest.assert_stops
+
+    # 3. an existing subcommand with no new flag is not raised
+    def test_an_xv_subcommand_that_exists_at_the_base_is_not_raised_when_the_red_lacks_it(self):
+        self.amend("A person runs `xv slice amend`.")
+        self.assert_goes_on(self.scenario())
+
+    def test_a_top_level_xv_command_that_exists_at_the_base_is_not_raised(self):
+        self.amend("A person runs `xv decisions`.")
+        self.assert_goes_on(self.scenario())
+
+    def test_a_new_flag_on_an_existing_command_is_still_raised(self):
+        self.amend("A person runs `xv slice new --rename Old=New`.")
+        self.assert_stops(self.scenario(), "--rename")
+
+    def test_an_existing_command_does_not_hide_a_flag_beside_it(self):
+        self.amend("A person runs `xv slice amend --expect-moves imports`.")
+        p = self.scenario()
+        self.assert_stops(p, "--expect-moves")
+        self.assertNotIn("`xv slice amend`", json.loads(p.stdout)["stop"]["question"])
+
+    def test_a_command_that_does_not_exist_at_the_base_is_still_raised(self):
+        self.amend("A person runs `xv ghost <id>`.")
+        self.assert_stops(self.scenario(), "xv ghost")
+
+    def test_a_subcommand_that_does_not_exist_under_a_real_command_is_still_raised(self):
+        self.amend("A person runs `xv slice ghost`.")
+        self.assert_stops(self.scenario(), "xv slice ghost")
+
+    # 2. a red_gaps name a person accepted is not raised again
+    def accept_the_stop(self):
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "fine, no test for it", "--next", "maker",
+                cwd=self.wt)
+
+    def test_a_gap_a_person_accepted_is_not_raised_when_the_scenario_step_runs_again(self):
+        self.amend("A person runs `xv ghost <id>`.")
+        self.assert_stops(self.scenario(), "xv ghost")
+        self.accept_the_stop()
+        self.assert_goes_on(self.scenario())
+
+    def test_a_gap_that_is_a_flag_a_person_accepted_is_not_raised_again(self):
+        self.amend("The list takes `--since <date>`.")
+        self.assert_stops(self.scenario(), "--since")
+        self.accept_the_stop()
+        self.assert_goes_on(self.scenario())
+
+    def test_a_gap_a_person_did_not_accept_is_still_raised_beside_an_accepted_one(self):
+        self.amend("The list takes `--since <date>`.")
+        self.assert_stops(self.scenario(), "--since")
+        self.accept_the_stop()
+        self.amend("Also `--until <date>`.")
+        p = self.scenario()
+        self.assert_stops(p, "--until")
+        self.assertNotIn("--since", json.loads(p.stdout)["stop"]["question"])
+
+    def test_a_gap_is_raised_again_when_no_person_accepted_it(self):
+        self.amend("The list takes `--since <date>`.")
+        self.assert_stops(self.scenario(), "--since")
+        self.assert_stops(self.scenario(), "--since")
+
+
+class ScenarioPointsAfterAmendTest(WatchLoopSetup):
+    """5. After `xv slice amend` on a refactor slice, only the amendment's points need covers or not_covered."""
+
+    def open_kind(self, kind):
+        flags = ["--expect-moves", "imports"] if kind == "refactor" else []
+        out = self.xv("slice", "new", "s2", "--by", "pat", "--kind", kind,
+                      "--scenario", "1. Users see no change in the list.\n2. Users see no change in the tally.",
+                      *flags).stdout
+        self.wt = out.strip().splitlines()[-1]
+        self.xv("record", "set", "s2", "budget", '{"usd": 1}', "--by", "pat", cwd=self.wt)
+        self.xv("step", "forecaster", "s2", cwd=self.wt)
+        path = os.path.join(self.tmp, "amend.md")
+        with open(path, "w") as f:
+            f.write("3. The tally also shows milk.")
+        self.xv("slice", "amend", "s2", "--by", "pat", "--scenario-file", path, cwd=self.wt)
+
+    def run_scenario(self, covered):
+        from unittest import mock
+        extra = {"covers": [{"item": c, "test": "test_milk_today"} for c in covered], "not_covered": []}
+        with mock.patch.dict(os.environ, {"FAKE_REPORT_EXTRA": json.dumps(extra)}):
+            p = self.xv("step", "scenario", "s2", cwd=self.wt, check=False)
+        return p, json.loads(self.xv("record", "show", "s2", "--json", cwd=self.wt).stdout)
+
+    def test_a_refactor_slice_with_an_amendment_needs_only_the_amendments_point(self):
+        self.open_kind("refactor")
+        p, data = self.run_scenario(["3. The tally also shows milk."])
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(data["next"], "maker")
+
+    def test_a_refactor_slice_still_sends_back_an_amendment_point_that_is_not_covered(self):
+        self.open_kind("refactor")
+        p, data = self.run_scenario(["1", "2"])
+        self.assertEqual(data["next"], "scenario")
+        self.assertNotIn("maker", [s["step"] for s in data["spend"]])
+
+    def test_a_feature_slice_with_an_amendment_still_needs_the_scenarios_own_points(self):
+        self.open_kind("feature")
+        p, data = self.run_scenario(["3. The tally also shows milk."])
+        self.assertEqual(data["next"], "scenario")
 
 
 if __name__ == "__main__":
