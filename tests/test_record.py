@@ -2076,6 +2076,22 @@ class DirectedEditTest(RepoCase):
         self.assertEqual(sh(["git", "status", "--porcelain"], self.repo).stdout.strip(), "")
         self.assertEqual(self.show()["suite"], "red", "the suite ran in the slice's worktree, where the failing test is")
 
+    def test_an_offer_run_from_the_main_checkout_checks_the_file_in_the_slices_worktree(self):
+        self.write("tests/test_only_here.py", "import unittest\n\n\nclass OnlyHere(unittest.TestCase):\n"
+                                              "    def test_exists_on_the_slice_branch_only(self):\n        pass\n")
+        self.commit_all("a test that exists only on the slice branch")
+        self.assertFalse(os.path.exists(os.path.join(self.repo, "tests", "test_only_here.py")))
+        self.stop()
+        edit = ("--edit", "tests/test_only_here.py", "--old", "def test_exists_on_the_slice_branch_only(self):",
+                "--new", "def test_is_found_in_the_worktree(self):", "--kind", "test-rename")
+        p = self.xv("record", "offer", "s1", "--option", "Make the edit", "--settles", "The edit is made.", *edit,
+                    "--option", "Leave it", "--settles", "Nothing changes.", "--recommend", "1",
+                    cwd=self.repo, check=False)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(len(self.show()["stops"][-1]["options"]), 2)
+        self.answer("1")
+        self.assertIn("def test_is_found_in_the_worktree(self):", self.read("tests/test_only_here.py"))
+
     # ---- the suite run lives in its own module, so record does not import run
 
     def test_record_does_not_import_run_and_both_import_the_suite_module(self):
