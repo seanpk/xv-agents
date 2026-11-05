@@ -55,12 +55,12 @@ class RetroAcceptBriefShapeTest(RepoCase):
         promote.local_accept(self.repo, "2026-10-01: a named pattern", "standards", "pat")
         return self.read("standards.md")
 
-    def test_promote_local_prefers_the_entry_miss_over_said(self):
+    def test_promote_local_keeps_both_miss_and_said(self):
         text = self.promote_entry("- from: s\n- miss: what went wrong\n- said: \"the words\"\n- rule: do the thing\n")
         self.assertIn("- miss: what went wrong\n", text)
         self.assertIn("- said: \"the words\"\n", text)
 
-    def test_promote_local_falls_back_to_said_when_the_entry_has_no_miss(self):
+    def test_promote_local_copies_said_and_does_not_fill_miss_from_it(self):
         text = self.promote_entry("- from: s\n- said: \"the words\"\n- rule: do the thing\n")
         self.assertIn("- said: \"the words\"\n", text)
         self.assertNotIn("- miss:", text.split("### do the thing")[1])
