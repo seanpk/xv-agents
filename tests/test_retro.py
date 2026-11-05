@@ -231,7 +231,7 @@ class ReworkSignalTest(RepoCase):
         p = self.xv("run", "s1", cwd=wt, check=False)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         data = self.close_s1(wt)
-        self.assertEqual(data["modules_touched"], ["pantry"])
+        self.assertEqual(data["modules_touched"], ["pantry/store"])
         self.assertEqual(data["maker_sendbacks"], 0)
 
     def test_a_slice_sent_back_to_the_maker_once_closes_with_one_sendback(self):
@@ -245,7 +245,7 @@ class ReworkSignalTest(RepoCase):
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         data = self.close_s1(wt)
         self.assertEqual(data["maker_sendbacks"], 1)
-        self.assertEqual(data["modules_touched"], ["pantry"])
+        self.assertEqual(data["modules_touched"], ["pantry/store"])
 
     # 4. the refactor candidate
     def test_the_retro_brief_names_the_reworked_module_and_asks_for_a_refactor_candidate(self):
