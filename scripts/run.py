@@ -810,6 +810,9 @@ def post_step(agent, root, data, config, head_before, pre, report):
             checks["old_red_unchecked"] = ("The check for changes to old test files that existed at the base could not run: "
                                            "the record has no base, or the wall module did not load.")
         checks["red_gaps"] = scenario_red_gaps(root, data, red)
+        report = with_kept_covers(report, (data.get("checks", {}).get("scenario") or {}).get("covers_kept"))
+        checks["covers_kept"] = [c for c in report.get("covers") or []
+                                 if isinstance(c, dict) and c.get("item") and covers_names(c.get("test"))]
         checks["unreadable"] = unreadable_input(root, data, report)
         checks["not_covered"] = [n for n in (report.get("not_covered") or []) if isinstance(n, dict)]
         checks["missed_points"] = missed_points(root, data, report)
@@ -868,6 +871,15 @@ def norm(text):
     return " ".join(str(text).lower().split())
 
 
+def with_kept_covers(report, kept):
+    """The coverage from the earlier passes stays: add each kept item the report does not name again."""
+    covers = report.get("covers")
+    if not kept or not isinstance(covers, list):
+        return report
+    named = {norm(c.get("item")) for c in covers if isinstance(c, dict) and c.get("item")}
+    return dict(report, covers=covers + [c for c in kept if norm(c["item"]) not in named])
+
+
 def missed_points(root, data, report):
     """Numbered lines of the scenario and its amendments that no `covers` or `not_covered` item names."""
     body = record.load(root, data["id"])[2]
@@ -883,6 +895,8 @@ def missed_points(root, data, report):
     amended = region.find("### Amended")
     for m in POINT.finditer(region):
         num, text = m.groups()
+        if data.get("kind") == "refactor" and not 0 <= amended <= m.start():
+            continue  # a refactor slice's own points have no red; only an amendment's points need one
         t = norm(text)
         by_number = num in numbers and not 0 <= amended <= m.start()
         if not by_number and not any(t in i or (len(i) >= 4 and i in t) or t[:40] in i for i in items):
@@ -917,24 +931,34 @@ def covers_names(test):
     return names if names and all(names) else []
 
 
+COVERS_SEPARATOR = re.compile(r"::|\s>\s|[.#/]")
+
+
 def covers_name_found(name, files):
-    """A whole test name in a red file; `file::test` and `Class.test` match only when both parts do."""
-    klass, test = None, name
-    if "::" in name:
-        where, _, test = name.rpartition("::")
-        files = {f: t for f, t in files.items() if f == where or f.endswith("/" + where)}
-    elif "." in name:
-        module, _, test = name.rpartition(".")
-        module, _, klass = module.rpartition(".")
-        if module:
-            files = {f: t for f, t in files.items()
-                     if ("." + f.removesuffix(".py").replace("/", ".")).endswith("." + module)}
-    if not test.strip():
+    """A name that may start with a red file's path or module and is split by `::`, `.`, `#`, `/` or ` > `;
+    each part after the path must be a whole name in that file, in order."""
+    rest, best = name, None
+    for f in files:
+        slashed, dotted = f.split("/"), os.path.splitext(f)[0].split("/")
+        dotted = ".".join(dotted).split(".")
+        forms = ["/".join(slashed[i:]) for i in range(len(slashed))] + [".".join(dotted[i:]) for i in range(len(dotted))]
+        for form in forms:
+            m = re.match(re.escape(form) + r"(?:::|\s>\s|[.#/]|$)", name)
+            if m and (best is None or len(form) > best[1]):
+                best = (f, len(form), m.end())
+    if best:
+        files, rest = {best[0]: files[best[0]]}, name[best[2]:]
+    parts = [p.strip() for p in COVERS_SEPARATOR.split(rest)]
+    if not all(parts):
         return False
     for t in files.values():
-        if not names_test(t, test):
-            continue
-        if klass is None or re.search(r"(?m)^\s*class\s+" + re.escape(klass) + r"(?!\w)", t):
+        pos = 0
+        for part in parts:
+            m = re.compile(r"(?<!\w)" + re.escape(part) + r"(?!\w)").search(t, pos)
+            if not m:
+                break
+            pos = m.end()
+        else:
             return True
     return False
 
@@ -947,7 +971,38 @@ def scenario_red_gaps(root, data, red):
     end = body.find("\n## May ignore")
     if at < 0:
         return []
-    return wall.red_gaps(body[at:end if end > at else len(body)], list(red_file_texts(root, red).values()))
+    gaps = wall.red_gaps(body[at:end if end > at else len(body)], list(red_file_texts(root, red).values()),
+                         exists=lambda words: xv_command_at_base(root, data.get("base"), words))
+    accepted = " ".join(s.get("question") or "" for s in data.get("stops") or []
+                        if s.get("order") == "red_misses_scenario" and s.get("answer") and not s.get("sent_back"))
+    return [g for g in gaps if f"`{g}`" not in accepted]
+
+
+_BASE_XV = {}
+
+
+def xv_command_at_base(root, base, words):
+    """Is `xv <words>` a command at the slice's base? Run the base's own `xv` with --help."""
+    if not base:
+        return False
+    if (root, base) not in _BASE_XV:
+        tmp = tempfile.TemporaryDirectory(prefix="xv-base-")  # removed when the process ends
+        try:
+            tar = subprocess.run(["git", "archive", base, "bin", "scripts"], cwd=root,
+                                 capture_output=True, check=True).stdout
+            subprocess.run(["tar", "-x", "-C", tmp.name], input=tar, check=True)
+        except (OSError, subprocess.CalledProcessError):
+            tmp = None
+        _BASE_XV[(root, base)] = tmp
+    tmp = _BASE_XV[(root, base)]
+    if not tmp:
+        return False
+    try:
+        p = subprocess.run([sys.executable, os.path.join(tmp.name, "bin", "xv"), *words, "--help"], cwd=tmp.name,
+                           capture_output=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return p.returncode == 0
 
 
 def red_file_texts(root, red):
