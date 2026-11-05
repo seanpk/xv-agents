@@ -137,7 +137,7 @@ class RunnerTest(RunnerCase):
         self.failing = {"test_b": ["five"]}
         p, _ = self.run_runner("--shard", "1/1", "--jobs", "2")
         self.assertRegex(p.stdout + p.stderr,
-                         r"(?m)^FAIL: test_five \(test_b\.TestBCase\.test_five\)")
+                         r"(?m)^FAIL: test_five \(test_b\.TestBCase(\.test_five)?\)")
 
     def test_a_passing_run_names_no_failure(self):
         p, _ = self.run_runner("--shard", "1/1", "--jobs", "2")
