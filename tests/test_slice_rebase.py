@@ -738,6 +738,41 @@ class SliceRebaseTest(RepoCase):
         self.assertEqual(after["status"], before["status"])
         self.assertEqual(len(after["spend"]), len(before["spend"]) + 1)
 
+    # -- 21: during a rebase the record that counts is the one saved before it began
+
+    def test_a_later_larger_budget_is_the_one_continue_checks_after_a_stop_in_an_early_commit(self):
+        # the commit that conflicts holds budget $1 and $2 spent; the last commit holds budget $10
+        self.spend_the_budget()
+        self.conflict_in_a_test_file_commit()
+        self.set_field("budget", {"usd": 10})
+        self.assert_a_stop_for_the_originator(self.rebase())
+        self.assertFalse(self.agent_ran())
+        self.resolve_by_hand()
+        p = self.rebase("--continue")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertTrue(self.agent_ran())
+        data = self.record()
+        self.assertEqual(data["budget"]["usd"], 10)
+        self.assertEqual(self.stops_of("budget_spent"), [], data["stops"])
+
+    def test_a_later_smaller_budget_is_the_one_continue_checks_after_a_stop_in_an_early_commit(self):
+        # the commit that conflicts holds budget $10 and $2 spent; the last commit holds budget $1
+        self.set_field("budget", {"usd": 10})
+        self.spend_the_budget()
+        self.conflict_in_a_test_file_commit()
+        self.set_field("budget", {"usd": 1})
+        self.assert_a_stop_for_the_originator(self.rebase())
+        self.resolve_by_hand()
+        p = self.rebase("--continue")
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertEqual(stop["order"], "budget_spent")
+        self.assertFalse(self.agent_ran())
+        self.assertEqual(self.record()["budget"]["usd"], 1)
+
+    def conflict_in_a_test_file_commit(self):
+        self.on_slice("tests/test_shared.py", "A = 1\n", "slice adds a test")
+        self.new = self.on_main("tests/test_shared.py", "B = 2\n", "main adds a test")
+
 
 # What a person should watch on the first green run: that a slice with a real change of its own
 # is replayed on a moved base, that the record's base and named commits point at the replayed
