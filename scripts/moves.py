@@ -62,8 +62,8 @@ def find(root, data, config):
     if "imports" in kinds:
         kept = {m["file"] for m in held if m["expected"] == "imports" and exists(m["file"])}
         for rel in sorted(set(d["changed"]) | kept):
-            text = read(root, rel)
-            if text != before(rel) and code_lines(rel, before(rel)) == code_lines(rel, text):
+            text, old = read(root, rel), before(rel)
+            if text != old and code_lines(rel, old) == code_lines(rel, text):
                 out.append({"file": rel, "expected": "imports",
                             "assertion": "was: no code changed; now: import lines and whitespace only",
                             "why": "an import-only change, which the slice expects (--expect-moves imports)"})
