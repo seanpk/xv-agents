@@ -82,7 +82,7 @@ def baseline(root, slice_id, config=None, keep=None, skip=()):
     for f, h in ((keep or {}).get("files") or {}).items():
         files[f], counts[f] = h, ((keep.get("assertions") or {}).get(f))
     head = git(["rev-parse", "HEAD"], root).strip()
-    digest = __import__("hashlib").sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()
+    digest = hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()
     path = wall_file(root, slice_id)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
