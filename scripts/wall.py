@@ -58,14 +58,17 @@ def wall_file(root, slice_id):
     return os.path.join(root, XV_DIR, "slices", f"{slice_id}.wall.json")
 
 
-def baseline(root, slice_id, config=None, keep=None):
+def baseline(root, slice_id, config=None, keep=None, skip=()):
     """Hash the test files again. `keep` ({"files", "assertions"} from an earlier baseline) holds the
-    hashes of files the slice itself changed, so a rebase keeps what it moved."""
+    hashes of files the slice itself changed, so a rebase keeps what it moved, and what it deleted.
+    `skip` names files the slice added after the earlier baseline, so they still show as added."""
     config = config or load_config(root)
     files, counts = snapshot(root, config)
+    for f in skip:
+        files.pop(f, None)
+        counts.pop(f, None)
     for f, h in ((keep or {}).get("files") or {}).items():
-        if f in files:
-            files[f], counts[f] = h, ((keep.get("assertions") or {}).get(f))
+        files[f], counts[f] = h, ((keep.get("assertions") or {}).get(f))
     head = git(["rev-parse", "HEAD"], root).strip()
     digest = __import__("hashlib").sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()
     path = wall_file(root, slice_id)
