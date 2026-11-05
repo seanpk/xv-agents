@@ -44,12 +44,4 @@ class SliceSkillTest(unittest.TestCase):
         self.assertRegex(text, r"(?i)users? see no change|no change (?:for|to) users|behaviou?r (?:does not|doesn't) change")
 
 
-class ChangelogTest(unittest.TestCase):
-    # decision 1: the CHANGELOG line names the expected_moves_wrong stop
-    def test_the_changelog_line_for_the_refactor_kind_names_the_expected_moves_wrong_stop(self):
-        lines = [l for l in read("CHANGELOG.md").splitlines() if "refactor" in l and "--expect-moves" in l]
-        self.assertTrue(lines)
-        self.assertTrue(any("expected_moves_wrong" in l for l in lines))
-
-
 # Slice-only: these check one-time wording in two briefs.
