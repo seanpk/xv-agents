@@ -733,7 +733,10 @@ def step(agent, slice_id, review_again=False):
         return refactor_scenario(path, root, config, data, body, slice_id)
 
     if (config.get("agents") or {}).get(agent) == "session":
-        raise XVError(f"{agent} runs in the session: use `xv prompt {agent} {slice_id}`, then "
+        where = ""
+        if agent == "scenario" and has_build(data):
+            where = f" (write the red in {scenario_scratch(root, data, config)}, a checkout at the base with no build)"
+        raise XVError(f"{agent} runs in the session{where}: use `xv prompt {agent} {slice_id}`, then "
                       f"`xv record report {slice_id} {agent} -` and `xv orders {slice_id} --after {agent}`")
 
     head_before = git(["rev-parse", "HEAD"], root).strip()
@@ -827,11 +830,20 @@ def scenario_scratch(root, data, config):
         drop_scratch(root, scratch)
         raise XVError(f"the worktree setup `{failed[0]}` failed ({failed[1]}) in the scenario agent's checkout; "
                       f"its last output:\n{failed[2]}")
-    copy = dict(data, build="none") if data.get("build_shared") != "yes" else data
+    earlier = subprocess.run(["git", "diff", "--binary", build_commit(root, data), "HEAD", "--", ".", f":(exclude){XV_DIR}"],
+                             cwd=root, capture_output=True, text=True).stdout
+    if earlier:  # the red from the earlier passes, already on the slice branch
+        subprocess.run(["git", "apply", "--index", "-"], cwd=scratch, input=earlier, text=True, check=True)
+        git(["commit", "-q", "--no-verify", "-m", f"xv({data['id']}): earlier red"], scratch)
+    copy = dict(data, build="none", branch=data["base"]) if data.get("build_shared") != "yes" else data
     path = os.path.join(scratch, XV_DIR, "slices", f"{data['id']}.md")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     record.save(path, copy, record.load(root, data["id"])[2])
     return scratch
+
+
+def build_commit(root, data):
+    return git(["rev-parse", data["build"]["ref"] + "^{commit}"], root).strip()
 
 
 def land_scratch(root, scratch, data, config, report):
@@ -982,7 +994,7 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         checks["diff_history"] = (before.get("diff_history") or []) + [checks["diff_lines"]]
         import wall
         record.expected_moves(root, data, config)
-        checks["wall"] = wall.check_or_note(root, data["id"], config)
+        checks["wall"] = wall_for_build(root, data, wall.check_or_note(root, data["id"], config))
     if agent == "cleaner":
         sp = os.path.join(root, XV_DIR, "standards.md")
         now_text = open(sp).read() if os.path.exists(sp) else None
@@ -1266,6 +1278,18 @@ def wall_baseline(root, data, config):
     except ImportError:
         return None
     return wall.baseline(root, data["id"], config)
+
+
+def wall_for_build(root, data, res):
+    if has_build(data) and res.get("unrecorded"):
+        # the build's own change to a test file stops once: a person has answered, and the file is still as the build left it
+        asked = " ".join(s.get("question") or "" for s in data["stops"]
+                         if s.get("order") == "unrecorded_move" and s.get("answer") is not None)
+        build = build_commit(root, data)
+        res["unrecorded"] = [f for f in res["unrecorded"] if f not in asked or
+                             subprocess.run(["git", "diff", "--quiet", build, "--", f], cwd=root).returncode != 0]
+        res["ok"] = not res["unrecorded"]
+    return res
 
 
 def boundary(root, data):
