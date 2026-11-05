@@ -175,7 +175,8 @@ def run(root, ids=None):
                                     for i in ids),
              f"Fire and override counts: `{cpath}`.",
              *[f"Module `{m}` was reworked on {', '.join(ids)}: propose a candidate with `kind: refactor` for it."
-               for m, ids in reworked([d for d, _ in recs.values()], root).items()],
+               for m, ids in reworked([d for d, _ in recs.values() if (d.get("created") or "") >= last_retro(root)],
+                                      root).items()],
              f"Write the retro packet to `{out}`."]
     text = promptlib.brief("retro") + "\n" + promptlib.pointers("retro", root, config, None, extra)
     result = agentcli.run(agentcli.argv_for(config, "retro"), text, root, None,
