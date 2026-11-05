@@ -154,6 +154,32 @@ class RefactorKindCase(RepoCase):
             p = self.xv("run", "s1", cwd=self.wt, check=False)
         self.assertEqual(self.stop_order(p), "accept_moves", p.stdout)
 
+    # 11. the packet's expected_moves count
+    def packet_problems(self, expected, flags=("--expect-moves", "imports")):
+        self.open_slice(*flags)
+        env = {"FAKE_MAKER_IMPORT_MOVE": "1", "FAKE_PACKET_EXPECTED_MOVES": expected}
+        with mock.patch.dict(os.environ, env):
+            self.xv("run", "s1", cwd=self.wt, check=False)
+        return self.record()["checks"]["guardian"].get("packet_problems") or []
+
+    def test_a_packet_whose_expected_moves_match_the_record_has_no_problem(self):
+        self.assertEqual(self.packet_problems("1"), [])
+
+    def test_a_packet_with_expected_moves_zero_is_fine_when_the_record_holds_none(self):
+        self.assertEqual(self.packet_problems("0", flags=()), [])
+
+    def test_a_packet_without_expected_moves_is_a_problem(self):
+        self.assertTrue(any("expected_moves" in p for p in self.packet_problems("omit")))
+
+    def test_a_packet_whose_expected_moves_is_not_a_whole_number_is_a_problem(self):
+        self.assertTrue(any("expected_moves" in p for p in self.packet_problems("many")))
+
+    def test_a_packet_whose_expected_moves_differs_from_the_record_is_a_problem(self):
+        self.assertTrue(any("expected_moves" in p for p in self.packet_problems("2")))
+
+    def test_a_packet_claiming_zero_when_the_record_holds_one_is_a_problem(self):
+        self.assertTrue(any("expected_moves" in p for p in self.packet_problems("0")))
+
 
 # What a person should watch on the first green run: open a refactor slice with
 # `--expect-moves imports`, let the maker add an import to an old test, and see the
