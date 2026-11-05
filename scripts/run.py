@@ -410,7 +410,9 @@ def rebase_maker(root, slice_id, config, state, files):
         note.append(f"Conflicted files to resolve: {', '.join(files)}.")
     with open(os.path.join(promptlib.SKILLS, "maker", "rebase.md"), encoding="utf-8") as f:
         part = f.read()
-    text = promptlib.build("maker", slice_id, root=root, extra=note, part=part)
+    rel = os.path.relpath(record.load(root, slice_id)[0], root)
+    saved = git(["show", f"{state['orig_head']}:{rel}"], root)  # the record as saved, not the one git replays
+    text = promptlib.build("maker", slice_id, root=root, extra=note, part=part, saved=saved)
     spent = spendlib.slice_spend(data)
     argv = agentcli.with_caps(agentcli.argv_for(config, "maker"), data.get("budget"), spent["usd"], spent["turns"])
     n = len(data.get("spend") or []) + len(state["runs"]) + 1
@@ -556,15 +558,20 @@ def cmd_slice_rebase(a):
     if a.abort:
         state = rebase_state(root, a.id)
         state["stops"] = tree_stops(root, a.id, state["stops"])
+        try:
+            budget = record.load(root, a.id)[1].get("budget")  # a person may have set it during the stop
+        except Exception:
+            budget = None
         if rebase_running(root):
             git(["rebase", "--abort"], root)
         else:
             git(["reset", "--hard", state["orig_head"]], root)
         os.remove(rebase_state_path(root, a.id))
         stops = without_open_rebase_stops(state["stops"])
-        if state["runs"] or stops != state["first_stops"]:
+        path, data, body = record.load(root, a.id)
+        if budget and budget != data.get("budget") or state["runs"] or stops != state["first_stops"]:
             # the maker's runs cost what they cost, and the answers stay; the stops the rebase raised and nobody answered go
-            path, data, body = record.load(root, a.id)
+            data["budget"] = budget or data.get("budget")
             data["spend"] += [r["spend"] for r in state["runs"]]
             data["stops"] = stops
             record.save(path, data, body)
@@ -580,7 +587,7 @@ def cmd_slice_rebase(a):
             pass
         rebase_state(root, a.id, state)
         if rebase_running(root):  # git will not replay over the record the stop changed
-            git(["checkout", "HEAD", "--", os.path.relpath(record.load(root, a.id)[0], root)], root)
+            git(["checkout", "--", os.path.relpath(record.load(root, a.id)[0], root)], root)
         return rebase_drive(root, a.id, state, config)
     if os.path.exists(rebase_state_path(root, a.id)):
         raise XVError(f"a rebase of {a.id} is in progress: finish it with `xv slice rebase {a.id} --continue` "

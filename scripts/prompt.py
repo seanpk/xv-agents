@@ -197,14 +197,14 @@ def refactor_section(agent, data):
     return "\n".join(lines) + "\n"
 
 
-def build(agent, slice_id=None, root=None, close=False, init=False, extra=None, part=None):
+def build(agent, slice_id=None, root=None, close=False, init=False, extra=None, part=None, saved=None):
     root = root or repo_root()
     config = load_config(root)
     data = body = None
     if slice_id:
         path = record_path(root, slice_id)
         root = slice_root(path)
-        data, body = read_doc(path)
+        data, body = split_front_matter(saved) if saved else read_doc(path)
     extra = list(extra or [])
     if close:
         extra.insert(0, "Mode: close. The slice is done; write the one line on the gap.")
