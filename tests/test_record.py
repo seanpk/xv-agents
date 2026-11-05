@@ -1468,3 +1468,334 @@ class OneHomeRecordTest(RepoCase):
                     cwd=wt, check=False)
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--settled", p.stderr)
+
+
+class DirectedEditTest(RepoCase):
+    """A stop option can carry a directed edit (#132): `xv record offer <id> --option T --settles S --edit <file>
+    --old <text> --new <text> --kind changelog|test-rename|test-remove|doc`, the edit flags belonging to the --option
+    before them. `xv record answer --pick <n>` on that option makes exactly that edit, in its own commit that names
+    the person who directed it, then runs the suite and the standing orders (`xv orders`) and prints the verdict as
+    `xv step` does."""
+
+    STORE = "tests/test_store.py"
+    REC = ".xv/slices/s1.md"
+    RENAME = ("--edit", "tests/test_store.py", "--old", "def test_add_and_list(self):",
+              "--new", "def test_adding_then_listing(self):", "--kind", "test-rename")
+    REMOVED = ('    def test_use_refuses_more_than_there_is(self):\n'
+               '        self.store.add("eggs", 1, date(2026, 10, 30))\n'
+               '        with self.assertRaises(ValueError):\n'
+               '            self.store.use("eggs", 2)\n'
+               '\n')
+    CHANGELOG_OLD = "- A line the person wants worded better."
+    CHANGELOG_NEW = "- A line the person worded."
+    CHANGELOG = ("--edit", "CHANGELOG.md", "--old", CHANGELOG_OLD, "--new", CHANGELOG_NEW, "--kind", "changelog")
+
+    def setUp(self):
+        super().setUp()
+        self.wt = self.new_slice("s1")
+        self.write("CHANGELOG.md", "# Changelog\n\n## Unreleased\n\n" + self.CHANGELOG_OLD + "\n")
+        self.commit_all("a changelog")
+
+    def write(self, rel, text):
+        with open(os.path.join(self.wt, rel), "w") as f:
+            f.write(text)
+
+    def read(self, rel):
+        with open(os.path.join(self.wt, rel)) as f:
+            return f.read()
+
+    def commit_all(self, message):
+        sh(["git", "add", "-A"], self.wt)
+        sh(["git", "commit", "-qm", message], self.wt)
+
+    def stop(self, order="scenario_stopped", step=None):
+        self.xv("record", "stop", "s1", "--order", order, "--seat", "originator", "--question", "Which edit?",
+                *(("--step", step) if step else ()), cwd=self.wt)
+
+    def show(self):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+
+    def offer(self, *edit, check=True):
+        return self.xv("record", "offer", "s1", "--option", "Make the edit", "--settles", "The edit is made.", *edit,
+                       "--option", "Leave it", "--settles", "Nothing changes.", "--recommend", "1",
+                       cwd=self.wt, check=check)
+
+    def answer(self, pick="1"):
+        return self.xv("record", "answer", "s1", "--by", "pat", "--answer", "make it", "--pick", pick,
+                       cwd=self.wt, check=False)
+
+    def directed(self):
+        return sh(["git", "log", "--grep", "directed by pat", "--format=%H"], self.wt).stdout.split()
+
+    def files_in(self, sha):
+        return sorted(sh(["git", "show", "--name-only", "--format=", sha], self.wt).stdout.split())
+
+    def head(self):
+        return sh(["git", "rev-parse", "HEAD"], self.wt).stdout.strip()
+
+    def refused(self, *edit):
+        p = self.offer(*edit, check=False)
+        self.assertNotIn("unrecognized arguments", p.stderr, "the offer knows the edit flags and refuses the edit")
+        self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
+        self.assertFalse(self.show()["stops"][-1].get("options"), "a refused offer is not put on the stop")
+        return p
+
+    # ---- the offer: what it accepts and refuses
+
+    def test_an_offer_with_an_edit_makes_no_edit_and_no_commit_until_a_person_picks_it(self):
+        self.stop()
+        before, head = self.read(self.STORE), self.head()
+        self.offer(*self.RENAME)
+        self.assertEqual(len(self.show()["stops"][-1]["options"]), 2)
+        self.assertEqual(self.read(self.STORE), before)
+        self.assertEqual(self.head(), head)
+
+    def test_an_old_text_not_in_the_file_is_refused(self):
+        self.stop()
+        self.refused("--edit", self.STORE, "--old", "def test_no_such_test(self):",
+                     "--new", "def test_still_no_such_test(self):", "--kind", "test-rename")
+
+    def test_an_old_text_found_more_than_once_is_refused(self):
+        self.stop()
+        self.assertGreater(self.read("README.md").count("household"), 1)
+        self.refused("--edit", "README.md", "--old", "household", "--new", "home", "--kind", "doc")
+
+    def test_an_empty_old_text_is_refused(self):
+        self.stop()
+        self.refused("--edit", "README.md", "--old", "", "--new", "More.", "--kind", "doc")
+
+    def test_an_edit_to_a_file_that_does_not_exist_is_refused(self):
+        self.stop()
+        self.refused("--edit", "docs/nowhere.md", "--old", "a", "--new", "b", "--kind", "doc")
+
+    def test_a_kind_that_does_not_fit_the_file_is_refused(self):
+        self.stop()
+        cases = [
+            ("changelog", "README.md", "It is small on purpose.", "It is tiny on purpose."),
+            ("doc", "CHANGELOG.md", self.CHANGELOG_OLD, self.CHANGELOG_NEW),
+            ("doc", "pantry/store.py", "class Store:", "class Pantry:"),
+            ("test-rename", "README.md", "It is small on purpose.", "It is tiny on purpose."),
+            ("test-rename", "pantry/store.py", "def items(self):", "def listed(self):"),
+            ("test-remove", "pantry/store.py", "def items(self):", ""),
+        ]
+        for kind, file, old, new in cases:
+            with self.subTest(kind=kind, file=file):
+                self.refused("--edit", file, "--old", old, "--new", new, "--kind", kind)
+
+    def test_a_kind_not_on_the_list_is_refused(self):
+        self.stop()
+        for kind in ("source", "Changelog", ""):
+            with self.subTest(kind=kind):
+                self.refused("--edit", "CHANGELOG.md", "--old", self.CHANGELOG_OLD,
+                             "--new", self.CHANGELOG_NEW, "--kind", kind)
+
+    def test_an_edit_missing_its_file_old_new_or_kind_is_refused(self):
+        self.stop()
+        pairs = list(zip(self.CHANGELOG[::2], self.CHANGELOG[1::2]))
+        for missing in ("--edit", "--old", "--new", "--kind"):
+            with self.subTest(missing=missing):
+                self.refused(*[x for flag, value in pairs if flag != missing for x in (flag, value)])
+
+    def test_an_edit_with_no_option_before_it_is_refused(self):
+        self.stop()
+        p = self.xv("record", "offer", "s1", *self.CHANGELOG, "--option", "A", "--settles", "a",
+                    cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--option", p.stderr)
+        self.assertFalse(self.show()["stops"][-1].get("options"))
+
+    def test_a_rename_that_changes_more_than_the_tests_name_is_refused(self):
+        self.stop()
+        cases = [
+            ('def test_add_and_list(self):\n        self.store.add("rice", 2',
+             'def test_adding_then_listing(self):\n        self.store.add("rice", 3'),
+            ("self.assertEqual(self.store.items()[0].qty, 4)", "self.assertEqual(self.store.items()[0].qty, 5)"),
+        ]
+        for old, new in cases:
+            with self.subTest(old=old):
+                self.assertEqual(self.read(self.STORE).count(old), 1)
+                self.refused("--edit", self.STORE, "--old", old, "--new", new, "--kind", "test-rename")
+
+    def test_a_removal_whose_new_text_is_not_empty_is_refused(self):
+        self.stop()
+        self.assertEqual(self.read(self.STORE).count(self.REMOVED), 1)
+        self.refused("--edit", self.STORE, "--old", self.REMOVED, "--new", "    pass\n", "--kind", "test-remove")
+
+    # ---- the pick: the edit, its commit, the move, the record
+
+    def test_a_pick_makes_exactly_the_edit_in_its_own_commit_directed_by_the_person(self):
+        self.stop()
+        before = self.read("CHANGELOG.md")
+        self.offer(*self.CHANGELOG)
+        self.answer("1")
+        self.assertEqual(self.read("CHANGELOG.md"), before.replace(self.CHANGELOG_OLD, self.CHANGELOG_NEW))
+        shas = self.directed()
+        self.assertEqual(len(shas), 1, "one commit, and its message says the person directed it")
+        self.assertEqual(self.files_in(shas[0]), sorted(["CHANGELOG.md", self.REC]))
+        self.assertEqual(sh(["git", "show", f"{shas[0]}:CHANGELOG.md"], self.wt).stdout,
+                         before.replace(self.CHANGELOG_OLD, self.CHANGELOG_NEW))
+        self.assertEqual(self.show()["moved_tests"], [], "a CHANGELOG line is not a test move")
+
+    def test_the_commit_holds_only_the_edited_file_and_the_record(self):
+        self.stop()
+        self.offer(*self.CHANGELOG)
+        self.write("notes.txt", "scratch\n")
+        self.write("README.md", self.read("README.md") + "\nAn edit in progress.\n")
+        self.answer("1")
+        shas = self.directed()
+        self.assertEqual(len(shas), 1)
+        self.assertEqual(self.files_in(shas[0]), sorted(["CHANGELOG.md", self.REC]))
+        status = sh(["git", "status", "--porcelain"], self.wt).stdout
+        self.assertIn(" M README.md", status)
+        self.assertIn("?? notes.txt", status)
+
+    def test_a_doc_line_is_edited_and_committed(self):
+        self.stop()
+        before = self.read("README.md")
+        self.offer("--edit", "README.md", "--old", "It is small on purpose.",
+                   "--new", "It is small on purpose, and stays small.", "--kind", "doc")
+        self.answer("1")
+        self.assertEqual(self.read("README.md"),
+                         before.replace("It is small on purpose.", "It is small on purpose, and stays small."))
+        shas = self.directed()
+        self.assertEqual(len(shas), 1)
+        self.assertEqual(self.files_in(shas[0]), sorted(["README.md", self.REC]))
+
+    def test_a_test_rename_is_recorded_as_a_move_in_the_persons_name(self):
+        self.stop()
+        before = self.read(self.STORE)
+        self.offer(*self.RENAME)
+        self.answer("1")
+        self.assertEqual(self.read(self.STORE), before.replace("def test_add_and_list(self):",
+                                                                "def test_adding_then_listing(self):"))
+        moves = self.show()["moved_tests"]
+        self.assertEqual([(m["file"], m["by"]) for m in moves], [(self.STORE, "pat")])
+        self.assertEqual(len(self.directed()), 1)
+
+    def test_a_test_removal_is_recorded_as_a_move_in_the_persons_name(self):
+        self.stop()
+        before = self.read(self.STORE)
+        self.offer("--edit", self.STORE, "--old", self.REMOVED, "--new", "", "--kind", "test-remove")
+        self.answer("1")
+        self.assertEqual(self.read(self.STORE), before.replace(self.REMOVED, ""))
+        self.assertNotIn("test_use_refuses_more_than_there_is", self.read(self.STORE))
+        moves = self.show()["moved_tests"]
+        self.assertEqual([(m["file"], m["by"]) for m in moves], [(self.STORE, "pat")])
+        shas = self.directed()
+        self.assertEqual(len(shas), 1)
+        self.assertEqual(self.files_in(shas[0]), sorted([self.STORE, self.REC]))
+
+    def test_a_rename_renames_the_test_in_slice_only_and_wall_recommendations_in_the_same_commit(self):
+        for field in ("slice_only", "wall_recommendations"):
+            for test in ("test_add_and_list", "test_used_up_item_stays_listed"):
+                self.xv("record", "add", "s1", field,
+                        json.dumps({"file": self.STORE, "test": test, "why": "a reason"}), cwd=self.wt)
+        self.stop()
+        self.offer(*self.RENAME)
+        self.answer("1")
+        want = ["test_adding_then_listing", "test_used_up_item_stays_listed"]
+        data = self.show()
+        self.assertEqual([m["test"] for m in data["slice_only"]], want)
+        self.assertEqual([r["test"] for r in data["wall_recommendations"]], want)
+        shas = self.directed()
+        self.assertEqual(len(shas), 1)
+        committed = sh(["git", "show", f"{shas[0]}:{self.REC}"], self.wt).stdout
+        front = committed.split("\n---\n")[0].splitlines()
+        for field in ("slice_only", "wall_recommendations"):
+            line = next(x for x in front if x.startswith(field + ": "))
+            self.assertEqual([e["test"] for e in json.loads(line[len(field) + 2:])], want, field)
+
+    def test_picking_an_option_without_an_edit_makes_no_edit(self):
+        self.stop()
+        before, head = self.read("CHANGELOG.md"), self.head()
+        self.offer(*self.CHANGELOG)
+        self.answer("2")
+        self.assertEqual(self.read("CHANGELOG.md"), before)
+        self.assertEqual(self.directed(), [])
+        self.assertEqual(self.head(), head)
+
+    # ---- after the edit: the suite, the orders, the packet
+
+    def test_after_the_edit_the_suite_and_the_orders_run_and_the_verdict_is_printed(self):
+        self.stop()
+        self.offer(*self.RENAME)
+        p = self.answer("1")
+        self.assertEqual(len(self.directed()), 1)
+        self.assertEqual(self.show()["suite"], "green")
+        v = json.loads(p.stdout)
+        self.assertIn("stop", v)
+        self.assertIn("fired", v)
+        self.assertEqual(p.returncode, 10 if v["stop"] else 0, p.stderr)
+
+    def test_a_suite_that_fails_after_the_edit_is_recorded_red(self):
+        self.write("tests/test_broken.py", "import unittest\n\n\nclass Broken(unittest.TestCase):\n"
+                                           "    def test_fails(self):\n        self.assertEqual(1, 2)\n")
+        self.commit_all("a failing test")
+        self.stop()
+        self.offer(*self.CHANGELOG)
+        self.answer("1")
+        self.assertEqual(len(self.directed()), 1)
+        self.assertEqual(self.show()["suite"], "red")
+
+    def guardian_ran(self):
+        report = os.path.join(self.tmp, "guardian.out")
+        with open(report, "w") as f:
+            f.write("```xv-report\n" + json.dumps({"agent": "guardian", "status": "done", "summary": "done"})
+                    + "\n```\n")
+        self.xv("record", "report", "s1", "guardian", report, cwd=self.wt)
+        self.write(".xv/slices/s1.packet.md", "---\nslice: s1\nshape_change: no\npitch_contradiction: no\n---\n\n"
+                                              "# Packet\n\nThe change does what the scenario says.\n")
+        self.xv("record", "set", "s1", "next", "close", cwd=self.wt)
+        self.xv("record", "packet", "s1", ".xv/slices/s1.packet.md", cwd=self.wt)
+        if not [s for s in self.show()["stops"] if s.get("answer") is None]:
+            self.stop("ready_to_merge", step="guardian")
+
+    def test_after_the_guardian_the_packet_gets_a_line_and_next_does_not_go_back_to_the_guardian(self):
+        self.guardian_ran()
+        self.offer(*self.CHANGELOG)
+        self.answer("1")
+        shas = self.directed()
+        self.assertEqual(len(shas), 1)
+        packet = self.read(".xv/slices/s1.packet.md")
+        self.assertIn("## Directed edits after the guardian", packet)
+        after = packet.split("## Directed edits after the guardian", 1)[1]
+        lines = [line for line in after.splitlines() if "CHANGELOG.md" in line]
+        self.assertEqual(len(lines), 1, after)
+        for word in ("changelog", "pat", shas[0][:7]):
+            self.assertIn(word, lines[0])
+        self.assertNotEqual(self.show()["next"], "guardian")
+
+    def test_before_the_guardian_no_packet_is_written(self):
+        self.stop()
+        self.offer(*self.CHANGELOG)
+        self.answer("1")
+        self.assertEqual(len(self.directed()), 1)
+        self.assertIsNone(self.show()["packet"])
+
+    # ---- the watch's brief and the CHANGELOG
+
+    def test_the_watch_brief_states_the_rule_for_a_directed_edit(self):
+        text = open(os.path.join(HOME, "skills", "watch", "SKILL.md")).read()
+        self.assertIn("approved every word", text)
+        self.assertIn("changes no behavior", text)
+        self.assertIn("never words a change itself", text)
+        for word in ("--edit", "--old", "--new", "--kind", "changelog", "test-rename", "test-remove", "doc"):
+            self.assertIn(word, text)
+
+    def test_the_watch_brief_may_not_line_admits_only_a_directed_edit(self):
+        text = open(os.path.join(HOME, "skills", "watch", "SKILL.md")).read()
+        may_not = text.split("## May not", 1)[1].split("\n## ", 1)[0]
+        lines = [line for line in may_not.splitlines()
+                 if line.startswith("- ") and "directed" in line and "word" in line]
+        self.assertTrue(lines, may_not)
+
+    def test_the_changelog_names_the_directed_edit(self):
+        text = open(os.path.join(HOME, "CHANGELOG.md")).read()
+        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("#132", unreleased)
+
+
+# A person watching the first green: pick a directed test rename on a real stop and read the commit it makes
+# (`git show`): only the test file and the record, its message naming the person, and the packet line when the
+# guardian has run. Look for the case nobody wrote down, such as a rename whose old name is a prefix of another
+# test's name in slice_only or wall_recommendations.
