@@ -544,7 +544,7 @@ def make_directed_edit(root, path, data, body, stop, edit, who):
             rename_in_record(data, file, *name_change(old, new))
     body = log_line(body, ",".join(who), f"directed a {kind} edit in {file}")
     config = load_config(slice_root(path))
-    data["suite"], out = run_suite(root, config, data.get("base"), data.get("id"))
+    data["suite"], _ = run_suite(root, config, data.get("base"), data.get("id"))
     step = stop.get("step") or data["next"]
     v = orders.verdict(data, step, config)
     body = apply_verdict(data, body, step, v)
