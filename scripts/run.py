@@ -413,13 +413,17 @@ def rebase_maker(root, slice_id, config, state, files):
 def rebase_drive(root, slice_id, state, config):
     """Carry the rebase through its conflicts to the end, then finish. Exits 10 at a stop."""
     protected_paths = (config.get("tests") or {}).get("paths") or []
+
+    def for_a_person(files):
+        return [f for f in files if f == PICTURE or match_any(f, protected_paths)]
+
     while rebase_running(root):
         for f in unmerged(root):
             if f in UNION_FILES:
                 keep_both_sides(root, f)
         files = unmerged(root)
         if files:
-            for_person = [f for f in files if f == PICTURE or match_any(f, protected_paths)]
+            for_person = for_a_person(files)
             if for_person:
                 rebase_stop(root, slice_id, state, config, conflicts=for_person)
             stuck = rebase_maker(root, slice_id, config, state, files)
@@ -429,7 +433,7 @@ def rebase_drive(root, slice_id, state, config):
             edited = git(["diff", "--name-only"], root).split() + git(["ls-files", "--others", "--exclude-standard"], root).split()
             edited = sorted(set(edited + files) - {rel})
             git(["add", "-A", "--"] + edited, root)
-            for_person = [f for f in edited if f == PICTURE or match_any(f, protected_paths)]
+            for_person = for_a_person(edited)
             if for_person:
                 rebase_stop(root, slice_id, state, config, conflicts=for_person)
             left = unmerged(root)
