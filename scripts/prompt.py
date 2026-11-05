@@ -113,9 +113,9 @@ def pointers(agent, root, config, data=None, extra=None):
             b = data["budget"]
             parts = [f"{k} {b[k]}" for k in ("tokens", "usd", "turns") if b.get(k)]
             lines.append(f"- Budget: {', '.join(parts)}. Stop when it is spent.")
-        misses = (((data.get("checks") or {}).get("scenario") or {}).get("red_on_build") or {})
-        if agent == "maker" and isinstance(data.get("build"), dict) and misses and not misses.get("passes"):
-            names = ", ".join(misses.get("failing") or []) or "the red command"
+        red_on_build = (((data.get("checks") or {}).get("scenario") or {}).get("red_on_build") or {})
+        if agent == "maker" and isinstance(data.get("build"), dict) and red_on_build and not red_on_build.get("passes"):
+            names = ", ".join(red_on_build.get("failing") or []) or "the red command"
             lines.append(f"The slice starts from the build at `{data['build']['ref']}`. These red tests fail on it, "
                          f"each a miss against the scenario: {names}. Start from the build; do not rebuild it.")
         if agent == "maker":
