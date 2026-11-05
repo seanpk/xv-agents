@@ -8,7 +8,7 @@ From `5d5e75fc7a73` to the working tree. Source: xv boundary (ast and regex). Ge
 
 ## Modules
 
-- touched: scripts/retro, scripts/run, scripts/xvlib
+- touched: scripts/record, scripts/retro, scripts/run, scripts/xvlib
 - added: none
 - removed: none
 - now calling out of the process: none
@@ -125,6 +125,7 @@ flowchart LR
 {
  "base": "5d5e75fc7a7371d74a3884cfbae919785adbb4e7",
  "touched": [
+  "scripts/record",
   "scripts/retro",
   "scripts/run",
   "scripts/xvlib"
