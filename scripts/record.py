@@ -412,8 +412,8 @@ def cmd_offer(a):
     for i, o in enumerate(options, 1):
         if not o["settles"]:
             raise XVError(f"option {i} has no --settles: say what is settled if it is picked")
-    root = repo_root()
-    config = load_config(slice_root(path))
+    root = slice_root(path)
+    config = load_config(root)
     for i, o in enumerate(options, 1):
         if "edit" in o:
             check_edit(root, config, i, o["edit"])
