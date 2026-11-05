@@ -343,6 +343,11 @@ def keep_both_sides(root, rel):
     return True
 
 
+def record_rel(root, slice_id):
+    """The slice's record, as a path inside its worktree."""
+    return os.path.relpath(record.load(root, slice_id)[0], root)
+
+
 def rebase_state_path(root, slice_id):
     return git_path(root, f"xv-rebase-{slice_id}.json")
 
@@ -410,7 +415,7 @@ def rebase_maker(root, slice_id, config, state, files):
         note.append(f"Conflicted files to resolve: {', '.join(files)}.")
     with open(os.path.join(promptlib.SKILLS, "maker", "rebase.md"), encoding="utf-8") as f:
         part = f.read()
-    rel = os.path.relpath(record.load(root, slice_id)[0], root)
+    rel = record_rel(root, slice_id)
     saved = git(["show", f"{state['orig_head']}:{rel}"], root)  # the record as saved, not the one git replays
     text = promptlib.build("maker", slice_id, root=root, extra=note, part=part, saved=saved)
     spent = spendlib.slice_spend(data)
@@ -447,7 +452,7 @@ def rebase_drive(root, slice_id, state, config):
             stuck = rebase_maker(root, slice_id, config, state, files)
             state["conflicts"] += files
             state["changed"] = True
-            rel = os.path.relpath(record.load(root, slice_id)[0], root)
+            rel = record_rel(root, slice_id)
             edited = git(["diff", "--name-only"], root).split() + git(["ls-files", "--others", "--exclude-standard"], root).split()
             edited = sorted(set(edited + files) - {rel})
             git(["add", "-A", "--"] + edited, root)
@@ -587,7 +592,7 @@ def cmd_slice_rebase(a):
             pass
         rebase_state(root, a.id, state)
         if rebase_running(root):  # git will not replay over the record the stop changed
-            git(["checkout", "--", os.path.relpath(record.load(root, a.id)[0], root)], root)
+            git(["checkout", "--", record_rel(root, a.id)], root)
         return rebase_drive(root, a.id, state, config)
     if os.path.exists(rebase_state_path(root, a.id)):
         raise XVError(f"a rebase of {a.id} is in progress: finish it with `xv slice rebase {a.id} --continue` "
