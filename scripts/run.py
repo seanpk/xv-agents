@@ -343,9 +343,13 @@ def keep_both_sides(root, rel):
     return True
 
 
+def rebase_state_path(root, slice_id):
+    return git_path(root, f"xv-rebase-{slice_id}.json")
+
+
 def rebase_state(root, slice_id, state=None):
     """The rebase's own notes, kept in the git dir: what to restore on --abort and what --continue still owes."""
-    path = git_path(root, f"xv-rebase-{slice_id}.json")
+    path = rebase_state_path(root, slice_id)
     if state is None:
         if not os.path.exists(path):
             raise XVError(f"no rebase of {slice_id} is in progress here: start one with `xv slice rebase {slice_id}`")
@@ -402,9 +406,9 @@ def rebase_drive(root, slice_id, state, config):
                 keep_both_sides(root, f)
         files = unmerged(root)
         if files:
-            mine = [f for f in files if f == PICTURE or match_any(f, protected_paths)]
-            if mine:
-                rebase_stop(root, slice_id, state, config, conflicts=mine)
+            for_person = [f for f in files if f == PICTURE or match_any(f, protected_paths)]
+            if for_person:
+                rebase_stop(root, slice_id, state, config, conflicts=for_person)
             stuck = rebase_maker(root, slice_id, config, state, files)
             state["conflicts"] += files
             state["changed"] = True
@@ -469,7 +473,7 @@ def rebase_finish(root, slice_id, state, config):
     if suite == "red":
         rebase_stop(root, slice_id, state, config, suite="red", failing=failing_tests(out or ""),
                     failing_step=orders.first_failing_step(out))
-    os.remove(git_path(root, f"xv-rebase-{slice_id}.json"))
+    os.remove(rebase_state_path(root, slice_id))
     print(json.dumps({"slice": slice_id, "status": data["status"], "next": data["next"], "base": data["base"],
                       "stop": None}, indent=2))
 
@@ -485,7 +489,7 @@ def cmd_slice_rebase(a):
             git(["rebase", "--abort"], root)
         else:
             git(["reset", "--hard", state["orig_head"]], root)
-        os.remove(git_path(root, f"xv-rebase-{a.id}.json"))
+        os.remove(rebase_state_path(root, a.id))
         print(json.dumps({"slice": a.id, "aborted": True, "head": state["orig_head"]}, indent=2))
         return
     config = load_config(root)
@@ -493,7 +497,7 @@ def cmd_slice_rebase(a):
         state = rebase_state(root, a.id)
         state["continued"] = True
         return rebase_drive(root, a.id, state, config)
-    if os.path.exists(git_path(root, f"xv-rebase-{a.id}.json")):
+    if os.path.exists(rebase_state_path(root, a.id)):
         raise XVError(f"a rebase of {a.id} is in progress: finish it with `xv slice rebase {a.id} --continue` "
                       f"or give it up with `--abort`")
     main = main_root(root)
@@ -507,7 +511,7 @@ def cmd_slice_rebase(a):
     rebase_state(root, a.id, state)
     p = run_git(root, ["rebase", "--onto", onto, old_base], {"GIT_EDITOR": "true"})
     if p.returncode != 0 and not rebase_running(root):
-        os.remove(git_path(root, f"xv-rebase-{a.id}.json"))
+        os.remove(rebase_state_path(root, a.id))
         raise XVError(f"git rebase failed: {(p.stderr or p.stdout).strip()}")
     rebase_drive(root, a.id, state, config)
 
