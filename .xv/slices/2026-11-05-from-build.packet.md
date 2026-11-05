@@ -13,134 +13,143 @@ blast_radius: small
 
 # Packet: A slice can start from a build that already exists: #113
 
-This is the second guardian pass. No stop for two people. The slice goes back to the scenario agent on two misses. Points 12 and 14 hold when the second scenario pass comes before the maker. They break when it comes after the maker, and the red tests only the first case. That second case is how this slice itself came back to the scenario agent. Sean also decides three things:
+This is the third guardian pass. No stop for two people.
+
+The two misses from the second pass are fixed for the cases the red tests. The slice goes back to the scenario agent on two narrower misses, both read from the code:
+- **Point 12:** a second pass crashes when the red edits a test file the build also changed.
+- **Point 14:** the unshared record copy still keeps `cleaner_commit`.
+
+Sean also decides:
 - (A) The Opus scenario line is still in `.xv/config.yml`.
-- (B) A session-mode scenario step leaves a checkout behind, and nothing lands the red written in it.
-- (C) The record says the slice-only CHANGELOG test was removed, but it is back on HEAD.
+- (B) A session-mode scenario step still leaks its checkout, and nothing lands the red written there.
+- (C) A red that a person lands by hand after `red_conflicts_with_build` is not replayed on a later pass.
 
 ## Scenario misses
 
-- 12: A second scenario pass after the maker does not start at "the base with the red from the earlier passes". It applies `git diff <build> HEAD` to the base, and after the maker that diff holds the maker's source changes too. The maker usually edits files the build changed ("The maker starts from the build", point 7), so `git apply` fails. That raises `CalledProcessError`, which `main` does not catch (`scripts/run.py:1298` catches only `XVError`), so the step exits 1, not 2 (decision 11, `.xv/picture.md:74`), and leaves the scratch worktree behind (`scripts/run.py:702`). If the patch applies, the red's "must fail on the base" run (point 6) holds the maker's fix. `SecondScenarioPassTest` amends before the maker (`tests/test_from_build.py:312-320`). Read from the code, not run. (evidence: `scripts/run.py:778-781`: `earlier = … ["git", "diff", "--binary", build_commit(root, data), "HEAD", …]` then `["git", "apply", "--index", "-"] … check=True`; to: scenario)
-- 14: After the maker, the unshared record copy still names a commit at the build. The copy drops only `build` and `branch` (`scripts/run.py:783`: `copy = dict(data, build="none", branch=data["base"])`). It keeps `pre_maker_commit`, which is the slice HEAD before the maker, the build plus the red (`scripts/run.py:848-849`). This slice's own record shows the field (`pre_maker_commit: d0aa00a…`). `RecordCopyTest.test_a_second_pass_copy_names_no_branch_or_commit_at_the_build` amends before the maker, so the field is not yet set when it runs. (evidence: `scripts/run.py:783`, `scripts/run.py:848-849`; to: scenario)
+- 12: A second pass does not start "at the base with the red from the earlier passes" when the red edits a test file the build also changed. Each earlier `xv(<id>): red` commit is replayed as its slice-branch diff, `git diff sha^ sha`, with plain `git apply`, which has no 3-way merge. On the slice branch that commit is a cherry-pick onto the build (`scripts/run.py:817`). When the build changed a line within three lines of the red's hunk, but not next to it, the cherry-pick merges cleanly, yet the diff's context lines hold the build's text, so `git apply` on the base rejects it. `check=True` raises `CalledProcessError`, which `main` does not catch (`scripts/run.py:1691` catches only `XVError`), so the step exits 1, not 2 (decision 11, `.xv/picture.md:74`). The raise comes inside `scenario_scratch`, after `git worktree add` (`scripts/run.py:770`) and outside the `try` around the agent run, so the checkout is left behind. Every red in the tests writes a new file, `tests/test_red.py` (`tests/test_from_build.py:65`, `:419`). The test where the build changes `tests/test_store.py` (`tests/test_from_build.py:430-431`) never has the red edit that file, though point 13 names exactly that kind of build. Read from the code, not run. (evidence: `scripts/run.py:782-785`: `["git", "diff", "--binary", f"{sha}^", sha, …]` then `["git", "apply", "--index", "-"] … check=True`; to: scenario)
+- 14: After a cleaner that committed, the unshared record copy still names a commit at the build. The copy drops `build`, `branch` and `pre_maker_commit` (`scripts/run.py:787-790`) but keeps `cleaner_commit`. That field is the slice HEAD after the cleaner when the cleaner moved HEAD (`scripts/run.py:950-951`), or the cleaner's reported commit (`scripts/record.py:531`); either way the commit holds the build, the red and the maker's fix. The case is reachable: a guardian `scenario_miss` sends the slice back to the scenario agent after the cleaner, as it did on this slice (`.xv/slices/2026-11-05-from-build.md:24`, the stop at 23:03:29). `RecordCopyTest.test_a_second_pass_copy_after_the_maker_names_no_branch_or_commit_at_the_build` runs only the maker before the second pass (`tests/test_from_build.py:472-480`). (evidence: `scripts/run.py:788-790`, `scripts/run.py:950-951`; to: scenario)
 
 ## The scenario
 
-`xv slice new --from <ref>` opens a slice whose branch starts at a build that already exists. `base` stays the branch the slice merges into. The record says `build: {kind: exploration, ref}`, or `build: none` without `--from`.
+`xv slice new --from <ref>` opens a slice whose branch starts at a build that already exists, and `base` stays the merge target. The record holds `build: {kind: exploration, ref}` (`none` without `--from`) and `build_shared`.
 
-By default the scenario agent writes the red at the base without the build (`build_shared: no`). `--share-build` names the build to it as a reference only, and needs `--from` (11). The red must fail on the base and then runs on the build. A failing test goes to the maker as a miss. If the whole red passes on the build, the slice goes to the cleaner.
+The scenario agent writes the red at the base without the build, unless `--share-build` is given, which names the build as a reference only and needs `--from` (11). The red must fail on the base, then runs on the build. A failing test goes to the maker as a miss. If the whole red passes, the slice goes to the cleaner.
 
-The `xv-slice` and `watch` skills offer an exploration when the scenario will not settle. New stops go in `orders.py`, with a CHANGELOG line.
+The skills offer an exploration when the scenario will not settle. New stops go in `orders.py`, with a CHANGELOG line.
 
 Amendments 12-15:
-- 12: a second pass starts at the base with the earlier red and lands without a conflict.
-- 13: tests for `red_conflicts_with_build`, and for a build's test-file change stopping once.
-- 14: the unshared record copy names no branch or commit at the build.
+- 12: a second pass starts at the base with the earlier red and lands cleanly.
+- 13: tests for `red_conflicts_with_build`, and for stopping once on a build's test-file change.
+- 14: the unshared copy names no branch or commit at the build.
 - 15: a session scenario step makes the base checkout and names it.
 
 May ignore: a kept prototype pick (#117); what a very large build means for the wall and the packet; old slice records; turning an open slice into an exploration.
 
 ## The recording
 
-None; a feature starts from words. Replay: `cd tests && python3 -m unittest test_from_build`. On HEAD 36 tests pass, run by the guardian. The second red at `30c7653` failed 35 of 36 (record `checks.scenario.red_output`). Whole suite on HEAD: `python3 tests/run.py --jobs 4`, 828 tests, OK (run by the guardian). To see it by hand, follow the record's `watch_first_green`.
+None; a feature starts from words. Replay: `cd tests && python3 -m unittest test_from_build`. The guardian ran it on HEAD: 41 tests, OK. The third red (`63664ee`) failed on `patch failed: pantry/store.py:44` (record `red.failure`). The guardian also ran the whole suite on HEAD with `python3 tests/run.py --jobs 4`: 833 tests, OK. To see it by hand, follow the record's `watch_first_green`.
 
 ## The boundary picture
 
 From `.xv/slices/2026-11-05-from-build.boundary.md`:
 - Touched: `scripts/orders`, `scripts/prompt`, `scripts/record`, `scripts/run`.
-- Added or removed: no modules, edges, outbound calls, tables or surface paths.
+- No module, edge, outbound call, table or surface path is added or removed.
 - Shape hints: none.
 
 ## What the suite asserts after
 
-- **Flags:** `--from` starts the branch at the build and keeps `base`. A missing ref, an empty `--from` and a bare `--from` are each refused. `--share-build` without `--from` is refused and leaves no worktree, record or branch.
-- **Where the scenario agent works:** without `--share-build` it runs in a checkout at the base. Its prompt names neither the build branch nor its sha. On the first pass and on a pre-maker second pass, its record copy names neither the branch nor a commit at the build. With `--share-build`, its prompt names the build as "reference only".
+- **Flags:** `--from` starts the branch at the build and keeps `base`. A missing ref, an empty `--from` and a bare `--from` are each refused. `--share-build` without `--from` is refused and leaves nothing behind.
+- **Where the scenario agent works:** it runs in a checkout at the base, and the build is not named in its prompt or its record copy. With `--share-build`, the prompt names the build as "reference only".
 - **Where the slice goes:**
   - A red that passes on the base stops with `scenario_not_red`.
-  - A red that fails on the build goes to the maker with no stop, and the maker's prompt names the failing tests.
-  - A red that passes on the build sets `next: cleaner`, and the maker never runs.
-- **New (12, 13, 15):**
-  - A second pass before the maker sees the earlier red and lands on the slice branch with the build intact.
-  - A red file that the build also adds stops with `red_conflicts_with_build`, and leaves the worktree clean.
-  - A build's change to `tests/test_store.py` stops exactly once as `unrecorded_move` across scenario → maker → cleaner.
-  - A session scenario step names a git checkout at the base with no build in it.
-- **Skill wording:** the skill texts carry the offer.
-- Old assertions that moved: none.
+  - A red that fails on the build goes to the maker, and the maker's prompt names the failing tests.
+  - A red that passes on the build goes to the cleaner, with no maker.
+- **New this pass:**
+  - A second pass after the maker has the earlier red in its checkout, but neither the build nor the maker's fix.
+  - That red still fails on the base.
+  - When the build and the maker both edit `pantry/store.py`, the second pass lands with no crash and no conflict, keeps the build and the maker's fix, and leaves no checkout behind.
+  - The record copy after the maker names no branch or commit at the build.
+- **Kept from earlier passes:**
+  - `red_conflicts_with_build`.
+  - The build's test-file change stops exactly once.
+  - The session checkout is at the base.
+  - The skill wording.
+- Old assertions that moved: only the slice-only CHANGELOG test, now removed (section 3).
 
 ## 1. Shape
 
 shape_change: no. shape_breadth: narrow (the forecast said wide).
 
-- The boundary picture (`.xv/slices/2026-11-05-from-build.boundary.md`, Modules and Edges sections) lists no new module, edge, table, surface path or outbound call, and no shape hints.
-- `build` and `build_shared` are fields in the existing slice file (`scripts/record.py:28`), and slice state already lives there (`.xv/picture.md:27`, "State is files: `.xv/slices/<id>.md`").
+- The boundary picture lists no new module, edge, table, surface path or outbound call, and no shape hints (`.xv/slices/2026-11-05-from-build.boundary.md:5-30`).
+- `build` and `build_shared` are fields in the existing slice file (`scripts/record.py:28`; `.xv/picture.md:27`, "State is files").
 - `--from` and `--share-build` are flags on the existing `xv` CLI surface (`.xv/picture.md:28`).
-- The scratch worktree at the base (`scripts/run.py:767`) follows the existing temporary detached worktree for the red check (`.xv/picture.md:27`). It is not a new layer.
-- `red_conflicts_with_build` is raised in `scripts/orders.py:133-137` from what the record says failed (`cherry_pick_conflict`, `scripts/run.py:894`), as decision 10 allows (`.xv/picture.md:73`).
+- This pass changes only how the scratch checkout replays the earlier red (`scripts/run.py:778-790`), inside the existing `run` module.
 
 ## 2. Pitch
 
 pitch_contradiction: no.
-- The pitch says "to vibe with discipline" (`.xv/pitch.md:7`). A slice from a build still writes its red without the build and requires it to fail on the base (`scripts/run.py:794-800`, `land_scratch` runs the red in the base checkout).
-- The change serves no one that "Who it is not for" (`.xv/pitch.md:23`) excludes.
+- "to vibe with discipline" (`.xv/pitch.md:7`): a slice from a build still writes its red without the build, and requires the red to fail on the base (`scripts/run.py:808`, `landed["base_run"] = shell(red["command"], scratch, 600)`).
+- No one excluded under "Who it is not for" (`.xv/pitch.md:23-25`) is served.
 
 ## 3. Moved tests
 
-| File | Before | After | Why (the maker's record) | Forced by the scenario? |
+| File | Before | After | Why | Forced? |
 | --- | --- | --- | --- | --- |
-| tests/test_from_build.py | `ChangelogTest.test_unreleased_has_a_line_for_113_naming_each_brief_it_changes`: 5 assertions | Removed by the cleaner at `5721237`, then written again by the second scenario pass at `30c7653`; present on HEAD at `tests/test_from_build.py:467-477` | cleaner: "It checks one CHANGELOG line, which has no value once the slice has merged; the mark was accepted" | Not forced. A slice-only mark Sean accepted (`slice_only[0].accepted: true`) |
+| tests/test_from_build.py | `ChangelogTest.test_unreleased_has_a_line_for_113_naming_each_brief_it_changes`, 5 assertions | Removed (`git diff 829b4c8..HEAD`, the `ChangelogTest` hunk) | cleaner: "It checks one CHANGELOG line, which has no value once the slice has merged; the mark was accepted" | No; a slice-only mark Sean accepted (`slice_only[0].accepted: true`) |
 
-Slice-only tests removed: none on HEAD. The record's `moved_tests` says `test_unreleased_has_a_line_for_113_naming_each_brief_it_changes` was removed, but it is back (`tests/test_from_build.py:467`), and the second cleaner pass left it. Kept: the same test, with no reason given to keep it.
+Slice-only removals: `test_unreleased_has_a_line_for_113_naming_each_brief_it_changes`. Kept: none.
 
-- `xv wall diff` against the new baseline `30c7653` (record `wall_baseline.commit`) lists no changed, deleted or added file. That is why it does not show the re-added test (`tests/test_from_build.py:467`).
-- `tests/fake_agent.py` only gains probes: `FAKE_CWD_LOG`, and `FAKE_RECORD_LOG` at `tests/fake_agent.py:37-41`. It removes nothing.
+- `xv wall diff` shows `tests/test_from_build.py` going from 130 to 125 assertions. Those 5 are exactly the removed test, and the move is recorded.
+- Finding C of the last packet is closed: the record and the diff now agree (`.xv/slices/2026-11-05-from-build.md:15`, the second move).
+- `tests/fake_agent.py:36` adds a `texts` probe to the log. It asserts nothing and removes nothing.
 - `old_tests_forced: []` and `may_not_files: []` (`.xv/slices/2026-11-05-from-build.md:29-30`).
 
 ### For Sean
 
-**A. The Opus scenario line is still in the diff.** `.xv/config.yml:35`: "# Slice F only, as Sean directed: the wide-slice test. Removed before the PR." Line 36 sets `scenario` to `"--model", "opus"`. At the `accept_moves` stop the record says "The Opus scenario line is removed before the PR". If it merges, every later scenario step in this repo runs on Opus.
+**A. The Opus scenario line is still in the diff.** `.xv/config.yml:35-36`: "# Slice F only, as Sean directed: the wide-slice test. Removed before the PR.", then `scenario: [… "--model", "opus" …]`. The `accept_moves` answer says it is removed before the PR. If it merges, every later scenario step in this repo runs on Opus.
 
-**B. A session-mode scenario step leaks a checkout, and nothing lands the red written there.**
-- `scripts/run.py:696` calls `scenario_scratch` inside the error message and then raises. Nothing calls `drop_scratch`, so every `xv step scenario` adds another `git worktree` under the temp dir.
-- The person then writes the red in that checkout. `xv record report` and `xv orders --after scenario`, the commands the message names, do not cherry-pick it, run it on the base, or run it on the build. Only `land_scratch` does that (`scripts/run.py:794`), and only on the CLI path.
-- `skills/watch/SKILL.md:62` says the red "must fail there; then it runs on the build" with no session caveat.
-- Point 15 asks only that the checkout is made and named (`.xv/slices/2026-11-05-from-build.md:60`), so this is not a miss.
+**B. A session-mode scenario step leaks a checkout, and the red written there is never landed.** This is unchanged since the last packet.
+- `scripts/run.py:694-696` calls `scenario_scratch` inside the error message and raises. Nothing drops the checkout.
+- Only `land_scratch` (`scripts/run.py:801`) cherry-picks the red and runs it on the base and on the build. The commands the message names, `xv record report` and `xv orders`, do neither.
+- Point 15 asks only for the checkout and its name (`.xv/slices/2026-11-05-from-build.md:60`), so this is not a miss.
 
-**C. The slice-only CHANGELOG test is on HEAD while the record says it was removed.** See section 3. The record and the diff disagree on this one test. Everything else agrees.
+**C. A red landed by hand is not replayed.**
+- `red_conflicts_with_build` tells the person to "Resolve it by hand" (`scripts/orders.py:133-137`), and `land_scratch` has aborted the cherry-pick (`scripts/run.py:820`).
+- The replay keeps only commits whose subject is exactly `xv(<id>): red` (`scripts/run.py:778-780`). A red the person commits under any other subject is missing from the next pass's checkout.
+- No scenario line says how the person lands it, so this is not a miss.
 
-**D. Fixed since the first packet.**
-- 1a, a second pass before the maker: `scripts/run.py:778-782`.
-- 1b, tests for the new stop and for stopping once: `BuildConflictTest` (`tests/test_from_build.py:339-364`).
-- 1d, the record copy's `branch`: `scripts/run.py:783`.
-- 1e, the session-mode checkout: `scripts/run.py:696`.
-
-1d and 1a are only partly fixed; see the two misses.
+**D. Fixed since the last packet.**
+- Miss 12, the second pass after the maker: only the red commits are replayed now (`scripts/run.py:778-786`). Tested at `tests/test_from_build.py:339-413`.
+- Miss 14, `pre_maker_commit`: it is dropped from the copy (`scripts/run.py:790`). Tested at `tests/test_from_build.py:472-480`.
 
 ## 4. The picture
 
 - `.xv/picture.md:27`, after "The branch starts from `--base`, else …": add "With `xv slice new --from <ref>` the branch starts at the build and `base` stays the merge target. The record holds `build` (`none`, or `{kind: exploration, ref}`) and `build_shared` (`yes`/`no`). `--share-build` needs `--from`."
 - `.xv/picture.md:27`, the scenario-step sentences: add the following.
-  - In a slice from a build, the scenario agent runs in a temporary detached worktree at the base, with the slice's earlier red applied (`scripts/run.py:767-782`).
-  - It reads a record copy with `build: none` and `branch` set to the base, unless the build is shared (`scripts/run.py:783`).
-  - The red runs there and the wall baseline is hashed there. The red commit is then cherry-picked onto the slice branch, and a conflict stops with `red_conflicts_with_build` for the originator (`scripts/run.py:794-816`, `scripts/orders.py:133-137`).
-  - The red then runs on the build. Its failing tests go to `checks.scenario.red_on_build`, and `prompt` names them to the maker (`scripts/run.py:894-897`, `scripts/prompt.py:116-120`).
-  - A session scenario step makes that checkout and names it in its message (`scripts/run.py:694-698`).
-- `.xv/picture.md:27`, "After the maker, a scenario step checks the red in a temporary detached worktree at `pre_maker_commit`": add "except in a slice from a build, where the red runs in the scratch checkout at the base".
-- `.xv/picture.md:23`, after "`orders.verdict` also returns `next`": add "after the scenario step, `next_step` returns `cleaner` when the red failed on the base and passes on the build (`scripts/orders.py:362-364`)."
-- `.xv/picture.md:27`, the `unrecorded_move` sentence: add "In a slice from a build, a test file the build changed stops once. After an answered `unrecorded_move` stop names it, it is not listed again while it is as the build left it (`scripts/run.py:1192-1199`)."
+  - In a slice from a build, the scenario agent runs in a temporary detached worktree at the base. The slice's earlier `xv(<id>): red` commits are replayed there (`scripts/run.py:767-786`).
+  - Unless the build is shared, the agent reads a record copy with `build: none`, `branch` set to the base and no `pre_maker_commit` (`scripts/run.py:787-790`).
+  - The red runs there, and the wall baseline is hashed there. The red is then cherry-picked onto the slice branch, and a conflict stops with `red_conflicts_with_build` for the originator (`scripts/run.py:801-823`, `scripts/orders.py:133-137`).
+  - The red then runs on the build. Its failing tests go to `checks.scenario.red_on_build`, and the maker's prompt names them (`scripts/prompt.py:116-120`).
+  - A session scenario step makes that checkout and names it (`scripts/run.py:694-696`).
+- `.xv/picture.md:27`, "After the maker, a scenario step checks the red … at `pre_maker_commit`": add "except in a slice from a build, where the red runs in the scratch checkout at the base".
+- `.xv/picture.md:23`, after "`orders.verdict` also returns `next`": add "After the scenario step, `next_step` returns `cleaner` when the red failed on the base and passes on the build (`scripts/orders.py:362-364`)."
+- `.xv/picture.md:27`, the `unrecorded_move` sentence: add "In a slice from a build, a test file the build changed stops once. Once a person has answered it, it is not listed again while it is as the build left it (`scripts/run.py:1199-1206`)."
 - `## Names`: add "An exploration is a build made with an agent outside XV. A slice opens from it with `--from`, and the build is that ref."
 
 ## 5. The wall
 
-- `tests/test_from_build.py` `test_unreleased_has_a_line_for_113_naming_each_brief_it_changes`: it should stay marked slice-only and off the wall. It checks one CHANGELOG line (`tests/test_from_build.py:467-477`; record `slice_only[0]`, accepted). It is back in the file after the cleaner removed it (`5721237`).
-
-I also checked every other new test class in `tests/test_from_build.py` against points 1-15. Each guards a lasting flag, record field, routing rule or skill wording, so I recommend no other change. No test that was on the wall before this slice is made dead: `xv wall diff` lists no changed old test file.
+No recommendations.
+- The slice-only CHANGELOG test, the only test marked slice-only, is now removed from `tests/test_from_build.py`, so there is nothing left to keep off the wall.
+- I checked the new classes against points 12 and 14: `SecondPassAfterTheMakerTest` (`tests/test_from_build.py:339`) and `RecordCopyTest`'s new test (`:472`). Each guards a lasting routing or isolation rule, and none restates another test.
+- No test that was on the wall before this slice is made dead: `xv wall diff` lists only `tests/test_from_build.py`, which this slice added.
 
 ## Door
 
-**Door:** two-way. The change adds flags and two record fields with defaults, and migrates or deletes no data. A revert undoes it. **Blast radius:** small.
+**Door:** two-way. The change adds flags and two record fields with defaults, and it migrates or deletes no data, so a revert undoes it. **Blast radius:** small.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-11-05-from-build.md`
-- Diff: `git diff 5d5e75fc7a7371d74a3884cfbae919785adbb4e7..20b84bc`; since the first packet, `git diff 5721237..20b84bc`
+- Diff: `git diff 5d5e75fc7a7371d74a3884cfbae919785adbb4e7..1ece1f7`. Since the last packet: `git diff 829b4c8..1ece1f7`
 - Wall: `xv wall diff 2026-11-05-from-build`
-- Boundary: `.xv/slices/2026-11-05-from-build.boundary.md` (`xv boundary --base 5d5e75fc7a73`)
+- Boundary: `.xv/slices/2026-11-05-from-build.boundary.md`
