@@ -2,13 +2,13 @@
 id: 2026-11-04-promote-fields
 title: Promotion copies only the fields that have text
 kind: feature
-status: open
+status: stopped
 set_by: Sean Kennedy
 created: 2026-11-04
 branch: xv/2026-11-04-promote-fields
 base: 168693608141b7cca549d5e56eebd4a61e9bd3fb
 next: forecaster
-forecast: null
+forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 250000, "turns": null, "usd": 1.3, "basis": ["2026-10-27-retro-accept-fields", "2026-11-04-retro-sighting", "2026-11-04-proto-start"]}, {"harness": "claude", "model": "opus", "tokens": 200000, "turns": null, "usd": 2.3, "basis": ["2026-10-27-retro-accept-fields", "2026-11-04-retro-sighting", "2026-11-04-proto-start"]}], "wall_s": 1800, "shape": "narrow", "breadth": "Changes the field copy in promote.py local_accept and the from: insertion for sightings on an Open entry with no from: or added: line, plus tests; no other command or file expected to move."}
 budget: null
 red: null
 wall_baseline: null
@@ -20,12 +20,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: []
-stops: []
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 3659, "cache_read": 15238, "cache_write": 37984, "tokens": 41647, "usd": 0.0096, "turns": 3, "wall_s": 18.2, "session": "606fa957-9152-4ab6-9aa8-2386cbad76f2", "step": "forecaster", "at": "2026-11-05T04:14:46+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-04-promote-fields/01-forecaster.out"}]
+stops: [{"at": "2026-11-05T04:14:46+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-04-promote-fields budget ... --by <name>`).", "answered_by": [], "answer": null, "also": [], "budget_seen": null}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "One clean pass per agent: claude/sonnet 250k tokens and $1.30, claude/opus 200k tokens and $2.30, about 1800 s wall; reopen risk unpriced.", "at": "2026-11-05T04:14:46+00:00"}], "forecaster": {"at": "2026-11-05T04:14:46+00:00", "wrote": []}}
 ---
 # Promotion copies only the fields that have text
 
@@ -72,3 +72,5 @@ None. A feature starts from words.
 
 ## Log
 - 2026-11-05T04:14:23+00:00 watch: slice opened by Sean Kennedy
+- 2026-11-05T04:14:46+00:00 forecaster: done: One clean pass per agent: claude/sonnet 250k tokens and $1.30, claude/opus 200k tokens and $2.30, about 1800 s wall; reopen risk unpriced.
+- 2026-11-05T04:14:46+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-04-promote-fields budget ... --by <name>`).
