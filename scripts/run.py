@@ -932,7 +932,7 @@ def unreadable_input(root, data, report):
         out.append("The report's `covers` is missing, empty, or has an item that names no test.")
     else:
         files = red_file_texts(root, data.get("red") or {})
-        removed = [COVERS_SEPARATOR.split(m["assertion"])[-1].strip() for m in data.get("moved_tests") or []
+        removed = [COVERS_SEPARATOR.split(m["assertion"].split(";")[0])[-1].strip() for m in data.get("moved_tests") or []
                    if isinstance(m, dict) and m.get("by") == "cleaner" and m.get("slice_only")
                    and isinstance(m.get("assertion"), str)]
         for c in covers:
@@ -1010,6 +1010,8 @@ def base_xv_dir(root, base):
                 tmp = tempfile.TemporaryDirectory(prefix="xv-base-")  # removed when the process ends
                 with tarfile.open(fileobj=io.BytesIO(tar)) as t:
                     t.extractall(tmp.name)
+                if not os.path.isfile(os.path.join(tmp.name, "bin", "xv")):
+                    tmp = None
             except (OSError, subprocess.CalledProcessError, tarfile.TarError):
                 tmp = None
         _BASE_XV[(root, base)] = (tmp, tmp.name if tmp else os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
