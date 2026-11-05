@@ -145,10 +145,11 @@ def run(root, ids=None):
     if missing:
         raise XVError(f"no slice record for {missing}")
     os.makedirs(os.path.join(root, XV_DIR, "retro"), exist_ok=True)
-    stem, n = today(), 1
+    day = today()
+    stem, n = day, 1
     while os.path.exists(os.path.join(root, XV_DIR, "retro", f"{stem}.md")):
         n += 1
-        stem = f"{today()}-{n}"
+        stem = f"{day}-{n}"
     out = os.path.join(XV_DIR, "retro", f"{stem}.md")
     cpath = os.path.join(XV_DIR, "retro", f"{stem}.counts.json")
     with open(os.path.join(root, cpath), "w") as f:
