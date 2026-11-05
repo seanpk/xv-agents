@@ -208,5 +208,25 @@ class ScenarioCatchesTest(unittest.TestCase):
         self.assertRegex(text, r"(?is)amendment's point[^\n]*own words")
 
 
+class RetroDocsNameNumberedFilesTest(unittest.TestCase):
+    def test_the_retro_skill_names_the_numbered_retro_files(self):
+        text = brief("skills", "xv-retro", "SKILL.md")
+        self.assertIn("<date>-2.md", text)
+        self.assertIn("<date>-3.md", text)
+
+    def test_the_retro_help_text_names_the_numbered_retro_files(self):
+        text = brief("scripts", "retro.py").split("import argparse")[0]
+        self.assertIn(".xv/retro/<date>.md", text)
+        self.assertIn("<date>-2.md", text)
+        self.assertIn("<date>-3.md", text)
+
+    def test_the_changelog_has_a_line_for_the_retro_skill_numbered_file_change(self):
+        text = brief("CHANGELOG.md")
+        unreleased = section(text, "Unreleased")
+        hits = [l for l in unreleased.splitlines()
+                if "skills/xv-retro/SKILL.md" in l and "<date>-2.md" in l]
+        self.assertTrue(hits, "no Unreleased line names the skill and the -2 file")
+
+
 if __name__ == "__main__":
     unittest.main()
