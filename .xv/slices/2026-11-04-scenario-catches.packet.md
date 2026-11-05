@@ -1,114 +1,83 @@
 ---
 slice: 2026-11-04-scenario-catches
 shape_change: no
-pitch_contradiction: yes
-scenario_miss: no
+pitch_contradiction: no
+scenario_miss: yes
 picture_change: yes
 shape_breadth: narrow
-moved_tests: 0
+moved_tests: 1
 door: two-way
-blast_radius: adopters
+blast_radius: briefs
 ---
 
 # Packet: The scenario agent catches more before the maker starts: #119, with #110 and #111
 
-**Needs a decision (two people; solo here, so Sean):** the scenario agent's report can now exempt *any* protected file from the maker's `protected_changed` check, including `.xv/pitch.md`, `.xv/config.yml` and the slice's own `wall.json`, not only `.xv/picture.md`. That lets one agent license another to write the pitch with no stop (§2). The last pass's misses on 2a and 2b are met. For Sean as well: three picture edits (§4), one wall recommendation (§5), and two smaller findings (§4).
+**Back to the scenario (no stop):** amendment point 7 is met in the code but not in the words the maker reads. The protected-file check now exempts only `.xv/picture.md`. The maker's brief, its prompt, the scenario brief and the CHANGELOG line still say the maker may change *any* may-not file the report names. That includes `.xv/pitch.md` (see Scenario misses). The last pass's pitch stop is closed in the running system (§2). For Sean, separately: three picture edits (§4) and one slice-only removal (§3).
 
 ## The scenario
 
-Six points. (1) The scenario agent marks a one-time wording test slice-only. (2a) Its report names each old test the red forces to change. The maker may change a named test without stopping, and it records the move. (2b) Its report names each may-not file the red needs changed. The maker may change those files and no other file on that list, and the guardian lists those changes. (3) A red case for each way a value can be wrong, plus a case where a read-only agent claims what only a person may give. (4) Each amendment the watch drafts names four things. (5) A `covers` item may name a point by number. (6) A CHANGELOG line for each brief change.
+Six points and three amended ones. (1) The scenario agent marks a one-time wording test slice-only. (2a) Its report names each old test the red forces to change. The maker may change a named test without stopping and records the move. (2b) Its report names may-not files the red needs changed, and the guardian lists those changes. (3) A red case for each way a value can be wrong, plus a case where a read-only agent claims what only a person may give. (4) Each amendment the watch drafts names four things. (5) A `covers` item may name a point by number. (6) A CHANGELOG line for each brief change. Amended by Sean at the pitch stop: (7) from the may-not list the maker may change only `.xv/picture.md`, when the report names it, and any other named file still raises `protected_changed`. (8) Each scenario report sets `old_tests_forced` and `may_not_files` again. (9) A number in `covers` names only the scenario's own point.
 May ignore: the cleaner; naming an amendment's points by number; old slice records.
 
 ## The recording
 
-None (a feature). Replay the red: `cd tests && python3 -m unittest test_briefs_picture.ScenarioCatchesTest test_run.NamedByTheScenarioReachTheMakerTest test_run.WatchLoopTest.test_a_covers_item_that_is_a_points_number_covers_it test_run.WatchLoopTest.test_a_covers_item_that_starts_with_the_number_covers_the_point test_run.WatchLoopTest.test_a_number_covers_only_its_own_point test_run.WatchLoopTest.test_the_number_one_does_not_cover_point_ten test_run.WatchLoopTest.test_a_number_item_in_not_covered_still_stops_for_the_person`. Before: 21 of 27 failed (record `checks.scenario.red_output`). After: 27 OK (the guardian ran it on HEAD d282998). The maker and the cleaner each ran the whole suite: 902 OK (record `checks.maker`, `checks.cleaner`).
+None (a feature). Replay the red: `cd tests && python3 -m unittest test_run.NamedByTheScenarioReachTheMakerTest test_run.WatchLoopTest test_briefs_picture`. I ran it at HEAD `a413801`: `Ran 129 tests … OK`. The whole suite was green at the cleaner's pass (925 tests, record `checks.cleaner.suite`); I did not rerun it.
 
 ## The boundary picture
 
-From `.xv/slices/2026-11-04-scenario-catches.boundary.md`, used as given. Touched: `scripts/prompt`, `scripts/record`, `scripts/run`. No modules or edges were added or removed. No new calls leave the process. There are no shape hints.
+From `xv boundary` (`.xv/slices/2026-11-04-scenario-catches.boundary.md`): touched `scripts/prompt`, `scripts/record`, `scripts/run`. No modules, edges, outbound calls, tables or surface paths added or removed. Shape hints: none.
 
 ## What the suite asserts after
 
-- `ScenarioCatchesTest` (11 tests, `tests/test_briefs_picture.py:126-188`): the scenario, maker, guardian and watch briefs and `CHANGELOG.md` contain the words of points 1–4 and 6.
-- `NamedByTheScenarioReachTheMakerTest` (11 tests, `tests/test_run.py:941-1024`):
-  - A scenario report's `old_tests_forced` and `may_not_files` are kept in the record.
-  - An entry with a field that is missing, empty or of the wrong type is dropped, and so is a value that is not a list.
-  - The same keys in a maker's report are dropped.
-  - The maker's prompt shows the named tests and files, and the cleaner's prompt does not.
-  - A named `.xv/picture.md` changed by the maker is not `protected_changed`. An unnamed file, a malformed name, or `.xv/rules.md` next to a named picture still is.
-- Five `WatchLoopTest` tests (`tests/test_run.py:492-522`):
-  - `"1"` or `"1. Whether a miss repeats"` covers point 1.
-  - `"1"` does not cover point 2 or point 10.
-  - A number in `not_covered` still stops for the person.
-- No old assertion moved.
+- `record.apply_report` keeps a scenario report's `old_tests_forced` (file, test, why) and `may_not_files` (file, why). It drops entries that are malformed, empty or of the wrong type, and values that are not lists. It keeps neither list from a maker's report. A scenario report that leaves a list out clears it (`tests/test_run.py` `NamedByTheScenarioReachTheMakerTest`).
+- The maker's prompt lists the named tests and files. The cleaner's prompt does not.
+- After the maker, a named `.xv/picture.md` is not `protected_changed`. Naming `.xv/pitch.md`, `.xv/config.yml`, `.xv/rules.md` or the slice's wall file still is, and so is a malformed name.
+- A `covers` item `"1"` or `"1. …"` covers scenario point 1 only. It does not cover point 10 or any point an amendment adds, even one with the same number. A number in `not_covered` still stops (`WatchLoopTest`).
+- Brief-wording tests (`tests/test_briefs_picture.py` `ScenarioCatchesTest`) check that the scenario, maker, guardian and watch briefs carry rules 1–4.
+- No old assertion moved. One in-slice test was removed as slice-only (§3).
 
 ## 1. Shape
 
-shape_change: no.
-- The boundary picture shows no added modules, edges, tables or surfaces, and no hints (`.xv/slices/2026-11-04-scenario-catches.boundary.md:7`, `:12`, `:18`).
-- The record gains two front-matter keys, `old_tests_forced` and `may_not_files` (`scripts/record.py:482-485`). They sit beside the `slice_only` key the picture already describes (`.xv/picture.md:23`), in the same file state (`.xv/picture.md:26`). That is inside the current shape.
-- The prompt and post-step edits (`scripts/prompt.py:113-117`, `scripts/run.py:428-432`) stay inside functions that already existed.
-
-shape_breadth: narrow, which matches the forecast's `narrow`. The forecast's breadth list names "the maker's may-not handling", which is where the `record`/`prompt`/`run` edits land.
+shape_change: no. The boundary picture adds no module, edge, outbound call, table or surface, and it has no shape hints (`.xv/slices/2026-11-04-scenario-catches.boundary.md`, "Shape hints: none"). The new record keys `old_tests_forced` and `may_not_files` (`scripts/record.py:482-486`) are front-matter fields in a file the picture already names as state (`.xv/picture.md:26`, "State is files: `.xv/slices/<id>.md`"). shape_breadth: narrow, the same as the forecast's `shape: narrow`. The forecast's breadth did not name `record.py` or `prompt.py`. Those came from the guardian's 2a/2b send-back, and each changes five lines.
 
 ## 2. Pitch
 
-pitch_contradiction: yes. `.xv/pitch.md:11`: "An agent may tidy it; it may not write it. It changes when a second person agrees, and the change is written down in `.xv/decisions/`."
-
-How the change opens that up:
-- The maker's protected list includes the pitch: `scripts/run.py:424-425`, `protected = [... config.yml, slices/<id>.wall.json, pitch.md, picture.md, estimation.md, rules.md]`.
-- The new exemption takes any file the record's `may_not_files` names: `scripts/run.py:430-432`, `named = {e["file"] for e in data.get("may_not_files") ...}` and `... f not in named]`.
-- `may_not_files` comes only from the scenario agent's report (`scripts/record.py:482-485`). No check limits it to `.xv/picture.md`, and no person's answer is needed.
-- The maker brief says the same: "you may change a file the report names, and no other file on this list" (`skills/maker/SKILL.md:54`). That list includes `.xv/pitch.md`.
-
-So when the scenario agent names `.xv/pitch.md`, the maker can write the pitch, and the stop that used to catch it (`protected_changed`) no longer fires. A person would see it only through this packet's listing and the merge answer.
-
-The same path reaches `.xv/config.yml` (the test command and allowed tools) and `.xv/slices/<id>.wall.json` (the wall baseline). Those are not pitch matters, but they come through the same opening.
-
-Scenario point 2b asks for "those files" on the may-not list, with `.xv/picture.md` only as an example. Meeting it narrowly, with only the picture or only files a person accepted, may need an amendment. Sean's call.
+pitch_contradiction: no. The promise is `.xv/pitch.md:11`: "An agent may tidy it; it may not write it." The running system keeps that promise. `scripts/run.py:430-433` exempts only `.xv/picture.md` from `protected_changed`, and `test_naming_the_pitch_does_not_let_the_maker_change_it` holds it. The maker's words still invite it to write the pitch when the report names it (`skills/maker/SKILL.md:54`, `scripts/prompt.py:117`). The stop catches that after the edit. It is a miss of amendment point 7, not a contradiction.
 
 ## 3. Moved tests
 
-| File | Before | After | Why (the maker's record) | Forced by the scenario? |
+| File | Before | After | Why (the record) | Forced by the scenario? |
 | --- | --- | --- | --- | --- |
-| none | | | | |
+| tests/test_briefs_picture.py | `test_the_changelog_has_a_line_for_each_brief_change` checked the `## Unreleased` CHANGELOG lines | removed (40 → 37 assertions, `xv wall diff`) | cleaner: "Slice-only: checks a one-time CHANGELOG line and reads only ## Unreleased, so it fails at the next release." | Yes, by point 1. The test was added in this slice: it is not at the base (`git show a6e023b:tests/test_briefs_picture.py` has no `changelog`), and Sean accepted the slice-only mark at the 2026-11-05T00:23 stop. |
 
-`xv wall diff 2026-11-04-scenario-catches` shows `changed: [] deleted: [] fewer_assertions: []`, and the record has `moved_tests: []`. The test diff only adds lines.
-
-May-not file changes that the scenario report allowed: none. The record has no `may_not_files` key, so the last scenario report named none. Also `checks.maker.protected_changed: []` and `checks.cleaner.protected_changed: []`, and the diff touches no file under `.xv/` other than this slice's own files.
-
-Slice-only tests removed: none. Kept: none (the record has `slice_only: []`).
+Slice-only tests removed: `tests/test_briefs_picture.py::test_the_changelog_has_a_line_for_each_brief_change`. Kept: none.
+The assertion count fell, but the move is recorded and is not unrecorded (`checks.cleaner.wall`: `recorded`, `unrecorded: []`). The scenario agent named no old test as forced to change.
+May-not file changes the report allowed: none. The diff does not touch `.xv/picture.md`, and the record holds no `may_not_files`.
 
 ## 4. The picture
 
-Proposed edits (Sean accepts them):
-- **`.xv/picture.md:35`** says "The maker and the scenario agent … do not edit it [the picture] … Accepting a picture change is a person's." This is now untrue: the maker edits the picture when the scenario report names it (`skills/maker/SKILL.md:54`, `scripts/run.py:430-432`). Rewrite it as: "The maker may edit a may-not file the scenario report names in `may_not_files`; the guardian lists the edit in the packet; accepting it is still a person's." Narrow the wording to match however §2 is settled.
-- **`.xv/picture.md:23`**, at `record`: add "The record keeps a scenario report's `old_tests_forced` and `may_not_files` (entries with non-empty string fields only); `xv prompt` shows them to the maker alone." (`scripts/record.py:482-485`, `scripts/prompt.py:113-117`.)
-- **`.xv/picture.md:26`**, at the covers check and at `protected_changed`:
-  - Add: "A `covers` or `not_covered` item may name a point by its number, `"1"` or an item that starts with the number."
-  - Add: "For the maker, a file the record's `may_not_files` names is not `protected_changed`." (`scripts/run.py:521-525`, `scripts/run.py:428-432`.)
-
-Two smaller findings for Sean (not misses):
-- **A number covers amendment points too.** `scripts/run.py:521-525` tests `num not in numbers` against every `POINT` between `## Scenario` and `## May ignore`. `xv slice amend` writes amendments into that same range (`scripts/run.py:279-284`). So one `"1"` covers both the scenario's point 1 and an amendment's point 1. The record's May ignore line says "point 5 covers only the scenario's own points". The red's own fixtures place their points through `self.amend` (`tests/test_run.py:493`), so the tests rely on this.
-- **A license can outlive its pass.** `scripts/record.py:482-485` replaces the lists only when a scenario report carries them as a list. A later scenario report that leaves out `may_not_files` keeps the earlier license in force. The brief asks for `[]` when there are none (`skills/scenario/SKILL.md:66`), but nothing enforces that.
+- `.xv/picture.md:35`: "The maker and the scenario agent read the picture … they do not edit it." This is now untrue for the maker. Proposed: "The maker may edit `.xv/picture.md` only when the scenario agent's report names it in `may_not_files`. `run.post_step` exempts no other protected file. The guardian lists the edit, and a person still accepts it at merge."
+- `.xv/picture.md:23` (`record` owns the slice record): add "`apply_report` keeps a scenario report's `old_tests_forced` and `may_not_files`. A report that leaves one out clears it. `prompt` shows both to the maker only."
+- `.xv/picture.md:26` (the covers check): add "A `covers` item that is a number, or starts with one, covers the scenario's own point with that number. An amendment's point is covered only by its words (`run.missed_points`, `scripts/run.py:522-531`)."
 
 ## 5. The wall
 
-- `tests/test_briefs_picture.py`, `ScenarioCatchesTest.test_the_changelog_has_a_line_for_each_brief_change`: mark it slice-only. It checks a one-time CHANGELOG line, which point 1 calls "always a `slice_only` test" (`skills/scenario/SKILL.md:28`). It also reads only `## Unreleased` (`tests/test_briefs_picture.py:182-188`), so it fails at the next release. (Already in the record's `wall_recommendations`, `accepted: false`.)
+I looked at the 9 new `WatchLoopTest` cases, the 20 `NamedByTheScenarioReachTheMakerTest` cases, the 10 `ScenarioCatchesTest` cases, and the one removal.
+- `tests/test_briefs_picture.py` `test_the_changelog_has_a_line_for_each_brief_change`: stay off the wall. It checks a one-time CHANGELOG line, which point 1 makes slice-only. It was removed as a recorded slice-only move (record `slice_only`, `moved_tests`).
+Every other new test guards a lasting rule. No test that was on the wall before the slice is dead.
 
 ## Scenario misses
 
-None. Last pass's 2a and 2b are met. For 2a, the record keeps `old_tests_forced` (`scripts/record.py:482`), and the maker's prompt shows each named test (`scripts/prompt.py:114`). For 2b, the record keeps `may_not_files`, and a named file is exempt from the maker's `protected_changed` while other protected files are not (`scripts/run.py:432`; `tests/test_run.py:1014`).
-
-Points 1, 3, 4 and 6 are in the briefs and the CHANGELOG (`skills/scenario/SKILL.md:28,33`, `skills/watch/SKILL.md:50`, `CHANGELOG.md:7`). Point 5 is `scripts/run.py:521-525`. Point 3's case of an agent writing about itself is tested for the maker (`test_a_maker_that_writes_the_lists_about_itself_does_not_get_them_kept`).
+- 7 (amendment of 2026-11-04, "From the maker's may-not list, the maker may change only `.xv/picture.md`"; decision `.xv/decisions/2026-11-04-2026-11-04-scenario-catches.md:16`): the code meets it, but the agents' words do not. Four places still say what point 2b said before Sean narrowed it. `skills/maker/SKILL.md:54` says "you may change a file the report names, and no other file on this list", and that list includes `.xv/pitch.md`. `skills/scenario/SKILL.md:32` (6d) says "The maker may change those files and no other file on that list". `scripts/prompt.py:116-117` prints "Named file you may change: {file}" for every named file, `.xv/pitch.md` included. `CHANGELOG.md:7` says "The maker may change … a named may-not file". A maker that follows its brief edits the pitch and is then stopped as `protected_changed`. (evidence: those hunks; `test_the_maker_may_change_a_named_may_not_file_and_no_other` passes on the old wording, and `test_the_makers_prompt_lists_the_named_tests_and_files` names only the picture, so no red test checks that a non-picture name is withheld in the words; to: scenario)
 
 ## Door
 
-**Door:** two-way. The change is brief text, two record keys, one prompt block and one check exemption. No data is migrated and nothing is sent to users, so a revert undoes it. **Blast radius:** adopters (the briefs and `scripts/` reach every adopting repo).
+**Door:** two-way (a revert undoes it; no data migrated, nothing published). **Blast radius:** briefs.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-11-04-scenario-catches.md`
-- Diff: `git diff a6e023bd0ffeed4f6ce45990c668742a8f758419..d282998`
+- Diff: `git diff a6e023bd0ffeed4f6ce45990c668742a8f758419..a413801`
 - Wall: `xv wall diff 2026-11-04-scenario-catches`
-- Boundary: `.xv/slices/2026-11-04-scenario-catches.boundary.md`
+- Boundary: `xv boundary --base a6e023bd0ffeed4f6ce45990c668742a8f758419`
+- Decision: `.xv/decisions/2026-11-04-2026-11-04-scenario-catches.md`
