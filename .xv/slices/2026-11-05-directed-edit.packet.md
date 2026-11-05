@@ -12,25 +12,19 @@ door: two-way
 blast_radius: watch
 ---
 
-# Packet: The watch makes a directed change the person approved (#132), fifth pass
+# Packet: The watch makes a directed change the person approved (#132), sixth pass
 
-Needs a decision: none from two people. The shape is still the one the decision record accepted. There are no scenario misses, and no new wall recommendations.
+Needs a decision: none from two people. The shape is still the one the decision record accepted. There are no scenario misses and no wall recommendations. The merge is Sean's.
 
 For Sean (not a stop):
-- Fix A in `75c8e31` (the offer checks the slice's worktree) has no test. The brief and the CHANGELOG now state it as a rule (check 3, finding C).
-- The picture edits you accepted still stand. This pass adds one line to them (check 4).
+- The fifth packet's finding C is closed. Fix A now has a test (check 3).
+- The picture edits from the fifth packet still stand, unchanged (check 4).
 
-## What changed since the fourth pass
+## What changed since the fifth pass
 
-Only Sean's commit `75c8e31` and the uncommitted record update (status, budget, three log lines) changed. `git show 75c8e31 --stat` lists:
-- `scripts/record.py`: 2 lines.
-- `skills/watch/SKILL.md`: 1 line.
-- `CHANGELOG.md`: 1 line.
-- The record: two log lines.
-
-Both of the fourth packet's findings for Sean are closed:
-- **A, closed.** `scripts/record.py` `@@ -412,8 +412,8 @@`: `-    root = repo_root()` becomes `+    root = slice_root(path)`, and `check_edit(root, ...)` (`scripts/record.py:420`) now reads the file in the record's checkout. This matches the answer's `edit_root = slice_root(path)` (`scripts/record.py:490`). `root` is used for nothing else in `cmd_offer`.
-- **B, closed.** `skills/watch/SKILL.md` `@@ -45,7 +45,7 @@` adds "A `test-rename` to a name the file already uses. The offer and the answer both work in the slice's worktree, wherever they are run from." The `#132` line in `CHANGELOG.md` `@@ -4,7 +4,7 @@` adds the same two points.
+- `653419c` (red) adds one test, `tests/test_record.py` `@@ -2076,6 +2076,22 @@`: `test_an_offer_run_from_the_main_checkout_checks_the_file_in_the_slices_worktree`. It also updates the wall baseline to `c127857` (`test_record.py` 386 → 389 assertions).
+- The record adds amendment 5 (`.xv/slices/2026-11-05-directed-edit.md:79-81`) and settles the scenario stop.
+- No source, brief or CHANGELOG line changed. `git diff c127857..HEAD -- scripts skills CHANGELOG.md` is empty.
 
 ## The scenario
 
@@ -41,7 +35,7 @@ A stop option can carry one directed edit, as exact old and new text that the pe
 - It runs the suite and the orders, and writes a stop through `apply_verdict`.
 - After the guardian, it adds a line to the packet in the same commit.
 
-The four amendments add these:
+Amendments 1 to 4 add these:
 - `scripts/suite.py`.
 - `doc` refuses `.xv/` and `SKILL.md`.
 - An edit may not hold a blank line.
@@ -50,11 +44,15 @@ The four amendments add these:
 - The packet line names no commit.
 - The answer works in the slice's worktree.
 
+Amendment 5 adds that `xv record offer` checks the edit against the file in the slice's worktree, wherever it is run from.
+
 May ignore: retiring a wall test (#120), a doc line that also needs a test, and edits outside the four kinds.
 
 ## The recording
 
-None, because this is a feature. To replay, run `cd tests && python3 -m unittest test_record.DirectedEditTest`. At HEAD `75c8e31` it ran 44 tests, OK. The whole suite (`python3 tests/run.py --jobs 4`) ran 836 tests, OK.
+None, because this is a feature. To replay, run `cd tests && python3 -m unittest test_record.DirectedEditTest`. At HEAD `653419c` it ran 45 tests, OK. The whole suite (`python3 tests/run.py --jobs 4`) ran 837 tests, OK.
+
+The settled answer to `scenario_stopped` records the red's before and after: the new test fails with the old line (`root = repo_root()`) and passes with `75c8e31`. I did not re-run it against the old line, because the guardian may not edit code.
 
 ## The boundary picture
 
@@ -63,11 +61,16 @@ From `.xv/slices/2026-11-05-directed-edit.boundary.md`, as given:
 - Edges added: `scripts/record → scripts/suite` and `scripts/run → scripts/suite`. None removed.
 - Tables, surface paths and outbound calls: none.
 
-`75c8e31` adds no import, module or edge.
+`653419c` touches only a test file and the record.
 
 ## What the suite asserts after
 
-`DirectedEditTest` (`tests/test_record.py:1474` onward) asserts the same things as in the fourth pass. `75c8e31` changes no test. Every offer in `DirectedEditTest` still runs from the worktree (`tests/test_record.py:1520-1523`, `cwd=self.wt`). Only the answer has a test run from the main checkout (`tests/test_record.py:2059`).
+`DirectedEditTest` asserts what it asserted in the fifth pass, plus one new test (`tests/test_record.py:2079-2093`). The test does the following:
+- It commits `tests/test_only_here.py` on the slice branch.
+- It asserts that the file is absent from the main checkout.
+- It runs `xv record offer` with a `test-rename` from the main checkout (`cwd=self.repo`).
+- It asserts that the offer exits 0 and that the stop has two options.
+- It picks option 1 and asserts the renamed `def` is in the worktree's file.
 
 ## 1. Shape
 
@@ -75,62 +78,56 @@ shape_change: accepted, by `.xv/decisions/2026-11-05-2026-11-05-directed-edit.md
 
 - **Hint "a module was added" (`scripts/suite`).** It changes the shape, and the decision accepted it.
 - **Hint "an edge between modules was added" (`record → suite`, `run → suite`).** It changes the shape, and the decision accepted it.
-- **`75c8e31` stays inside it.** The `scripts/record.py` hunk `@@ -412,8 +412,8 @@` swaps one function call (`repo_root()` for `slice_root(path)`). Both come from `xvlib`, which `record` already imported.
+- **`653419c` stays inside it.** It changes only `tests/test_record.py` and the record (`git show --stat 653419c`).
 
 ## 2. Pitch
 
-pitch_contradiction: no. The lines checked are unchanged from the fourth pass:
+pitch_contradiction: no. The lines checked are unchanged from the fifth pass:
 - `.xv/pitch.md:7`, "to vibe with discipline". The edit carries only the person's approved words.
 - `.xv/pitch.md:11`, where the pitch changes when a second person agrees. `doc` refuses `.xv/` (`scripts/record.py:376`).
 - `.xv/pitch.md:25`, "not for people or projects that will not trust agents".
 
-`75c8e31` touches none of these.
+`653419c` adds a test, and none of these lines bears on it.
 
 ## 3. Moved tests
 
-| File | Before | After | Why (the record) | Forced by the scenario? |
+| File | Before | After | Why (the maker's record) | Forced by the scenario? |
 | --- | --- | --- | --- | --- |
 | `tests/test_record.py` | `test_the_changelog_names_the_directed_edit`: `#132` is under `## Unreleased` | removed | slice-only, accepted by Sean | No. It is a slice-only removal |
 | `tests/test_record.py` | `test_the_changelog_line_names_every_refusal_and_the_suite_module`: the `#132` line names every refusal | removed | slice-only, accepted by Sean | No. It is a slice-only removal |
 
-**Slice-only removals:** both are removed, and none is kept.
+Slice-only tests removed: `test_the_changelog_names_the_directed_edit`, `test_the_changelog_line_names_every_refusal_and_the_suite_module`. Kept: none.
 
-`xv wall diff` (baseline `23c54ff`) still shows `tests/test_record.py` going from 386 to 385 assertions. That is the second row, and it has no other cause. `75c8e31` changes no test file. `may_not_files` is empty.
+`xv wall diff 2026-11-05-directed-edit` against the new baseline `c127857` shows nothing changed, deleted or with fewer assertions. The baseline moved at the red, from `23c54ff` (386) to `c127857` (389) (`.xv/slices/2026-11-05-directed-edit.wall.json` `@@ -46,7 +46,7 @@`). The 3 extra assertions are the new test's. No old test changed in `653419c`. `may_not_files` is empty.
 
-**Finding C, for Sean.** Fix A has no test. The brief and the CHANGELOG now state it as a rule.
-- Evidence: `skills/watch/SKILL.md` `@@ -45,7 +45,7 @@`, "+The offer and the answer both work in the slice's worktree, wherever they are run from." The test for the offer helper runs it with `cwd=self.wt` (`tests/test_record.py:1520-1523`). The only main-checkout test, `test_an_answer_run_from_the_main_checkout_edits_tests_and_commits_in_the_slices_worktree` (`tests/test_record.py:2059-2076`), also runs its `self.offer(*self.RENAME)` from the worktree.
-- Failure if reverted: if `root = repo_root()` came back at `scripts/record.py:415`, the suite would stay green. An offer from the main checkout of a rename that exists only on the slice branch would again be refused as "found 0 times".
-- This is not a scenario miss. Amendment 4, item 3 (`.xv/slices/2026-11-05-directed-edit.md:77`) names only `xv record answer --pick`. The rule for the offer is a brief and CHANGELOG line that Sean wrote.
+**Finding C, closed.** The fifth packet said fix A had no test. Now `tests/test_record.py:2087-2089` runs the offer with `cwd=self.repo` on a test that exists only on the slice branch (`:2083`, `assertFalse(os.path.exists(...self.repo...))`). The settled answer records that this test fails with `root = repo_root()` and passes with `scripts/record.py:415` `root = slice_root(path)`.
 
 ## 4. The picture
 
-The edits Sean accepted from the fourth packet still stand:
+`.xv/picture.md` is not in the slice's diff, so the fifth packet's proposed edits still stand as written:
 - `.xv/picture.md:21`: 25 modules, 22 in `scripts/`, 65 edges, and "`record` and `run` reach `suite`".
-- `.xv/picture.md:23`: what `suite` does, what the offer and the answer do with a directed edit, and that `xv record answer` is a caller of `apply_verdict` (`scripts/record.py:574`).
+- `.xv/picture.md:23`: what `suite` does, and what the offer and the answer do with a directed edit. Both read and edit the file in the slice's worktree, wherever they are run from (`scripts/record.py:415`, `:490`). Also, `xv record answer` is a caller of `apply_verdict` (`scripts/record.py:574`).
 - `.xv/picture.md:27`: a directed test edit records a move by the person (`scripts/record.py:566`).
 - `.xv/picture.md:36`: this is not a directed `doc` edit, because `doc` refuses `.xv/`.
 - `.xv/picture.md:43`: an option may carry one directed edit.
 
-One addition from `75c8e31`. In the `.xv/picture.md:23` line on the offer, say that both `xv record offer` and `xv record answer --pick` read and edit the file in the slice's worktree, wherever they are run from (`scripts/record.py:415`, `root = slice_root(path)`; `:490`).
-
-Binding decisions: `.xv/picture.md:64` (1) holds for `75c8e31`. It changes the watch's brief and has a `CHANGELOG.md` line, decided by Sean, solo. I found nothing else in `.xv/picture.md:64-78` that the commit touches.
+`653419c` adds nothing to these. Binding decisions: `.xv/picture.md:64-78`. A test-only commit touches none of them.
 
 ## 5. The wall
 
-No new recommendations. The two slice-only tests are already accepted off the wall (record `wall_recommendations`, both `accepted: true`). `75c8e31` adds or removes no test.
-
-## Scenario misses
-
-None. `75c8e31` changes no line a scenario point or amendment governs, apart from the offer's root. The scenario does not name that. The fourth pass's check of points 1 to 6 and amendments 1 to 4 against the red still holds: the red is 44 tests, OK, at `75c8e31`.
+No recommendations. What I looked at:
+- The new test `test_an_offer_run_from_the_main_checkout_checks_the_file_in_the_slices_worktree` is not marked slice-only. It guards behaviour that amendment 5 names (`.xv/slices/2026-11-05-directed-edit.md:81`), so it joins the wall as it is.
+- The two slice-only tests are already accepted off the wall (record `slice_only`, both `accepted: true`).
+- No wall test is made dead.
 
 ## Door
 
-**Door:** two-way. A revert removes the flags, the commit path and `scripts/suite.py`. The slice makes no directed edit itself. **Blast radius:** watch. `skills/watch/SKILL.md` and `xv record` reach every adopter once released.
+**Door:** two-way. A revert removes the flags, the commit path, `scripts/suite.py` and the tests. The slice makes no directed edit itself. **Blast radius:** watch. `skills/watch/SKILL.md` and `xv record` reach every adopter once released.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-11-05-directed-edit.md`
 - Decision: `.xv/decisions/2026-11-05-2026-11-05-directed-edit.md`
-- Diff: `git diff 5d5e75fc7a7371d74a3884cfbae919785adbb4e7..HEAD`. This pass: `git show 75c8e31`.
+- Diff: `git diff 5d5e75fc7a7371d74a3884cfbae919785adbb4e7..HEAD`. This pass: `git show 653419c`.
 - Wall: `xv wall diff 2026-11-05-directed-edit`
 - Boundary: `.xv/slices/2026-11-05-directed-edit.boundary.md`
