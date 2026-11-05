@@ -99,6 +99,36 @@ class OrdersTest(unittest.TestCase):
         d["checks"]["guardian"] = {"picture_change": "yes"}
         self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
 
+    def test_a_refactor_slice_with_a_red_suite_at_the_start_stops_the_originator(self):
+        d = with_report(rec(kind="refactor"), "scenario", "done")
+        d["checks"]["scenario"] = {"suite": "red"}
+        s = self.stop(d, "scenario")
+        self.assertEqual((s["order"], s["seat"]), ("suite_not_green_at_start", "originator"))
+
+    def test_a_refactor_slice_with_a_green_suite_at_the_start_goes_on(self):
+        d = with_report(rec(kind="refactor"), "scenario", "done")
+        d["checks"]["scenario"] = {"suite": "green"}
+        self.assertIsNone(self.stop(d, "scenario"))
+
+    def test_a_feature_slice_is_not_held_to_a_green_suite_by_the_refactor_stop(self):
+        d = with_report(rec(kind="feature"), "scenario", "red")
+        d["checks"]["scenario"] = {"suite": "red", "red_fails": True}
+        fired = [f["order"] for f in orders.verdict(d, "scenario", DEFAULT_CONFIG)["fired"]]
+        self.assertNotIn("suite_not_green_at_start", fired)
+
+    def test_expected_moves_alone_do_not_stop_for_accept_moves(self):
+        d = with_report(rec(shape_change="no", pitch_contradiction="no",
+                            moved_tests=[{"file": "tests/a.py", "expected": True}]), "guardian")
+        d["checks"]["guardian"] = {}
+        self.assertEqual(self.stop(d, "guardian")["order"], "ready_to_merge")
+
+    def test_an_expected_move_beside_a_plain_move_still_fires_accept_moves(self):
+        d = with_report(rec(shape_change="no", pitch_contradiction="no",
+                            moved_tests=[{"file": "tests/a.py", "expected": True},
+                                         {"file": "tests/b.py"}]), "guardian")
+        d["checks"]["guardian"] = {}
+        self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
+
     def test_green_and_nothing_stopped_the_merge_is_theirs(self):
         d = with_report(rec(shape_change="no", pitch_contradiction="no"), "guardian")
         d["checks"]["guardian"] = {}
