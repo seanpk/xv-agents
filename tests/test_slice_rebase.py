@@ -37,7 +37,7 @@ class SliceRebaseTest(RepoCase):
         sh(["git", "add", "-A"], self.wt)
         sh(["git", "commit", "-qm", "budget"], self.wt)
         self.log = os.path.join(self.tmp, "prompts.log")
-        patch = mock.patch.dict(os.environ, {"FAKE_PROMPT_LOG": self.log, "FAKE_REBASE_MODE": "clean"})
+        patch = mock.patch.dict(os.environ, {"FAKE_PROMPT_LOG": self.log})
         patch.start()
         self.addCleanup(patch.stop)
 
@@ -91,7 +91,8 @@ class SliceRebaseTest(RepoCase):
         sh(["git", "commit", "-qm", "leftovers", "--allow-empty"], self.wt)
 
     def rebase(self, *args, **env):
-        with mock.patch.dict(os.environ, {k: v for k, v in env.items()}):
+        env = {"FAKE_REBASE_MODE": "clean", **env}  # the stand-in maker is told what to do only for the rebase
+        with mock.patch.dict(os.environ, env):
             return self.xv("slice", "rebase", "s1", *args, cwd=self.wt, check=False)
 
     def assert_a_stop_for_the_originator(self, p):
@@ -343,8 +344,10 @@ class SliceRebaseTest(RepoCase):
         self.assertFalse(self.in_progress())
 
     def test_abort_puts_the_branch_and_the_record_back_as_they_were(self):
+        self.on_slice("tests/test_shared.py", "A = 1\n", "slice adds a test")
+        self.on_main("tests/test_shared.py", "B = 2\n", "main adds a test")
         head, rec = rev(self.wt), open(os.path.join(self.wt, ".xv", "slices", "s1.md")).read()
-        self.conflict_in_a_test_file()
+        self.rebase()
         self.assertTrue(self.in_progress())
         p = self.rebase("--abort")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
