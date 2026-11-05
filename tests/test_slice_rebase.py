@@ -795,7 +795,7 @@ class SliceRebaseTest(RepoCase):
         p = self.rebase("--continue")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertFalse(self.in_progress())
-        self.assertIn('note: "b"', self.read(self.wt, ".xv/slices/s1.md"))
+        self.assertEqual(self.record()["note"], "b")
         self.assertEqual(self.record()["base"], self.new)
 
     def test_the_rebase_makers_brief_reads_the_saved_record_not_the_one_git_replays(self):
