@@ -25,6 +25,7 @@ For each candidate:
    - **A change to a brief, a may-not list, or a standing order** is not yours to propose as a rule. Name it as a question for two people.
 3. **Adopt before you invent.** Before you propose a new standard or rule, run `xv promote search <a few words from the miss>`. It lists the open learning issues other repos have shared. If one fits this miss, compare its examples with this miss, and propose `kind: adopt` with `- adopts: <repo>#<n>` and `- into: standards` or `rules`. Adopting links the local entry to the shared issue and adds this repo's sighting, after a person approves it.
 4. **Write the rule without project names or concrete traces** where it can be abstract, and keep the concrete trace in the `miss` line.
+   - **A module reworked again and again** gets a candidate with `kind: refactor`, when your prompt names one: `Module <name> was reworked`. Tie it to the slices' `maker_sendbacks` field. A person runs `xv slice new --kind refactor`; accept opens nothing.
 5. **Retire.** From `xv retro counts`, list each rule the counts flag for probation, with its numbers. Retiring a check that guards a stop is for two people; say so.
 
 Fewer candidates is better. Three good ones beat ten generic ones. "Write clearer code" is not a candidate.
@@ -41,7 +42,7 @@ The retro packet at the path your prompt names, in this shape, one block per can
 
 ```
 ### <n>. <the rule or check, one line>
-- kind: check | standard | rule | adopt | open | retire | for two people
+- kind: check | standard | rule | adopt | open | retire | refactor | for two people
 - from: <slice id>, <field or log line>
 - miss: <what happened, concretely>
 - check: <for a check: what it checks, red on the miss, green on the suite>

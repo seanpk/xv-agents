@@ -1158,6 +1158,9 @@ def close(slice_id, why=None, shape=None):
     if s:
         data["spend"].append(s)  # after the guide row: the close itself is not the slice's work
     data["status"], data["next"] = "closed", "none"
+    import boundary as b
+    data["modules_touched"] = b.change(root, data.get("base") or "HEAD", config)["touched"]
+    data["maker_sendbacks"] = sum(1 for s in data["stops"] if s.get("answer") == "sent back to the maker")
     body = record.log_line(body, "watch", "closed" + ("" if p.returncode == 0 else f"; guide: {p.stderr.strip()}"))
     record.save(path, data, body)
     commit(root, f"xv({slice_id}): close")

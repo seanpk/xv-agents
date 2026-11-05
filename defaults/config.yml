@@ -66,6 +66,9 @@ limits:
   max_diff_lines: 0
   # A rule that people override more often than this is proposed for retirement.
   override_rate: 0.25
+  # A retro is due when this many closed slices since the last retro touched the same module and
+  # each went back to the maker at least once. 0: off.
+  rework_slices: 3
 
 # Where the listener gathers the packet from production. Leave it out until the
 # repo has users. Tokens come from the environment, never from this file.

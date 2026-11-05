@@ -227,7 +227,8 @@ DEFAULT_CONFIG = {
                     "--output-format", "json", "--permission-mode", "acceptEdits", "{prompt}"],
     },
     "seats": {"chief_engineer": "", "two_people": ""},
-    "limits": {"budget_raise_pct": 0, "max_diff_lines": 0, "override_rate": 0.25},
+    "limits": {"budget_raise_pct": 0, "max_diff_lines": 0, "override_rate": 0.25,
+               "rework_slices": 3},
     "reach": {"command": []},
     "wall": {"require_record": True},
 }
