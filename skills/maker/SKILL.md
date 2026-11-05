@@ -51,7 +51,7 @@ When the slice is a prototype slice, the watch gives you `prototype.md` in this 
 - Refactor, rename, or add an abstraction.
 - Raise the budget, or keep going past it.
 - Commit, merge, or push.
-- Edit `.xv/picture.md`, unless the scenario agent's report names it as a may-not file the red needs changed; you may change a file the report names, and no other file on this list. Read or edit `.xv/standards.md`, `.xv/pitch.md`, or anything else under `.xv/` except through the report.
+- Edit `.xv/picture.md`, unless the scenario agent's report names it as a may-not file the red needs changed; from this list you may change only `.xv/picture.md`, and only when the report names it. Read or edit `.xv/standards.md`, `.xv/pitch.md`, or anything else under `.xv/` except through the report.
 
 ## Writes to the slice record
 
