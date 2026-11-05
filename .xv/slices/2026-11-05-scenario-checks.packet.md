@@ -2,10 +2,10 @@
 slice: 2026-11-05-scenario-checks
 shape_change: no
 pitch_contradiction: no
-scenario_miss: no
+scenario_miss: yes
 picture_change: yes
 shape_breadth: narrow
-moved_tests: 1
+moved_tests: 5
 expected_moves: 0
 door: two-way
 blast_radius: small
@@ -13,81 +13,84 @@ blast_radius: small
 
 # Packet: The checks after the scenario step stop less often for no reason: #120, #136, #140
 
-Nothing stops this for two people. Sean Kennedy, who set the work going, has three things to decide: the picture edits (check 4), one wall recommendation (check 5), and three findings under "For the person": what the scenario means by a "new" flag, `xv` at the base in an adopting repo, and a red command that cannot run from the repo root. The merge is Sean's.
+Nothing here stops the slice for two people. Two scenario misses send it back to the scenario agent. Both are about amendment points: point 11, a removed test that the record names with extra words, and point 9, an adopting repo that has its own `bin/` and `scripts/`. Both misses fail toward a stop, never toward a pass. After that, Sean has the picture edits (check 4) and two smaller notes under "For the person". The merge is Sean's.
+
+## Scenario misses
+
+- Point 11 ("A `covers` name for a slice-only test that the cleaner removed, as the record shows, does not stop the slice"). Evidence: `scripts/run.py:935` builds the removed names by splitting each cleaner move's `assertion` on `COVERS_SEPARATOR` and keeping the last part. This slice's own record has the cleaner's move with the assertion `"ChangelogPointsEightToElevenTest.test_the_unreleased_section_has_a_line_for_the_flags_the_adopting_repo_and_the_slice_only_files; removed"` (`.xv/slices/2026-11-05-scenario-checks.md:15`, the fifth move). Its last part is `test_…_slice_only_files; removed`, which never equals the covers name's last part. So on the next scenario pass, a kept or reported `covers` name for that test stops the slice with "no red file has that test". That is the false stop point 11 removes. The red only uses a bare assertion (`tests/test_run.py:1477`, `"assertion": test`). **to: scenario**.
+- Point 9 ("In a repo whose base does not hold xv's own source, points 3 and 8 check against the installed `xv`"). Evidence: `scripts/run.py:1008` runs `git archive <base> bin scripts` and falls back to the installed xv only when that fails. An adopting repo that has its own `bin/` and `scripts/` passes the archive step. The extracted tree then has no `bin/xv`, so `scripts/run.py:1023` exits non-zero and `xv_help_at_base` returns `None`. Every `xv` command and flag is then raised, as before this slice. The red covers only a base with no `scripts/` (`tests/test_run.py:1357`, `test_the_base_holds_no_xv_source`). **to: scenario**.
 
 ## The scenario
 
-When this is done: (1) a `covers` name may start with a red file's path and be split by `::`, `.`, `#`, `/` or ` > `, and it matches when each part after the path is a whole name in that red file, in order; (2) a `red_gaps` name a person accepted at a stop is not raised again on that slice; (3) `wall.red_gaps` does not raise an `xv` command whose words are already a subcommand at the base and that has no new flag; a new flag, or a command missing at the base, is still raised; (4) after a send-back to the scenario agent, coverage from earlier passes stays, so an empty `covers` does not stop the slice, and each kept name must still name a test that exists; (5) after `xv slice amend` on a refactor slice, only the amendment's points need `covers` or `not_covered`; (6) the scenario brief says each red test sets every stand-in setting it depends on, and a test checks for that sentence; (7) `CHANGELOG.md` has the lines. The slice may ignore old slice records.
+Points 1–7: a `covers` name may start with a red file's path and be split by `::`, `.`, `#`, `/` or ` > `. A `red_gaps` name a person accepted is not raised again. An `xv` command that exists at the base is not raised. Coverage from earlier passes stays after a send-back. A refactor amend needs only the amendment's points. The brief has a stand-in sentence. There is a CHANGELOG line. The 2026-11-05 amendment adds points 8–12: a flag the base's command already has is not raised (8). With no xv source at the base, the checks use the installed `xv` (9). `tests.slice_only_files` (default `CHANGELOG.md`) lets a mark be accepted with no stop and a log line, and a mark on any other file still stops (10). A `covers` name for a slice-only test the cleaner removed does not stop (11). A CHANGELOG line (12). The slice may ignore old slice records.
 
 ## The recording
 
-None; this is a feature. To replay the red and the green: `cd tests && python3 -m unittest test_run.ScenarioChecksTest test_run.ScenarioChecksAtTheBaseTest test_run.ScenarioPointsAfterAmendTest test_by_name`. At HEAD: 39 tests ran, OK (12.5 s). The red command as the record has it, run from the repo root, fails to import `helpers` (see "For the person").
+None; this is a feature. Replay: `cd tests && python3 -m unittest test_by_name test_run.ScenarioChecksTest test_run.ScenarioChecksAtTheBaseTest test_run.AtAnAdoptingReposBaseTest test_run.SliceOnlyFilesTest test_run.RemovedSliceOnlyTestInCoversTest test_run.ScenarioPointsAfterAmendTest`. At HEAD it ran 67 tests: OK, in 22.3 s. The earlier packet's finding about the red command (an import error from the repo root) is settled: the command now starts with `cd tests &&`.
 
 ## The boundary picture
 
-From `xv boundary` (`.xv/slices/2026-11-05-scenario-checks.boundary.md`), as given: modules touched: `scripts/run` and `scripts/wall`. No module added or removed. No edge added or removed. No new call out of the process. No tables. No surface path added or removed. Shape hints: none.
+From `xv boundary` (`.xv/slices/2026-11-05-scenario-checks.boundary.md`), as given. Modules touched: `scripts/record`, `scripts/run`, `scripts/wall`, `scripts/xvlib`. No module, edge, outbound call, table or surface path was added or removed. Shape hints: none.
 
 ## What the suite asserts after
 
-- The covers name forms: `path::Class.test`, `path::Class::test`, `Class#test`, `path#Class#test`, Go `TestX/sub` and Jest `x > Case > does y` (with spaces) go on to the maker. A later or middle part missing from the file stops. So do parts out of order, a path that is not a red file, an empty part, and a part that is only the front of a longer name (`tests/test_run.py`, `ScenarioChecksTest`).
-- Send-back: an empty `covers` after a send-back goes on. A point covered on the earlier pass stays covered. A kept name whose test is gone stops. An empty `covers` on the first pass, or after a send-back with nothing kept, still stops.
-- At the base: `xv slice amend` and `xv decisions` are not raised. A flag (`--rename`, `--expect-moves`), `xv ghost` and `xv slice ghost` are still raised. A gap a person accepted is not raised again. One they did not accept still is, including beside an accepted one (`ScenarioChecksAtTheBaseTest`).
-- A refactor slice with an amendment needs only the amendment's point. A feature slice still needs its own points (`ScenarioPointsAfterAmendTest`).
-- The scenario brief has the stand-in sentence (`tests/test_by_name.py`, `ByNameTest.test_the_scenario_brief_says_a_red_test_sets_every_stand_in_setting_its_result_depends_on`).
-- No old assertion moved. The only removal is the slice-only CHANGELOG test (check 3).
+- Covers name forms, send-back coverage, accepted gaps and refactor amend points: the same as the earlier packet (`ScenarioChecksTest`, `ScenarioPointsAfterAmendTest`).
+- At the base: `xv slice amend` and `xv decisions` are not raised. A flag the base's command has is not raised. A flag it lacks (`--priority` on `xv slice new`), `xv ghost` and `xv slice ghost` are still raised (`ScenarioChecksAtTheBaseTest`).
+- In a base with no `scripts/`, the installed `xv` decides the same things (`AtAnAdoptingReposBaseTest`).
+- A slice-only mark whose `checks` is on `tests.slice_only_files` is accepted, and the log says so. A mark on another file still stops. An agent's report cannot set `accepted` (`SliceOnlyFilesTest`).
+- A `covers` name for a slice-only test the cleaner removed does not stop, whether it is reported or kept (`RemovedSliceOnlyTestInCoversTest`).
+- The three `WatchLoopTest` word-order tests assert the same stop or go as before, on `xv slice ghost`.
 
 ## 1. Shape
 
-shape_change: no. shape_breadth: narrow. That matches the forecast's `"shape": "narrow"` in the record's front matter.
+shape_change: no. shape_breadth: narrow, the same as the forecast's `"shape": "narrow"` (record front matter).
 
-- The boundary picture adds no module, edge, table, outbound call or surface, and it gives no shape hints (`.xv/slices/2026-11-05-scenario-checks.boundary.md`, "Shape hints: none", "Edges: added: none").
-- `scripts/run.py:984-1004` (`xv_command_at_base`) is new. It runs `git archive <base> bin scripts`, pipes the output to the `tar` program, and runs the base's own `bin/xv <words> --help` in a subprocess. This is inside the current shape: `run` already shells out to git and to the agent CLIs (`.xv/picture.md:21-23`). `.xv/picture.md:66` (decision 3: "standard library only") is not broken in letter, because `tar` is not a Python package. But it is the first use of the `tar` binary in `scripts/` (`git grep '"tar"'` finds only `scripts/run.py:992`), and `tarfile` would keep this in-process. Not a shape change.
-- `scripts/wall.py:212`: `red_gaps(scenario, red_texts, exists=None)` gets an optional callback. The `run → wall` edge already exists (`.xv/picture.md:21`).
+- The boundary picture (`.xv/slices/2026-11-05-scenario-checks.boundary.md`) adds no module, edge, table, outbound call or surface. Shape hints: none.
+- `scripts/run.py:1002-1030` reads the base with `git archive` and the standard library's `tarfile`, and runs the base's own `bin/xv <words> --help` in a subprocess. `run` already shells out to git and to the agent CLIs (`.xv/picture.md:21`). Using `tarfile` keeps `.xv/picture.md:66` (decision 3, "standard library only"), which settles the earlier packet's `tar` note. It is inside the current shape.
+- `scripts/wall.py:212-230`: `red_gaps` gets the `exists` and `has_flag` callbacks over the existing `run → wall` edge.
+- The new `tests.slice_only_files` key in `scripts/xvlib.py:223`, `defaults/config.yml:36-38` and `.xv/config.yml:24-26` is a config setting. It is not a new surface.
 
 ## 2. Pitch
 
-pitch_contradiction: no. I read `.xv/pitch.md:7`, "makes it easy for a team or an individual to adopt Xtreme Vibing in a repo: to vibe with discipline", and `.xv/pitch.md:25`, "not for people or projects that will not trust agents to write production code". The change makes fewer stops that fire for no reason after the scenario step. It changes who the tool serves in no way, and it breaks no promise of the pitch.
+pitch_contradiction: no. I read `.xv/pitch.md:25` ("not for people or projects that will not trust agents to write production code"). The change only removes false stops after the scenario step. It serves the same people, and the stops it keeps still fail closed.
 
 ## 3. Moved tests
 
-| File | Before | After | Why (the maker's record) | Forced by the scenario? |
+| File | Before | After | Why (record) | Forced? |
 | --- | --- | --- | --- | --- |
-| `tests/test_by_name.py` | `ChangelogLinesTest.test_the_unreleased_section_has_a_line_for_each_narrowed_stop_and_the_brief_change`: 4 assertions on the Unreleased CHANGELOG lines (#120, #136, #140, stand-in, accepted `red_gaps`, covers forms) | removed | Cleaner: "checks one CHANGELOG line, which has no value after the slice" | Not forced. It was marked slice-only, and Sean accepted the mark at the `slice_only_marks` stop (record `stops[1]`, `pick: 1`). |
+| `tests/test_run.py` | `WatchLoopTest.test_a_command_whose_words_are_apart_in_the_red_stops_before_the_maker` on `xv slice amend` | the same stop on `xv slice ghost` | maker: `xv slice amend` exists at the base, so it is no longer raised | Yes, by points 3 and 8. The assertion is no weaker. Sean accepted it at `unrecorded_move` (stops[5]). |
+| `tests/test_run.py` | `…words_are_out_of_order…stops_before_the_maker` on `xv slice amend` | the same on `xv slice ghost` | the same reason | Yes, the same |
+| `tests/test_run.py` | `…words_are_together_in_order…goes_on_to_the_maker` on `xv slice amend` | the same on `xv slice ghost` | changed with the other two so all three agree | Not strictly forced: `amend` would still go on. It is harmless, and Sean accepted it. |
 
-`xv wall diff` gives `tests/test_by_name.py` 16 assertions before and 12 after. The baseline count of 16 was taken with the red's two tests in it (the base has 11 `self.assert` lines and HEAD has 12, by `grep -c` on `5d5e75f` and HEAD). The drop of 4 is all from the slice-only removal. Against the base, the file asserts one more thing.
+`xv wall diff`: `tests/test_by_name.py` has 14 assertions before and 13 after, all from the slice-only removal below. `tests/test_run.py` has no recorded drop.
 
-Slice-only tests removed: `tests/test_by_name.py::ChangelogLinesTest.test_the_unreleased_section_has_a_line_for_each_narrowed_stop_and_the_brief_change`. Kept: none.
+Slice-only removed: `ChangelogLinesTest.test_the_unreleased_section_has_a_line_for_each_narrowed_stop_and_the_brief_change` and `ChangelogPointsEightToElevenTest.test_the_unreleased_section_has_a_line_for_the_flags_the_adopting_repo_and_the_slice_only_files` (`tests/test_by_name.py`). Kept: none.
 
-Expected moves: none (the record has no `expected` moves). Changes to may-not files that the scenario report allowed (`may_not_files`): none. Old tests the scenario forced (`old_tests_forced`): none. `tests/test_run.py` only gains lines over the base (`git diff 5d5e75f..HEAD -- tests/test_run.py`: 240 insertions, 0 deletions).
+May-not files the scenario report allowed (`may_not_files`): `.xv/config.yml`, which gained `slice_only_files: ["CHANGELOG.md"]` in 500f74f, added by the watch as Sean directed (`.xv/config.yml:24-26`). Also, `.xv/picture.md` changed in 8eb6c02, as Sean directed: the earlier packet's picture edits.
 
 ## 4. The picture
 
-- `.xv/picture.md:27`, "`Class.test`, `module.Class.test` and `file::test` match only when the file or module is a red file and the class is in a red file that has the test", is now untrue. `scripts/run.py:937-962` (`covers_name_found`) drops the `class` declaration check and `names_test`. Proposed edit: "A `covers` name may start with a red file's path or module and is split by `::`, `.`, `#`, `/` or ` > `; it matches when each part after the path is a whole word in that red file, in order (`run.covers_name_found`)."
-- `.xv/picture.md:27`, "`covers` empty" stops, is now incomplete (`scripts/run.py:813-815`, `with_kept_covers`). Proposed addition: "On a later scenario pass, the coverage kept from earlier passes (`checks.scenario.covers_kept`) is added to the report's `covers` before the check, so an empty `covers` does not stop when something was kept; each kept name is checked again against the red files."
-- `.xv/picture.md:23`, "`wall` holds … `red_gaps`, which lists each flag and `xv` command written in backticks in the scenario that no red file has", is now incomplete (`scripts/wall.py:212-229`, `scripts/run.py:973-977`). Proposed addition: "…except an `xv` command that is a subcommand at the slice's base (run checks this with the base's own `bin/xv <words> --help`, from `git archive`), and a gap named in an answered `red_misses_scenario` stop that was not sent back."
-- `.xv/picture.md:27`, "After an amend, the scenario agent writes a red as on a feature slice", is now incomplete (`scripts/run.py:898-899`). Proposed addition: "…and only the amendment's points need `covers` or `not_covered`."
-- `.xv/picture.md:23`, "`xvlib` is the shared base (… the shared test-name matcher `names_test`)", is now incomplete. `covers_name_found` has its own whole-word matcher (`scripts/run.py:953-958`), and `names_test` is still used by `record.py:221` and `run.py:484`. Proposed addition: "`covers` names use `run.covers_name_found`."
+- `.xv/picture.md:23`, the `red_gaps` sentence, is incomplete. Add: "…nor a flag that the command it follows already has at the base (its `--help` text). The base is read with `git archive` and `tarfile`. When the base has no `bin` and `scripts`, the installed `xv` is used (`run.base_xv_dir`)." (`scripts/run.py:1002-1035`, `scripts/wall.py:222`)
+- `.xv/picture.md:23`, the `slice_only_marks` sentences, are incomplete. Add: "A mark whose `checks` names a file listed in `tests.slice_only_files` (default `CHANGELOG.md`) is accepted by the watch with a log line, and it is not asked about. An agent's report cannot set `accepted` on its own mark." (`scripts/run.py:736-744`, `scripts/record.py:517-519`)
+- `.xv/picture.md:27`, the `covers` sentences, are incomplete. Add: "A `covers` name whose last part is a slice-only test that the cleaner removed, by a recorded move, does not stop." (`scripts/run.py:935-941`)
 
 ## 5. The wall
 
-- `tests/test_run.py`, `ScenarioChecksTest.test_an_empty_covers_on_the_first_pass_still_stops`: should be marked slice-only. It sends the same `FAKE_REPORT_EXTRA='{"covers": []}'` on a first pass and asserts a stop naming "covers". The wall already guards this with `test_an_empty_covers_stops_before_the_maker` (`tests/test_run.py:283-285`) and `test_an_empty_covers_list_stops_before_the_maker` (`tests/test_run.py:326-327`). Its sibling `test_an_empty_covers_after_a_send_back_still_stops_when_nothing_was_kept` covers the new path.
-- I also looked at `test_a_covers_part_that_is_only_the_front_of_a_longer_name_stops` against `tests/test_run.py:295` and `test_a_covers_name_with_an_empty_part_between_separators_stops` against `tests/test_run.py:385`. Each one runs through the new path-prefix parsing, so they are not restatements. No old wall test is made dead: the suite was green after the maker and the cleaner (record `checks.maker.suite`, `checks.cleaner.suite`), and the old covers tests still assert behavior that holds.
+- `tests/test_run.py`, `ScenarioChecksTest.test_an_empty_covers_on_the_first_pass_still_stops`: it should stay marked slice-only, as Sean accepted at `accept_moves` (record `wall_recommendations`). It restates `tests/test_run.py:283` and `:326`.
+- I looked for any old wall test made dead by points 8–11. The three `WatchLoopTest` tests were moved, not killed (check 3). The suite was green after the maker and the cleaner (record `checks.maker.suite`, `checks.cleaner.suite`).
 
 ## For the person
 
-These name no scenario line or binding decision as missed. They are for Sean.
-
-- **A "new flag" in point 3.** The scenario's examples of "a new flag on an existing command, such as `--rename` or `--expect-moves`" are flags that `xv slice new` already has at the base (`git show 5d5e75f:scripts/run.py:1516-1517`). The code raises every flag in backticks, whether the base has it or not (`scripts/wall.py:216-220` has no `exists` check). So `` `xv decisions --since <date>` `` still stops on `--since`, though `decisions.py:42` has it at the base. This matches the scenario's own examples and `test_a_new_flag_on_an_existing_command_is_still_raised`. If "new" was meant as "not at the base", that is an amendment, not a maker fix.
-- **`xv` at the base in an adopting repo.** `xv_command_at_base` reads `bin/` and `scripts/` from the slice's base (`scripts/run.py:990-991`). In a repo that adopts xv, the base does not carry xv's source (`.xv/picture.md:25`, `defaults/` is copied into adopting repos). There, `git archive` fails, the function returns `False`, and every `xv` command is raised as before. This fails safe (`.xv/picture.md:75`, decision 12), but point 3 helps only this repo.
-- **The red command cannot run from the repo root.** The record's `red.command`, `python3 -m unittest tests.test_run.ScenarioChecksTest …`, gives `ModuleNotFoundError: No module named 'helpers'` (4 errors in 0.000 s) when run from the repo root, and so it would fail at any commit. The record's own `checks.scenario.red_output` shows exactly that, and `red_fails: true` was recorded from it. So the record holds no evidence that the red failed for the reasons named. `.xv/picture.md:75` (decision 12: "A check whose input is broken or that cannot run stops for a person; it never passes") suggests the red check should have stopped on an import error. This is about xv's red check, not this diff; it may need its own issue.
+- **The record's second slice-only mark is not marked `accepted`.** Sean accepted it in his answer to `red_misses_scenario`, which bundled `slice_only_marks` (`.xv/slices/2026-11-05-scenario-checks.md:24`, stops[3] `settled`). Yet its `slice_only` entry has no `accepted: true` (`.xv/slices/2026-11-05-scenario-checks.md:16`). It looks as if a bundled answer does not mark the bundled order's marks. That is xv at the base, not this diff. With this diff, `accept_listed_marks` (`scripts/run.py:736`) would accept it anyway, because `checks` is `CHANGELOG.md`.
+- **Point 11 matches on the last name part only, in any file.** `scripts/run.py:941` lets any `covers` name pass when its last part equals a removed test's name, whatever its path or class. A wrong path or class before a removed name would not stop.
 
 ## Door
 
-**Door:** two-way. A revert of `scripts/run.py`, `scripts/wall.py`, `skills/scenario/SKILL.md` and the CHANGELOG line undoes it; no data migrated and no message sent. **Blast radius:** small.
+**Door:** two-way. A revert undoes it. `defaults/config.yml` reaches only new adopters (`.xv/picture.md:25`), no data is migrated, and no message is sent. **Blast radius:** small.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-11-05-scenario-checks.md`
-- Diff: `git diff 5d5e75fc7a7371d74a3884cfbae919785adbb4e7..1315c3c`
+- Diff: `git diff 5d5e75fc7a7371d74a3884cfbae919785adbb4e7..HEAD`
 - Wall: `xv wall diff 2026-11-05-scenario-checks`
-- Boundary: `xv boundary --base 5d5e75fc7a7371d74a3884cfbae919785adbb4e7` (`.xv/slices/2026-11-05-scenario-checks.boundary.md`)
+- Boundary: `.xv/slices/2026-11-05-scenario-checks.boundary.md`
