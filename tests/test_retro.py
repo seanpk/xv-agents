@@ -247,7 +247,42 @@ class ReworkSignalTest(RepoCase):
         self.assertEqual(data["maker_sendbacks"], 1)
         self.assertEqual(data["modules_touched"], ["pantry/store"])
 
+    def test_a_slice_a_person_sent_back_to_the_maker_closes_with_one_sendback(self):
+        wt = self.fake_agents()
+        p = self.xv("run", "s1", cwd=wt, check=False)
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.xv("record", "stop", "s1", "--order", "slice_only_marks", "--seat", "originator",
+                "--question", "Is this right?", "--step", "guardian", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "no, rework the code",
+                "--settled", "the maker redoes it", "--next", "maker", cwd=wt)
+        self.assertEqual(self.record(wt)["next"], "maker")
+        p = self.xv("run", "s1", cwd=wt, check=False)
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        data = self.close_s1(wt)
+        self.assertEqual(data["maker_sendbacks"], 1)
+
     # 4. the refactor candidate
+    def test_the_retro_brief_leaves_out_modules_reworked_before_the_last_retro(self):
+        self.three_reworked()
+        os.makedirs(os.path.join(self.repo, ".xv", "retro"), exist_ok=True)
+        open(os.path.join(self.repo, ".xv", "retro", "2026-11-02.md"), "w").write("# Retro\n")
+        seen = []
+
+        def fake_run(argv, text, root, session, timeout):
+            seen.append(text)
+            out = re.search(r"Write the retro packet to `([^`]+)`", text).group(1)
+            with open(os.path.join(root, out), "w") as f:
+                f.write("# Retro\n")
+            return {"code": 0}
+
+        real = (retro.agentcli.run, retro.agentcli.argv_for)
+        retro.agentcli.run, retro.agentcli.argv_for = fake_run, lambda config, agent: ["fake"]
+        try:
+            retro.run(self.repo, [IDS[0]])
+        finally:
+            retro.agentcli.run, retro.agentcli.argv_for = real
+        self.assertNotIn("was reworked on", seen[0])
+
     def test_the_retro_brief_names_the_reworked_module_and_asks_for_a_refactor_candidate(self):
         self.three_reworked()
         seen = []
