@@ -67,7 +67,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "e7003ffe427dbd73ff5d1f2944dda3a09da44e16",
+ "commit": "30c7653fba61333b8b9655de5564e3a4f27bbff0",
  "files": {
   "tests/data/claude-result.json": "d97d2788e30ab2c1dcefc61594ffaaf6892217e088255672a7ead5be9747a331",
   "tests/data/claude-session.jsonl": "f334175619c11a34eabde629fe45e0def44aa43becec22059c9c9841ffccf073",
