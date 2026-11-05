@@ -18,6 +18,14 @@ An entry with three or more sightings that still splits people is marked `(watch
 
 ## Open
 
+### 2026-11-05: A worker's late background notice can push its report out of the last message
+- added: 2026-11-05 by Sean Kennedy
+- from: 2026-11-04-suite-speed, the maker's `no_report` stop at 2026-11-05T05:13:05
+- miss: the maker ran the whole suite in the background, twice, and wrote its report. One background run then ended, and the maker's reply to that notice ("It adds nothing new ... my report above stands") became its last message. `xv step` reads the report from the last message, so it found none. The report was applied from the maker's log.
+- said: "that seems like a (likely) rare timing issue. at best we could add it as a Learning so we can track sightings of it"
+- rule: a worker runs a command in the background and its run can end before the command does -> the worker waits for the command in the foreground, so its report is its last message
+- seen: [seanpk/xv-agents@2026-11-05]
+
 ### 2026-11-04: A slice whose original scenario points were missed twice shows the same two-pass spend as an overrun
 - added: 2026-11-04 by Sean Kennedy
 - from: 2026-11-04-scenario-catches, `overran its budget` flag and four `red_misses_point` stops; 2026-11-04-orders-home, stops 17:13:16 to 19:04:00
