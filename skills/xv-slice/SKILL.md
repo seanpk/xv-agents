@@ -18,7 +18,8 @@ One question at a time:
 2. **What may this slice ignore?** Edge cases, screens, users, or performance that are out of scope for now.
 3. **For a defect: is there a recording?** A Playwright trace, a HAR file, a sequence of requests and responses, a screen recording with the steps. A recording is a better oracle than words. Save it under `.xv/recordings/` and pass its path.
 4. **Is the design settled?** If the scenario does not settle how it should look or flow, and a wrong design would be felt in use, this is a prototype slice (`--kind prototype --axis "<the one axis>"`). Ask for the axis: the one difference between three versions that people would feel by using them. An agent can suggest axes; the person names one. A column and a button have no open question; prototypes there are waste.
-5. **Who set the work going?** Their name goes in the record. They answer the stops.
+5. **Is it a refactor?** If users see no change and the work is to restructure code, this is a refactor slice (`--kind refactor`). The scenario names what to restructure. The suite must be green at the start; it is the oracle, and no new red is written. Ask which changes to old tests the person expects: `--expect-moves imports`, `renames`, or both (comma-separated). For `renames`, ask for each name the slice renames and pass `--rename Old=New`, one flag per pair. A script checks each moved test file against those kinds; any other move still stops for the person.
+6. **Who set the work going?** Their name goes in the record. They answer the stops.
 
 Read the scenario back in the person's words, in the message to the person: the full scenario and its "may ignore" lines, not only a path to a file. Tidy grammar only. If it is ambiguous about what must be true, ask; do not pick.
 
@@ -27,8 +28,9 @@ Check it against `.xv/pitch.md`. If the scenario looks like it contradicts the p
 ## Open
 
 ```
-xv slice new <id> --title "<title>" --by <name> --kind feature|defect|prototype \
-  --scenario-file <file> --ignore "<what it may ignore>" [--recording <path>]
+xv slice new <id> --title "<title>" --by <name> --kind feature|defect|prototype|refactor \
+  --scenario-file <file> --ignore "<what it may ignore>" [--recording <path>] \
+  [--expect-moves imports,renames] [--rename Old=New]
 ```
 
 The id is short and dated, such as `2026-10-21-expiring-today`. The command creates the branch `xv/<id>`, a worktree for it, and `.xv/slices/<id>.md` in that worktree, and prints the worktree path.

@@ -115,7 +115,7 @@ def evaluate(data, after, config):
         out.append(fire("budget_not_set", "originator",
                         f"{owner}: set the budget from the forecast (`xv record set {data['id']} budget ... --by <name>`)."))
 
-    if after == "scenario" and data.get("kind") == "refactor" and checks.get("suite") != "green":
+    if after == "scenario" and data.get("kind") == "refactor" and checks.get("suite", "green") != "green":
         out.append(fire("suite_not_green_at_start", "originator",
                         "A refactor slice needs a green suite at the start: it is the oracle, and the scenario step "
                         "writes no red. The suite is not green." + failing_clause(checks)
@@ -224,6 +224,10 @@ def evaluate(data, after, config):
                             "The cleaner edited .xv/standards.md. A standard enters only when a person accepts it."))
 
     if after == "guardian":
+        wrong = [p for p in checks.get("packet_problems") or [] if "expected_moves" in p]
+        if wrong:
+            out.append(fire("expected_moves_wrong", "originator",
+                            "The packet's expected_moves does not match the record: " + "; ".join(wrong) + "."))
         if data.get("shape_change") == "yes" or data.get("pitch_contradiction") == "yes":
             what = [n for n in ("shape_change", "pitch_contradiction") if data.get(n) == "yes"]
             out.append(fire("shape_or_pitch", "two_people",
