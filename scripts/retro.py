@@ -197,6 +197,10 @@ def add_sighting(path, text, c, repo, by):
             new = re.sub(r"^(- from:[ \t]*\S.*)$", lambda x: x.group(1) + "; " + c["from"], new, count=1, flags=re.M)
         else:
             new = re.sub(r"^- from:[ \t]*$", lambda x: "- from: " + c["from"], new, count=1, flags=re.M)
+            if not re.search(r"^- from:", new, re.M):
+                new = re.sub(r"^(- added:.*\n)", lambda x: x.group(1) + "- from: " + c["from"] + "\n", new, count=1, flags=re.M)
+            if not re.search(r"^- from:", new, re.M):
+                new = re.sub(r"^(###.*\n)", lambda x: x.group(1) + "- from: " + c["from"] + "\n", new, count=1, flags=re.M)
     if re.search(r"^- seen: \[.*\]", new, re.M):
         new = re.sub(r"^(- seen: \[.*?)\]", lambda x: f"{x.group(1)}, {repo}@{today()}]", new, count=1, flags=re.M)
     else:
