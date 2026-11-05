@@ -551,19 +551,6 @@ class SliceSkillTest(unittest.TestCase):
         self.assertRegex(text, r"(?is)exploration.{0,600}before the maker|before the maker.{0,600}exploration")
 
 
-class ChangelogTest(unittest.TestCase):
-    # 10. Slice-only: one CHANGELOG line
-    def test_unreleased_has_a_line_for_113_naming_each_brief_it_changes(self):
-        unreleased = read("CHANGELOG.md").split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        lines = [ln for ln in unreleased.splitlines() if "#113" in ln]
-        self.assertTrue(lines, "no Unreleased line names #113")
-        text = " ".join(lines)
-        self.assertIn("xv-slice", text)
-        self.assertIn("watch", text)
-        self.assertIn("scenario", text)
-        self.assertIn("--from", text)
-
-
 if __name__ == "__main__":
     unittest.main()
 

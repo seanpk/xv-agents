@@ -839,8 +839,9 @@ def scenario_scratch(root, data, config):
         if earlier:
             subprocess.run(["git", "apply", "--index", "-"], cwd=scratch, input=earlier, text=True, check=True)
             git(["commit", "-q", "--no-verify", "-m", f"xv({data['id']}): earlier red"], scratch)
-    copy = dict(data, build="none", branch=data["base"]) if data.get("build_shared") != "yes" else data
+    copy = data
     if data.get("build_shared") != "yes":
+        copy = dict(data, build="none", branch=data["base"])
         copy.pop("pre_maker_commit", None)
     path = os.path.join(scratch, XV_DIR, "slices", f"{data['id']}.md")
     os.makedirs(os.path.dirname(path), exist_ok=True)
