@@ -395,6 +395,8 @@ def check_edit(root, config, n, edit):
         name = names[0]
         if len(re.findall(rf"(?<!\w){re.escape(name)}(?!\w)", text)) != 1:
             raise XVError(f"option {n}: the name {name} also appears elsewhere in {file}; a rename is one line")
+        if re.search(rf"(?<!\w){re.escape(names[1])}(?!\w)", text):
+            raise XVError(f"option {n}: the name {names[1]} is already used in {file}")
     if kind == "test-remove" and (new != "" or not is_whole_test(text, old)):
         raise XVError(f"option {n}: a removal's --new is empty, and --old is a whole test")
 
@@ -485,7 +487,7 @@ def cmd_answer(a):
         else:
             raise XVError("--pick is the number of an offered option, or other")
     if edit:
-        check_edit(root, load_config(slice_root(path)), pick, edit)
+        check_edit(slice_root(path), load_config(slice_root(path)), pick, edit)
     stopped_at = stop.get("step") or data["next"]
     # a stop raised before its work started has nothing to send back; `xv step` marks
     # its pre-step budget stop `pre_step`, and a prototype that ran out of budget has started
@@ -536,7 +538,7 @@ def cmd_answer(a):
         body = log_line(body, "watch", f"scribe: wrote {', '.join(scribed)} for {stop['order']} "
                                        f"as the scribe of {','.join(who)}")
     if edit:
-        make_directed_edit(root, path, data, body, stop, edit, who)
+        make_directed_edit(slice_root(path), path, data, body, stop, edit, who)
         return
     save(path, data, body)
 
