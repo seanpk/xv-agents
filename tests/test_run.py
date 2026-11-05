@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shutil
 import sys
 import unittest
@@ -7,6 +8,7 @@ import unittest
 from helpers import HOME, RepoCase, sh
 
 FAKE = os.path.join(HOME, "tests", "fake_agent.py")
+MISSING = object()  # a report field left out, not set to a value
 
 
 class FailingTestsTest(unittest.TestCase):
@@ -1318,6 +1320,192 @@ class ScenarioChecksAtTheBaseTest(RepoCase):
         self.amend("The list takes `--since <date>`.")
         self.assert_stops(self.scenario(), "--since")
         self.assert_stops(self.scenario(), "--since")
+
+    # 8. a flag the xv command already has at the base is not raised
+    def test_a_flag_the_command_has_at_the_base_is_not_raised(self):
+        self.amend("A person runs `xv slice amend --scenario-file notes.md`.")
+        self.assert_goes_on(self.scenario())
+
+    def test_two_flags_the_command_has_at_the_base_are_not_raised(self):
+        self.amend("A person runs `xv slice amend --scenario-file notes.md --by pat`.")
+        self.assert_goes_on(self.scenario())
+
+    def test_a_flag_the_base_command_lacks_is_raised_beside_one_it_has(self):
+        self.amend("A person runs `xv slice amend --scenario-file notes.md --expect-moves imports`.")
+        p = self.scenario()
+        self.assert_stops(p, "--expect-moves")
+        self.assertNotIn("--scenario-file", json.loads(p.stdout)["stop"]["question"])
+
+    def test_a_flag_that_only_another_command_has_is_raised(self):
+        self.amend("A person runs `xv slice amend --kind refactor`.")
+        self.assert_stops(self.scenario(), "--kind")
+
+
+class AtAnAdoptingReposBaseTest(WatchLoopSetup):
+    """9. A base without xv's source: points 3 and 8 check against the installed xv."""
+
+    amend = ScenarioChecksTest.amend
+    scenario = ScenarioChecksTest.scenario
+    assert_goes_on = ScenarioChecksTest.assert_goes_on
+    assert_stops = ScenarioChecksTest.assert_stops
+
+    def setUp(self):
+        super().setUp()
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+
+    def test_the_base_holds_no_xv_source(self):
+        self.assertFalse(os.path.exists(os.path.join(self.wt, "scripts")))
+
+    def test_a_subcommand_the_installed_xv_has_is_not_raised(self):
+        self.amend("A person runs `xv slice amend`.")
+        self.assert_goes_on(self.scenario())
+
+    def test_a_flag_the_installed_command_has_is_not_raised(self):
+        self.amend("A person runs `xv slice amend --scenario-file notes.md`.")
+        self.assert_goes_on(self.scenario())
+
+    def test_a_command_the_installed_xv_lacks_is_raised(self):
+        self.amend("A person runs `xv ghost <id>`.")
+        self.assert_stops(self.scenario(), "xv ghost")
+
+    def test_a_flag_the_installed_command_lacks_is_raised(self):
+        self.amend("A person runs `xv slice amend --expect-moves imports`.")
+        self.assert_stops(self.scenario(), "--expect-moves")
+
+
+class SliceOnlyFilesTest(WatchLoopSetup):
+    """10. Marks on a file the config lists as always slice-only are accepted with no stop."""
+
+    scenario = ScenarioChecksTest.scenario
+    assert_goes_on = ScenarioChecksTest.assert_goes_on
+    assert_stops = ScenarioChecksTest.assert_stops
+
+    def run_marks(self, *checks, **extra):
+        """One slice-only mark per `checks` value, each naming the file its test checks (`checks`)."""
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        out = []
+        for i, c in enumerate(checks):
+            m = {"file": "tests/test_red.py", "test": f"Red.test_line_{i}", "why": "one wording line"}
+            if c is not MISSING:
+                m["checks"] = c
+            m.update(extra)
+            out.append(m)
+        return self.scenario(FAKE_REPORT_EXTRA=json.dumps({"slice_only": out}))
+
+    def assert_marks_stop(self, p, *named):
+        self.assert_stops(p, *named)
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "slice_only_marks")
+
+    def test_the_default_config_lists_changelog_as_always_slice_only(self):
+        text = open(os.path.join(HOME, "defaults", "config.yml")).read()
+        self.assertTrue(re.search(r"(?m)^\s*slice_only_files:.*CHANGELOG\.md", text), text)
+
+    def test_this_repos_config_lists_changelog_as_always_slice_only(self):
+        text = open(os.path.join(HOME, ".xv", "config.yml")).read()
+        self.assertTrue(re.search(r"(?m)^\s*slice_only_files:.*CHANGELOG\.md", text), text)
+
+    def test_a_mark_on_a_listed_file_goes_on_with_no_stop(self):
+        self.assert_goes_on(self.run_marks("CHANGELOG.md"))
+
+    def test_a_mark_on_a_listed_file_is_accepted_and_the_log_says_so(self):
+        self.run_marks("CHANGELOG.md")
+        self.assertEqual([m.get("accepted") for m in self.record()["slice_only"]], [True])
+        log = self.xv("record", "show", "s1", cwd=self.wt).stdout
+        line = next((l for l in log.splitlines() if "slice-only" in l and "CHANGELOG.md" in l
+                     and "accepted" in l), None)
+        self.assertIsNotNone(line, log)
+
+    def test_a_mark_on_a_file_that_is_not_listed_still_stops(self):
+        self.assert_marks_stop(self.run_marks("README.md"), "Red.test_line_0")
+
+    def test_a_path_that_only_ends_in_a_listed_name_still_stops(self):
+        self.assert_marks_stop(self.run_marks("docs/CHANGELOG.md"), "Red.test_line_0")
+
+    def test_one_mark_on_an_unlisted_file_stops_beside_one_on_a_listed_file(self):
+        p = self.run_marks("CHANGELOG.md", "README.md")
+        self.assert_marks_stop(p, "Red.test_line_1")
+        self.assertNotIn("Red.test_line_0", json.loads(p.stdout)["stop"]["question"])
+
+    def test_a_mark_that_names_no_file_stops(self):
+        self.assert_marks_stop(self.run_marks(MISSING), "Red.test_line_0")
+
+    def test_a_mark_with_an_empty_file_name_stops(self):
+        self.assert_marks_stop(self.run_marks(""), "Red.test_line_0")
+
+    def test_a_mark_whose_file_is_not_a_string_stops(self):
+        self.assert_marks_stop(self.run_marks(5), "Red.test_line_0")
+
+    def test_a_mark_whose_file_is_a_list_stops(self):
+        self.assert_marks_stop(self.run_marks(["CHANGELOG.md"]), "Red.test_line_0")
+
+    def test_an_agent_that_claims_its_own_mark_accepted_on_an_unlisted_file_still_stops(self):
+        self.assert_marks_stop(self.run_marks("README.md", accepted=True), "Red.test_line_0")
+
+    def test_a_file_the_config_lists_is_accepted(self):
+        cfg = os.path.join(self.repo, ".xv", "config.yml")
+        text = open(cfg).read()
+        open(cfg, "w").write(text.replace("tests:\n", 'tests:\n  slice_only_files: ["docs/NOTES.md"]\n', 1))
+        sh(["git", "commit", "-qam", "list a file"], self.repo)
+        wt = self.new_slice("s2", "Milk that runs out today shows as running out soon.")
+        self.xv("record", "set", "s2", "budget", '{"usd": 1}', "--by", "pat", cwd=wt)
+        self.xv("step", "forecaster", "s2", cwd=wt)
+        from unittest import mock
+        extra = {"slice_only": [{"file": "tests/test_red.py", "test": "Red.test_note", "why": "a note",
+                                 "checks": "docs/NOTES.md"}]}
+        with mock.patch.dict(os.environ, {"FAKE_REPORT_EXTRA": json.dumps(extra)}):
+            p = self.xv("step", "scenario", "s2", cwd=wt, check=False)
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+
+
+class RemovedSliceOnlyTestInCoversTest(WatchLoopSetup):
+    """11. A covers name for a slice-only test the cleaner removed does not stop the slice."""
+
+    scenario = ScenarioChecksTest.scenario
+    assert_goes_on = ScenarioChecksTest.assert_goes_on
+    assert_stops = ScenarioChecksTest.assert_stops
+
+    def removed(self, test="Red.test_cheese", **moved):
+        """Pass one covers a cheese test and the milk test; the cleaner then removes the cheese test."""
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        extra = {"covers": [{"item": "milk today", "test": "test_milk_today"},
+                            {"item": "cheese", "test": "test_cheese"}]}
+        self.scenario(FAKE_RED_TEXT="def test_cheese(self): pass", FAKE_NOT_COVERED='[{"item": "x", "why": "y"}]',
+                      FAKE_REPORT_EXTRA=json.dumps(extra))
+        self.xv("record", "add", "s1", "slice_only", json.dumps(
+            {"file": "tests/test_red.py", "test": "Red.test_cheese", "why": "one line", "accepted": True}),
+            cwd=self.wt)
+        move = {"file": "tests/test_red.py", "assertion": test, "why": "slice-only; removed", "by": "cleaner",
+                "slice_only": True}
+        move.update(moved)
+        self.xv("record", "add", "s1", "moved_tests", json.dumps(move), cwd=self.wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "again", "--next", "scenario",
+                "--settled", "Pat sent it back.", cwd=self.wt)
+
+    def milk_only(self):
+        return self.scenario(FAKE_REPORT_EXTRA=json.dumps(
+            {"covers": [{"item": "milk today", "test": "test_milk_today"}]}))
+
+    def test_a_kept_name_for_a_removed_slice_only_test_does_not_stop(self):
+        self.removed()
+        self.assert_goes_on(self.milk_only())
+
+    def test_a_reported_name_for_a_removed_slice_only_test_does_not_stop(self):
+        self.removed()
+        extra = {"covers": [{"item": "milk today", "test": "test_milk_today"},
+                            {"item": "cheese", "test": "Red.test_cheese"}]}
+        self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA=json.dumps(extra)))
+
+    def test_a_name_for_a_test_the_record_does_not_show_removed_still_stops(self):
+        self.removed(test="Red.test_gouda")
+        self.assert_stops(self.milk_only(), "test_cheese")
+
+    def test_a_name_for_a_test_removed_by_the_maker_still_stops(self):
+        self.removed(by="maker")
+        self.assert_stops(self.milk_only(), "test_cheese")
+
+    def test_a_name_for_a_removed_test_that_was_not_slice_only_still_stops(self):
+        self.removed(slice_only=False)
+        self.assert_stops(self.milk_only(), "test_cheese")
 
 
 class ScenarioPointsAfterAmendTest(WatchLoopSetup):
