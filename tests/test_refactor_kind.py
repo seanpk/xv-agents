@@ -144,7 +144,7 @@ class RefactorKindCase(RepoCase):
     # 7 and 10. no accept_moves stop for an expected move
     def test_expected_moves_reach_the_merge_stop_without_accept_moves(self):
         self.open_slice("--expect-moves", "imports")
-        with mock.patch.dict(os.environ, {"FAKE_MAKER_IMPORT_MOVE": "1"}):
+        with mock.patch.dict(os.environ, {"FAKE_MAKER_IMPORT_MOVE": "1", "FAKE_PACKET_EXPECTED_MOVES": "1"}):
             p = self.xv("run", "s1", cwd=self.wt, check=False)
         self.assertEqual(self.stop_order(p), "ready_to_merge", p.stdout)
 
@@ -268,7 +268,7 @@ class CleanerMoveCase(FollowUpBase):
 
     def test_an_import_change_the_cleaner_makes_is_an_expected_move_and_does_not_stop(self):
         self.open_slice("--expect-moves", "imports")
-        stop = self.run_slice({})
+        stop = self.run_slice({"FAKE_PACKET_EXPECTED_MOVES": "1"})
         self.assertEqual(stop.get("order"), "ready_to_merge", stop)
         self.assertIn("tests/test_store.py", [m["file"] for m in self.record()["moved_tests"] if m.get("expected")])
 
