@@ -386,6 +386,7 @@ def cmd_answer(a):
     stop["answered_by"], stop["answer"], stop["answered_at"] = who, a.answer, now()
     if sends_back:
         stop["sent_back"] = True
+        stop["sent_back_to"] = a.next
     for key, value in (("pick", pick), ("settled", settled), ("new_info", a.new_info),
                        ("cause", a.cause), ("why", a.why)):
         if value is not None:

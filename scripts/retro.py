@@ -81,7 +81,22 @@ def due(root):
         if order not in QUIET_ORDERS and len(ids) > 1:
             for i in ids:
                 reasons.setdefault(i, []).append(f"the same stop ({order}) on {len(ids)} slices")
+    for module, ids in reworked([d for _, d, _ in recs], root).items():
+        for i in ids:
+            reasons.setdefault(i, []).append(
+                f"module {module} was reworked: sent back to the maker on {len(ids)} closed slices ({', '.join(ids)})")
     return {"since": since or "the start", "slices": reasons}
+
+
+def reworked(slices, root):
+    """Modules that at least `limits.rework_slices` closed slices touched, each sent back to the maker."""
+    limit = int(((load_config(root).get("limits") or {}).get("rework_slices")) or 0)
+    by_module = {}
+    for d in slices:
+        if d.get("status") == "closed" and (d.get("maker_sendbacks") or 0) >= 1:
+            for m in d.get("modules_touched") or []:
+                by_module.setdefault(m, []).append(d["id"])
+    return {m: sorted(ids) for m, ids in sorted(by_module.items()) if limit and len(ids) >= limit}
 
 
 def counts(root, config=None):
@@ -159,6 +174,9 @@ def run(root, ids=None):
     extra = [f"Slices: " + "; ".join(f"`.xv/slices/{i}.md` ({', '.join(reasons.get(i, ['named by a person']))})"
                                     for i in ids),
              f"Fire and override counts: `{cpath}`.",
+             *[f"Module `{m}` was reworked on {', '.join(ids)}: propose a candidate with `kind: refactor` for it."
+               for m, ids in reworked([d for d, _ in recs.values() if (d.get("created") or "") >= last_retro(root)],
+                                      root).items()],
              f"Write the retro packet to `{out}`."]
     text = promptlib.brief("retro") + "\n" + promptlib.pointers("retro", root, config, None, extra)
     result = agentcli.run(agentcli.argv_for(config, "retro"), text, root, None,
@@ -226,6 +244,10 @@ def accept(root, packet, n, by):
     c = cands[n]
     kind = (c.get("kind") or "").split()[0].strip("`").lower() if c.get("kind") else ""
     adopts = None
+    if kind == "refactor":
+        return {"entry": c["title"], "by": by,
+                "next": f"run `xv slice new --kind refactor` for this, with the scenario in your words; "
+                        "no slice is opened here"}
     if kind == "adopt":
         adopts = (c.get("adopts") or "").strip().strip("`")
         if not re.match(r"^[\w.-]+/[\w.-]+#\d+$", adopts):
