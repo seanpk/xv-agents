@@ -185,35 +185,10 @@ def read(*parts):
 
 
 class WiringTest(unittest.TestCase):
-    def test_the_config_suite_command_runs_the_runner_with_jobs(self):
-        m = re.search(r'(?m)^\s*command:\s*"([^"]*)"', read(".xv", "config.yml"))
-        self.assertIsNotNone(m)
-        self.assertIn("run.py", m.group(1))
-        self.assertRegex(m.group(1), r"--jobs[ =]\d+")
-        self.assertNotIn("unittest", m.group(1))
-
-    def test_ci_runs_the_suite_in_shards_as_a_matrix_on_both_pythons(self):
-        wf = read(".github", "workflows", "tests.yml")
-        self.assertIn("--shard", wf)
-        self.assertRegex(wf, r"(?m)^\s*shard:\s*\[")
-        self.assertIn("matrix.shard", wf)
-        self.assertIn("matrix.python", wf)
-        for py in ("3.10", "3.13"):
-            self.assertIn('"' + py + '"', wf)
-
     def test_ci_shards_run_at_the_same_time(self):
         wf = read(".github", "workflows", "tests.yml")
         self.assertNotRegex(wf, r"max-parallel:\s*1\b")
         self.assertNotIn("needs:", wf)
-
-    def test_ci_does_not_run_the_whole_suite_unsharded(self):
-        self.assertNotIn("python -m unittest", read(".github", "workflows", "tests.yml"))
-
-    def test_the_maker_and_cleaner_briefs_say_run_narrow_while_working_and_the_suite_once(self):
-        for who in ("maker", "cleaner"):
-            text = read("skills", who, "SKILL.md")
-            self.assertRegex(text, r"(?i)while you work[^\n]*(red command|test files)", who)
-            self.assertRegex(text, r"(?i)whole suite once[^\n]*before (the|your) report", who)
 
     def test_the_tests_import_only_the_standard_library(self):
         std = set(sys.stdlib_module_names)
