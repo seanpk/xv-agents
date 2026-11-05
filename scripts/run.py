@@ -360,11 +360,20 @@ def rebase_state(root, slice_id, state=None):
     return state
 
 
-def rebase_stop(root, slice_id, state, config, **checks):
+def rebase_stop(root, slice_id, state, config, fired=None, **checks):
+    """Write the stop to the record and exit. Mid-rebase the record is left changed in the tree, not committed."""
     rebase_state(root, slice_id, state)
-    data = record.load(root, slice_id)[1]
-    data["checks"] = {"rebase": checks}
-    v = orders.verdict(data, "rebase", config)
+    path, data, body = record.load(root, slice_id)
+    if fired:
+        v = {"slice": slice_id, "after": "rebase", "stop": fired, "fired": [fired], "next": None}
+    else:
+        v = orders.verdict({**data, "checks": {"rebase": checks}}, "rebase", config)
+    next_step = data["next"]
+    body = record.apply_verdict(data, body, "rebase", v)
+    data["next"] = next_step
+    record.save(path, data, body)
+    if not rebase_running(root):
+        commit(root, f"xv({slice_id}): the rebase stopped")
     v["worktree"] = root
     print(json.dumps(v, indent=2))
     if v["stop"]:
@@ -375,6 +384,10 @@ def rebase_stop(root, slice_id, state, config, **checks):
 def rebase_maker(root, slice_id, config, state, files):
     """One maker run for the rebase, in a fresh context. Returns the stop's question, or None."""
     data = record.load(root, slice_id)[1]
+    unapplied = [r["spend"] for r in state["runs"][state["applied"]:]]
+    spent_out = orders.budget_before({**data, "spend": data["spend"] + unapplied})
+    if spent_out:
+        rebase_stop(root, slice_id, state, config, fired=spent_out)
     note = [f"This is a rebase: the slice is replayed on `{state['onto']}`; it was on `{state['old_base']}`. "
             f"The slice's diff is now `git diff {state['onto']}..HEAD`."]
     if files:
@@ -412,7 +425,13 @@ def rebase_drive(root, slice_id, state, config):
             stuck = rebase_maker(root, slice_id, config, state, files)
             state["conflicts"] += files
             state["changed"] = True
-            git(["add", "-A", "--"] + files, root)
+            rel = os.path.relpath(record.load(root, slice_id)[0], root)
+            edited = git(["diff", "--name-only"], root).split() + git(["ls-files", "--others", "--exclude-standard"], root).split()
+            edited = sorted(set(edited + files) - {rel})
+            git(["add", "-A", "--"] + edited, root)
+            for_person = [f for f in edited if f == PICTURE or match_any(f, protected_paths)]
+            if for_person:
+                rebase_stop(root, slice_id, state, config, conflicts=for_person)
             left = unmerged(root)
             if stuck or left:
                 rebase_stop(root, slice_id, state, config, stuck=stuck or f"conflict markers remain in {', '.join(left)}.")
@@ -460,6 +479,9 @@ def rebase_finish(root, slice_id, state, config):
         state["dropped_seen"] = True
         rebase_stop(root, slice_id, state, config, dropped=[f"{k} {state['named'][k][:10]}" for k in dropped])
     path, data, body = record.load(root, slice_id)
+    stops = [s for s in data["stops"] if not (s.get("step") == "rebase" and s.get("answer") is None)]
+    if len(stops) != len(data["stops"]):
+        data["stops"], data["status"] = stops, state["status"]
     data["base"] = state["onto"]
     for key, old in state["named"].items():
         if old:
@@ -515,11 +537,17 @@ def cmd_slice_rebase(a):
         else:
             git(["reset", "--hard", state["orig_head"]], root)
         os.remove(rebase_state_path(root, a.id))
+        if state["runs"]:  # the maker's runs cost what they cost; the record keeps the spend, uncommitted
+            path, data, body = record.load(root, a.id)
+            data["spend"] += [r["spend"] for r in state["runs"]]
+            record.save(path, data, body)
         print(json.dumps({"slice": a.id, "aborted": True, "head": state["orig_head"]}, indent=2))
         return
     config = load_config(root)
     if a.cont:
         state = rebase_state(root, a.id)
+        if rebase_running(root):  # git will not replay over the record the stop changed
+            git(["checkout", "HEAD", "--", os.path.relpath(record.load(root, a.id)[0], root)], root)
         return rebase_drive(root, a.id, state, config)
     if os.path.exists(rebase_state_path(root, a.id)):
         raise XVError(f"a rebase of {a.id} is in progress: finish it with `xv slice rebase {a.id} --continue` "
@@ -530,7 +558,7 @@ def cmd_slice_rebase(a):
     head = git(["rev-parse", "HEAD"], root).strip()
     old_base = data.get("base") or git(["merge-base", onto, head], root).strip()
     state = {"orig_head": head, "onto": onto, "old_base": old_base, "old": commits_between(root, f"{old_base}..{head}"),
-             "named": {k: data.get(k) for k in ("pre_maker_commit", "cleaner_commit")},
+             "named": {k: data.get(k) for k in ("pre_maker_commit", "cleaner_commit")}, "status": data["status"],
              "runs": [], "applied": 0, "maker_ran": False, "changed": False, "conflicts": []}
     rebase_state(root, a.id, state)
     p = run_git(root, ["rebase", "--onto", onto, old_base], {"GIT_EDITOR": "true"})
