@@ -1,0 +1,34 @@
+{
+ "override_rate_limit": 0.25,
+ "min_fires": 5,
+ "rules": [
+  {
+   "rule": "slice-only removal of test_the_changelog_has_a_line_for_each_brief_change (recorded move, --slice-only)",
+   "fired": 1,
+   "overridden": 0,
+   "rate": 0.0,
+   "flag": false
+  },
+  {
+   "rule": "slice_only: removed accepted slice-only test, recorded move",
+   "fired": 1,
+   "overridden": 0,
+   "rate": 0.0,
+   "flag": false
+  },
+  {
+   "rule": "slice_only: removed slice-only test, recorded move",
+   "fired": 1,
+   "overridden": 0,
+   "rate": 0.0,
+   "flag": false
+  },
+  {
+   "rule": "slice_only: removed the recorded slice-only CHANGELOG test",
+   "fired": 1,
+   "overridden": 0,
+   "rate": 0.0,
+   "flag": false
+  }
+ ]
+}

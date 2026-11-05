@@ -31,3 +31,9 @@ Each entry is a heading and these lines:
 - from: 2026-10-27-wall-red-files, the `forecast` note and the three `accept_moves` stops (21:43, 21:58, 23:05); 2026-10-30-test-marks, 2026-10-30-by-name and 2026-10-30-stop-words, the forecaster's close notes (retro 2026-10-30, candidate 4)
 - miss: The forecast was 250,000 Sonnet tokens and $1.42, the mean of three slices that each took more than one pass. The slice used 317,628 tokens and $1.83, 27% over. The guardian stopped it three times, and each answer sent it back for a full pass. Two of those answers added work in `scripts/run.py` and `scripts/orders.py`, which the forecast said would not change. This is the first sighting.
 - seen: [seanpk/xv-agents@2026-10-27, seanpk/xv-agents@2026-10-30]
+
+### A test of one CHANGELOG line is slice-only; a test of a brief sentence that matches a code rule stays on the wall
+- added: 2026-11-05 by Sean Kennedy
+- from: 2026-11-04-refactor-kind, slice_only_marks at 05:30:23 (six brief tests, all unmarked) and 06:53:20 (CHANGELOG test, accepted); 2026-11-05-wave1-fixes, slice_only_marks at 04:45:00 (brief test unmarked, CHANGELOG test accepted); counts: slice-only removal of the CHANGELOG test fired 1 time on each of the three recorded rules, 0 overrides
+- miss: `slice_only_marks` fired on 4 slices. In every answer in these records Sean made the same choice, and the cause lines say "decision". The scenario agent still marked brief tests slice-only each time, so each slice stopped and asked a question whose answer was already known.
+- seen: [seanpk/xv-agents@2026-11-05]
