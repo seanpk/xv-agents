@@ -64,6 +64,16 @@ class RetroAcceptBriefShapeTest(RepoCase):
         text = self.promote_entry("- from: s\n- said: \"the words\"\n- rule: do the thing\n")
         self.assertIn("- miss: \"the words\"\n", text)
 
+    def test_promote_local_does_not_take_the_next_line_for_an_empty_from(self):
+        text = self.promote_entry("- from:\n- miss: what went wrong\n- rule: do the thing\n")
+        self.assertIn("- miss: what went wrong\n", text)
+        self.assertNotIn("- from: - ", text)
+
+    def test_the_retro_brief_and_skill_name_the_sighting_of_field(self):
+        for path in (("skills", "xv-retro", "retro-brief.md"), ("skills", "xv-retro", "SKILL.md")):
+            with self.subTest(path="/".join(path)):
+                self.assertIn("`sighting of:`", open(os.path.join(HOME, *path)).read())
+
     def test_the_learnings_templates_show_the_added_and_miss_lines(self):
         for path in (("defaults", "learnings.md"), (".xv", "learnings.md")):
             with self.subTest(path="/".join(path)):
