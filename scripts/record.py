@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
 from spend import row_tokens  # noqa: E402
+from suite import run_suite  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, emit, git, load_config, match_any, names_test, now, read_doc, solo,  # noqa: E402
                    record_path, repo_root, slice_root, today, write_doc)
 
@@ -278,7 +279,29 @@ def cmd_stop(a):
 
 EDIT_FLAGS = {"--edit": "file", "--old": "old", "--new": "new", "--kind": "kind"}
 EDIT_KINDS = ("changelog", "test-rename", "test-remove", "doc")
-TEST_DECL = re.compile(r"\s*(?:async\s+)?(?:def|func|fn|function|it|test)\b")
+TEST_DECL = re.compile(r"\s*(?:async\s+)?(?:(?:def|func|fn|function)\s+(test\w*)|(?:it|test|specify)\(\s*[\"'])")
+BLANK_LINE = re.compile(r"\n[ \t]*\n")
+BLOCK_CLOSER = re.compile(r"\s*[})\]]|\s*end\b")
+
+
+def indent_of(line):
+    return len(line) - len(line.lstrip())
+
+
+def is_whole_test(text, old):
+    """Whether `old` is one test from its declaration to its last line, with no other declaration in it."""
+    lines = old.lstrip("\n").splitlines()
+    if not old.endswith("\n") or not lines or not TEST_DECL.match(lines[0]):
+        return False
+    depth = indent_of(lines[0])
+    rest = [ln for ln in lines[1:] if ln.strip()]
+    if not rest:
+        return False
+    inner = rest[:-1] if BLOCK_CLOSER.match(rest[-1]) and indent_of(rest[-1]) == depth else rest
+    if any(indent_of(ln) <= depth for ln in inner):
+        return False
+    after = [ln for ln in text.split(old, 1)[1].splitlines() if ln.strip()]
+    return not after or indent_of(after[0]) <= depth
 
 
 class OfferAction(argparse.Action):
@@ -331,7 +354,8 @@ def check_edit(root, config, n, edit):
     if kind == "changelog":
         fits = rel == "CHANGELOG.md"
     elif kind == "doc":
-        fits = rel.endswith(".md") and rel != "CHANGELOG.md"
+        fits = (rel.endswith(".md") and rel != "CHANGELOG.md" and os.path.basename(rel) != "SKILL.md"
+                and not rel.startswith(XV_DIR + os.sep))
     else:
         fits = match_any(rel, (config.get("tests") or {}).get("paths") or [])
     if not fits:
@@ -339,14 +363,17 @@ def check_edit(root, config, n, edit):
     if not old:
         raise XVError(f"option {n}: --old is empty")
     with open(full) as f:
-        found = f.read().count(old)
+        text = f.read()
+    found = text.count(old)
     if found != 1:
         raise XVError(f"option {n}: --old is found {found} times in {file}; it must be found exactly once")
+    if kind in ("changelog", "doc") and (BLANK_LINE.search(old) or BLANK_LINE.search(new)):
+        raise XVError(f"option {n}: a {kind} edit holds no blank line, in --old or --new")
     if kind == "test-rename":
-        one_line = "\n" not in old + new and old != new and TEST_DECL.match(old)
+        one_line = "\n" not in old + new and old != new and TEST_DECL.match(old) and TEST_DECL.match(new)
         if not one_line or not all(re.fullmatch(r"\w+", x) for x in name_change(old, new)):
-            raise XVError(f"option {n}: a rename changes the test's name and nothing else")
-    if kind == "test-remove" and (new != "" or not TEST_DECL.match(old.lstrip("\n"))):
+            raise XVError(f"option {n}: a rename changes one test's name to another test's name and nothing else")
+    if kind == "test-remove" and (new != "" or not is_whole_test(text, old)):
         raise XVError(f"option {n}: a removal's --new is empty, and --old is a whole test")
 
 
@@ -503,8 +530,6 @@ def rename_in_record(data, file, old_name, new_name):
 
 def make_directed_edit(root, path, data, body, stop, edit, who):
     """Make exactly the edit the person picked, in its own commit, then run the suite and the orders."""
-    import run as runlib  # run imports this module
-
     file, old, new, kind = edit["file"], edit["old"], edit["new"], edit["kind"]
     full = os.path.join(root, file)
     with open(full) as f:
@@ -519,7 +544,10 @@ def make_directed_edit(root, path, data, body, stop, edit, who):
             rename_in_record(data, file, *name_change(old, new))
     body = log_line(body, ",".join(who), f"directed a {kind} edit in {file}")
     config = load_config(slice_root(path))
-    data["suite"], out = runlib.run_suite(root, config, data.get("base"), data.get("id"))
+    data["suite"], out = run_suite(root, config, data.get("base"), data.get("id"))
+    step = stop.get("step") or data["next"]
+    v = orders.verdict(data, step, config)
+    body = apply_verdict(data, body, step, v)
     save(path, data, body)
     rel = os.path.relpath(path, root)
     git(["add", "--", file, rel], root)
@@ -535,7 +563,6 @@ def make_directed_edit(root, path, data, body, stop, edit, who):
             + f"- {file} ({kind}): directed by {by}, commit {sha[:7]}\n"
         with open(packet, "w") as f:
             f.write(text)
-    v = orders.verdict(data, stop.get("step") or data["next"], config)
     emit(v, True)
     if v["stop"]:
         sys.exit(10)
