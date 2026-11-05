@@ -480,8 +480,9 @@ def apply_report(data, body, agent, text):
         else:
             data["red"] = report["red"]
     for key, need in (("old_tests_forced", ("file", "test", "why")), ("may_not_files", ("file", "why"))):
-        if agent == "scenario" and isinstance(report.get(key), list):
-            data[key] = [e for e in report[key]
+        if agent == "scenario":
+            listed = report.get(key) if isinstance(report.get(key), list) else []
+            data[key] = [e for e in listed
                          if isinstance(e, dict) and all(isinstance(e.get(k), str) and e[k] for k in need)]
     if agent == "scenario" and isinstance(report.get("slice_only"), list):
         kept = [m for m in data.get("slice_only") or []

@@ -427,8 +427,9 @@ def post_step(agent, root, data, config, head_before, pre, report):
         changed = changed_files(root, head_before)
         named = set()
         if agent == "maker":
+            # only the picture can be licensed; the other protected files stay a person's
             named = {e["file"] for e in data.get("may_not_files") or []
-                     if isinstance(e, dict) and isinstance(e.get("file"), str) and e.get("why")}
+                     if isinstance(e, dict) and e.get("file") == f"{XV_DIR}/picture.md" and e.get("why")}
         checks["protected_changed"] = [f for f in protected if f in changed and f not in named]
     if agent == "scenario":
         files = changed_files(root, head_before)
@@ -520,9 +521,13 @@ def missed_points(root, data, report):
              for i in report.get(key) or [] if isinstance(i, dict) and i.get("item")]
     numbers = {m.group(1) for i in items if (m := re.match(r"(\d+)\.?(?:\s|$)", i))}
     missed = []
-    for num, text in POINT.findall(body[at:end if end > at else len(body)]):
+    region = body[at:end if end > at else len(body)]
+    amended = region.find("### Amended")
+    for m in POINT.finditer(region):
+        num, text = m.groups()
         t = norm(text)
-        if num not in numbers and not any(t in i or (len(i) >= 4 and i in t) or t[:40] in i for i in items):
+        by_number = num in numbers and not 0 <= amended <= m.start()
+        if not by_number and not any(t in i or (len(i) >= 4 and i in t) or t[:40] in i for i in items):
             missed.append(f"{num}. {text.strip()}")
     return missed
 
