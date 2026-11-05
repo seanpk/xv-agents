@@ -369,6 +369,89 @@ class SliceRebaseTest(RepoCase):
         self.assertIn("in progress", (p.stdout + p.stderr).lower())
         self.assertEqual(rev(self.wt), before)
 
+    # -- 16: the slice's own red may fail until the maker has made the suite green
+
+    FAILING_RED = ("import unittest\n\n\nclass OwnRed(unittest.TestCase):\n"
+                   "    def test_own_red(self):\n        self.assertEqual(1, 2)\n")
+
+    def own_red(self, suite):
+        self.on_slice("tests/test_own_red.py", self.FAILING_RED, "the slice's red")
+        self.set_field("red", {"files": ["tests/test_own_red.py"],
+                               "command": "cd tests && python3 -m unittest test_own_red",
+                               "failure": "1 != 2", "watch_first_green": None})
+        self.set_field("suite", suite)
+
+    def test_an_open_slice_with_its_own_red_still_failing_rebases_clean(self):
+        self.own_red("red")
+        new = self.on_main("docs.txt", "news\n")
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertFalse(self.in_progress())
+        self.assertEqual(self.record()["base"], new)
+
+    def test_the_slices_own_red_failing_after_the_maker_made_the_suite_green_stops(self):
+        self.own_red("green")
+        self.on_main("docs.txt", "news\n")
+        p = self.rebase()
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertIn("test_own_red", stop["question"])
+
+    def test_a_failing_test_outside_the_own_red_stops_even_before_the_maker(self):
+        self.own_red("red")
+        self.on_main("tests/test_broken.py", "import unittest\n\n\nclass Broken(unittest.TestCase):\n"
+                     "    def test_broken_on_main(self):\n        self.assertEqual(1, 2)\n")
+        p = self.rebase()
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertIn("test_broken", stop["question"])
+
+    # -- 5: a dropped named commit still stops when the rebase went through another stop first
+
+    def test_a_dropped_commit_stops_after_continue_from_a_conflict_stop(self):
+        dropped = self.on_slice("pantry/extra.py", "X = 1\n", "slice extra")
+        self.set_field("cleaner_commit", dropped)
+        self.on_main("pantry/extra.py", "X = 1\n", "main already has it")
+        self.on_slice("tests/test_shared.py", "A = 1\n", "slice adds a test")
+        self.on_main("tests/test_shared.py", "B = 2\n", "main adds a test")
+        self.assert_a_stop_for_the_originator(self.rebase())
+        self.assertTrue(self.in_progress())
+        self.resolve_by_hand()
+        p = self.rebase("--continue")
+        self.assert_a_stop_for_the_originator(p)
+
+    # -- 11: the maker looks for logical breaks on --continue too
+
+    def test_continue_runs_the_maker_to_look_for_logical_breaks(self):
+        self.conflict_in_a_test_file()
+        self.assertFalse(self.agent_ran())
+        self.resolve_by_hand()
+        p = self.rebase("--continue", FAKE_REBASE_MODE="logical", FAKE_REBASE_FILE="pantry/store.py")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertTrue(self.agent_ran())
+        self.assertIn("# adjusted to the new base", self.read(self.wt, "pantry/store.py"))
+        self.assertEqual(self.record()["next"], "cleaner")
+
+    def test_continue_stops_when_the_maker_cannot_fix_a_problem(self):
+        self.conflict_in_a_test_file()
+        self.resolve_by_hand()
+        p = self.rebase("--continue", FAKE_REBASE_MODE="stuck")
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertIn("UNFIXABLE-MARK", stop["question"])
+
+    # -- 6: hashing the wall again keeps the slice's own deletions and additions
+
+    def test_the_wall_still_shows_the_slices_own_deleted_and_added_test_files(self):
+        self.run_loop()
+        sh(["git", "rm", "-q", "tests/test_red.py"], self.wt)
+        sh(["git", "commit", "-qm", "slice deletes its red"], self.wt)
+        self.on_slice("tests/test_late.py", "import unittest\n\n\nclass Late(unittest.TestCase):\n"
+                      "    def test_ok(self):\n        self.assertTrue(True)\n", "slice adds a test after the baseline")
+        self.on_main("docs.txt", "news\n")
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        res = json.loads(self.xv("wall", "check", "s1", "--json", cwd=self.wt, check=False).stdout)
+        self.assertEqual(res["deleted"], ["tests/test_red.py"])
+        self.assertEqual(res["added"], ["tests/test_late.py"])
+
     # -- 15: with no --onto the default comes from resolve_base, so worktrees.base comes first
 
     def test_with_no_onto_the_configured_worktrees_base_is_the_default(self):
