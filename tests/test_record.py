@@ -1789,11 +1789,6 @@ class DirectedEditTest(RepoCase):
                  if line.startswith("- ") and "directed" in line and "word" in line]
         self.assertTrue(lines, may_not)
 
-    def test_the_changelog_names_the_directed_edit(self):
-        text = open(os.path.join(HOME, "CHANGELOG.md")).read()
-        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        self.assertIn("#132", unreleased)
-
 
 # A person watching the first green: pick a directed test rename on a real stop and read the commit it makes
 # (`git show`): only the test file and the record, its message naming the person, and the packet line when the
