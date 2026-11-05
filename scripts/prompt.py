@@ -114,6 +114,8 @@ def pointers(agent, root, config, data=None, extra=None):
             for e in data.get("old_tests_forced") or []:
                 lines.append(f"Named old test the red forces to change: {e['file']}, {e['test']}: {e['why']}.")
             for e in data.get("may_not_files") or []:
+                if e["file"] != ".xv/picture.md":
+                    continue
                 lines.append(f"Named file you may change: {e['file']}: {e['why']}.")
     tests = config.get("tests", {})
     if tests.get("command"):
