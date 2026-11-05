@@ -17,10 +17,12 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import stat
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -56,6 +58,16 @@ def snapshot(root, config):
 
 def wall_file(root, slice_id):
     return os.path.join(root, XV_DIR, "slices", f"{slice_id}.wall.json")
+
+
+def hashes_at(root, ref, files):
+    """{file: (hash, assertion count)} of each file as it is at `ref`, for the files that exist there."""
+    out = {}
+    for f in files:
+        p = subprocess.run(["git", "show", f"{ref}:{f}"], cwd=root, capture_output=True)
+        if p.returncode == 0:
+            out[f] = (hashlib.sha256(p.stdout).hexdigest(), count_assertions(p.stdout.decode("utf-8", "replace")))
+    return out
 
 
 def baseline(root, slice_id, config=None, keep=None, skip=()):

@@ -422,10 +422,20 @@ def rebase_drive(root, slice_id, state, config):
     rebase_finish(root, slice_id, state, config)
 
 
-def in_own_red(data, name):
-    """Is this failing test one of the slice's own red, named by its file's path or stem?"""
-    files = (data.get("red") or {}).get("files") or []
-    return any(f in name or os.path.splitext(os.path.basename(f))[0] in name for f in files)
+def own_red_names(root, data, onto):
+    """The names of the tests the slice added to its red files, read from the lines it added."""
+    names = set()
+    for f in (data.get("red") or {}).get("files") or []:
+        out = git(["diff", "--unified=0", "--no-renames", f"{onto}...HEAD", "--", f], root)
+        for line in out.splitlines():
+            if line.startswith("+") and not line.startswith("+++"):
+                names |= set(re.findall(r"\b(?:def|func|fn|it|test|specify)\b[\s(]*[\"']?(\w[\w ]*\w|\w)", line))
+    return names
+
+
+def in_own_red(names, name):
+    """Is this failing test one of the tests the slice added to its red, named as a whole name?"""
+    return any(names_test(name, n) for n in names)
 
 
 def rebase_finish(root, slice_id, state, config):
@@ -469,15 +479,18 @@ def rebase_finish(root, slice_id, state, config):
     if os.path.exists(wall.wall_file(root, slice_id)):
         old_wall = wall.load_baseline(root, slice_id)
         theirs = set(git(["diff", "--name-only", state["old_base"], state["onto"]], root).split())
-        mine = set(git(["log", "--format=", "--name-only", f"{state['onto']}..HEAD"], root).split()) - theirs
-        wall.baseline(root, slice_id, config, keep={k: {f: v for f, v in (old_wall.get(k) or {}).items() if f in mine}
-                                                    for k in ("files", "assertions")},
-                      skip=[f for f in mine if f not in old_wall["files"]])
+        touched = set(git(["log", "--format=", "--name-only", f"{state['onto']}..HEAD"], root).split())
+        mine = touched - theirs
+        keep = {k: {f: v for f, v in (old_wall.get(k) or {}).items() if f in mine} for k in ("files", "assertions")}
+        for f, (h, n) in wall.hashes_at(root, state["onto"], [f for f in touched & theirs if f in old_wall["files"]]).items():
+            keep["files"][f], keep["assertions"][f] = h, n
+        wall.baseline(root, slice_id, config, keep=keep, skip=[f for f in mine if f not in old_wall["files"]])
     suite, out = run_suite(root, config, state["onto"], slice_id)
     path, data, body = record.load(root, slice_id)
     failing = failing_tests(out or "")
     tests = [name for name in failing if not name.startswith(("(failures=", "(errors="))]
-    own_red = data.get("suite") != "green" and tests and all(in_own_red(data, name) for name in tests)
+    red_names = own_red_names(root, data, state["onto"])
+    own_red = data.get("suite") != "green" and tests and all(in_own_red(red_names, name) for name in tests)
     if not own_red:
         data["suite"] = suite
     record.save(path, data, body)
