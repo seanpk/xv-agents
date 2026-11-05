@@ -487,7 +487,8 @@ def cmd_answer(a):
         else:
             raise XVError("--pick is the number of an offered option, or other")
     if edit:
-        check_edit(slice_root(path), load_config(slice_root(path)), pick, edit)
+        edit_root = slice_root(path)
+        check_edit(edit_root, load_config(edit_root), pick, edit)
     stopped_at = stop.get("step") or data["next"]
     # a stop raised before its work started has nothing to send back; `xv step` marks
     # its pre-step budget stop `pre_step`, and a prototype that ran out of budget has started
@@ -538,7 +539,7 @@ def cmd_answer(a):
         body = log_line(body, "watch", f"scribe: wrote {', '.join(scribed)} for {stop['order']} "
                                        f"as the scribe of {','.join(who)}")
     if edit:
-        make_directed_edit(slice_root(path), path, data, body, stop, edit, who)
+        make_directed_edit(edit_root, path, data, body, stop, edit, who)
         return
     save(path, data, body)
 
@@ -567,7 +568,7 @@ def make_directed_edit(root, path, data, body, stop, edit, who):
         if kind == "test-rename":
             rename_in_record(data, file, *name_change(old, new))
     body = log_line(body, ",".join(who), f"directed a {kind} edit in {file}")
-    config = load_config(slice_root(path))
+    config = load_config(root)
     data["suite"], _ = run_suite(root, config, data.get("base"), data.get("id"))
     step = stop.get("step") or data["next"]
     v = orders.verdict(data, step, config)

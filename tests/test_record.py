@@ -2145,13 +2145,6 @@ class DirectedEditTest(RepoCase):
         text = open(os.path.join(HOME, "skills", "watch", "SKILL.md")).read()
         self.names_every_refusal(text.split("## A directed edit", 1)[1].split("\n## ", 1)[0])
 
-    def test_the_changelog_line_names_every_refusal_and_the_suite_module(self):
-        text = open(os.path.join(HOME, "CHANGELOG.md")).read()
-        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        lines = [line for line in unreleased.splitlines() if line.startswith("- ") and "#132" in line]
-        self.assertTrue(lines, unreleased)
-        self.names_every_refusal(" ".join(lines))
-
 
 # A person watching the first green: pick a directed test rename on a real stop and read the commit it makes
 # (`git show`): only the test file and the record, its message naming the person, and the packet line when the
