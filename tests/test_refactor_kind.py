@@ -157,7 +157,9 @@ class RefactorKindCase(RepoCase):
     # 11. the packet's expected_moves count
     def packet_problems(self, expected, flags=("--expect-moves", "imports")):
         self.open_slice(*flags)
-        env = {"FAKE_MAKER_IMPORT_MOVE": "1", "FAKE_PACKET_EXPECTED_MOVES": expected}
+        env = {"FAKE_PACKET_EXPECTED_MOVES": expected}
+        if flags:
+            env["FAKE_MAKER_IMPORT_MOVE"] = "1"
         with mock.patch.dict(os.environ, env):
             self.xv("run", "s1", cwd=self.wt, check=False)
         return self.record()["checks"]["guardian"].get("packet_problems") or []
