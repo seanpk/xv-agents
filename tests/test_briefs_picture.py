@@ -178,6 +178,30 @@ class ScenarioCatchesTest(unittest.TestCase):
         self.assertTrue([h for h in hits if "binding decision" in h.lower()],
                         "no watch line lists the four things an amendment names")
 
+    def test_the_maker_brief_lets_it_change_only_the_picture_from_the_may_not_list(self):
+        text = brief("skills", "maker", "SKILL.md")
+        hits = paragraphs(text, "scenario agent", "report", "may-not", ".xv/picture.md")
+        self.assertTrue(hits)
+        self.assertFalse([h for h in hits if "no other file on this list" in h],
+                         "the maker brief still lets it change any file the report names")
+        self.assertTrue([h for h in hits if re.search(r"(?i)only `?\.xv/picture\.md", h)],
+                        "the maker brief does not say the picture is the only file it may change")
+
+    def test_the_scenario_brief_says_the_maker_may_change_only_the_picture_from_the_list(self):
+        text = brief("skills", "scenario", "SKILL.md")
+        hits = paragraphs(text, "6d.", "may-not", "maker may change")
+        self.assertTrue(hits)
+        self.assertFalse([h for h in hits if "those files and no other file" in h],
+                         "6d still says the maker may change every file the report names")
+        self.assertTrue([h for h in hits if re.search(r"(?i)only `?\.xv/picture\.md", h)],
+                        "6d does not say the maker may change only the picture")
+
+    def test_the_changelog_does_not_say_the_maker_may_change_any_named_may_not_file(self):
+        text = brief("CHANGELOG.md")
+        line = next(l for l in text.splitlines() if "scenario agent catches more" in l)
+        self.assertNotIn("a named may-not file", line)
+        self.assertRegex(line, r"(?i)only `?\.xv/picture\.md")
+
 
 if __name__ == "__main__":
     unittest.main()
