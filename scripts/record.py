@@ -389,9 +389,10 @@ def check_edit(root, config, n, edit):
         raise XVError(f"option {n}: a {kind} edit holds no blank line, in --old or --new")
     if kind == "test-rename":
         one_line = "\n" not in old + new and old != new and TEST_DECL.match(old) and TEST_DECL.match(new)
-        if not one_line or not all(re.fullmatch(r"\w+", x) for x in name_change(old, new)):
+        names = name_change(old, new)
+        if not one_line or not all(re.fullmatch(r"\w+", x) for x in names):
             raise XVError(f"option {n}: a rename changes one test's name to another test's name and nothing else")
-        name = name_change(old, new)[0]
+        name = names[0]
         if len(re.findall(rf"(?<!\w){re.escape(name)}(?!\w)", text)) != 1:
             raise XVError(f"option {n}: the name {name} also appears elsewhere in {file}; a rename is one line")
     if kind == "test-remove" and (new != "" or not is_whole_test(text, old)):
@@ -575,12 +576,12 @@ def make_directed_edit(root, path, data, body, stop, edit, who):
     if data.get("packet"):
         packet = os.path.join(root, data["packet"])
         with open(packet) as f:
-            text = f.read()
+            packet_text = f.read()
         heading = "## Directed edits after the guardian"
-        text = text.rstrip("\n") + ("\n" if heading in text else f"\n\n{heading}\n\n") \
+        packet_text = packet_text.rstrip("\n") + ("\n" if heading in packet_text else f"\n\n{heading}\n\n") \
             + f"- {file} ({kind}): directed by {by}\n"
         with open(packet, "w") as f:
-            f.write(text)
+            f.write(packet_text)
         paths.append(data["packet"])
     git(["add", "--", *paths], root)
     git(["commit", "-q", "--no-verify", "-m", f"xv({data['id']}): {kind} edit in {file}, directed by {by}",
