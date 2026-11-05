@@ -202,6 +202,17 @@ class ScenarioCatchesTest(unittest.TestCase):
         self.assertNotIn("a named may-not file", line)
         self.assertRegex(line, r"(?i)only `?\.xv/picture\.md")
 
+    def test_the_scenario_brief_says_a_number_in_covers_names_only_the_scenarios_own_point(self):
+        text = brief("skills", "scenario", "SKILL.md")
+        self.assertRegex(text, r"(?is)\bnumber\b[^\n]*only[^\n]*scenario's own point")
+        self.assertRegex(text, r"(?is)amendment's point[^\n]*own words")
+
+    def test_the_changelog_has_a_line_for_the_covers_number_change(self):
+        lines = [l for l in brief("CHANGELOG.md").split("## 0.4.1")[0].splitlines() if "#125" in l]
+        self.assertTrue(lines, "no Unreleased line names #125")
+        self.assertRegex(lines[0], r"(?i)covers")
+        self.assertRegex(lines[0], r"(?i)amendment")
+
 
 if __name__ == "__main__":
     unittest.main()
