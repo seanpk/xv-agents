@@ -18,8 +18,8 @@ sys.exit(subprocess.call([{python!r}, {fake!r}, sys.argv[-1]]))
 """
 
 
-class BudgetCapTest(RepoCase):
-    """The budget caps the whole slice: checked before each step, green or red."""
+class BudgetCapSetup(RepoCase):
+    """The setup the budget-cap tests share; it holds no tests, so a subclass re-runs none."""
 
     def setUp(self):
         super().setUp()
@@ -56,6 +56,10 @@ class BudgetCapTest(RepoCase):
     def cap_of(self, argv):
         self.assertIn("--max-budget-usd", argv)
         return float(argv[argv.index("--max-budget-usd") + 1])
+
+
+class BudgetCapTest(BudgetCapSetup):
+    """The budget caps the whole slice: checked before each step, green or red."""
 
     def test_a_claude_step_gets_the_dollars_left_not_the_whole_budget(self):
         self.budget(usd=1, tokens=10000000)

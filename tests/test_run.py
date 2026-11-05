@@ -79,8 +79,8 @@ class NestedRepoTest(RepoCase):
         self.assertFalse(os.path.exists(os.path.join(wt, ".xv", ".git")))
 
 
-class WatchLoopTest(RepoCase):
-    """The whole loop with a stand-in agent: the plumbing, not the briefs."""
+class WatchLoopSetup(RepoCase):
+    """The setup the watch-loop tests share; it holds no tests, so a subclass re-runs none."""
 
     def setUp(self):
         super().setUp()
@@ -96,6 +96,10 @@ class WatchLoopTest(RepoCase):
 
     def record(self):
         return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+
+
+class WatchLoopTest(WatchLoopSetup):
+    """The whole loop with a stand-in agent: the plumbing, not the briefs."""
 
     def test_run_goes_from_the_forecast_to_the_merge_stop(self):
         p = self.xv("run", "s1", cwd=self.wt, check=False)
@@ -807,7 +811,7 @@ class RedFailsAfterTheMakerTest(RepoCase):
         self.assertIn("SETUP-BOOM", fired["setup_failed"]["question"])
 
 
-class AcceptedShapeChangeTest(WatchLoopTest):
+class AcceptedShapeChangeTest(WatchLoopSetup):
     """shape_change: accepted counts only when the packet's accepted_by names a decision record
     on this slice that answered a shape_or_pitch stop; otherwise it is read as yes."""
 
@@ -916,7 +920,7 @@ class AcceptedShapeChangeTest(WatchLoopTest):
         self.assertNotIn("each `yes` or `no`, nothing else", fields)
 
 
-class EveryPathOneVerdictTest(WatchLoopTest):
+class EveryPathOneVerdictTest(WatchLoopSetup):
     """`xv step`, `xv run` and the session path (`xv record report`, then `xv record packet`) are
     given the same record and the same packet, and leave the same verdict."""
 
@@ -967,7 +971,7 @@ class EveryPathOneVerdictTest(WatchLoopTest):
         self.assertEqual(self.view(), by_step)
 
 
-class PreStepBudgetStopTest(WatchLoopTest):
+class PreStepBudgetStopTest(WatchLoopSetup):
     def test_the_stop_xv_step_raises_before_a_step_is_answered_without_settled_once_the_budget_is_raised(self):
         self.xv("record", "add", "s1", "spend", json.dumps({"step": "forecaster", "usd": 5, "tokens": 1}),
                 cwd=self.wt)

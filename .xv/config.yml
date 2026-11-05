@@ -19,7 +19,7 @@ tests:
   # A big suite can meet that with a script that picks suites from the changed
   # files. XV_BASE (the slice's base commit) and XV_SLICE (its id) are set in
   # the command's environment, so `git diff --name-only $XV_BASE` finds them.
-  command: "cd tests && python3 -m unittest -q"
+  command: "python3 tests/run.py --jobs 4"
   timeout: 900
 
 source:
@@ -31,9 +31,9 @@ source:
 # one model, and the estimation guide is keyed by harness and model.
 # Set a step to `session` to run it in the person's own harness instead of a CLI.
 agents:
-  default: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(ls:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(sed -n:*),Bash(diff:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git show:*),Bash(git ls-files:*),Bash(git grep:*),Bash(git rev-parse:*),Bash(git rm:*),Bash(git mv:*),Bash(cd tests:*),Bash(python3 -m unittest:*),Bash(xv record move:*)", "--model", "sonnet", "{prompt}"]
+  default: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(ls:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(sed -n:*),Bash(diff:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git show:*),Bash(git ls-files:*),Bash(git grep:*),Bash(git rev-parse:*),Bash(git rm:*),Bash(git mv:*),Bash(cd tests:*),Bash(python3 -m unittest:*),Bash(python3 tests/run.py:*),Bash(xv record move:*)", "--model", "sonnet", "{prompt}"]
   forecaster: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(ls:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(sed -n:*),Bash(diff:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git show:*),Bash(git ls-files:*),Bash(git grep:*),Bash(git rev-parse:*)", "--model", "haiku", "{prompt}"]
-  guardian: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(ls:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(sed -n:*),Bash(diff:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git show:*),Bash(git ls-files:*),Bash(git grep:*),Bash(git rev-parse:*),Bash(cd tests:*),Bash(python3 -m unittest:*),Bash(xv wall diff:*),Bash(xv boundary:*),Bash(xv packet lint:*)", "--model", "opus", "{prompt}"]
+  guardian: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(ls:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(sed -n:*),Bash(diff:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git show:*),Bash(git ls-files:*),Bash(git grep:*),Bash(git rev-parse:*),Bash(cd tests:*),Bash(python3 -m unittest:*),Bash(python3 tests/run.py:*),Bash(xv wall diff:*),Bash(xv boundary:*),Bash(xv packet lint:*)", "--model", "opus", "{prompt}"]
   # A local model through opencode:
   # maker: ["opencode", "run", "--auto", "--format", "json", "--model", "ollama/gpt-oss:20b", "{prompt}"]
   # Grok (its home rules and skills load into every run; see docs/harness-notes.md):
