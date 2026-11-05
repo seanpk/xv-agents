@@ -4,18 +4,19 @@ From `5d5e75fc7a73` to the working tree. Source: xv boundary (ast and regex). Ge
 
 ## Shape hints
 
+- a module was added
 - an edge between modules was added
 
 ## Modules
 
-- touched: scripts/record
-- added: none
+- touched: scripts/record, scripts/run, scripts/suite
+- added: scripts/suite
 - removed: none
 - now calling out of the process: none
 
 ## Edges
 
-- added: scripts/record → scripts/run
+- added: scripts/record → scripts/suite, scripts/run → scripts/suite
 - removed: none
 
 ```mermaid
@@ -42,58 +43,59 @@ flowchart LR
   m19["scripts/retro"]
   m20["scripts/run"]
   m21["scripts/spend"]
-  m22["scripts/wall"]
-  m23["scripts/xvlib"]
+  m22["scripts/suite"]
+  m23["scripts/wall"]
+  m24["scripts/xvlib"]
   m0 --> m4
   m0 --> m9
   m0 --> m17
-  m0 --> m23
+  m0 --> m24
   m1 --> m21
   m2 --> m0
   m2 --> m4
   m2 --> m21
-  m2 --> m23
+  m2 --> m24
   m3 --> m6
-  m3 --> m23
-  m4 --> m23
-  m5 --> m23
+  m3 --> m24
+  m4 --> m24
+  m5 --> m24
   m6 --> m8
-  m6 --> m23
+  m6 --> m24
   m7 --> m19
-  m7 --> m23
-  m8 --> m23
+  m7 --> m24
+  m8 --> m24
   m9 --> m4
   m9 --> m15
   m9 --> m20
-  m9 --> m23
-  m10 --> m22
+  m9 --> m24
   m10 --> m23
+  m10 --> m24
   m11 --> m21
-  m11 --> m23
-  m12 --> m23
-  m13 --> m23
+  m11 --> m24
+  m12 --> m24
+  m13 --> m24
   m14 --> m6
-  m14 --> m23
+  m14 --> m24
   m15 --> m4
   m15 --> m17
-  m15 --> m23
+  m15 --> m24
   m16 --> m4
   m16 --> m11
   m16 --> m15
   m16 --> m17
   m16 --> m21
-  m16 --> m23
+  m16 --> m24
   m17 --> m11
   m17 --> m12
-  m17 ==> m20
   m17 --> m21
-  m17 --> m23
-  m18 --> m23
+  m17 ==> m22
+  m17 --> m24
+  m18 --> m24
   m19 --> m4
   m19 --> m14
   m19 --> m15
   m19 --> m21
-  m19 --> m23
+  m19 --> m24
   m20 --> m4
   m20 --> m5
   m20 --> m10
@@ -104,10 +106,11 @@ flowchart LR
   m20 --> m17
   m20 --> m19
   m20 --> m21
-  m20 --> m22
+  m20 ==> m22
   m20 --> m23
-  m21 --> m23
-  m22 --> m23
+  m20 --> m24
+  m21 --> m24
+  m23 --> m24
 ```
 
 ## Tables
@@ -126,14 +129,22 @@ flowchart LR
 {
  "base": "5d5e75fc7a7371d74a3884cfbae919785adbb4e7",
  "touched": [
-  "scripts/record"
+  "scripts/record",
+  "scripts/run",
+  "scripts/suite"
  ],
- "modules_added": [],
+ "modules_added": [
+  "scripts/suite"
+ ],
  "modules_removed": [],
  "edges_added": [
   [
    "scripts/record",
-   "scripts/run"
+   "scripts/suite"
+  ],
+  [
+   "scripts/run",
+   "scripts/suite"
   ]
  ],
  "edges_removed": [],
@@ -170,6 +181,7 @@ flowchart LR
    "scripts/retro",
    "scripts/run",
    "scripts/spend",
+   "scripts/suite",
    "scripts/wall",
    "scripts/xvlib"
   ],
@@ -340,11 +352,11 @@ flowchart LR
    ],
    [
     "scripts/record",
-    "scripts/run"
+    "scripts/spend"
    ],
    [
     "scripts/record",
-    "scripts/spend"
+    "scripts/suite"
    ],
    [
     "scripts/record",
@@ -416,6 +428,10 @@ flowchart LR
    ],
    [
     "scripts/run",
+    "scripts/suite"
+   ],
+   [
+    "scripts/run",
     "scripts/wall"
    ],
    [
@@ -441,6 +457,7 @@ flowchart LR
  },
  "source": "xv boundary (ast and regex)",
  "shape_hints": [
+  "a module was added",
   "an edge between modules was added"
  ]
 }

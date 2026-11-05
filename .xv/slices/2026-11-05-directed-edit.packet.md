@@ -1,6 +1,7 @@
 ---
 slice: 2026-11-05-directed-edit
-shape_change: yes
+shape_change: accepted
+accepted_by: .xv/decisions/2026-11-05-2026-11-05-directed-edit.md
 pitch_contradiction: no
 scenario_miss: yes
 picture_change: yes
@@ -11,94 +12,106 @@ door: two-way
 blast_radius: watch
 ---
 
-# Packet: The watch makes a directed change the person approved (#132)
+# Packet: The watch makes a directed change the person approved (#132), second pass
 
-Needs a decision from two people (this repo runs solo, so Sean): one shape change. `record` now imports `run`, which makes an import cycle, and `xv record answer` now edits files, commits, and runs the suite. There are also three scenario misses that go back. Separately, Sean should decide whether the `doc` kind may touch a brief, the pitch or the picture.
+Needs a decision: none from two people. The shape is the one Sean set in the decision record: a new `scripts/suite.py`, imported by `record` and `run`. One scenario miss goes back to the scenario agent: a `test-remove` of a decorated test leaves the decorator behind, so it now decorates the next test. Three items for Sean: the packet line is written after the commit and stays uncommitted; the brief and the CHANGELOG line do not name the second amendment's refusals; and the Opus line in `.xv/config.yml` is still in the diff.
 
 ## The scenario
 
-A stop option can carry a directed edit, given as exact old and new text, which the person approves word for word. There are four kinds: a line in `CHANGELOG.md`, a test rename, a test removal (both in a file under `tests.paths`), and a line in a Markdown doc. Picking the option makes the edit in its own commit, which names the person. A test edit is recorded as a move in the person's name, and a rename also renames the test in `slice_only` and `wall_recommendations`. The suite and the orders then run. After the guardian has run, the packet gets a line for each edit and the guardian does not run again. The watch's brief states the rule. The amendment (2026-11-05) drops `covers` and fixes the surface: `xv record offer --edit/--old/--new/--kind`, then `xv record answer --pick`.
+A stop option can carry a directed edit, given as exact old and new text, which the person approves word for word. There are four kinds: `changelog`, `test-rename`, `test-remove` (in `tests.paths`) and `doc`. `xv record answer --pick` makes the edit in its own commit, which names the person. A test edit is recorded as a move in the person's name, and a rename also updates the test's name in `slice_only` and `wall_recommendations`. Then the suite and the orders run. After the guardian has run, the packet gets a line and `next` does not go back to the guardian. Second amendment: `record` does not import `run`, because the suite run moves to `scripts/suite.py`. The `doc` kind refuses `.xv/` and `SKILL.md`. Changelog and doc edits may span lines but may not hold a blank line. Test kinds take only a whole test. A stop after the edit is written through `record.apply_verdict`.
 May ignore: retiring a wall test (#120), a doc line that also needs a test, and edits outside the four kinds.
 
 ## The recording
 
-None, because this is a feature. Replay: `cd tests && python3 -m unittest test_record.DirectedEditTest`. It failed at `ed9844d` (unrecognized arguments, 36 failures) and passes at HEAD: I ran it, and all 24 tests passed.
+None, because this is a feature. Replay: `cd tests && python3 -m unittest test_record.DirectedEditTest`. The record shows the red failing at `6f1e327` (68 failures, 1 error) and the suite green after the maker and after the cleaner (`checks.cleaner.suite: green`, 826 tests).
 
 ## The boundary picture
 
 From `.xv/slices/2026-11-05-directed-edit.boundary.md`, as given:
-- Touched: `scripts/record`. No modules were added or removed, and no outbound calls were added.
-- Edge added: `scripts/record → scripts/run`. No edges were removed.
-- Tables: none. Surface paths: none.
-- Shape hint: "an edge between modules was added".
+- Module added: `scripts/suite`. Touched: `scripts/record`, `scripts/run`, `scripts/suite`.
+- Edges added: `scripts/record → scripts/suite` and `scripts/run → scripts/suite`. None removed. The earlier `record → run` edge is gone.
+- Tables: none. Surface paths: none. Outbound: none added.
+- Shape hints: "a module was added", "an edge between modules was added".
 
 ## What the suite asserts after
 
-`DirectedEditTest` (24 tests, `tests/test_record.py:1473-1790`) asserts the following:
-- An offer with an edit changes nothing until it is picked.
-- The offer refuses an old text that is missing, found twice, or empty; a missing file; a kind that does not fit the file or is not on the list; a missing flag; an edit with no `--option` before it; a rename that changes more than the name; and a removal whose new text is not empty.
-- A pick makes exactly the edit, in one commit that holds only the edited file and the record and is directed by the person. Unrelated dirty files are left alone.
-- A test rename or removal is recorded as a move by the person, and a rename is renamed in `slice_only` and `wall_recommendations` in that commit.
-- Picking option 2 makes no edit.
-- After the edit, the suite result is recorded (green or red) and the verdict is printed, with exit 10 on a stop.
-- After the guardian, the packet gets one line naming the file, the kind, the person and the sha, and `next` is not `guardian`. Before the guardian, no packet is written.
+`DirectedEditTest` (`tests/test_record.py:1474` onward) asserts the following:
+- An offer with an edit changes nothing until a person picks it.
+- The offer refuses these edits:
+  - an old text that is missing, found twice, or empty
+  - a missing file, a kind that does not fit the file, or a kind not on the list
+  - a missing flag, or an edit with no `--option` before it
+  - a rename that changes more than the name, or a rename to or from a non-test (`setUp`, a helper)
+  - a removal whose new text is not empty, or that is only part of a test
+  - a `doc` edit under `.xv/` or to any `SKILL.md`
+  - a changelog or doc edit that holds a blank line (multi-line edits with no blank line pass)
+- A pick makes exactly the edit, in one commit that holds only that file and the record and is directed by the person.
+- A test edit is a move in the person's name. A rename updates `slice_only` and `wall_recommendations` in that commit.
+- The suite result is recorded (green or red). A stop after the edit is written to the record (`ready_to_merge` at `guardian`) and can be answered.
+- After the guardian, the packet gets one line and `next` is not `guardian`. Before the guardian, no packet is written.
+- `record` does not import `run`. Both import `suite`, and `suite` passes the slice base and id.
 - The watch brief states the rule and has the new may-not line.
-
-No old assertion changed: the only hunk against base in `tests/test_record.py` is `@@ -1468,3 +1468,329 @@`, which only adds lines.
 
 ## 1. Shape
 
-shape_change: yes. shape_breadth: narrow; the forecast expected `wide`, so it is not wider.
+shape_change: accepted, by `.xv/decisions/2026-11-05-2026-11-05-directed-edit.md`. shape_breadth: narrow. The forecast expected `wide`, so this is not wider.
 
-- **New edge `record → run`: this changes the shape.** `scripts/record.py:505` `import run as runlib  # run imports this module`. `run` already imports `record` (`scripts/run.py:32`), so this makes a cycle, which the code works around with a lazy import. The picture lists what `record` reaches and `run` is not among them (`.xv/picture.md:21`: "`record` reaches `orders` and `packet`"). It also says "`record` owns the slice record" (`.xv/picture.md:23`). With this edge, `record` reaches into the largest script to run `tests.command`.
-- **`xv record answer` gets a new job (same CLI surface, `.xv/picture.md:28`).** It now writes a repo file, runs `git commit` (`scripts/record.py:524-526`), and runs the suite. Until now a command under `record` only wrote the record; commits came from `run` (`scripts/run.py:106`). The command is not a new surface. Its new flags (`--edit/--old/--new/--kind`, `scripts/record.py:948-949`) extend the existing `offer`.
+- **"a module was added" (`scripts/suite`): this changes the shape, and the decision accepted it.** The new module is `scripts/suite.py:1-30`, holding `shell`, `tests_timeout` and `run_suite`, moved verbatim from `scripts/run.py:45-68` at base. The decision's settled line says: "run_suite and its helpers move to scripts/suite.py".
+- **"an edge between modules was added" (`record → suite`, `run → suite`): this changes the shape, and the decision accepted it.** The edges come from `scripts/record.py:21` `from suite import run_suite` and `scripts/run.py:34` `from suite import run_suite, shell, tests_timeout`. The decision says "record does not import run", and no `import run` remains in `record`.
+- **`xv record answer` now edits a repo file, commits, and runs the suite and the orders.** This adds no edge (`git` already came from `xvlib`). At base, `record` ran only `git show` (`scripts/record.py:724` at base). Now it runs `git commit` (`scripts/record.py` hunk `@@ -419,9 +512,61 @@`, `make_directed_edit`). The first packet named this as a shape change. The decision refused only the `record → run` import, and it requires that "a stop after a directed edit is written through record.apply_verdict", which assumes the answer runs the orders. The commit is in Sean's amendment ("makes the edit and commits only that file and the record"). So I read it as accepted. If Sean does not, `shape_change` should be `yes`.
 
 ## 2. Pitch
 
-pitch_contradiction: no. I checked the change against "xv-agents makes it easy for a team or an individual to adopt Xtreme Vibing in a repo: to vibe with discipline" (`.xv/pitch.md:7`) and "not for people or projects that will not trust agents to write production code" (`.xv/pitch.md:25`). A directed edit is a person's own wording, so it does not cut against either line.
-
-One thing is for the person, not a contradiction. The pitch file says of itself: "It changes when a second person agrees, and the change is written down in `.xv/decisions/`" (`.xv/pitch.md:11`). But the `doc` kind fits every `.md` except `CHANGELOG.md` (`scripts/record.py:334` `fits = rel.endswith(".md") and rel != "CHANGELOG.md"`). So one person's pick at an originator stop can commit an edit to `.xv/pitch.md`. The same pick can edit a brief or may-not list (`skills/*/SKILL.md`) with no `CHANGELOG.md` line and no second person, against binding decision 1 (`.xv/picture.md:64`). The watch brief still says the watch may not "Edit a standing order, a brief, or a check" (`skills/watch/SKILL.md:101`). The next line makes a directed edit "the one edit it makes" (`skills/watch/SKILL.md:102`). The brief does not say which line wins for a directed `doc` edit to a brief. Amendment item 2 does say "another Markdown file", so the code matches the words Sean wrote. Whether to exclude `.xv/pitch.md`, `.xv/picture.md`, `.xv/standards.md` and `skills/` is Sean's call.
+pitch_contradiction: no. I checked against `.xv/pitch.md:7` ("makes it easy … to vibe with discipline") and `.xv/pitch.md:25` ("not for people or projects that will not trust agents…"). A directed edit is a person's own words, so it serves neither against. The first packet's concern was that a `doc` edit could reach `.xv/pitch.md` without a second person (`.xv/pitch.md:11`). That is closed: the code now refuses paths under `.xv/` (`scripts/record.py` `check_edit`: `not rel.startswith(XV_DIR + os.sep)`), and the test is `test_the_doc_kind_refuses_a_file_under_xv_and_any_skill_md`.
 
 ## 3. Moved tests
 
-| File | Before | After | Why (the maker's record) | Forced by the scenario? |
+| File | Before | After | Why (the record) | Forced by the scenario? |
 | --- | --- | --- | --- | --- |
-| `tests/test_record.py` | `DirectedEditTest.test_the_changelog_names_the_directed_edit`: `#132` appears under `## Unreleased` | removed (`08d1417`; `xv wall diff`: 322 → 321 assertions) | slice-only: a one-time CHANGELOG wording check, accepted by Sean (`slice_only_marks`, pick 1) | Not forced; it is a slice-only removal |
+| `tests/test_record.py` | `DirectedEditTest.test_the_changelog_names_the_directed_edit`: `#132` appears under `## Unreleased` | removed in `08d1417` | slice-only: a one-time CHANGELOG wording check, accepted by Sean (`slice_only_marks`, pick 1) | Not forced; it is a slice-only removal |
 
-Slice-only tests removed: `tests/test_record.py` `DirectedEditTest.test_the_changelog_names_the_directed_edit`. Kept: none.
-No moves were recorded as expected. `may_not_files` is empty, so no may-not file was allowed.
+Slice-only tests removed: `tests/test_record.py` `DirectedEditTest.test_the_changelog_names_the_directed_edit`. None were kept.
+Against base, `tests/test_record.py` only adds lines (`@@ -1,3 +1,4 @@` adds `import ast`; `@@ -1468,3 +1469,500 @@` adds the class). `xv wall diff 2026-11-05-directed-edit` lists nothing changed, deleted, added or with fewer assertions since the wall baseline `6f1e327`. No moves were expected. `may_not_files` is empty.
 
-Not a test, but outside the slice's work: the `.xv/config.yml` hunk at line 37 adds the `scenario:` line that runs on Opus, marked "removed before the PR". It is still in the diff.
+Outside the tests: `.xv/config.yml` `@@ -34,6 +34,8 @@` still adds the `scenario:` line on Opus, marked "removed before the PR".
 
 ## 4. The picture
 
-- `.xv/picture.md:21`: add "`record` reaches `run` (a lazy import, for `run_suite`; `run` also reaches `record`)".
-- `.xv/picture.md:23`, after "`record` owns the slice record": add that `xv record offer` can put a directed edit on an option, refused unless it fits one of the four kinds. Add that `xv record answer --pick` on that option makes the edit, commits only that file and the record, names the person in the message, runs the suite and the orders, and adds a packet line after the guardian.
-- `.xv/picture.md:27`, "The maker and the cleaner record a move in their own names … A person's name reaches the record only through an answer at a stop": add that a directed test edit records a move in the person's name through `xv record answer --pick`.
-- `.xv/picture.md:36`, "The watch edits it only when a person directs it, in its own commit naming that person": say whether a directed `doc` edit is how that happens, given that the `doc` kind currently admits `.xv/picture.md` (`scripts/record.py:334`).
+- `.xv/picture.md:21`: the counts "24 modules … `scripts/*.py` (21)" and "63 edges" go to 25 modules, 22 scripts and 65 edges. Add "`record` and `run` reach `suite`". `.xv/boundary-all.md` is now stale.
+- `.xv/picture.md:23`:
+  - Add that `suite` runs `tests.command` (`run_suite`, `shell`, `tests_timeout`) for `run` and `record` (`scripts/suite.py:1-30`).
+  - Add that `xv record offer` can put one directed edit on an option. The offer refuses it unless it fits one of the four kinds: a whole test only for the test kinds, no blank line for changelog and doc, and no `.xv/` or `SKILL.md` for doc.
+  - Add that `xv record answer --pick` makes the edit, commits that file and the record naming the person, runs the suite and the orders, and adds a packet line after the guardian (`scripts/record.py` hunk `@@ -419,9 +512,61 @@`, `make_directed_edit`).
+  - In "One function, `record.apply_verdict`, writes … on `xv step`, `xv run` and `xv record packet`", add `xv record answer` after a directed edit.
+- `.xv/picture.md:27`, "A person's name reaches the record only through an answer at a stop": add that a directed test edit records a move with `by` set to the person, through that answer.
+- `.xv/picture.md:36`, "The watch edits it only when a person directs it, in its own commit naming that person": say this is not a directed `doc` edit, because that kind refuses `.xv/`.
 - `.xv/picture.md:43`, the definition of an offer: add that an option may carry one directed edit.
 
 ## 5. The wall
 
-- `tests/test_record.py` `DirectedEditTest.test_the_changelog_names_the_directed_edit`: should stay marked slice-only, which keeps it off the wall. It checked one `#132` line in `CHANGELOG.md` (removed hunk in `08d1417` at `@@ -1789,11`), and the record's `slice_only` entry was accepted by Sean.
-
-Also checked: the 24 kept `DirectedEditTest` tests (`tests/test_record.py:1473-1790`). Each guards behavior that lasts, and none only restates another. The two brief-wording tests guard the brief's rule, which stays, rather than a one-time line. No test that was on the wall before the slice is made dead.
+- `tests/test_record.py` `DirectedEditTest.test_the_changelog_names_the_directed_edit` should stay marked slice-only, so it stays off the wall. It checked one `#132` line in `CHANGELOG.md` and was removed in `08d1417`. The record's `slice_only` entry is `accepted: true`.
 
 ## Scenario misses
 
-- amendment 1, item 3: "runs the suite and the standing orders and prints the verdict, as `xv step` does". `xv step` writes the verdict through `record.apply_verdict` (`scripts/run.py:720`; `.xv/picture.md:23`, "One function, `record.apply_verdict`, writes the stop…"). The directed path only prints it and exits 10 (`scripts/record.py:537-540` `v = orders.verdict(...)`, `emit(v, True)`, `sys.exit(10)`). A stop that fires after a directed edit is never written as an open stop, so `xv record offer` and `xv record answer` cannot act on it, and a send-back or `next` from the verdict is dropped (evidence: `scripts/record.py:537-540`; the red only checks the printed verdict, `test_after_the_edit_the_suite_and_the_orders_run_and_the_verdict_is_printed`; to: scenario)
-- 2: "renaming a test or removing a test… Any other edit goes to an agent". The check that the old text is a test is `TEST_DECL` (`scripts/record.py:281`), which matches any `def`, so `def setUp(self):` or a helper passes as a "test". Two edits outside the four kinds get through. (a) A `test-remove` of `def setUp…` or a helper, or of only a test's `def` line, is accepted (`scripts/record.py:349`). Removing only the `def` line merges the body into the test above it and changes its assertions. (b) A `test-rename` of `def setUp(self):` to `def setup(self):`, or of `test_x` to `helper_x`, is accepted (`scripts/record.py:346-348`). That turns a test off and records it as a rename. Both change behavior, against point 6, "the edit changes no behavior" (evidence: `scripts/record.py:281`, `:346-349`; no red test covers a non-test declaration or a partial removal; to: scenario)
-- 2: "a line in `CHANGELOG.md`… a line in a Markdown doc". For `changelog` and `doc`, the offer checks only that the old text is found exactly once (`scripts/record.py:331-344`). A multi-line old text, such as a whole `## Unreleased` section or a whole doc, is accepted, but the rename check refuses a newline (`:346`) (evidence: `scripts/record.py:331-344`; no red test covers a multi-line `changelog` or `doc` edit; to: scenario)
+- Amendment 2, item 4: "A `test-remove` must remove the whole test, its declaration and its body; the offer refuses a removal of only part of it." The problem is a decorated test (`@unittest.skip`, `@mock.patch`, `@pytest.mark…`). `is_whole_test` requires the old text's first line to match `TEST_DECL`, the `def` (`scripts/record.py` `check_edit` hunk: `if not old.endswith("\n") or not lines or not TEST_DECL.match(lines[0])`). So a removal that includes the decorator is refused. A removal of only the `def` and its body is accepted, because only the lines after the old text are checked. The decorator stays and now applies to the next test, which can skip it or patch it. That breaks point 6, "the edit changes no behavior". This repo's suite has no decorated tests, but adopters' suites do. Evidence: `scripts/record.py` `is_whole_test`; no red test has a decorated test. to: scenario.
 
-What `watch_first_green` asked about: a rename whose old name is a prefix of another test's name does not catch the longer name. `rename_in_record` compares the whole last dotted part (`scripts/record.py:499` `test.rsplit(".", 1)[-1] == old_name`).
+## For Sean (not misses)
+
+- **The packet line is never committed.** `make_directed_edit` commits the file and the record, then writes the packet line (`scripts/record.py` hunk `@@ -419,9 +512,61 @@`: `git(["commit", …])` runs before `with open(packet, "w")`). The packet is left dirty until some later commit picks it up. The amendment says the commit holds "only that file and the record" (amendment 1, item 3), so Sean must choose: a second commit, or the packet in the same commit.
+- **The brief and the CHANGELOG line describe the first amendment only.**
+  - `skills/watch/SKILL.md` `@@ -39,6 +39,14 @@` lists the refusals and says "prints the verdict". It does not say that `doc` refuses `.xv/` and `SKILL.md`, that a blank line is refused, that test kinds take only a whole test, or that a stop is written to the record.
+  - The `CHANGELOG.md` line (`@@ -4,6 +4,7 @@`) has the same gaps. It also does not name `scripts/suite.py`.
+  - Binding decision 1 (`.xv/picture.md:64`) asks for a CHANGELOG line for a brief change. The line exists but is out of date.
+- **A rename only checks the name.** A rename of a test whose name is used elsewhere in the file (for example `self.test_x()`, or a skip list) is not checked. Nothing in the red covers this.
 
 ## Door
 
-**Door:** two-way. A revert removes the flags and the commit path, and the slice itself makes no directed edit. **Blast radius:** watch. `skills/watch/SKILL.md` and `xv record` reach every adopter once released.
+**Door:** two-way. A revert removes the flags, the commit path and `scripts/suite.py`, and the slice itself makes no directed edit. **Blast radius:** watch. `skills/watch/SKILL.md` and `xv record` reach every adopter once released.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-11-05-directed-edit.md`
-- Diff: `git diff 5d5e75fc7a7371d74a3884cfbae919785adbb4e7..08d1417`
+- Decision: `.xv/decisions/2026-11-05-2026-11-05-directed-edit.md`
+- Diff: `git diff 5d5e75fc7a7371d74a3884cfbae919785adbb4e7..HEAD`, and since the first packet, `git diff 24ced79..HEAD`
 - Wall: `xv wall diff 2026-11-05-directed-edit`
-- Boundary: `xv boundary --base 5d5e75fc7a7371d74a3884cfbae919785adbb4e7` (`.xv/slices/2026-11-05-directed-edit.boundary.md`)
+- Boundary: `.xv/slices/2026-11-05-directed-edit.boundary.md`
