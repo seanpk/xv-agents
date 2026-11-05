@@ -689,6 +689,55 @@ class SliceRebaseTest(RepoCase):
         self.assertEqual(after[:len(before)], before)
         self.assertEqual([s["step"] for s in after[len(before):]], ["maker"])
 
+    # -- 19 again: a budget raised during the rebase is the one the --continue check reads
+
+    def test_a_budget_raised_during_the_rebase_is_the_one_continue_checks(self):
+        self.shared_conflict()
+        self.spend_the_budget()
+        p = self.rebase(FAKE_REBASE_MODE="resolve", FAKE_REBASE_FILE="pantry/shared.py")
+        self.assertEqual(self.assert_a_stop_for_the_originator(p)["order"], "budget_spent")
+        self.assertFalse(self.agent_ran())
+        self.xv("record", "set", "s1", "budget", '{"usd": 10}', "--by", "pat", cwd=self.wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "raised it", cwd=self.wt)
+        self.write(self.wt, "pantry/shared.py", "SLICE = 1\nMAIN = 2\n")
+        sh(["git", "add", "pantry/shared.py"], self.wt)
+        p = self.rebase("--continue")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertTrue(self.agent_ran())
+        data = self.record()
+        self.assertEqual(data["budget"]["usd"], 10)
+        self.assertEqual(len(self.stops_of("budget_spent")), 1, data["stops"])
+
+    # -- 14 again: --abort drops the aborted rebase's unanswered stops
+
+    def test_abort_drops_the_unanswered_stops_the_rebase_raised(self):
+        self.on_slice("tests/test_shared.py", "A = 1\n", "slice adds a test")
+        self.on_main("tests/test_shared.py", "B = 2\n", "main adds a test")
+        before = self.record()
+        self.assert_a_stop_for_the_originator(self.rebase())
+        self.assertIsNone(self.stops_of("rebase_conflict")[-1]["answer"])
+        p = self.rebase("--abort")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        after = self.record()
+        self.assertEqual(self.stops_of("rebase_conflict"), [], after["stops"])
+        self.assertEqual(after["stops"], before["stops"])
+        self.assertEqual(after["status"], before["status"])
+
+    def test_abort_after_a_maker_run_drops_the_unanswered_stop_and_keeps_the_spend(self):
+        self.on_slice("pantry/shared.py", "SLICE = 1\n", "slice adds shared")
+        self.on_slice("tests/test_shared.py", "A = 1\n", "slice adds a test")
+        self.on_main("pantry/shared.py", "MAIN = 2\n", "main adds shared")
+        self.on_main("tests/test_shared.py", "B = 2\n", "main adds a test")
+        before = self.record()
+        p = self.rebase(FAKE_REBASE_MODE="resolve", FAKE_REBASE_FILE="pantry/shared.py")
+        self.assertEqual(self.assert_a_stop_for_the_originator(p)["order"], "rebase_conflict")
+        self.assertEqual(self.rebase("--abort").returncode, 0)
+        after = self.record()
+        self.assertEqual(self.stops_of("rebase_conflict"), [], after["stops"])
+        self.assertEqual(after["stops"], before["stops"])
+        self.assertEqual(after["status"], before["status"])
+        self.assertEqual(len(after["spend"]), len(before["spend"]) + 1)
+
 
 # What a person should watch on the first green run: that a slice with a real change of its own
 # is replayed on a moved base, that the record's base and named commits point at the replayed
