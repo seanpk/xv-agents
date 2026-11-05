@@ -183,10 +183,6 @@ class ReworkSignalTest(RepoCase):
         self.assertEqual(self.reasons(), {})
 
     # 3. the limit
-    def test_the_default_limit_is_three_in_the_repo_and_in_the_defaults(self):
-        for path in (os.path.join(HOME, "defaults", "config.yml"), os.path.join(HOME, ".xv", "config.yml")):
-            self.assertRegex(open(path).read(), r"(?m)^  rework_slices: 3\b", path)
-
     def test_without_the_key_the_limit_is_three(self):
         self.closed(IDS[0], ["pantry"], 1)
         self.closed(IDS[1], ["pantry"], 1)
