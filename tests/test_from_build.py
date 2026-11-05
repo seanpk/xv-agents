@@ -134,6 +134,21 @@ class SliceNewFromTest(FromBuildBase):
         self.assertNotEqual(p.returncode, 0)
         self.assertNotIn("unrecognized arguments", p.stderr)
 
+    # 11. `--share-build` without `--from` is refused, and opens no slice
+    def test_share_build_without_from_is_refused_and_opens_no_slice(self):
+        self.make_build(fixed=False)
+        p = self.open_slice("--share-build", check=False)
+        self.assertNotEqual(p.returncode, 0, "xv slice new took --share-build without --from")
+        out = p.stdout + p.stderr
+        self.assertNotIn("unrecognized arguments", out)
+        self.assertRegex(out, r"--share-build[^\n]{0,80}needs[^\n]{0,40}--from")
+        self.assertFalse(os.path.exists(os.path.join(self.repo, ".xv", "worktrees", "s1")),
+                         "a worktree was opened for the slice")
+        self.assertFalse(os.path.exists(os.path.join(self.repo, ".xv", "slices", "s1.md")),
+                         "a slice record was written")
+        branch = sh(["git", "rev-parse", "--verify", "-q", "refs/heads/xv/s1"], self.repo, check=False)
+        self.assertNotEqual(branch.returncode, 0, "a slice branch was made")
+
 
 class BuildNotSharedTest(FromBuildBase):
     # 4. by default the scenario agent never sees the build
