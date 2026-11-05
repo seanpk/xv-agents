@@ -1,6 +1,6 @@
 # Boundary picture
 
-From `73d8704034d1` to the working tree. Source: xv boundary (ast and regex). Generated; check it against the diff.
+From `f6d6dcae847e` to the working tree. Source: xv boundary (ast and regex). Generated; check it against the diff.
 
 ## Shape hints
 
@@ -30,79 +30,83 @@ flowchart LR
   m7["scripts/decisions"]
   m8["scripts/install"]
   m9["scripts/listen"]
-  m10["scripts/orders"]
-  m11["scripts/packet"]
-  m12["scripts/playwright_agents"]
-  m13["scripts/promote"]
-  m14["scripts/prompt"]
-  m15["scripts/prototypes"]
-  m16["scripts/record"]
-  m17["scripts/recording"]
-  m18["scripts/retro"]
-  m19["scripts/run"]
-  m20["scripts/spend"]
-  m21["scripts/wall"]
-  m22["scripts/xvlib"]
+  m10["scripts/moves"]
+  m11["scripts/orders"]
+  m12["scripts/packet"]
+  m13["scripts/playwright_agents"]
+  m14["scripts/promote"]
+  m15["scripts/prompt"]
+  m16["scripts/prototypes"]
+  m17["scripts/record"]
+  m18["scripts/recording"]
+  m19["scripts/retro"]
+  m20["scripts/run"]
+  m21["scripts/spend"]
+  m22["scripts/wall"]
+  m23["scripts/xvlib"]
   m0 --> m4
   m0 --> m9
-  m0 --> m16
-  m0 --> m22
-  m1 --> m20
+  m0 --> m17
+  m0 --> m23
+  m1 --> m21
   m2 --> m0
   m2 --> m4
-  m2 --> m20
-  m2 --> m22
+  m2 --> m21
+  m2 --> m23
   m3 --> m6
-  m3 --> m22
-  m4 --> m22
-  m5 --> m22
+  m3 --> m23
+  m4 --> m23
+  m5 --> m23
   m6 --> m8
-  m6 --> m22
-  m7 --> m18
-  m7 --> m22
-  m8 --> m22
+  m6 --> m23
+  m7 --> m19
+  m7 --> m23
+  m8 --> m23
   m9 --> m4
-  m9 --> m14
-  m9 --> m19
-  m9 --> m22
-  m10 --> m20
+  m9 --> m15
+  m9 --> m20
+  m9 --> m23
   m10 --> m22
-  m11 --> m22
-  m12 --> m22
-  m13 --> m6
-  m13 --> m22
-  m14 --> m4
-  m14 --> m16
-  m14 --> m22
+  m10 --> m23
+  m11 --> m21
+  m11 --> m23
+  m12 --> m23
+  m13 --> m23
+  m14 --> m6
+  m14 --> m23
   m15 --> m4
-  m15 --> m10
-  m15 --> m14
-  m15 --> m16
-  m15 --> m20
-  m15 --> m22
-  m16 --> m10
+  m15 --> m17
+  m15 --> m23
+  m16 --> m4
   m16 --> m11
-  m16 --> m20
-  m16 --> m22
-  m17 --> m22
-  m18 --> m4
-  m18 --> m13
-  m18 --> m14
-  m18 --> m20
-  m18 --> m22
+  m16 --> m15
+  m16 --> m17
+  m16 --> m21
+  m16 --> m23
+  m17 --> m11
+  m17 --> m12
+  m17 --> m21
+  m17 --> m23
+  m18 --> m23
   m19 --> m4
-  m19 --> m5
-  m19 --> m10
-  m19 --> m11
   m19 --> m14
   m19 --> m15
-  m19 --> m16
-  m19 --> m18
-  m19 --> m20
   m19 --> m21
-  m19 --> m22
+  m19 --> m23
+  m20 --> m4
+  m20 --> m5
+  m20 --> m10
+  m20 --> m11
+  m20 --> m12
+  m20 --> m15
+  m20 --> m16
+  m20 --> m17
+  m20 --> m19
+  m20 --> m21
   m20 --> m22
-  m21 --> m22
+  m20 --> m23
+  m21 --> m23
+  m22 --> m23
 ```
 
 ## Tables
@@ -119,7 +123,7 @@ flowchart LR
 
 ```json
 {
- "base": "73d8704034d14aaac5d68a76dc7dd6aa4f662d2b",
+ "base": "f6d6dcae847edb89ef341924ea198b3e735a0f92",
  "touched": [
   "scripts/orders",
   "scripts/prompt",
@@ -151,6 +155,7 @@ flowchart LR
    "scripts/decisions",
    "scripts/install",
    "scripts/listen",
+   "scripts/moves",
    "scripts/orders",
    "scripts/packet",
    "scripts/playwright_agents",
@@ -252,6 +257,14 @@ flowchart LR
    ],
    [
     "scripts/listen",
+    "scripts/xvlib"
+   ],
+   [
+    "scripts/moves",
+    "scripts/wall"
+   ],
+   [
+    "scripts/moves",
     "scripts/xvlib"
    ],
    [
@@ -361,6 +374,10 @@ flowchart LR
    [
     "scripts/run",
     "scripts/boundary"
+   ],
+   [
+    "scripts/run",
+    "scripts/moves"
    ],
    [
     "scripts/run",
