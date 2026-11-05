@@ -498,6 +498,8 @@ def rebase_finish(root, slice_id, state, config):
     if len(stops) != len(state["stops"]):
         data["status"] = state["status"]
     data["stops"] = stops
+    if state["budget"]:
+        data["budget"] = state["budget"]
     data["base"] = state["onto"]
     for key, old in state["named"].items():
         if old:
@@ -554,11 +556,12 @@ def cmd_slice_rebase(a):
         else:
             git(["reset", "--hard", state["orig_head"]], root)
         os.remove(rebase_state_path(root, a.id))
-        if state["runs"] or state["stops"] != state["first_stops"]:
-            # the maker's runs cost what they cost, and the stops and answers stay; the record keeps them, uncommitted
+        stops = [s for s in state["stops"] if not (s.get("step") == "rebase" and s.get("answer") is None)]
+        if state["runs"] or stops != state["first_stops"]:
+            # the maker's runs cost what they cost, and the answers stay; the stops the rebase raised and nobody answered go
             path, data, body = record.load(root, a.id)
             data["spend"] += [r["spend"] for r in state["runs"]]
-            data["stops"] = state["stops"]
+            data["stops"] = stops
             record.save(path, data, body)
         print(json.dumps({"slice": a.id, "aborted": True, "head": state["orig_head"]}, indent=2))
         return
@@ -566,6 +569,10 @@ def cmd_slice_rebase(a):
     if a.cont:
         state = rebase_state(root, a.id)
         state["stops"] = tree_stops(root, a.id, state["stops"])
+        try:
+            state["budget"] = record.load(root, a.id)[1].get("budget")  # a person may have set it during the stop
+        except Exception:
+            pass
         rebase_state(root, a.id, state)
         if rebase_running(root):  # git will not replay over the record the stop changed
             git(["checkout", "HEAD", "--", os.path.relpath(record.load(root, a.id)[0], root)], root)
