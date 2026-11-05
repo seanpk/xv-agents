@@ -1763,7 +1763,7 @@ class DirectedEditTest(RepoCase):
         after = packet.split("## Directed edits after the guardian", 1)[1]
         lines = [line for line in after.splitlines() if "CHANGELOG.md" in line]
         self.assertEqual(len(lines), 1, after)
-        for word in ("changelog", "pat", shas[0][:7]):
+        for word in ("changelog", "pat"):
             self.assertIn(word, lines[0])
         self.assertNotEqual(self.show()["next"], "guardian")
 
@@ -1913,6 +1913,103 @@ class DirectedEditTest(RepoCase):
         self.answer("2")
         self.assertEqual([s for s in self.show()["stops"] if s.get("answer") is None], [])
 
+    # ---- amended (third): decorators, the packet in the commit, a renamed name used elsewhere
+
+    DECORATORS = {
+        "one decorator": '    @unittest.skip("flaky on a slow disk")\n',
+        "two decorators": '    @unittest.skipIf(False, "never")\n    @unittest.skip("flaky on a slow disk")\n',
+        "a decorator over two lines": '    @mock.patch.object(\n        Store, "items")\n',
+        "a decorator, then a comment": '    @unittest.skip("flaky on a slow disk")\n    # it waits on the disk\n',
+        "a pytest mark": "    @pytest.mark.slow\n",
+    }
+
+    def decorate(self, decorators):
+        """Put decorators above test_use_refuses_more_than_there_is, and commit."""
+        decl = self.REMOVED.splitlines(True)[0]
+        text = self.read(self.STORE).replace("import unittest\n", "import unittest\nfrom unittest import mock\n", 1)
+        self.write(self.STORE, text.replace(decl, decorators + decl, 1))
+        self.commit_all("a decorated test")
+
+    def test_a_removal_that_leaves_a_decorator_above_it_is_refused(self):
+        base = self.read(self.STORE)
+        cases = [(what, decorators, self.REMOVED) for what, decorators in self.DECORATORS.items()]
+        cases += [
+            ("the lower of two decorators and the test", self.DECORATORS["two decorators"],
+             self.DECORATORS["two decorators"].splitlines(True)[1] + self.REMOVED),
+            ("the second line of a decorator and the test", self.DECORATORS["a decorator over two lines"],
+             self.DECORATORS["a decorator over two lines"].splitlines(True)[1] + self.REMOVED),
+            ("the comment under a decorator and the test", self.DECORATORS["a decorator, then a comment"],
+             self.DECORATORS["a decorator, then a comment"].splitlines(True)[1] + self.REMOVED),
+        ]
+        for what, decorators, old in cases:
+            with self.subTest(what=what):
+                self.write(self.STORE, base)
+                self.decorate(decorators)
+                self.stop()
+                self.assertEqual(self.read(self.STORE).count(old), 1, old)
+                self.refused("--edit", self.STORE, "--old", old, "--new", "", "--kind", "test-remove")
+
+    def removes_the_decorated_test_whole(self, decorators):
+        self.decorate(decorators)
+        self.stop()
+        before, old = self.read(self.STORE), decorators + self.REMOVED
+        self.assertEqual(before.count(old), 1)
+        p = self.offer("--edit", self.STORE, "--old", old, "--new", "", "--kind", "test-remove", check=False)
+        self.assertEqual(p.returncode, 0, "a removal of the decorators and the whole test is offered: "
+                         + p.stdout + p.stderr)
+        self.answer("1")
+        after = self.read(self.STORE)
+        self.assertEqual(after, before.replace(old, ""))
+        self.assertNotIn("test_use_refuses_more_than_there_is", after)
+        lines = after.splitlines()
+        nxt = lines.index("    def test_used_up_item_stays_listed(self):")
+        self.assertFalse([ln for ln in lines[nxt - 3:nxt] if ln.strip().startswith(("@", "Store,"))],
+                         "no decorator is left on the next test")
+        self.assertEqual([(m["file"], m["by"]) for m in self.show()["moved_tests"]], [(self.STORE, "pat")])
+        shas = self.directed()
+        self.assertEqual(len(shas), 1)
+        self.assertEqual(self.files_in(shas[0]), sorted([self.STORE, self.REC]))
+
+    def test_a_decorated_test_is_removed_with_its_decorators(self):
+        self.removes_the_decorated_test_whole(self.DECORATORS["two decorators"])
+
+    def test_a_test_under_a_decorator_over_two_lines_is_removed_with_it(self):
+        self.removes_the_decorated_test_whole(self.DECORATORS["a decorator over two lines"])
+
+    def test_after_the_guardian_the_packet_line_is_in_the_same_commit_as_the_edit_and_the_record(self):
+        self.guardian_ran()
+        self.commit_all("the guardian's packet")
+        packet = ".xv/slices/s1.packet.md"
+        self.offer(*self.CHANGELOG)
+        self.answer("1")
+        shas = self.directed()
+        self.assertEqual(len(shas), 1)
+        self.assertEqual(self.files_in(shas[0]), sorted(["CHANGELOG.md", self.REC, packet]))
+        committed = sh(["git", "show", f"{shas[0]}:{packet}"], self.wt).stdout
+        self.assertIn("## Directed edits after the guardian", committed)
+        self.assertEqual(committed, self.read(packet), "the packet line is committed, not left in the worktree")
+        self.assertNotIn(packet, sh(["git", "status", "--porcelain"], self.wt).stdout)
+
+    def test_a_rename_whose_old_name_appears_elsewhere_in_the_file_is_refused(self):
+        base = self.read(self.STORE)
+        decl = "    def test_add_and_list(self):\n"
+        tail = 'if __name__ == "__main__":\n'
+        cases = {
+            "a comment": base.replace(decl, "    # test_add_and_list is the one to read first\n" + decl, 1),
+            "a string": base.replace(tail, 'FIRST = ["test_add_and_list"]\n\n\n' + tail, 1),
+            "an attribute": base.replace(tail, "FIRST = StoreTest.test_add_and_list\n\n\n" + tail, 1),
+            "a test of the same name in another class": base.replace(
+                tail, "class OtherTest(unittest.TestCase):\n    def test_add_and_list(self, extra=None):\n"
+                      "        self.assertIsNone(extra)\n\n\n" + tail, 1),
+        }
+        for what, text in cases.items():
+            with self.subTest(what=what):
+                self.write(self.STORE, text)
+                self.commit_all(what)
+                self.stop()
+                self.assertEqual(self.read(self.STORE).count("def test_add_and_list(self):"), 1)
+                self.refused(*self.RENAME)
+
     # ---- the suite run lives in its own module, so record does not import run
 
     def test_record_does_not_import_run_and_both_import_the_suite_module(self):
@@ -1960,9 +2057,40 @@ class DirectedEditTest(RepoCase):
                  if line.startswith("- ") and "directed" in line and "word" in line]
         self.assertTrue(lines, may_not)
 
+    REFUSALS = {
+        "the doc kind refuses a file under .xv/": (".xv/",),
+        "the doc kind refuses a SKILL.md": ("SKILL.md",),
+        "a changelog or doc edit holds no blank line": ("blank line",),
+        "a test kind refuses setUp": ("setUp",),
+        "a test kind refuses a helper": ("helper",),
+        "a removal is a whole test": ("whole test",),
+        "a removal takes the test's decorators with it": ("decorator",),
+        "a rename refuses an old name found elsewhere in the file": ("elsewhere", "anywhere else", "also appears"),
+        "the suite run's own module": ("scripts/suite.py",),
+    }
+
+    def names_every_refusal(self, text):
+        for what, words in self.REFUSALS.items():
+            with self.subTest(what=what):
+                found = any(w in text or (w.islower() and w in text.lower()) for w in words)
+                self.assertTrue(found, f"{what}: none of {words} in {text}")
+
+    def test_the_watch_brief_names_every_refusal_and_the_suite_module(self):
+        text = open(os.path.join(HOME, "skills", "watch", "SKILL.md")).read()
+        self.names_every_refusal(text.split("## A directed edit", 1)[1].split("\n## ", 1)[0])
+
+    def test_the_changelog_line_names_every_refusal_and_the_suite_module(self):
+        text = open(os.path.join(HOME, "CHANGELOG.md")).read()
+        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
+        lines = [line for line in unreleased.splitlines() if line.startswith("- ") and "#132" in line]
+        self.assertTrue(lines, unreleased)
+        self.names_every_refusal(" ".join(lines))
+
 
 # A person watching the first green: pick a directed test rename on a real stop and read the commit it makes
 # (`git show`): only the test file and the record, its message naming the person, and the packet line when the
 # guardian has run. Look for the case nobody wrote down, such as a rename whose old name is a prefix of another
 # test's name in slice_only or wall_recommendations. Then try a test-remove that stops one line short of a test's
 # end, and pick a CHANGELOG edit at ready_to_merge: the new ready_to_merge stop should be in the record, answerable.
+# Then remove a decorated test, decorators and all, and read the commit: the next test carries no decorator, and after
+# the guardian the packet line is in that same commit.
