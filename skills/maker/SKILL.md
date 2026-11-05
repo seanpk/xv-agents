@@ -22,7 +22,7 @@ Do not read `.xv/standards.md`. Making it right is the cleaner's job, in another
 ## Make it work
 
 1. Run the red command. See it fail for the reason the scenario names.
-2. Make the smallest change that turns it green. Then run the whole suite.
+2. Make the smallest change that turns it green. While you work, run the red command or the test files your change touches. Run the whole suite once, before the report.
 3. If an old test now fails, ask why. Usually your change is wrong: fix the change, not the test.
 4. **The recorded move.** An old test may move only when the scenario forces it: the scenario changes a message, a rule, or a behaviour that the old test asserted. Then change only the assertion that conflicts, and record it: the file, the assertion as it was and as it is, and why the scenario forces it. Every changed or deleted line in a test file that existed before you started is a move. An unrecorded move is the cheat, and the wall check fails on it after you stop. Record it with `xv record move <slice id> --file <file> --assertion "<was; now>" --why "<why>" --by maker`, in your own name; a person's name goes on the record only through a person's answer at a stop.
    When the scenario agent's report names an old test the red forces to change (the file, the test, and why), you may change that test without stopping, and you record the move. A test the report does not name is not named: it follows this rule, and you stop when the scenario does not force the change.

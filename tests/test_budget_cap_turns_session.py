@@ -6,10 +6,10 @@ import unittest
 from helpers import sh
 import orders
 from xvlib import DEFAULT_CONFIG
-from test_budget_cap import BudgetCapTest, FAKE
+from test_budget_cap import BudgetCapSetup, FAKE
 
 
-class TurnsAndSessionTest(BudgetCapTest):
+class TurnsAndSessionTest(BudgetCapSetup):
     """A turns budget caps the whole slice; a step that runs in the session is checked too."""
 
     def spent_turns(self, step, turns):
@@ -48,7 +48,7 @@ class TurnsAndSessionTest(BudgetCapTest):
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "budget_spent")
 
 
-class PrototypeBudgetsTest(BudgetCapTest):
+class PrototypeBudgetsTest(BudgetCapSetup):
     """Each prototype variant has its own budget, set by the person; the slice budget does not cover them."""
 
     def setUp(self):
