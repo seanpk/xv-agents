@@ -17,7 +17,7 @@ Not after every slice. After a slice that stopped, overran its budget, or drew t
 ## Run it
 
 1. `xv retro due` lists the closed slices a retro would read, and why each one is there.
-2. `xv retro run [<slice id> ...]` runs the retro brief (`retro-brief.md`) in a fresh context with pointers to those records. It writes `.xv/retro/<date>.md`, then drops any candidate that does not name a slice and a moment the record has. It prints how many were dropped.
+2. `xv retro run [<slice id> ...]` runs the retro brief (`retro-brief.md`) in a fresh context with pointers to those records. It writes `.xv/retro/<date>.md`, or `<date>-2.md`, `<date>-3.md` and so on when that file already exists, then drops any candidate that does not name a slice and a moment the record has. It prints how many were dropped.
 3. Show the person the candidates, one line each, with the moment each came from. Do not argue for any of them.
 4. For each one they pick:
    - **standard** or **rule**: `xv retro accept <packet> <n> --by <name>` appends it to `.xv/standards.md` or `.xv/rules.md` with the date, the slice, the miss and a `seen:` list. The person commits it.
