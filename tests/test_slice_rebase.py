@@ -613,6 +613,61 @@ class SliceRebaseTest(RepoCase):
         self.assertEqual(stop["order"], "budget_spent")
         self.assertFalse(self.agent_ran())
 
+    def test_a_budget_spent_after_the_conflicting_commit_still_stops_before_the_maker(self):
+        # the record is replayed with the slice's commits: the conflicting commit holds an older copy
+        self.shared_conflict()
+        self.spend_the_budget()
+        p = self.rebase(FAKE_REBASE_MODE="resolve", FAKE_REBASE_FILE="pantry/shared.py")
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertEqual(stop["order"], "budget_spent")
+        self.assertFalse(self.agent_ran())
+
+    # -- 18 again: the stop and the person's answer survive --continue
+
+    def stops_of(self, order):
+        return [s for s in self.record()["stops"] if s["order"] == order]
+
+    def answer_resolve_and_continue(self, order, **env):
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "I will sort it out", cwd=self.wt)
+        self.write(self.wt, "pantry/shared.py", "SLICE = 1\nMAIN = 2\n")
+        sh(["git", "add", "pantry/shared.py"], self.wt)
+        self.rebase("--continue", **env)
+        stops = self.stops_of(order)
+        self.assertEqual(len(stops), 1, self.record()["stops"])
+        return stops[0]
+
+    def test_the_answer_to_a_conflict_stop_is_on_the_finished_record(self):
+        self.assert_a_stop_for_the_originator(self.conflict_in_a_test_file())
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "I will sort it out", cwd=self.wt)
+        self.resolve_by_hand()
+        p = self.rebase("--continue")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        stops = self.stops_of("rebase_conflict")
+        self.assertEqual(len(stops), 1, self.record()["stops"])
+        self.assertEqual(stops[0]["answer"], "I will sort it out")
+
+    def test_the_answer_to_a_stuck_stop_raised_mid_rebase_is_on_the_finished_record(self):
+        self.shared_conflict()
+        p = self.rebase(FAKE_REBASE_MODE="stuck")
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertEqual(stop["order"], "rebase_stuck")
+        self.assertTrue(self.in_progress())
+        done = self.answer_resolve_and_continue("rebase_stuck")
+        self.assertEqual(done["answer"], "I will sort it out")
+
+    def test_the_answer_to_a_budget_stop_raised_on_a_conflict_replay_is_on_the_finished_record(self):
+        self.shared_conflict()
+        self.spend_the_budget()
+        p = self.rebase(FAKE_REBASE_MODE="resolve", FAKE_REBASE_FILE="pantry/shared.py")
+        self.assertEqual(self.assert_a_stop_for_the_originator(p)["order"], "budget_spent")
+        self.assertTrue(self.in_progress())
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "I will sort it out", cwd=self.wt)
+        self.write(self.wt, "pantry/shared.py", "SLICE = 1\nMAIN = 2\n")
+        sh(["git", "add", "pantry/shared.py"], self.wt)
+        self.rebase("--continue")
+        stops = self.stops_of("budget_spent")
+        self.assertEqual(stops[0]["answer"], "I will sort it out", self.record()["stops"])
+
     # -- 20: --abort keeps the spend of the maker runs in that rebase
 
     def test_abort_keeps_the_spend_of_the_maker_runs_of_that_rebase(self):
