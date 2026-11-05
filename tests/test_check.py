@@ -43,6 +43,16 @@ class CheckTest(RepoCase):
         self.assertTrue(any("two repos" in n for n in notes))
         self.assertTrue(any("seen twice" in n for n in notes))
 
+    def test_an_empty_from_is_not_the_next_line_and_the_entry_is_flagged(self):
+        with open(os.path.join(self.repo, ".xv", "rules.md"), "w") as f:
+            f.write("# Rules\n\n## Entries\n\n### a rule with no slice\n- added: 2026-11-04 by pat\n"
+                    "- from:\n- miss: it went wrong\n- seen: [repo@2026-11-04]\n")
+        rows = {e["entry"]: e for e in check.entries(self.repo)}
+        row = rows["a rule with no slice"]
+        self.assertEqual(row["from"], "")
+        self.assertEqual(row["miss"], "it went wrong")
+        self.assertTrue(any("no slice" in n for n in row["notes"]))
+
     def test_drift_offline_lists_every_sentence(self):
         self.assertGreaterEqual(len(check.drift(offline=True)), 8)
 
