@@ -1,3 +1,4 @@
+import ast
 import json
 import os
 import unittest
@@ -1497,6 +1498,7 @@ class DirectedEditTest(RepoCase):
         self.commit_all("a changelog")
 
     def write(self, rel, text):
+        os.makedirs(os.path.dirname(os.path.join(self.wt, rel)), exist_ok=True)
         with open(os.path.join(self.wt, rel), "w") as f:
             f.write(text)
 
@@ -1772,6 +1774,175 @@ class DirectedEditTest(RepoCase):
         self.assertEqual(len(self.directed()), 1)
         self.assertIsNone(self.show()["packet"])
 
+    # ---- amended (second): the doc kind, blank lines, whole tests, the stop after the edit
+
+    def test_the_doc_kind_refuses_a_file_under_xv_and_any_skill_md(self):
+        line = "A line the person wants worded better here."
+        files = [".xv/picture.md", ".xv/rules.md", ".xv/pitch.md", ".xv/slices/notes.md", ".xv/notes/new.md",
+                 "SKILL.md", "skills/watch/SKILL.md", "docs/SKILL.md"]
+        for rel in files:
+            text = self.read(rel) if os.path.exists(os.path.join(self.wt, rel)) else "# A doc\n"
+            self.write(rel, text.rstrip("\n") + "\n\n" + line + "\n")
+        self.commit_all("docs the watch may not edit")
+        for rel in files + ["./.xv/picture.md", "docs/../.xv/rules.md"]:
+            with self.subTest(file=rel):
+                self.stop()
+                self.assertEqual(self.read(rel).count(line), 1)
+                self.refused("--edit", rel, "--old", line, "--new", "A line the person worded.", "--kind", "doc")
+
+    def test_a_changelog_or_doc_edit_holding_a_blank_line_is_refused(self):
+        self.write("docs/guide.md", "# Guide\n\nThe pantry lists what\n   \nruns out soon.\n")
+        self.commit_all("a guide")
+        cases = [
+            ("changelog", "CHANGELOG.md", "## Unreleased\n\n" + self.CHANGELOG_OLD, "## Unreleased\n\n" + self.CHANGELOG_NEW),
+            ("changelog", "CHANGELOG.md", self.CHANGELOG_OLD, self.CHANGELOG_NEW + "\n\n- Another line."),
+            ("doc", "README.md", "devices.\n\n    python3 -m pantry.api", "devices:\n\n    python3 -m pantry.api"),
+            ("doc", "README.md", "It is small on purpose.", "It is small on purpose.\n\nAnd stays small."),
+            ("doc", "docs/guide.md", "The pantry lists what\n   \nruns out soon.", "The pantry lists what runs out soon."),
+        ]
+        for kind, file, old, new in cases:
+            with self.subTest(kind=kind, old=old, new=new):
+                self.stop()
+                self.assertEqual(self.read(file).count(old), 1)
+                self.refused("--edit", file, "--old", old, "--new", new, "--kind", kind)
+
+    def test_a_changelog_edit_may_span_lines_with_no_blank_line(self):
+        wrapped = "- A line the person wants\n  worded better."
+        self.write("CHANGELOG.md", "# Changelog\n\n## Unreleased\n\n" + wrapped + "\n")
+        self.commit_all("a wrapped changelog line")
+        self.stop()
+        before = self.read("CHANGELOG.md")
+        self.offer("--edit", "CHANGELOG.md", "--old", wrapped, "--new", self.CHANGELOG_NEW, "--kind", "changelog")
+        self.answer("1")
+        self.assertEqual(self.read("CHANGELOG.md"), before.replace(wrapped, self.CHANGELOG_NEW))
+        shas = self.directed()
+        self.assertEqual(len(shas), 1)
+        self.assertEqual(self.files_in(shas[0]), sorted(["CHANGELOG.md", self.REC]))
+
+    def test_a_doc_edit_may_span_lines_with_no_blank_line(self):
+        self.write("docs/guide.md", "# Guide\n\nThe pantry lists what\nruns out soon.\n")
+        self.commit_all("a guide")
+        self.stop()
+        before = self.read("docs/guide.md")
+        old, new = "The pantry lists what\nruns out soon.", "The pantry lists what runs out soon,\nfirst."
+        self.offer("--edit", "docs/guide.md", "--old", old, "--new", new, "--kind", "doc")
+        self.answer("1")
+        self.assertEqual(self.read("docs/guide.md"), before.replace(old, new))
+        shas = self.directed()
+        self.assertEqual(len(shas), 1)
+        self.assertEqual(self.files_in(shas[0]), sorted(["docs/guide.md", self.REC]))
+
+    HELPER = ('    def add_eggs(self, n):\n'
+              '        self.store.add("eggs", n, date(2026, 10, 30))\n'
+              '\n')
+
+    def with_a_helper(self):
+        text = self.read(self.STORE)
+        anchor = "    def test_add_and_list(self):\n"
+        self.write(self.STORE, text.replace(anchor, self.HELPER + anchor, 1))
+        self.commit_all("a helper in the tests")
+
+    def test_a_test_rename_accepts_only_a_test(self):
+        self.with_a_helper()
+        cases = [
+            ("def setUp(self):", "def setup(self):"),
+            ("def add_eggs(self, n):", "def add_more_eggs(self, n):"),
+            ("def test_add_and_list(self):", "def helper_add_and_list(self):"),
+            ("def test_add_and_list(self):", "def add_and_list(self):"),
+            ("class StoreTest(unittest.TestCase):", "class StoreTests(unittest.TestCase):"),
+        ]
+        for old, new in cases:
+            with self.subTest(old=old, new=new):
+                self.stop()
+                self.assertEqual(self.read(self.STORE).count(old), 1)
+                self.refused("--edit", self.STORE, "--old", old, "--new", new, "--kind", "test-rename")
+
+    def test_a_test_removal_accepts_only_a_whole_test(self):
+        self.with_a_helper()
+        body =self.REMOVED.split("\n", 1)[1]
+        cases = {
+            "setUp": "    def setUp(self):\n        self.store = Store()\n\n",
+            "a helper": self.HELPER,
+            "only the declaration": self.REMOVED.splitlines(True)[0],
+            "the declaration and its first line": "".join(self.REMOVED.splitlines(True)[:2]),
+            "all but the last line": "".join(self.REMOVED.splitlines(True)[:3]),
+            "cut inside the last line": self.REMOVED[:-8],
+            "the body without the declaration": body,
+            "the test and the next test's declaration": self.REMOVED + "    def test_used_up_item_stays_listed(self):\n",
+        }
+        for what, old in cases.items():
+            with self.subTest(what=what):
+                self.stop()
+                self.assertEqual(self.read(self.STORE).count(old), 1, old)
+                self.refused("--edit", self.STORE, "--old", old, "--new", "", "--kind", "test-remove")
+
+    def test_the_last_test_in_a_file_is_removed_whole(self):
+        last = ('    def test_expiring_lists_items_within_the_window(self):\n'
+                '        self.store.add("yogurt", 1, date(2026, 10, 23))\n'
+                '        self.store.add("rice", 1, date(2027, 1, 1))\n'
+                '        found = self.store.expiring(3, date(2026, 10, 21))\n'
+                '        self.assertEqual([i.name for i in found], ["yogurt"])\n')
+        self.stop()
+        before = self.read(self.STORE)
+        self.assertEqual(before.count(last), 1)
+        self.offer("--edit", self.STORE, "--old", last, "--new", "", "--kind", "test-remove")
+        self.answer("1")
+        self.assertEqual(self.read(self.STORE), before.replace(last, ""))
+        self.assertEqual([(m["file"], m["by"]) for m in self.show()["moved_tests"]], [(self.STORE, "pat")])
+        self.assertEqual(len(self.directed()), 1)
+
+    def test_a_stop_after_the_edit_is_written_to_the_record_and_can_be_answered(self):
+        self.guardian_ran()
+        before = len(self.show()["stops"])
+        logged = self.read(self.REC).count("stop (ready_to_merge)")
+        self.offer(*self.CHANGELOG)
+        p = self.answer("1")
+        self.assertEqual(len(self.directed()), 1)
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        v = json.loads(p.stdout)
+        self.assertEqual(v["stop"]["order"], "ready_to_merge")
+        data = self.show()
+        self.assertEqual(len(data["stops"]), before + 1, "the stop after the edit is a new stop in the record")
+        open_stops = [s for s in data["stops"] if s.get("answer") is None]
+        self.assertEqual([(s["order"], s["step"]) for s in open_stops], [("ready_to_merge", "guardian")])
+        self.assertEqual(data["status"], "ready")
+        self.assertEqual(self.read(self.REC).count("stop (ready_to_merge)"), logged + 1, "the log says the stop fired")
+        self.xv("record", "offer", "s1", "--option", "Merge", "--settles", "The slice merges.",
+                "--option", "Wait", "--settles", "The slice waits.", cwd=self.wt)
+        self.assertEqual(len(self.show()["stops"][-1]["options"]), 2)
+        self.answer("2")
+        self.assertEqual([s for s in self.show()["stops"] if s.get("answer") is None], [])
+
+    # ---- the suite run lives in its own module, so record does not import run
+
+    def test_record_does_not_import_run_and_both_import_the_suite_module(self):
+        def imported(name):
+            tree = ast.parse(open(os.path.join(HOME, "scripts", name)).read())
+            found = set()
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    found |= {a.name.split(".")[0] for a in node.names}
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    found.add(node.module.split(".")[0])
+            return found, {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)}
+
+        record_imports, _ = imported("record.py")
+        self.assertNotIn("run", record_imports, "record must not import run, at the top or inside a function")
+        self.assertIn("suite", record_imports)
+        run_imports, run_defs = imported("run.py")
+        self.assertIn("suite", run_imports)
+        _, suite_defs = imported("suite.py")
+        for name in ("run_suite", "shell", "tests_timeout"):
+            self.assertIn(name, suite_defs)
+            self.assertNotIn(name, run_defs, f"{name} moves to suite.py; run.py does not keep its own")
+
+    def test_the_suite_module_runs_the_command_with_the_slice_base_and_id(self):
+        from suite import run_suite, tests_timeout
+        config = {"tests": {"command": 'test "$XV_BASE" = abc123 && test "$XV_SLICE" = s9', "timeout": 60}}
+        self.assertEqual(run_suite(self.repo, config, "abc123", "s9")[0], "green")
+        self.assertEqual(run_suite(self.repo, config)[0], "red")
+        self.assertEqual(tests_timeout(config), 60)
+
     # ---- the watch's brief and the CHANGELOG
 
     def test_the_watch_brief_states_the_rule_for_a_directed_edit(self):
@@ -1793,4 +1964,5 @@ class DirectedEditTest(RepoCase):
 # A person watching the first green: pick a directed test rename on a real stop and read the commit it makes
 # (`git show`): only the test file and the record, its message naming the person, and the packet line when the
 # guardian has run. Look for the case nobody wrote down, such as a rename whose old name is a prefix of another
-# test's name in slice_only or wall_recommendations.
+# test's name in slice_only or wall_recommendations. Then try a test-remove that stops one line short of a test's
+# end, and pick a CHANGELOG edit at ready_to_merge: the new ready_to_merge stop should be in the record, answerable.
