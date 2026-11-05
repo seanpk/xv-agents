@@ -277,6 +277,23 @@ class CleanerMoveCase(FollowUpBase):
         self.assertEqual(self.run_slice({}).get("order"), "accept_moves")
 
 
+class RerunScenarioCase(FollowUpBase):
+    # 7. an expected move stays in the record when the scenario step runs again after the maker
+    def expected_files(self):
+        return [m["file"] for m in self.record()["moved_tests"] if m.get("expected")]
+
+    def test_an_expected_move_stays_in_the_record_after_the_scenario_step_runs_again(self):
+        self.open_slice("--expect-moves", "imports")
+        for step in ("forecaster", "scenario"):
+            self.xv("step", step, "s1", cwd=self.wt)
+        with mock.patch.dict(os.environ, {"FAKE_MAKER_IMPORT_MOVE": "1"}):
+            self.xv("step", "maker", "s1", cwd=self.wt, check=False)
+        self.assertIn("tests/test_store.py", self.expected_files())
+        self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        self.xv("step", "cleaner", "s1", cwd=self.wt, check=False)
+        self.assertIn("tests/test_store.py", self.expected_files())
+
+
 # What a person should watch on the first green run: open a refactor slice with
 # `--expect-moves imports`, let the maker add an import to an old test, and see the
 # slice reach the merge stop with no accept_moves question; then change one assertion
