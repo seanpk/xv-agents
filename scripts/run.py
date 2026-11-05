@@ -967,11 +967,11 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         checks["not_covered"] = [n for n in (report.get("not_covered") or []) if isinstance(n, dict)]
         checks["missed_points"] = missed_points(root, data, report)
         if landed:  # the wall hashes the test files at the base, not at the build
-            wb, text = landed["wall"]
+            wb, wall_text = landed["wall"]
             import wall
             os.makedirs(os.path.dirname(wall.wall_file(root, data["id"])), exist_ok=True)
             with open(wall.wall_file(root, data["id"]), "w", encoding="utf-8") as f:
-                f.write(text)
+                f.write(wall_text)
         else:
             wb = wall_baseline(root, data, config)
         if wb:
