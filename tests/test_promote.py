@@ -6,6 +6,8 @@ import unittest
 from helpers import HOME, RepoCase, sh
 
 import promote
+import retro
+from xvlib import today
 
 ISSUES = os.path.join(HOME, "evals", "setups", "promote", "issues.json")
 
@@ -60,6 +62,98 @@ class PromoteTest(RepoCase):
         self.assertNotIn("### 2026-10-20", learn)
         self.assertIn('"a repeated failure -> stop" to standards.md, by pat', learn)
         self.assertIn("### a repeated failure -> stop\n- added:", open(os.path.join(self.repo, ".xv", "standards.md")).read())
+
+
+OPEN_ENTRY = (
+    "# Learnings\n\n## Open\n\n### 2026-10-20: A forecast runs low when answers at a stop add work\n"
+    "- added: 2026-10-20 by Sean Kennedy\n- from: 2026-10-20-bulk-add, the budget stop\n- miss:\n"
+    "- said: \"the answer at the stop added two scenario points and nobody raised the budget\"\n"
+    "- rule: when an answer adds work, raise the budget in the same answer\n"
+    "- seen: [xv-agents@2026-10-20, xv-agents@2026-10-27]\n\n## Promoted\n")
+OPEN_TITLE = "2026-10-20: A forecast runs low when answers at a stop add work"
+RULE_HEADING = "### when an answer adds work, raise the budget in the same answer\n"
+
+
+class PromoteFieldsTest(RepoCase):
+    def promoted(self, to, text=OPEN_ENTRY):
+        with open(os.path.join(self.repo, ".xv", "learnings.md"), "w") as f:
+            f.write(text)
+        promote.local_accept(self.repo, OPEN_TITLE, to, "Pat")
+        doc = open(os.path.join(self.repo, ".xv", f"{to}.md")).read()
+        return doc.split(RULE_HEADING)[1].split("\n### ")[0]
+
+    def test_an_empty_miss_is_left_out_and_said_is_kept(self):
+        for to in ("standards", "rules"):
+            entry = self.promoted(to)
+            self.assertNotIn("- miss:", entry, to)
+            self.assertIn('- said: "the answer at the stop added two scenario points and nobody raised the budget"\n',
+                          entry, to)
+
+    def test_no_field_is_filled_from_another(self):
+        text = OPEN_ENTRY.replace("- miss:\n", "")
+        for to in ("standards", "rules"):
+            self.assertNotIn("- miss:", self.promoted(to, text), to)
+
+    def test_a_miss_with_text_is_copied_beside_said(self):
+        text = OPEN_ENTRY.replace("- miss:\n", "- miss: the budget stayed put\n")
+        for to in ("standards", "rules"):
+            entry = self.promoted(to, text)
+            self.assertIn("- miss: the budget stayed put\n", entry, to)
+            self.assertIn("- said: \"the answer", entry, to)
+
+    def test_every_empty_field_is_left_out(self):
+        text = OPEN_ENTRY.replace("- miss:\n", "- miss:\n- shared:\n- note:\n")
+        for to in ("standards", "rules"):
+            entry = self.promoted(to, text)
+            for name in ("miss", "shared", "note"):
+                self.assertNotIn(f"- {name}:", entry, to)
+
+    def test_an_empty_from_and_an_empty_said_are_left_out(self):
+        text = OPEN_ENTRY.replace("- from: 2026-10-20-bulk-add, the budget stop\n", "- from:\n")
+        text = text.replace("- said: ", "- said:", 1).replace("- said:\"", "- said:\n- zz: \"", 1)
+        entry = self.promoted("rules", text)
+        self.assertNotIn("- from:", entry)
+        self.assertNotIn("- said:", entry)
+
+    def test_other_fields_with_text_are_copied(self):
+        text = OPEN_ENTRY.replace("- miss:\n", "- miss:\n- shared: seanpk/xv-agents#12\n")
+        for to in ("standards", "rules"):
+            self.assertIn("- shared: seanpk/xv-agents#12\n", self.promoted(to, text), to)
+
+    def test_rule_becomes_the_heading_and_is_not_a_field(self):
+        for to in ("standards", "rules"):
+            self.assertNotIn("- rule:", self.promoted(to), to)
+
+    def test_added_is_today_and_the_promoter_and_appears_once(self):
+        for to in ("standards", "rules"):
+            entry = self.promoted(to)
+            self.assertIn(f"- added: {today()} by Pat\n", entry, to)
+            self.assertEqual(entry.count("- added:"), 1, to)
+            self.assertNotIn("Sean Kennedy", entry, to)
+
+    def test_from_and_seen_are_copied(self):
+        entry = self.promoted("rules")
+        self.assertIn("- from: 2026-10-20-bulk-add, the budget stop\n", entry)
+        self.assertIn("- seen: [xv-agents@2026-10-20, xv-agents@2026-10-27]\n", entry)
+
+
+class SightingFromPlacementTest(RepoCase):
+    def test_a_sighting_without_from_or_added_puts_from_right_after_the_heading(self):
+        learnings = os.path.join(self.repo, ".xv", "learnings.md")
+        with open(learnings, "w") as f:
+            f.write("# Learnings\n\n## Open\n\n### 2026-10-27: A forecast runs low when answers at a stop add work\n"
+                    "- miss: the forecast ran low\n- seen: [other/repo@2026-10-27]\n\n## Promoted\n")
+        packet = os.path.join(self.repo, "retro.md")
+        with open(packet, "w") as f:
+            f.write("### 1. forecasts run low\n- kind: open\n"
+                    "- sighting of: A forecast runs low when answers at a stop add work\n"
+                    "- from: s2, the stop at 21:43; s3, the stop at 22:01\n- miss: ran low again\n")
+        sh(["git", "remote", "add", "origin", "https://github.com/seanpk/xv-agents.git"], self.repo)
+        retro.accept(self.repo, packet, 1, "pat")
+        text = open(learnings).read()
+        self.assertIn("### 2026-10-27: A forecast runs low when answers at a stop add work\n"
+                      "- from: s2, the stop at 21:43; s3, the stop at 22:01\n- miss: the forecast ran low\n", text)
+        self.assertEqual(text.count("- from:"), 1)
 
 
 class AdoptTest(RepoCase):

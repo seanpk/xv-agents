@@ -2,16 +2,16 @@
 id: 2026-11-04-promote-fields
 title: Promotion copies only the fields that have text
 kind: feature
-status: stopped
+status: working
 set_by: Sean Kennedy
 created: 2026-11-04
 branch: xv/2026-11-04-promote-fields
 base: 168693608141b7cca549d5e56eebd4a61e9bd3fb
-next: forecaster
+next: maker
 forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 250000, "turns": null, "usd": 1.3, "basis": ["2026-10-27-retro-accept-fields", "2026-11-04-retro-sighting", "2026-11-04-proto-start"]}, {"harness": "claude", "model": "opus", "tokens": 200000, "turns": null, "usd": 2.3, "basis": ["2026-10-27-retro-accept-fields", "2026-11-04-retro-sighting", "2026-11-04-proto-start"]}], "wall_s": 1800, "shape": "narrow", "breadth": "Changes the field copy in promote.py local_accept and the from: insertion for sightings on an Open entry with no from: or added: line, plus tests; no other command or file expected to move."}
-budget: null
-red: null
-wall_baseline: null
+budget: {"tokens": 450000, "usd": 3.6, "set_by": "Sean Kennedy"}
+red: {"files": ["tests/test_promote.py"], "command": "cd tests && python3 -m unittest test_promote", "failure": "AssertionError: '- miss:' unexpectedly found in '- added: 2026-11-04 by Pat\\n- from: 2026-10-20-bulk-add, the budget stop\\n- miss: \\n- seen: [...]' : standards", "watch_first_green": "A person should watch the promoted entry in `.xv/rules.md` and `.xv/standards.md` for the issue's example: `said:` is kept, no empty `- miss:` line appears, and `added:` shows today's date and the promoter's name."}
+wall_baseline: {"commit": "c36c23243bdf07d06c0c5cce576c292710d00321", "count": 59, "digest": "454cf4efb6dc60a2", "file": ".xv/slices/2026-11-04-promote-fields.wall.json"}
 moved_tests: []
 slice_only: []
 wall_recommendations: []
@@ -20,12 +20,14 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 3659, "cache_read": 15238, "cache_write": 37984, "tokens": 41647, "usd": 0.0096, "turns": 3, "wall_s": 18.2, "session": "606fa957-9152-4ab6-9aa8-2386cbad76f2", "step": "forecaster", "at": "2026-11-05T04:14:46+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-04-promote-fields/01-forecaster.out"}]
-stops: [{"at": "2026-11-05T04:14:46+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-04-promote-fields budget ... --by <name>`).", "answered_by": [], "answer": null, "also": [], "budget_seen": null}]
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 3659, "cache_read": 15238, "cache_write": 37984, "tokens": 41647, "usd": 0.0096, "turns": 3, "wall_s": 18.2, "session": "606fa957-9152-4ab6-9aa8-2386cbad76f2", "step": "forecaster", "at": "2026-11-05T04:14:46+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-04-promote-fields/01-forecaster.out"}, {"harness": "claude", "model": "sonnet", "model_id": "claude-sonnet-5-5", "tokens_in": 16, "tokens_out": 7574, "cache_read": 230508, "cache_write": 36616, "tokens": 44206, "usd": 0.2453, "turns": 11, "wall_s": 47.2, "session": "6e3c22b5-f242-4fe5-915f-c17030126051", "step": "scenario", "at": "2026-11-05T04:24:22+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-04-promote-fields/02-scenario.out"}]
+stops: [{"at": "2026-11-05T04:14:46+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-04-promote-fields budget ... --by <name>`).", "answered_by": ["Sean Kennedy"], "answer": "1", "also": [], "options": [{"text": "450000 tokens, 3.60 USD: the forecast", "settles": "Sean sets budget {tokens: 450000, usd: 3.6}; next is scenario.", "amends": false}, {"text": "675000 tokens, 5.40 USD: the forecast plus a half", "settles": "Sean sets budget {tokens: 675000, usd: 5.4}; next is scenario.", "amends": false}, {"text": "Set aside", "settles": "The slice stays at its budget stop.", "amends": false}], "recommended": 1, "answered_at": "2026-11-05T04:23:29+00:00", "pick": 1, "settled": "Sean sets budget {tokens: 450000, usd: 3.6}; next is scenario.", "new_info": "none", "cause": "decision: the budget is set by a person from the forecast", "budget_change": {"from": null, "to": {"tokens": 450000, "usd": 3.6}}}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "One clean pass per agent: claude/sonnet 250k tokens and $1.30, claude/opus 200k tokens and $2.30, about 1800 s wall; reopen risk unpriced.", "at": "2026-11-05T04:14:46+00:00"}], "forecaster": {"at": "2026-11-05T04:14:46+00:00", "wrote": []}}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "One clean pass per agent: claude/sonnet 250k tokens and $1.30, claude/opus 200k tokens and $2.30, about 1800 s wall; reopen risk unpriced.", "at": "2026-11-05T04:14:46+00:00"}, {"agent": "scenario", "status": "red", "summary": "Promotion must copy every field with text, leave out empty ones, fill none from another; 5 tests fail on today's local_accept; the sighting placement test already passes.", "at": "2026-11-05T04:24:22+00:00"}], "forecaster": {"at": "2026-11-05T04:14:46+00:00", "wrote": []}, "scenario": {"at": "2026-11-05T04:24:22+00:00", "protected_changed": [], "outside_tests": [], "red_fails": true, "red_output": "re_copied)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/sean/Making/Personal/xv-agents/.xv/worktrees/2026-11-04-promote-fields/tests/test_promote.py\", line 121, in test_other_fields_with_text_are_copied\n    self.assertIn(\"- shared: seanpk/xv-agents#12\\n\", self.promoted(to, text), to)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '- shared: seanpk/xv-agents#12\\n' not found in '- added: 2026-11-04 by Pat\\n- from: 2026-10-20-bulk-add, the budget stop\\n- miss: \\n- seen: [xv-agents@2026-10-20, xv-agents@2026-10-27]\\n- check: none: judgement\\n' : standards\n\n----------------------------------------------------------------------\nRan 16 tests in 0.099s\n\nFAILED (failures=5)\n", "old_red_changed": [], "red_gaps": [], "unreadable": [], "not_covered": [], "missed_points": []}}
+old_tests_forced: []
+may_not_files: []
 ---
 # Promotion copies only the fields that have text
 
@@ -74,3 +76,8 @@ None. A feature starts from words.
 - 2026-11-05T04:14:23+00:00 watch: slice opened by Sean Kennedy
 - 2026-11-05T04:14:46+00:00 forecaster: done: One clean pass per agent: claude/sonnet 250k tokens and $1.30, claude/opus 200k tokens and $2.30, about 1800 s wall; reopen risk unpriced.
 - 2026-11-05T04:14:46+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-04-promote-fields budget ... --by <name>`).
+- 2026-11-05T04:14:50+00:00 watch: offered 3 options for budget_not_set
+- 2026-11-05T04:23:29+00:00 Sean Kennedy: set budget
+- 2026-11-05T04:23:29+00:00 Sean Kennedy: answered budget_not_set: 1
+- 2026-11-05T04:23:29+00:00 watch: scribe: wrote settled, new_info, cause for budget_not_set as the scribe of Sean Kennedy
+- 2026-11-05T04:24:22+00:00 scenario: red: Promotion must copy every field with text, leave out empty ones, fill none from another; 5 tests fail on today's local_accept; the sighting placement test already passes.
