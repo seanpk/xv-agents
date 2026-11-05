@@ -2010,6 +2010,71 @@ class DirectedEditTest(RepoCase):
                 self.assertEqual(self.read(self.STORE).count("def test_add_and_list(self):"), 1)
                 self.refused(*self.RENAME)
 
+    # ---- amended (fourth): no commit in the packet line, no rename onto a used name, the slice's worktree
+
+    def test_the_packet_line_names_the_file_the_kind_and_the_person_and_no_commit(self):
+        self.guardian_ran()
+        self.commit_all("the guardian's packet")
+        self.offer(*self.CHANGELOG)
+        self.answer("1")
+        shas = self.directed()
+        self.assertEqual(len(shas), 1)
+        after = self.read(".xv/slices/s1.packet.md").split("## Directed edits after the guardian", 1)[1]
+        lines = [line for line in after.splitlines() if line.startswith("- ")]
+        self.assertEqual(len(lines), 1, after)
+        self.assertEqual(lines[0], "- CHANGELOG.md (changelog): directed by pat")
+        self.assertNotIn(shas[0][:7], after)
+        self.assertNotIn("commit", after.lower())
+
+    def test_a_rename_onto_a_name_already_used_in_the_file_is_refused(self):
+        base = self.read(self.STORE)
+        tail = 'if __name__ == "__main__":\n'
+        rename_to = lambda name: ("--edit", self.STORE, "--old", "def test_add_and_list(self):",
+                                  "--new", f"def {name}(self):", "--kind", "test-rename")
+        cases = {
+            "a test in the same class": (base, "test_used_up_item_stays_listed"),
+            "a test in another class": (base.replace(
+                tail, "class OtherTest(unittest.TestCase):\n    def test_other(self):\n        pass\n\n\n" + tail, 1),
+                "test_other"),
+            "a name used as an attribute": (base.replace(
+                tail, "FIRST = StoreTest.test_expiring_lists_items_within_the_window\n\n\n" + tail, 1),
+                "test_expiring_lists_items_within_the_window"),
+        }
+        for what, (text, name) in cases.items():
+            with self.subTest(what=what):
+                self.write(self.STORE, text)
+                self.commit_all(what)
+                self.stop()
+                self.refused(*rename_to(name))
+
+    def test_a_rename_to_a_name_that_only_begins_another_name_is_accepted(self):
+        self.stop()
+        self.offer("--edit", self.STORE, "--old", "def test_add_and_list(self):",
+                   "--new", "def test_use(self):", "--kind", "test-rename")
+        self.answer("1")
+        self.assertIn("def test_use(self):", self.read(self.STORE))
+        self.assertEqual(len(self.directed()), 1)
+
+    def test_an_answer_run_from_the_main_checkout_edits_tests_and_commits_in_the_slices_worktree(self):
+        self.write("tests/test_broken.py", "import unittest\n\n\nclass Broken(unittest.TestCase):\n"
+                                           "    def test_fails(self):\n        self.assertEqual(1, 2)\n")
+        self.commit_all("a failing test, in the slice's worktree only")
+        self.stop()
+        self.offer(*self.RENAME)
+        main_store, main_head = open(os.path.join(self.repo, self.STORE)).read(), \
+            sh(["git", "rev-parse", "HEAD"], self.repo).stdout.strip()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "make it", "--pick", "1",
+                cwd=self.repo, check=False)
+        self.assertIn("def test_adding_then_listing(self):", self.read(self.STORE))
+        self.assertEqual(len(self.directed()), 1, "the commit is on the slice's branch")
+        self.assertEqual(self.files_in(self.directed()[0]), sorted([self.STORE, self.REC]))
+        self.assertEqual(open(os.path.join(self.repo, self.STORE)).read(), main_store,
+                         "the main checkout's file is not edited")
+        self.assertEqual(sh(["git", "rev-parse", "HEAD"], self.repo).stdout.strip(), main_head,
+                         "the main checkout gets no commit")
+        self.assertEqual(sh(["git", "status", "--porcelain"], self.repo).stdout.strip(), "")
+        self.assertEqual(self.show()["suite"], "red", "the suite ran in the slice's worktree, where the failing test is")
+
     # ---- the suite run lives in its own module, so record does not import run
 
     def test_record_does_not_import_run_and_both_import_the_suite_module(self):
