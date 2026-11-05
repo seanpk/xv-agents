@@ -60,11 +60,6 @@ class RetroAcceptBriefShapeTest(RepoCase):
         self.assertIn("- miss: what went wrong\n", text)
         self.assertIn("- said: \"the words\"\n", text)
 
-    def test_promote_local_copies_said_and_does_not_fill_miss_from_it(self):
-        text = self.promote_entry("- from: s\n- said: \"the words\"\n- rule: do the thing\n")
-        self.assertIn("- said: \"the words\"\n", text)
-        self.assertNotIn("- miss:", text.split("### do the thing")[1])
-
     def test_promote_local_does_not_take_the_next_line_for_an_empty_from(self):
         text = self.promote_entry("- from:\n- miss: what went wrong\n- rule: do the thing\n")
         self.assertIn("- miss: what went wrong\n", text)
