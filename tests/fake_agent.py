@@ -32,7 +32,8 @@ if os.environ.get("FAKE_CWD_LOG"):
     probes = (os.environ.get("FAKE_CWD_PROBE") or "").split()
     with open(os.environ["FAKE_CWD_LOG"], "a") as f:
         f.write(json.dumps({"title": title, "cwd": os.getcwd(), "head": head,
-                            "exists": {p: os.path.exists(p) for p in probes}}) + "\n")
+                            "exists": {p: os.path.exists(p) for p in probes},
+                            "texts": {p: open(p).read() for p in probes if os.path.isfile(p)}}) + "\n")
 
 if os.environ.get("FAKE_RECORD_LOG") and sid:
     # the copy of the slice record this agent can read in its checkout

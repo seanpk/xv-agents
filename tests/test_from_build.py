@@ -336,6 +336,83 @@ class SecondScenarioPassTest(FromBuildBase):
         self.assertTrue(os.path.exists(os.path.join(self.wt, MARKER)), "the slice branch lost the build")
 
 
+class SecondPassAfterTheMakerTest(FromBuildBase):
+    # 12. a second scenario pass after the maker starts at the base with the earlier red, not the maker's fix
+    MAKER_FIX = "today <= i.expires_on <= last"
+    PROBE = f"{MARKER} tests/test_red.py pantry/store.py"
+
+    def open_and_make(self, build_files=None):
+        self.make_build(fixed=False, files=build_files)
+        self.open_slice("--from", BUILD)
+        p = self.scenario_step()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        p = self.step("maker")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn(self.MAKER_FIX, open(os.path.join(self.wt, "pantry", "store.py")).read(),
+                      "the maker did not make its fix")
+        self.amend()
+        if os.path.exists(self.cwds):  # only the second pass's checkout is read
+            os.remove(self.cwds)
+
+    def build_edits_the_makers_file(self):
+        """The build changes pantry/store.py two lines above the line the maker fixes."""
+        old = open(os.path.join(self.repo, "pantry", "store.py")).read()
+        new = old.replace('"""Items that run out within', '"""Items (explored) that run out within')
+        self.assertNotEqual(old, new)
+        return {"pantry/store.py": new}
+
+    def scratch_worktrees(self):
+        rows = sh(["git", "worktree", "list", "--porcelain"], self.repo).stdout.splitlines()
+        kept = {os.path.realpath(self.repo), os.path.realpath(self.wt)}
+        return [r[len("worktree "):] for r in rows
+                if r.startswith("worktree ") and os.path.realpath(r[len("worktree "):]) not in kept]
+
+    def test_a_second_pass_after_the_maker_has_the_earlier_red_and_not_the_makers_fix(self):
+        self.open_and_make()
+        self.step("scenario", FAKE_RED_TEXT="SECOND-PASS", FAKE_CWD_PROBE=self.PROBE)
+        ran = self.ran("# The scenario agent")
+        self.assertIsNotNone(ran, "the scenario agent did not run")
+        self.assertFalse(ran["exists"][MARKER], "the second pass's checkout has the build in it")
+        self.assertTrue(ran["exists"]["tests/test_red.py"], "the second pass's checkout does not have the earlier red")
+        self.assertNotIn(self.MAKER_FIX, ran["texts"]["pantry/store.py"],
+                         "the second pass's checkout has the maker's fix in it")
+
+    def test_a_second_pass_after_the_maker_still_fails_the_red_on_the_base(self):
+        self.open_and_make()
+        self.step("scenario", FAKE_RED_TEXT="SECOND-PASS")
+        rec = self.record()
+        self.assertNotIn("scenario_not_red", [s["order"] for s in rec["stops"]],
+                         "the red passed on the base: the base run held the maker's fix")
+        self.assertIs(rec["checks"]["scenario"].get("red_fails"), True, "the red did not fail on the base")
+
+    def test_a_second_pass_after_a_maker_that_edits_a_file_the_build_changed_starts_at_the_base(self):
+        self.open_and_make(self.build_edits_the_makers_file())
+        self.step("scenario", FAKE_RED_TEXT="SECOND-PASS", FAKE_CWD_PROBE=self.PROBE)
+        ran = self.ran("# The scenario agent")
+        self.assertIsNotNone(ran, "the second scenario pass did not start")
+        self.assertFalse(ran["exists"][MARKER], "the second pass's checkout has the build in it")
+        self.assertTrue(ran["exists"]["tests/test_red.py"], "the second pass's checkout does not have the earlier red")
+        self.assertNotIn(self.MAKER_FIX, ran["texts"]["pantry/store.py"],
+                         "the second pass's checkout has the maker's fix in it")
+
+    def test_a_second_pass_after_a_maker_that_edits_a_file_the_build_changed_lands_without_a_conflict(self):
+        self.open_and_make(self.build_edits_the_makers_file())
+        p = self.step("scenario", FAKE_RED_TEXT="SECOND-PASS")
+        self.assertNotEqual(p.returncode, 1, "the step crashed: " + p.stdout + p.stderr)
+        self.assertNotIn("Traceback", p.stderr)
+        self.assertNotIn("red_conflicts_with_build", [s["order"] for s in self.record()["stops"]])
+        self.assertIn("SECOND-PASS", open(os.path.join(self.wt, "tests", "test_red.py")).read(),
+                      "the second pass's red is not on the slice branch")
+        self.assertIn(self.MAKER_FIX, open(os.path.join(self.wt, "pantry", "store.py")).read(),
+                      "the slice branch lost the maker's fix")
+        self.assertTrue(os.path.exists(os.path.join(self.wt, MARKER)), "the slice branch lost the build")
+
+    def test_a_second_pass_after_the_maker_leaves_no_checkout_behind(self):
+        self.open_and_make(self.build_edits_the_makers_file())
+        self.step("scenario", FAKE_RED_TEXT="SECOND-PASS")
+        self.assertEqual(self.scratch_worktrees(), [], "the scenario agent's checkout was left behind")
+
+
 class BuildConflictTest(FromBuildBase):
     # 13. a red that conflicts with the build stops with red_conflicts_with_build
     def test_a_red_that_conflicts_with_the_build_stops(self):
@@ -386,6 +463,16 @@ class RecordCopyTest(FromBuildBase):
 
     def test_a_second_pass_copy_names_no_branch_or_commit_at_the_build(self):
         self.scenario_step(FAKE_RECORD_LOG=self.log)
+        self.amend()
+        self.step("scenario", FAKE_RECORD_LOG=self.log)
+        copies = self.copies(self.log)
+        self.assertEqual(len(copies), 2, "the second scenario pass did not run")
+        self.assert_names_no_build(copies[1])
+
+    def test_a_second_pass_copy_after_the_maker_names_no_branch_or_commit_at_the_build(self):
+        self.scenario_step(FAKE_RECORD_LOG=self.log)
+        p = self.step("maker")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.amend()
         self.step("scenario", FAKE_RECORD_LOG=self.log)
         copies = self.copies(self.log)
