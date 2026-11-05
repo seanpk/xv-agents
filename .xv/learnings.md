@@ -18,6 +18,14 @@ An entry with three or more sightings that still splits people is marked `(watch
 
 ## Open
 
+### 2026-11-04: A slice whose original scenario points were missed twice shows the same two-pass spend as an overrun
+- added: 2026-11-04 by Sean Kennedy
+- from: 2026-11-04-scenario-catches, `overran its budget` flag and four `red_misses_point` stops; 2026-11-04-orders-home, stops 17:13:16 to 19:04:00
+- miss: the scenario-catches overrun follows four answered stops that each sent the slice back for a full scenario pass. This repeats the existing rule on answered stops that add work; evidence only, no new rule. It would count as a sighting for that rule's entry.
+- rule: A slice whose original scenario points were missed twice shows the same two-pass spend as an overrun
+- seen: [seanpk/xv-agents@2026-11-04]
+
+
 ### 2026-10-27: A test that asserts less can be found by a check, not only by judgement
 - added: 2026-10-27 by Sean Kennedy
 - from: no slice; a read of unclebob/ub-mode and its companion tool unclebob/mutator
