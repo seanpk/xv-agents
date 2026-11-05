@@ -6,7 +6,8 @@ ones a person accepts.
 Usage:
   xv retro due                          closed slices a retro would read, and why
   xv retro counts [--json]              per standard: fired, overridden, flagged
-  xv retro run [<slice id> ...]         the retro brief in a fresh context; writes .xv/retro/<date>.md
+  xv retro run [<slice id> ...]         the retro brief in a fresh context; writes .xv/retro/<date>.md,
+                                        or <date>-2.md, <date>-3.md and so on when that file exists
   xv retro accept <packet> <n> --by <name>   a person accepts candidate n
   xv retro standard <slice id> <n> --by <name>   accept the cleaner's candidate n from that slice's packet
 """
