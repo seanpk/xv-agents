@@ -2,13 +2,13 @@
 id: 2026-11-05-directed-edit
 title: "The watch makes a directed change the person approved (#132)"
 kind: feature
-status: open
+status: stopped
 set_by: Sean Kennedy
 created: 2026-11-05
 branch: xv/2026-11-05-directed-edit
 base: 5d5e75fc7a7371d74a3884cfbae919785adbb4e7
 next: forecaster
-forecast: null
+forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 430000, "turns": null, "usd": 2.8, "basis": ["2026-11-04-orders-home", "2026-11-04-refactor-kind", "2026-11-04-retro-sighting", "2026-11-04-suite-speed"], "note": "guide has no turns column"}, {"harness": "claude", "model": "opus", "tokens": 270000, "turns": null, "usd": 3.2, "basis": ["2026-11-04-orders-home", "2026-11-04-refactor-kind", "2026-11-04-retro-sighting", "2026-11-04-suite-speed"], "note": "guide has no turns column"}], "wall_s": 4000, "shape": "wide", "breadth": "Watch stop option and directed-edit commit path, record rewrites for test renames (slice_only, wall_recommendations, covers), packet line for post-guardian edits, brief may-not line, and a CHANGELOG line; wide across watch, record and brief."}
 budget: null
 red: null
 wall_baseline: null
@@ -20,12 +20,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: []
-stops: []
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 4, "tokens_out": 4539, "cache_read": 26146, "cache_write": 30029, "tokens": 34572, "usd": 0.0085, "turns": 3, "wall_s": 21.7, "session": "8733534d-8174-4a5e-8fc0-6218efa8415b", "step": "forecaster", "at": "2026-11-05T10:40:55+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-05-directed-edit/01-forecaster.out"}]
+stops: [{"at": "2026-11-05T10:40:55+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-05-directed-edit budget ... --by <name>`).", "answered_by": [], "answer": null, "also": [], "budget_seen": null}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast from four wide claude rows: sonnet about 430k tokens and $2.80, opus about 270k tokens and $3.20; reopens at accept_moves or shape stops are the main risk.", "at": "2026-11-05T10:40:55+00:00"}], "forecaster": {"at": "2026-11-05T10:40:55+00:00", "wrote": []}}
 ---
 # The watch makes a directed change the person approved (#132)
 
@@ -54,3 +54,5 @@ None. A feature starts from words.
 
 ## Log
 - 2026-11-05T10:40:30+00:00 watch: slice opened by Sean Kennedy
+- 2026-11-05T10:40:55+00:00 forecaster: done: Forecast from four wide claude rows: sonnet about 430k tokens and $2.80, opus about 270k tokens and $3.20; reopens at accept_moves or shape stops are the main risk.
+- 2026-11-05T10:40:55+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-05-directed-edit budget ... --by <name>`).
