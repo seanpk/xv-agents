@@ -1,6 +1,6 @@
 # Boundary picture
 
-From `66570aa78596` to the working tree. Source: xv boundary (ast and regex). Generated; check it against the diff.
+From `a387beea489d` to the working tree. Source: xv boundary (ast and regex). Generated; check it against the diff.
 
 ## Shape hints
 
@@ -119,7 +119,7 @@ flowchart LR
 
 ```json
 {
- "base": "66570aa785961973ad109e9db00dfc167a823e9b",
+ "base": "a387beea489d472c139d9df358421afafa06f8ab",
  "touched": [
   "scripts/orders",
   "scripts/prompt",
