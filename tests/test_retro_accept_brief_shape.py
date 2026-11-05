@@ -58,11 +58,12 @@ class RetroAcceptBriefShapeTest(RepoCase):
     def test_promote_local_prefers_the_entry_miss_over_said(self):
         text = self.promote_entry("- from: s\n- miss: what went wrong\n- said: \"the words\"\n- rule: do the thing\n")
         self.assertIn("- miss: what went wrong\n", text)
-        self.assertNotIn("the words", text)
+        self.assertIn("- said: \"the words\"\n", text)
 
     def test_promote_local_falls_back_to_said_when_the_entry_has_no_miss(self):
         text = self.promote_entry("- from: s\n- said: \"the words\"\n- rule: do the thing\n")
-        self.assertIn("- miss: \"the words\"\n", text)
+        self.assertIn("- said: \"the words\"\n", text)
+        self.assertNotIn("- miss:", text.split("### do the thing")[1])
 
     def test_promote_local_does_not_take_the_next_line_for_an_empty_from(self):
         text = self.promote_entry("- from:\n- miss: what went wrong\n- rule: do the thing\n")
