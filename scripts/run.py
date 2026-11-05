@@ -231,6 +231,10 @@ def cmd_slice_new(a):
     for flag, value in (("--title", a.title), ("--ignore", a.ignore), ("--axis", a.axis)):
         if value:
             args += [flag, value]
+    if a.expect_moves is not None:
+        args += ["--expect-moves", a.expect_moves]
+    for pair in a.rename or []:
+        args += ["--rename", pair]
     if a.scenario_file:
         args += ["--scenario-file", os.path.abspath(a.scenario_file)]
     elif a.scenario:
@@ -349,6 +353,9 @@ def step(agent, slice_id, review_again=False):
         reach(config, st["seat"], st["question"], os.path.relpath(path, root))
         return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": st, "fired": [budget_stop]}
 
+    if agent == "scenario" and data.get("kind") == "refactor":
+        return refactor_scenario(path, root, config, data, body, slice_id)
+
     if (config.get("agents") or {}).get(agent) == "session":
         raise XVError(f"{agent} runs in the session: use `xv prompt {agent} {slice_id}`, then "
                       f"`xv record report {slice_id} {agent} -` and `xv orders {slice_id} --after {agent}`")
@@ -395,6 +402,33 @@ def step(agent, slice_id, review_again=False):
     v["worktree"] = root
     if data.get("packet"):
         v["packet"] = data["packet"]
+    if v["stop"]:
+        reach(config, v["stop"]["seat"], v["stop"]["question"], v["record"])
+    return (EXIT_STOP if v["stop"] else 0), v
+
+
+def refactor_scenario(path, root, config, data, body, slice_id):
+    """A refactor slice writes no red: the suite is green at the start, and that is its oracle."""
+    suite, out = run_suite(root, config, data.get("base"), slice_id)
+    checks = {"at": now(), "suite": suite, "suite_output": (out or "")[-800:],
+              "failing_step": orders.first_failing_step(out) if suite == "red" else ""}
+    summary = ("refactor slice: no new red; the suite is green at the start, and it is the oracle" if suite == "green"
+               else "refactor slice: the suite is not green at the start, so there is no oracle")
+    data["checks"].setdefault("reports", []).append({"agent": "scenario", "status": "done", "summary": summary,
+                                                     "at": now()})
+    body = record.log_line(body, "scenario", f"done: {summary}")
+    if suite == "green":
+        data["wall_baseline"] = wall_baseline(root, data, config)
+    data["suite"] = suite
+    data["checks"]["scenario"] = checks
+    data["status"], data["next"] = "working", "maker"
+    record.save(path, data, body)
+    v = orders.verdict(data, "scenario", config)
+    body = record.apply_verdict(data, body, "scenario", v)
+    record.save(path, data, body)
+    commit_step("scenario", root, slice_id, checks)
+    v["record"] = os.path.relpath(path, root)
+    v["worktree"] = root
     if v["stop"]:
         reach(config, v["stop"]["seat"], v["stop"]["question"], v["record"])
     return (EXIT_STOP if v["stop"] else 0), v
@@ -476,6 +510,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
                                    for x in line.split("\t")[:2] if x.isdigit())
         before = (data.get("checks") or {}).get(agent) or {}
         checks["diff_history"] = (before.get("diff_history") or []) + [checks["diff_lines"]]
+        expected_moves(root, data, config)
         checks["wall"] = wall_check(root, data, config)
     if agent == "cleaner":
         sp = os.path.join(root, XV_DIR, "standards.md")
@@ -492,7 +527,8 @@ def post_step(agent, root, data, config, head_before, pre, report):
             import packet as packetlib
             try:
                 lint = packetlib.fix(packet)
-                checks["packet_problems"], checks["dropped_findings"] = lint["problems"], len(lint["dropped"])
+                checks["packet_problems"] = lint["problems"] + packet_expected_moves(packet, data)
+                checks["dropped_findings"] = len(lint["dropped"])
             except XVError as e:
                 checks["packet_problems"] = [str(e)]
             append_cleaner_proposals(packet, data)
@@ -695,6 +731,31 @@ def wall_baseline(root, data, config):
     except ImportError:
         return None
     return wall.baseline(root, data["id"], config)
+
+
+def expected_moves(root, data, config):
+    """Record the moves the slice expects; the wall reads the record from disk, so it is saved first."""
+    if not data.get("expect_moves"):
+        return
+    import moves
+    moves.apply(root, data, config)
+    path, _, body = record.load(root, data["id"])
+    record.save(path, data, body)
+
+
+def packet_expected_moves(packet, data):
+    """Problems with the packet's `expected_moves`: it is a whole number, and the record's count."""
+    from xvlib import split_front_matter
+    with open(packet, encoding="utf-8") as f:
+        value = split_front_matter(f.read())[0].get("expected_moves")
+    count = len([m for m in data.get("moved_tests") or [] if m.get("expected")])
+    if value is None:
+        return ["front matter expected_moves is missing; it is the number of expected moves in the record"]
+    if not str(value).isdigit():
+        return [f"front matter expected_moves must be a whole number, found {value!r}"]
+    if int(value) != count:
+        return [f"front matter expected_moves is {value}, and the record holds {count}"]
+    return []
 
 
 def wall_check(root, data, config):
@@ -1127,9 +1188,11 @@ def main(argv=None):
     n.add_argument("id")
     n.add_argument("--by", required=True)
     n.add_argument("--title")
-    n.add_argument("--kind", choices=["feature", "defect", "prototype"], default="feature")
+    n.add_argument("--kind", choices=["feature", "defect", "prototype", "refactor"], default="feature")
     n.add_argument("--scenario")
     n.add_argument("--scenario-file")
+    n.add_argument("--expect-moves", help="the test changes the person expects: imports, renames, or both")
+    n.add_argument("--rename", action="append", help="Old=New, a name this slice renames; one flag per pair")
     n.add_argument("--ignore")
     n.add_argument("--recording")
     n.add_argument("--branch")
