@@ -368,6 +368,10 @@ def tree_stops(root, slice_id, fallback):
         return fallback
 
 
+def without_open_rebase_stops(stops):
+    return [s for s in stops if not (s.get("step") == "rebase" and s.get("answer") is None)]
+
+
 def rebase_stop(root, slice_id, state, config, fired=None, **checks):
     """Write the stop to the record and exit. Mid-rebase the record is left changed in the tree, not committed."""
     path, data, body = record.load(root, slice_id)
@@ -494,7 +498,7 @@ def rebase_finish(root, slice_id, state, config):
         state["dropped_seen"] = True
         rebase_stop(root, slice_id, state, config, dropped=[f"{k} {state['named'][k][:10]}" for k in dropped])
     path, data, body = record.load(root, slice_id)
-    stops = [s for s in state["stops"] if not (s.get("step") == "rebase" and s.get("answer") is None)]
+    stops = without_open_rebase_stops(state["stops"])
     if len(stops) != len(state["stops"]):
         data["status"] = state["status"]
     data["stops"] = stops
@@ -556,7 +560,7 @@ def cmd_slice_rebase(a):
         else:
             git(["reset", "--hard", state["orig_head"]], root)
         os.remove(rebase_state_path(root, a.id))
-        stops = [s for s in state["stops"] if not (s.get("step") == "rebase" and s.get("answer") is None)]
+        stops = without_open_rebase_stops(state["stops"])
         if state["runs"] or stops != state["first_stops"]:
             # the maker's runs cost what they cost, and the answers stay; the stops the rebase raised and nobody answered go
             path, data, body = record.load(root, a.id)
