@@ -534,6 +534,26 @@ def in_own_red(names, name):
     return any(names_test(name, n) for n in names)
 
 
+def move_red_ref(root, data, old_base, onto):
+    """Replay the red ref's commits onto the new base. Returns a message naming the ref when it cannot, else None."""
+    ref = red_ref(data)
+    held = subprocess.run(["git", "rev-parse", "--verify", "-q", ref + "^{commit}"],
+                          cwd=root, capture_output=True, text=True).stdout.strip()
+    if not held or subprocess.run(["git", "merge-base", "--is-ancestor", old_base, held], cwd=root).returncode != 0:
+        return None
+    scratch = tempfile.mkdtemp(prefix="xv-redref-")
+    try:
+        git(["worktree", "add", "-q", "--detach", scratch, onto], root)
+        p = subprocess.run(["git", "cherry-pick", "--allow-empty", "--keep-redundant-commits", f"{old_base}..{held}"],
+                           cwd=scratch, capture_output=True, text=True)
+        if p.returncode != 0:
+            return f"{ref} conflicts with {onto[:10]}: " + (p.stdout + p.stderr).strip()[-300:]
+        git(["update-ref", ref, git(["rev-parse", "HEAD"], scratch).strip()], root)
+    finally:
+        drop_scratch(root, scratch)
+    return None
+
+
 def rebase_finish(root, slice_id, state, config):
     """The rebase is done in git: look for logical breaks, move the record, hash the wall, run the suite."""
     if not state["maker_ran"]:
@@ -559,6 +579,11 @@ def rebase_finish(root, slice_id, state, config):
     if dropped and not state.get("dropped_seen"):
         state["dropped_seen"] = True
         rebase_stop(root, slice_id, state, config, dropped=[f"{k} {state['named'][k][:10]}" for k in dropped])
+    if not state.get("red_ref_seen"):
+        state["red_ref_seen"] = True
+        stuck_ref = move_red_ref(root, record.load(root, slice_id)[1], state["old_base"], state["onto"])
+        if stuck_ref:
+            rebase_stop(root, slice_id, state, config, red_ref=stuck_ref)
     path, data, body = record.load(root, slice_id)
     stops = without_open_rebase_stops(state["stops"])
     if len(stops) != len(state["stops"]):

@@ -213,6 +213,10 @@ def evaluate(data, after, config):
             out.append(fire("rebase_dropped", "originator",
                             f"{owner}: the rebase dropped a commit the record names: {', '.join(checks['dropped'])}. "
                             f"Run {resume} to clear it from the record, {undo}."))
+        if checks.get("red_ref"):
+            out.append(fire("rebase_red_ref", "originator",
+                            f"{owner}: the rebase could not move the red ref onto the new base: {checks['red_ref']}. "
+                            f"It stays on the old base. Run {resume} to go on without moving it, {undo}."))
         if checks.get("stuck"):
             out.append(fire("rebase_stuck", "originator",
                             f"{owner}: the maker could not fix a problem the new base brings: {checks['stuck']} "
