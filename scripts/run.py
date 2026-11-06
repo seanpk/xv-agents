@@ -855,14 +855,14 @@ def scenario_scratch(root, data, config):
         drop_scratch(root, scratch)
         raise XVError(f"the worktree setup `{failed[0]}` failed ({failed[1]}) in the scenario agent's checkout; "
                       f"its last output:\n{failed[2]}")
-    copy = data
+    scratch_record = data
     unshared = data.get("build_shared") != "yes"
     if unshared:
-        copy = dict(data, build="none", branch=data["base"])
-        copy.pop("pre_maker_commit", None)
+        scratch_record = dict(data, build="none", branch=data["base"])
+        scratch_record.pop("pre_maker_commit", None)
     path = os.path.join(scratch, XV_DIR, "slices", f"{data['id']}.md")
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    record.save(path, copy, record.load(root, data["id"])[2])
+    record.save(path, scratch_record, record.load(root, data["id"])[2])
     if unshared:
         with open(path, encoding="utf-8") as f:
             text = f.read()
