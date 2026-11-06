@@ -442,9 +442,9 @@ class SendBackFromOrdersTest(unittest.TestCase):
         self.assertEqual([(f["order"], f["blocking"], f["send_back"]) for f in self.send_backs(v)],
                          [("red_misses_point", False, {"to": "scenario", "misses": ["3", "5"]})])
 
-    def test_orders_stops_when_the_same_uncovered_point_comes_back(self):
+    def test_orders_stops_when_the_same_uncovered_point_comes_back_a_third_time(self):
         prior = {"order": "red_misses_point", "seat": "watch", "keys": ["3"], "answer": "sent back to the scenario"}
-        v = self.verdict(self.after_scenario(["3"], stops=[prior]), "scenario")
+        v = self.verdict(self.after_scenario(["3"], stops=[prior, dict(prior)]), "scenario")
         self.assertEqual((v["stop"]["order"], v["stop"]["seat"]), ("red_misses_point", "originator"))
         self.assertEqual(self.send_backs(v), [])
 
