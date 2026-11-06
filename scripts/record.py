@@ -515,8 +515,9 @@ def apply_report(data, body, agent, text):
                 if not any(isinstance(n, dict) and n.get("test") == m.get("test")
                            for n in report["slice_only"])]
         accepted = {m.get("test"): m for m in data.get("slice_only") or [] if isinstance(m, dict) and m.get("accepted")}
-        data["slice_only"] = kept + [accepted.get(n.get("test"), n) if isinstance(n, dict) else n
-                                     for n in report["slice_only"]]
+        # an agent cannot accept its own mark; only a person's answer, or the config's listed files, do
+        data["slice_only"] = kept + [accepted.get(n.get("test"), {k: v for k, v in n.items() if k != "accepted"})
+                                     if isinstance(n, dict) else n for n in report["slice_only"]]
     if agent == "guardian" and isinstance(report.get("wall_recommendations"), list):
         old = data.get("wall_recommendations") or []
         accepted_before = {r.get("test") for r in old if r.get("accepted")}

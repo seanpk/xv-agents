@@ -1,8 +1,7 @@
-import os
 import re
 import unittest
 
-from helpers import HOME, RepoCase
+from helpers import RepoCase
 
 
 class ByNameTest(RepoCase):
@@ -54,6 +53,23 @@ class ByNameTest(RepoCase):
         keys = [(int(n), l) for n, l in labels]
         self.assertGreater(len(keys), 6)
         self.assertEqual(keys, sorted(keys))
+
+    # 6. the brief says each red test sets every stand-in setting it depends on
+    def test_the_scenario_brief_says_a_red_test_sets_every_stand_in_setting_its_result_depends_on(self):
+        out = " ".join(self.brief("scenario").split())
+        sentences = re.split(r"(?<=[.!?])\s+", out)
+        self.assertTrue(any("stand-in" in s and "every" in s and "setting" in s
+                            and re.search(r"\bdefault\b", s) and re.search(r"\b(not|never)\b", s)
+                            for s in sentences), "no sentence about setting every stand-in setting, not relying on a default")
+
+
+    # 10. the scenario brief says the report names the file each slice-only test checks
+    def test_the_scenario_brief_says_the_report_names_the_file_each_slice_only_test_checks(self):
+        out = " ".join(self.brief("scenario").split())
+        sentences = re.split(r"(?<=[.!?])\s+", out)
+        self.assertTrue(any("slice-only" in s.lower().replace("slice_only", "slice-only")
+                            and "checks" in s and re.search(r"\bfile\b", s) for s in sentences),
+                        "no sentence about naming the file each slice-only test checks")
 
 
 if __name__ == "__main__":

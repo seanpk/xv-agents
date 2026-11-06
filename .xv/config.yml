@@ -21,6 +21,9 @@ tests:
   # the command's environment, so `git diff --name-only $XV_BASE` finds them.
   command: "python3 tests/run.py --jobs 4"
   timeout: 900
+  # Files whose tests are always slice-only: a mark on a test that checks one of
+  # these is accepted with no stop. The scenario agent's report names the file.
+  slice_only_files: ["CHANGELOG.md"]
 
 source:
   roots: ["scripts", "evals"]

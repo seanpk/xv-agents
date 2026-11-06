@@ -220,6 +220,7 @@ DEFAULT_CONFIG = {
         "paths": ["tests/**", "test/**", "spec/**", "**/*_test.*", "**/*.test.*", "**/*.spec.*", "**/test_*.py"],
         "command": "",
         "file_command": "",
+        "slice_only_files": ["CHANGELOG.md"],
     },
     "source": {"roots": ["."], "exclude": ["node_modules/**", "vendor/**", ".git/**", ".xv/**"]},
     "agents": {
