@@ -1745,7 +1745,7 @@ class DirectedEditTest(RepoCase):
             f.write("```xv-report\n" + json.dumps({"agent": "guardian", "status": "done", "summary": "done"})
                     + "\n```\n")
         self.xv("record", "report", "s1", "guardian", report, cwd=self.wt)
-        self.write(".xv/slices/s1.packet.md", "---\nslice: s1\nshape_change: no\npitch_contradiction: no\n---\n\n"
+        self.write(".xv/slices/s1.packet.md", "---\nslice: s1\nshape_change: no\npitch_contradiction: no\nexpected_moves: 0\n---\n\n"
                                               "# Packet\n\nThe change does what the scenario says.\n")
         self.xv("record", "set", "s1", "next", "close", cwd=self.wt)
         self.xv("record", "packet", "s1", ".xv/slices/s1.packet.md", cwd=self.wt)
