@@ -133,3 +133,7 @@ No recommendations. I looked at:
 - Diff: `git diff 5d5e75fc7a7371d74a3884cfbae919785adbb4e7..HEAD`. Since the last packet: `git diff 89f8326..HEAD`
 - Wall: `xv wall diff 2026-11-05-from-build`
 - Boundary: `.xv/slices/2026-11-05-from-build.boundary.md`
+
+## Directed edits after the guardian
+
+- CHANGELOG.md (changelog): directed by Sean Kennedy
