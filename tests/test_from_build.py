@@ -115,6 +115,21 @@ class FromBuildBase(RepoCase):
                 found.append(h)
         return found
 
+    def commits_off_the_base(self, text):
+        """Every commit named in `text` that is not an ancestor of the base."""
+        found = []
+        for h in sorted(set(re.findall(r"\b[0-9a-f]{7,40}\b", text))):
+            p = sh(["git", "rev-parse", "--verify", "-q", f"{h}^{{commit}}"], self.repo, check=False)
+            if p.returncode == 0 and not self.is_ancestor(p.stdout.strip(), self.main):
+                found.append(h)
+        return found
+
+    def scratch_worktrees(self):
+        rows = sh(["git", "worktree", "list", "--porcelain"], self.repo).stdout.splitlines()
+        kept = {os.path.realpath(self.repo), os.path.realpath(self.wt)}
+        return [r[len("worktree "):] for r in rows
+                if r.startswith("worktree ") and os.path.realpath(r[len("worktree "):]) not in kept]
+
 
 class SliceNewFromTest(FromBuildBase):
     # 1. `xv slice new --from <ref>`
@@ -361,12 +376,6 @@ class SecondPassAfterTheMakerTest(FromBuildBase):
         self.assertNotEqual(old, new)
         return {"pantry/store.py": new}
 
-    def scratch_worktrees(self):
-        rows = sh(["git", "worktree", "list", "--porcelain"], self.repo).stdout.splitlines()
-        kept = {os.path.realpath(self.repo), os.path.realpath(self.wt)}
-        return [r[len("worktree "):] for r in rows
-                if r.startswith("worktree ") and os.path.realpath(r[len("worktree "):]) not in kept]
-
     def test_a_second_pass_after_the_maker_has_the_earlier_red_and_not_the_makers_fix(self):
         self.open_and_make()
         self.step("scenario", FAKE_RED_TEXT="SECOND-PASS", FAKE_CWD_PROBE=self.PROBE)
@@ -409,6 +418,108 @@ class SecondPassAfterTheMakerTest(FromBuildBase):
 
     def test_a_second_pass_after_the_maker_leaves_no_checkout_behind(self):
         self.open_and_make(self.build_edits_the_makers_file())
+        self.step("scenario", FAKE_RED_TEXT="SECOND-PASS")
+        self.assertEqual(self.scratch_worktrees(), [], "the scenario agent's checkout was left behind")
+
+
+class RedOnItsOwnRefTest(FromBuildBase):
+    # 12, as Sean settled it: the red at the base lives on its own ref, each later pass starts from that
+    # ref's tip, and nothing is replayed from the slice branch onto the base
+    BUILD_LINE = "        found = self.store.expiring(3, date(2026, 10, 21))\n"
+    FIRST_RED = "test_milk_today_in_the_store"
+    PROBE = f"{MARKER} tests/test_red.py tests/test_store.py"
+
+    def build_edits_near_the_red(self):
+        """The build changes tests/test_store.py two lines above the place the red writes its new test."""
+        old = open(os.path.join(self.repo, "tests", "test_store.py")).read()
+        self.assertEqual(old.count(self.BUILD_LINE), 1)
+        return {"tests/test_store.py": old.replace(self.BUILD_LINE, self.BUILD_LINE[:-1] + "  # explored\n")}
+
+    def first_pass(self, build_files=None):
+        """A first pass whose red adds a test to tests/test_store.py; then the slice is amended."""
+        self.make_build(fixed=False, files=build_files)
+        self.open_slice("--from", BUILD)
+        p = self.scenario_step(FAKE_RED_ADDS_TO_OLD="1")
+        if build_files and self.open_stops():  # 13: the build's change to a test file stops once; the person accepts it
+            self.assertEqual([s["order"] for s in self.open_stops()], ["unrecorded_move"], p.stdout + p.stderr)
+            self.xv("record", "answer", "s1", "--by", "pat", "--answer", "the build's change is accepted",
+                    "--next", "maker", cwd=self.wt)
+        else:
+            self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn(self.FIRST_RED, open(os.path.join(self.wt, "tests", "test_store.py")).read(),
+                      "the first red did not land on the slice branch")
+        self.amend()
+        if os.path.exists(self.cwds):  # only the second pass's checkout is read
+            os.remove(self.cwds)
+
+    def red_refs(self):
+        """Each ref, other than the test's own branches, whose tip is the base with the red and without the build."""
+        found = {}
+        for row in sh(["git", "for-each-ref", "--format=%(refname) %(objectname)"], self.repo).stdout.splitlines():
+            name, sha = row.split()
+            if name in ("refs/heads/main", f"refs/heads/{BUILD}", "refs/heads/xv/s1"):
+                continue
+            if not self.is_ancestor(self.main, sha) or self.is_ancestor(self.build, sha):
+                continue
+            if sh(["git", "cat-file", "-e", f"{sha}:tests/test_red.py"], self.repo, check=False).returncode == 0:
+                found[name] = sha
+        return found
+
+    def at(self, sha, rel):
+        return sh(["git", "show", f"{sha}:{rel}"], self.repo).stdout
+
+    def test_the_first_pass_keeps_its_red_on_a_ref_at_the_base(self):
+        self.first_pass()
+        refs = self.red_refs()
+        self.assertTrue(refs, "no ref holds the red at the base, without the build")
+        for name, sha in refs.items():
+            self.assertIn(self.FIRST_RED, self.at(sha, "tests/test_store.py"), f"{name} does not hold the first red")
+
+    def test_a_second_pass_starts_from_the_tip_of_the_red_ref(self):
+        self.first_pass()
+        tips = set(self.red_refs().values())
+        self.assertTrue(tips, "no ref holds the red at the base, without the build")
+        self.step("scenario", FAKE_RED_TEXT="SECOND-PASS", FAKE_CWD_PROBE=self.PROBE)
+        ran = self.ran("# The scenario agent")
+        self.assertIsNotNone(ran, "the second scenario pass did not start")
+        self.assertIn(ran["head"], tips, "the second pass's checkout is not at the tip of the red's ref")
+
+    def test_the_red_ref_moves_to_the_second_pass_red(self):
+        self.first_pass()
+        before = set(self.red_refs().values())
+        self.step("scenario", FAKE_RED_TEXT="SECOND-PASS")
+        after = self.red_refs()
+        moved = [sha for sha in after.values() if sha not in before
+                 and "SECOND-PASS" in self.at(sha, "tests/test_red.py")
+                 and self.FIRST_RED in self.at(sha, "tests/test_store.py")
+                 and any(self.is_ancestor(old, sha) for old in before)]
+        self.assertTrue(moved, "no red ref moved on to the second pass's red, from the first pass's tip")
+
+    def test_a_second_pass_starts_at_the_base_when_the_red_edits_a_file_the_build_changed(self):
+        self.first_pass(self.build_edits_near_the_red())
+        self.step("scenario", FAKE_RED_TEXT="SECOND-PASS", FAKE_CWD_PROBE=self.PROBE)
+        ran = self.ran("# The scenario agent")
+        self.assertIsNotNone(ran, "the second scenario pass did not start")
+        self.assertFalse(ran["exists"][MARKER], "the second pass's checkout has the build in it")
+        store = ran["texts"]["tests/test_store.py"]
+        self.assertIn(self.FIRST_RED, store, "the second pass's checkout does not have the earlier red")
+        self.assertNotIn("# explored", store, "the second pass's checkout has the build's change to the test file")
+
+    def test_a_second_pass_lands_without_a_conflict_when_the_red_edits_a_file_the_build_changed(self):
+        self.first_pass(self.build_edits_near_the_red())
+        p = self.step("scenario", FAKE_RED_TEXT="SECOND-PASS")
+        self.assertNotEqual(p.returncode, 1, "the step crashed: " + p.stdout + p.stderr)
+        self.assertNotIn("Traceback", p.stderr)
+        self.assertNotIn("red_conflicts_with_build", [s["order"] for s in self.record()["stops"]])
+        self.assertIn("SECOND-PASS", open(os.path.join(self.wt, "tests", "test_red.py")).read(),
+                      "the second pass's red is not on the slice branch")
+        store = open(os.path.join(self.wt, "tests", "test_store.py")).read()
+        self.assertIn(self.FIRST_RED, store, "the slice branch lost the first red")
+        self.assertIn("# explored", store, "the slice branch lost the build's change to the test file")
+        self.assertTrue(os.path.exists(os.path.join(self.wt, MARKER)), "the slice branch lost the build")
+
+    def test_a_second_pass_leaves_no_checkout_behind_when_the_red_edits_a_file_the_build_changed(self):
+        self.first_pass(self.build_edits_near_the_red())
         self.step("scenario", FAKE_RED_TEXT="SECOND-PASS")
         self.assertEqual(self.scratch_worktrees(), [], "the scenario agent's checkout was left behind")
 
@@ -478,6 +589,32 @@ class RecordCopyTest(FromBuildBase):
         copies = self.copies(self.log)
         self.assertEqual(len(copies), 2, "the second scenario pass did not run")
         self.assert_names_no_build(copies[1])
+
+    # 14, as Sean settled it: the unshared copy keeps no commit that is not an ancestor of base, for any field
+    def test_a_second_pass_copy_after_a_cleaner_that_committed_names_no_commit_off_the_base(self):
+        self.scenario_step(FAKE_RECORD_LOG=self.log)
+        p = self.step("maker")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.step("cleaner", FAKE_CLEANER_COMMITS="1")
+        self.assertTrue(self.record().get("cleaner_commit"), "the cleaner's commit is not in the record")
+        self.amend()
+        self.step("scenario", FAKE_RECORD_LOG=self.log)
+        copies = self.copies(self.log)
+        self.assertEqual(len(copies), 2, "the second scenario pass did not run")
+        self.assertEqual(self.commits_off_the_base(copies[1]), [], "the copy names a commit that is not on the base")
+
+    def test_no_copy_names_a_commit_off_the_base_in_any_field(self):
+        head = sh(["git", "rev-parse", "HEAD"], self.wt).stdout.strip()
+        self.xv("record", "set", "s1", "explored_at", head, "--by", "pat", cwd=self.wt)
+        self.xv("record", "set", "s1", "notes", json.dumps({"seen": [self.build[:12]]}), "--by", "pat", cwd=self.wt)
+        self.scenario_step(FAKE_RECORD_LOG=self.log)
+        self.amend()
+        self.step("scenario", FAKE_RECORD_LOG=self.log)
+        copies = self.copies(self.log)
+        self.assertEqual(len(copies), 2, "the second scenario pass did not run")
+        for n, copy in enumerate(copies, 1):
+            self.assertIsNotNone(copy, f"pass {n}'s checkout has no copy of the record")
+            self.assertEqual(self.commits_off_the_base(copy), [], f"pass {n}'s copy names a commit that is not on the base")
 
 
 class SessionScenarioTest(FromBuildBase):
