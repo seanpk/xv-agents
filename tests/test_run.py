@@ -569,14 +569,108 @@ class WatchLoopTest(WatchLoopSetup):
         p = self.scenario_covering(covered=["1"], not_covered=["2"])
         self.assert_stopped_before_the_maker(p, "no seam to start the app")
 
-    def test_the_same_missed_point_on_the_next_pass_stops_for_the_person(self):
+    def test_the_same_missed_point_on_the_next_pass_goes_back_again(self):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.scenario_covering(covered=[self.P1])
         p = self.scenario_covering(covered=[self.P1])
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.open_stops(), [])
+        self.assertEqual(self.record()["next"], "scenario")
+
+    def test_the_third_miss_in_a_row_of_the_same_point_stops_for_the_person(self):
+        self.amend(f"{self.P1}\n{self.P2}")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        for _ in range(2):
+            self.scenario_covering(covered=[self.P1])
+        p = self.scenario_covering(covered=[self.P1])
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
-        self.assertEqual(json.loads(p.stdout)["stop"]["seat"], "originator")
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual((stop["order"], stop["seat"]), ("red_misses_point", "originator"))
         self.assertEqual(len(self.open_stops()), 1)
+
+    def test_a_point_sent_back_twice_then_covered_then_missed_again_goes_back(self):
+        self.amend(f"{self.P1}\n{self.P2}")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        for _ in range(2):
+            self.scenario_covering(covered=[self.P1])
+        self.scenario_covering(covered=[self.P1, self.P2])
+        p = self.scenario_covering(covered=[self.P1])
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.open_stops(), [])
+        self.assertEqual(self.record()["next"], "scenario")
+
+    def test_send_backs_from_before_an_amendment_do_not_count_toward_the_stop(self):
+        self.amend(f"{self.P1}\n{self.P2}")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        for _ in range(2):
+            self.scenario_covering(covered=[self.P1])
+        self.amend("3. A household sees the pantry list in order.")
+        p = self.scenario_covering(covered=[self.P1])
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.open_stops(), [])
+        self.assertEqual(self.record()["next"], "scenario")
+
+    def test_send_backs_from_before_a_persons_answer_do_not_count_toward_the_stop(self):
+        self.amend(f"{self.P1}\n{self.P2}")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        for _ in range(3):
+            self.scenario_covering(covered=[self.P1])
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "again", "--next", "scenario",
+                "--settled", "Pat wants every point covered.", cwd=self.wt)
+        p = self.scenario_covering(covered=[self.P1])
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.open_stops(), [])
+        self.assertEqual(self.record()["next"], "scenario")
+
+    PM = "1. The `doc` kind refuses a file under `.xv/` and any file named `SKILL.md`."
+
+    def test_an_item_without_the_backticks_covers_the_point_that_has_them(self):
+        self.amend(self.PM)
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        p = self.scenario_covering(covered=["1. The doc kind refuses a file under .xv/ and any file named SKILL.md."])
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(self.record()["next"], "maker")
+
+    def test_an_item_without_stars_and_underscores_covers_the_point_that_has_them(self):
+        self.amend("1. A **household** sees milk in the _restock_ list.")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        p = self.scenario_covering(covered=["1. A household sees milk in the restock list."])
+        self.assertEqual(self.record()["next"], "maker", p.stdout + p.stderr)
+
+    def test_the_marks_come_off_the_item_too(self):
+        self.amend("1. A household sees milk in the restock list.")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        p = self.scenario_covering(covered=["1. A `household` sees **milk** in the _restock_ list."])
+        self.assertEqual(self.record()["next"], "maker", p.stdout + p.stderr)
+
+    def test_an_item_that_changes_a_word_still_does_not_cover_the_point(self):
+        self.amend(self.PM)
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario_covering(covered=["1. The doc kind accepts a file under .xv/ and any file named SKILL.md."])
+        self.assertEqual(self.record()["next"], "scenario")
+
+    def test_the_send_back_hands_over_the_point_as_an_item_the_check_accepts(self):
+        self.amend(f"{self.PM}\n{self.P2}")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario_covering(covered=[self.P2])
+        prompt = self.xv("prompt", "scenario", "s1", cwd=self.wt).stdout
+        self.assertIn(self.PM, prompt)
+
+    def test_the_send_back_says_every_point_goes_in_covers_or_not_covered_each_pass(self):
+        self.amend(f"{self.P1}\n{self.P2}")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario_covering(covered=[self.P1])
+        said = " ".join(self.xv("prompt", "scenario", "s1", cwd=self.wt).stdout.lower().split())
+        self.assertIn("every point", said)
+        self.assertIn("each pass", said)
+        self.assertIn("amendments", said)
+        self.assertIn("not_covered", said)
+
+    def test_the_changelog_has_a_line_for_the_red_misses_point_trigger(self):
+        with open(os.path.join(HOME, "CHANGELOG.md")) as f:
+            unreleased = f.read().split("## Unreleased", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("red_misses_point", unreleased)
 
     def guardian_with_miss(self, miss="Point 1 is not met: the list still leaves out milk that runs out today.",
                            **env):
