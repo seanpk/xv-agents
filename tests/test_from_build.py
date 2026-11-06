@@ -524,6 +524,126 @@ class RedOnItsOwnRefTest(FromBuildBase):
         self.assertEqual(self.scratch_worktrees(), [], "the scenario agent's checkout was left behind")
 
 
+class RedRefRebaseTest(FromBuildBase):
+    # 12, as Sean settled it: xv slice rebase moves the red ref onto the new base, and stops if it cannot
+    FIRST_RED = RedOnItsOwnRefTest.FIRST_RED
+    PROBE = f"{MARKER} tests/test_red.py tests/test_store.py docs.txt"
+    at = RedOnItsOwnRefTest.at
+
+    def red_refs_at(self, base):
+        """Each ref, other than the branches, whose tip is `base` with the red and without the build."""
+        found = {}
+        for row in sh(["git", "for-each-ref", "--format=%(refname) %(objectname)"], self.repo).stdout.splitlines():
+            name, sha = row.split()
+            if name.startswith("refs/heads/"):
+                continue
+            if not self.is_ancestor(base, sha) or self.is_ancestor(self.build, sha):
+                continue
+            if sh(["git", "cat-file", "-e", f"{sha}:tests/test_red.py"], self.repo, check=False).returncode == 0:
+                found[name] = sha
+        return found
+
+    def on_main(self, rel, text):
+        with open(os.path.join(self.repo, rel), "w") as f:
+            f.write(text)
+        sh(["git", "add", rel], self.repo)
+        sh(["git", "commit", "-qm", "main moves on"], self.repo)
+        return sh(["git", "rev-parse", "HEAD"], self.repo).stdout.strip()
+
+    def first_pass_then_main_moves(self, rel="docs.txt", text="news on main\n"):
+        """A first pass from the build whose red adds a test to tests/test_store.py, and then main moves on."""
+        self.make_build(fixed=False)
+        self.open_slice("--from", BUILD)
+        p = self.scenario_step(FAKE_RED_ADDS_TO_OLD="1")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn(self.FIRST_RED, open(os.path.join(self.wt, "tests", "test_store.py")).read(),
+                      "the first red did not land on the slice branch")
+        sh(["git", "add", "-A"], self.wt)
+        sh(["git", "commit", "-qm", "leftovers", "--allow-empty"], self.wt)
+        self.held = self.red_refs_at(self.main)
+        self.assertTrue(self.held, "no ref holds the red at the base, without the build")
+        self.new = self.on_main(rel, text)
+
+    def rebase(self, *args):
+        with mock.patch.dict(os.environ, self.env(FAKE_REBASE_MODE="clean")):
+            return self.xv("slice", "rebase", "s1", *args, cwd=self.wt, check=False)
+
+    def in_progress(self):
+        return os.path.isdir(sh(["git", "rev-parse", "--path-format=absolute", "--git-path", "rebase-merge"],
+                                self.wt).stdout.strip())
+
+    def test_a_clean_rebase_moves_the_red_ref_onto_the_new_base(self):
+        self.first_pass_then_main_moves()
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(self.record()["base"], self.new, "the rebase did not move the slice's base")
+        moved = self.red_refs_at(self.new)
+        for name in self.held:
+            self.assertIn(name, moved, f"{name} was not moved onto the new base, with the red and without the build")
+            self.assertIn(self.FIRST_RED, self.at(moved[name], "tests/test_store.py"), f"{name} lost the first red")
+            self.assertIn("news on main", self.at(moved[name], "docs.txt"), f"{name} is not on the new base")
+
+    def test_a_pass_after_the_rebase_starts_at_the_new_base_with_the_earlier_red_in_it(self):
+        self.first_pass_then_main_moves()
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.amend()
+        if os.path.exists(self.cwds):  # only the pass after the rebase is read
+            os.remove(self.cwds)
+        self.step("scenario", FAKE_RED_TEXT="SECOND-PASS", FAKE_CWD_PROBE=self.PROBE)
+        ran = self.ran("# The scenario agent")
+        self.assertIsNotNone(ran, "the scenario pass after the rebase did not start")
+        self.assertFalse(ran["exists"][MARKER], "the pass after the rebase has the build in it")
+        self.assertTrue(ran["exists"]["docs.txt"], "the pass after the rebase is not at the new base")
+        self.assertTrue(ran["exists"]["tests/test_red.py"], "the pass after the rebase started without the earlier red")
+        self.assertIn(self.FIRST_RED, ran["texts"]["tests/test_store.py"],
+                      "the pass after the rebase started without the earlier red")
+
+    def test_a_pass_after_the_rebase_lands_on_the_slice_branch_without_a_conflict(self):
+        self.first_pass_then_main_moves()
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.amend()
+        p = self.step("scenario", FAKE_RED_TEXT="SECOND-PASS")
+        self.assertNotEqual(p.returncode, 1, "the step crashed: " + p.stdout + p.stderr)
+        self.assertNotIn("red_conflicts_with_build", [s["order"] for s in self.record()["stops"]])
+        self.assertIn("SECOND-PASS", open(os.path.join(self.wt, "tests", "test_red.py")).read(),
+                      "the pass after the rebase did not land its red on the slice branch")
+        moved = self.red_refs_at(self.new)
+        self.assertTrue([sha for sha in moved.values() if "SECOND-PASS" in self.at(sha, "tests/test_red.py")
+                         and self.FIRST_RED in self.at(sha, "tests/test_store.py")],
+                        "no red ref on the new base moved on to the red of the pass after the rebase")
+
+    def test_a_rebase_that_cannot_move_the_red_ref_stops_and_names_it(self):
+        # main adds its own tests/test_red.py, so the red at the base cannot be moved onto it without a person
+        main_red = "import unittest\n\nMAIN_RED = True\n"
+        self.first_pass_then_main_moves("tests/test_red.py", main_red)
+        stops = []
+        p = self.rebase()
+        if p.returncode == 10:
+            stops.append(json.loads(p.stdout)["stop"])
+        if self.in_progress():  # the slice branch's own conflict in tests/test_red.py; the person resolves it
+            mine = sh(["git", "show", f"{list(self.held.values())[0]}:tests/test_red.py"], self.repo).stdout
+            with open(os.path.join(self.wt, "tests", "test_red.py"), "w") as f:
+                f.write(mine + "\nMAIN_RED = True\n")
+            sh(["git", "add", "tests/test_red.py"], self.wt)
+            p = self.rebase("--continue")
+            if p.returncode == 10:
+                stops.append(json.loads(p.stdout)["stop"])
+        self.assertNotEqual(p.returncode, 1, "the rebase crashed: " + p.stdout + p.stderr)
+        named = [s for s in stops for name in self.held
+                 if name in s["question"] or name[len("refs/"):] in s["question"]]
+        self.assertTrue(named, "the rebase did not stop for the red ref it could not move: "
+                        + json.dumps([s.get("question") for s in stops]) + p.stdout + p.stderr)
+        for s in named:
+            self.assertEqual(s["seat"], "originator")
+            self.assertIn(f'"{s["order"]}"', read("scripts", "orders.py"), "the stop is not decided in scripts/orders.py")
+        for name, sha in self.held.items():
+            now = sh(["git", "rev-parse", "--verify", "-q", name], self.repo, check=False).stdout.strip()
+            self.assertTrue(now, f"the rebase dropped {name}")
+            self.assertIn(self.FIRST_RED, self.at(now, "tests/test_store.py"), f"{name} lost the first red")
+
+
 class BuildConflictTest(FromBuildBase):
     # 13. a red that conflicts with the build stops with red_conflicts_with_build
     def test_a_red_that_conflicts_with_the_build_stops(self):
@@ -697,3 +817,7 @@ if __name__ == "__main__":
 # scenario agent write its red in a checkout without the build, see the red fail on the
 # base, and see where the slice goes: to the cleaner with no maker when the build already
 # passes, or to the maker, starting from the build, with the failing tests named as misses.
+# Then let main move on and run `xv slice rebase <id>`: see the red's own ref
+# (`git for-each-ref refs/xv`) move onto the new base with the red in it and no build, and
+# see the next scenario pass start from it. Give main a test file that clashes with the
+# red and see the rebase stop and name that ref, rather than leave it on the old base.
