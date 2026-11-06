@@ -967,7 +967,7 @@ class EveryPathOneVerdictTest(WatchLoopSetup):
                     + "\n```\n")
         packet = os.path.join(self.wt, "hand-packet.md")
         with open(packet, "w") as f:
-            f.write("---\nslice: s1\nshape_change: no\npitch_contradiction: no\nscenario_miss: yes\n---\n\n# Packet\n\n"
+            f.write("---\nslice: s1\nshape_change: no\npitch_contradiction: no\nscenario_miss: yes\nexpected_moves: 0\n---\n\n# Packet\n\n"
                     "## Scenario misses\n\n- %s (evidence: tests/test_red.py:7)\n" % self.MISS)
         self.xv("record", "report", "s1", "guardian", report, cwd=self.wt)
         self.xv("record", "packet", "s1", packet, cwd=self.wt)

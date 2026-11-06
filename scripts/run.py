@@ -35,7 +35,8 @@ import record  # noqa: E402
 import spend as spendlib  # noqa: E402
 from suite import run_suite, shell, tests_timeout  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, git, load_config, match_any, names_test, now,  # noqa: E402
-                   main_root, record_path, repo_root, slice_root, today, worktrees_config, worktrees_dir)
+                   join_front_matter, main_root, record_path, repo_root, slice_root, split_front_matter, today,
+                   worktrees_config, worktrees_dir)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 XV_HOME = os.path.dirname(HERE)
@@ -343,12 +344,51 @@ def rebase_state(root, slice_id, state=None):
     return state
 
 
-def tree_stops(root, slice_id, fallback):
-    """The stops as the tree's record has them now: the person's answers are written there."""
+def tree_record_of_truth(root, slice_id, state):
+    """The record's stops, budget and log lines as the rebase last left them for a person: the tree's record
+    after a stop (the person's answers are written there), the state's notes after an error, when the
+    tree holds the commit git replayed."""
     try:
-        return record.load(root, slice_id)[1]["stops"]
+        data, body = record.load(root, slice_id)[1:]
     except Exception:
-        return fallback
+        return state["stops"], state["budget"], state.get("log") or []
+    log = log_lines(body)
+    log = (state.get("log") or []) + [l for l in log if l not in (state.get("log") or [])]
+    stops, budget = (data["stops"], data.get("budget")) if state.get("stopped") else (state["stops"], state["budget"])
+    # a stop nobody answered goes from the record, and its own line (the last that names it) goes from the log
+    for s in stops:
+        if s.get("step") == "rebase" and s.get("answer") is None:
+            own = f"stop ({s['order']}) for {s['seat']}: {s.get('question')}"
+            hits = [i for i, l in enumerate(log) if own in l]
+            if hits:
+                log = log[:hits[-1]] + log[hits[-1] + 1:]
+    return stops, budget, log
+
+
+def log_lines(body):
+    return [l for l in body.split("## Log", 1)[1].splitlines() if l.strip()] if "## Log" in body else []
+
+
+def with_log(body, lines):
+    """`body` with the log lines it lacks added at the end."""
+    have = set(log_lines(body))
+    extra = [l for l in lines if l not in have]
+    return body.rstrip("\n") + "\n" + "\n".join(extra) + "\n" if extra else body
+
+
+def conflict_markers(root, files):
+    """The files that still hold a conflict's markers: a line of `<<<<<<<` and a later line of `>>>>>>>`."""
+    out = []
+    for rel in files:
+        path = os.path.join(root, rel)
+        if not os.path.isfile(path):
+            continue
+        with open(path, encoding="utf-8", errors="replace") as f:
+            lines = f.read().splitlines()
+        opens = [i for i, line in enumerate(lines) if line.startswith("<<<<<<<")]
+        if opens and any(line.startswith(">>>>>>>") for line in lines[opens[0]:]):
+            out.append(rel)
+    return out
 
 
 def without_open_rebase_stops(stops):
@@ -365,13 +405,27 @@ def rebase_stop(root, slice_id, state, config, fired=None, **checks):
     else:
         v = orders.verdict({**data, "checks": {"rebase": checks}}, "rebase", config)
     next_step = data["next"]
+    body = with_log(body, state.get("log") or [])  # the lines written before this stop, which git's copy lacks
     body = record.apply_verdict(data, body, "rebase", v)
     data["next"] = next_step
     record.save(path, data, body)
     state["stops"] = data["stops"]
+    state["stopped"] = True  # the tree's record now holds what a person answers
+    if rebase_running(root):
+        # the record git replayed and staged for the commit it stopped on; --continue puts it back
+        staged = [line for line in git(["ls-files", "-s", "--", record_rel(root, slice_id)], root).splitlines()
+                  if line.split()[2:3] == ["0"]]
+        state["staged_record"] = ",".join(staged[0].split()[:2]) if staged else None
     rebase_state(root, slice_id, state)
     if not rebase_running(root):
-        commit(root, f"xv({slice_id}): the rebase stopped")
+        left = checks.get("maker_edited") or []  # the maker's edit stays in the tree for the person
+        if left and not os.environ.get("XV_NO_COMMIT"):
+            git(["add", "-A"], root)
+            git(["reset", "-q", "--"] + left, root)
+            if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=root).returncode != 0:
+                git(["commit", "-q", "--no-verify", "-m", f"xv({slice_id}): the rebase stopped"], root)
+        else:
+            commit(root, f"xv({slice_id}): the rebase stopped")
     v["worktree"] = root
     print(json.dumps(v, indent=2))
     if v["stop"]:
@@ -395,6 +449,9 @@ def rebase_maker(root, slice_id, config, state, files):
         part = f.read()
     rel = record_rel(root, slice_id)
     saved = git(["show", f"{state['orig_head']}:{rel}"], root)  # the record as saved, not the one git replays
+    saved_data, saved_body = split_front_matter(saved)  # with the answers and the budget set during the rebase
+    saved_data["stops"], saved_data["budget"] = state["stops"], state["budget"]
+    saved = join_front_matter(saved_data, with_log(saved_body, state.get("log") or []))
     text = promptlib.build("maker", slice_id, root=root, extra=note, part=part, saved=saved)
     spent = spendlib.slice_spend(data)
     argv = agentcli.with_caps(agentcli.argv_for(config, "maker"), data.get("budget"), spent["usd"], spent["turns"])
@@ -433,13 +490,15 @@ def rebase_drive(root, slice_id, state, config):
             rel = record_rel(root, slice_id)
             edited = git(["diff", "--name-only"], root).split() + git(["ls-files", "--others", "--exclude-standard"], root).split()
             edited = sorted(set(edited + files) - {rel})
+            left = conflict_markers(root, edited)  # before `git add` hides them from `unmerged`
+            if left:  # nothing is staged, so the files stay unmerged for the person
+                rebase_stop(root, slice_id, state, config, stuck=f"conflict markers remain in {', '.join(left)}.")
             git(["add", "-A", "--"] + edited, root)
             for_person = for_a_person(edited)
             if for_person:
-                rebase_stop(root, slice_id, state, config, conflicts=for_person)
-            left = unmerged(root)
-            if stuck or left:
-                rebase_stop(root, slice_id, state, config, stuck=stuck or f"conflict markers remain in {', '.join(left)}.")
+                rebase_stop(root, slice_id, state, config, maker_edited=for_person)
+            if stuck:
+                rebase_stop(root, slice_id, state, config, stuck=stuck)
         p = run_git(root, ["rebase", "--continue"], {"GIT_EDITOR": "true"})
         if p.returncode != 0 and rebase_running(root) and not unmerged(root):
             raise XVError(f"git rebase --continue failed: {(p.stderr or p.stdout).strip()}")
@@ -468,6 +527,10 @@ def rebase_finish(root, slice_id, state, config):
         stuck = rebase_maker(root, slice_id, config, state, [])
         if run_git(root, ["status", "--porcelain"]).stdout.strip():
             state["changed"] = True
+            protected = (config.get("tests") or {}).get("paths") or []
+            edited = [f for f in changed_files(root, "HEAD") if f == PICTURE or match_any(f, protected)]
+            if edited:  # a test file or the picture is a person's, as on a conflict replay
+                rebase_stop(root, slice_id, state, config, maker_edited=edited)
             commit(root, f"xv({slice_id}): fix what the new base breaks")
         if stuck:
             rebase_stop(root, slice_id, state, config, stuck=stuck)
@@ -488,6 +551,7 @@ def rebase_finish(root, slice_id, state, config):
     if len(stops) != len(state["stops"]):
         data["status"] = state["status"]
     data["stops"] = stops
+    body = with_log(body, state.get("log") or [])  # the stop and answer lines written mid-rebase
     if state["budget"]:
         data["budget"] = state["budget"]
     data["base"] = state["onto"]
@@ -540,11 +604,7 @@ def cmd_slice_rebase(a):
         raise XVError("--continue and --abort stand alone: give one of them, without --onto or the other")
     if a.abort:
         state = rebase_state(root, a.id)
-        state["stops"] = tree_stops(root, a.id, state["stops"])
-        try:
-            budget = record.load(root, a.id)[1].get("budget")  # a person may have set it during the stop
-        except Exception:
-            budget = None
+        state["stops"], budget, log = tree_record_of_truth(root, a.id, state)  # a person may have set the budget
         if rebase_running(root):
             git(["rebase", "--abort"], root)
         else:
@@ -552,25 +612,28 @@ def cmd_slice_rebase(a):
         os.remove(rebase_state_path(root, a.id))
         stops = without_open_rebase_stops(state["stops"])
         path, data, body = record.load(root, a.id)
-        if budget and budget != data.get("budget") or state["runs"] or stops != state["first_stops"]:
+        kept = with_log(body, log)
+        if budget and budget != data.get("budget") or state["runs"] or stops != state["first_stops"] or kept != body:
             # the maker's runs cost what they cost, and the answers stay; the stops the rebase raised and nobody answered go
             data["budget"] = budget or data.get("budget")
             data["spend"] += [r["spend"] for r in state["runs"]]
             data["stops"] = stops
-            record.save(path, data, body)
+            record.save(path, data, kept)
         print(json.dumps({"slice": a.id, "aborted": True, "head": state["orig_head"]}, indent=2))
         return
     config = load_config(root)
     if a.cont:
         state = rebase_state(root, a.id)
-        state["stops"] = tree_stops(root, a.id, state["stops"])
-        try:
-            state["budget"] = record.load(root, a.id)[1].get("budget")  # a person may have set it during the stop
-        except Exception:
-            pass
+        state["stops"], state["budget"], state["log"] = tree_record_of_truth(root, a.id, state)
+        state["stopped"] = False  # from here the tree holds git's copy again, until the next stop
         rebase_state(root, a.id, state)
-        if rebase_running(root):  # git will not replay over the record the stop changed
-            git(["checkout", "--", record_rel(root, a.id)], root)
+        if rebase_running(root):
+            # git will not replay over the record the stop changed, and a record the person staged
+            # is not part of the replayed commit
+            rel = record_rel(root, a.id)
+            if state.get("staged_record"):
+                git(["update-index", "--add", "--cacheinfo", f"{state['staged_record']},{rel}"], root)
+            git(["checkout", "--", rel], root)
         return rebase_drive(root, a.id, state, config)
     if os.path.exists(rebase_state_path(root, a.id)):
         raise XVError(f"a rebase of {a.id} is in progress: finish it with `xv slice rebase {a.id} --continue` "
@@ -826,8 +889,9 @@ def post_step(agent, root, data, config, head_before, pre, report):
                                    for x in line.split("\t")[:2] if x.isdigit())
         before = (data.get("checks") or {}).get(agent) or {}
         checks["diff_history"] = (before.get("diff_history") or []) + [checks["diff_lines"]]
-        expected_moves(root, data, config)
-        checks["wall"] = wall_check(root, data, config)
+        import wall
+        record.expected_moves(root, data, config)
+        checks["wall"] = wall.check_or_note(root, data["id"], config)
     if agent == "cleaner":
         sp = os.path.join(root, XV_DIR, "standards.md")
         now_text = open(sp).read() if os.path.exists(sp) else None
@@ -842,9 +906,7 @@ def post_step(agent, root, data, config, head_before, pre, report):
         if os.path.exists(packet):
             import packet as packetlib
             try:
-                lint = packetlib.fix(packet)
-                checks["packet_problems"] = lint["problems"] + packet_expected_moves(packet, data)
-                checks["dropped_findings"] = len(lint["dropped"])
+                checks.update(packetlib.packet_checks(packet, data))
             except XVError as e:
                 checks["packet_problems"] = [str(e)]
             append_cleaner_proposals(packet, data)
@@ -1113,42 +1175,6 @@ def wall_baseline(root, data, config):
     except ImportError:
         return None
     return wall.baseline(root, data["id"], config)
-
-
-def expected_moves(root, data, config):
-    """Record the moves the slice expects; the wall reads the record from disk, so it is saved first."""
-    if not data.get("expect_moves"):
-        return
-    import moves
-    moves.apply(root, data, config)
-    path, _, body = record.load(root, data["id"])
-    record.save(path, data, body)
-
-
-def packet_expected_moves(packet, data):
-    """Problems with the packet's `expected_moves`: it is a whole number, and the record's count."""
-    from xvlib import split_front_matter
-    with open(packet, encoding="utf-8") as f:
-        value = split_front_matter(f.read())[0].get("expected_moves")
-    count = len([m for m in data.get("moved_tests") or [] if m.get("expected")])
-    if value is None:
-        return ["front matter expected_moves is missing; it is the number of expected moves in the record"]
-    if not str(value).isdigit():
-        return [f"front matter expected_moves must be a whole number, found {value!r}"]
-    if int(value) != count:
-        return [f"front matter expected_moves is {value}, and the record holds {count}"]
-    return []
-
-
-def wall_check(root, data, config):
-    try:
-        import wall
-    except ImportError:
-        return {}
-    try:
-        return wall.check(root, data["id"], config)
-    except XVError as e:
-        return {"note": str(e)}
 
 
 def boundary(root, data):

@@ -465,6 +465,12 @@ class GuardianFiveChecksTest(unittest.TestCase):
         text = self.read("skills", "guardian", "packet.md")
         self.assertIn("## 5. ", text)
 
+    # record-state 12: `xv record answer --accept-wall` lists a test in slice_only only when its recommend is
+    # exactly "mark slice-only", so the brief gives that value word for word
+    def test_the_fifth_check_gives_mark_slice_only_as_the_exact_value(self):
+        text = self.read("skills", "guardian", "SKILL.md").split("## The five checks")[1].split("## The evidence rule")[0]
+        self.assertIn("`mark slice-only`", text)
+
 
 class OneHomeTest(unittest.TestCase):
     """Every stop rule is decided in orders.py, from the record alone."""

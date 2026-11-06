@@ -34,6 +34,11 @@ if title.startswith("# The maker") and "prototype" not in title and os.environ.g
             f.write(os.environ.get("FAKE_REBASE_TEXT", "RESOLVED = True\n"))
         os.system(f"git add {path}")
         report(agent="maker", status="green", summary=f"resolved a conflict in {path}", moved_tests=[])
+    elif mode == "resolve_unstaged":
+        # resolves the file and leaves staging it to the watch
+        with open(path, "w") as f:
+            f.write(os.environ.get("FAKE_REBASE_TEXT", "RESOLVED = True\n"))
+        report(agent="maker", status="green", summary=f"resolved a conflict in {path}, not staged", moved_tests=[])
     elif mode == "resolve_and_edit":
         # resolves and stages its own file, and also edits a second file it leaves unstaged
         with open(path, "w") as f:
@@ -67,6 +72,11 @@ elif title.startswith("# The scenario agent"):
                 "class Red(unittest.TestCase):\n    def test_milk_today(self):\n        s = Store()\n"
                 "        s.add('milk', 1, date(2026, 10, 21))\n"
                 "        self.assertEqual([i.name for i in s.expiring(3, date(2026, 10, 21))], ['milk'])\n")
+    if os.environ.get("FAKE_RED_SECOND_TEST"):  # a later scenario pass adds a test to the file
+        with open("tests/test_red.py", "a") as f:
+            f.write("\n    def test_milk_tomorrow(self):\n        s = Store()\n"
+                    "        s.add('milk', 1, date(2026, 10, 22))\n"
+                    "        self.assertEqual([i.name for i in s.expiring(3, date(2026, 10, 21))], ['milk'])\n")
     if os.environ.get("FAKE_RED_TEXT"):
         with open("tests/test_red.py", "a") as f:
             f.write("\n# " + os.environ["FAKE_RED_TEXT"] + "\n")
@@ -101,6 +111,13 @@ elif title.startswith("# The maker") and "prototype" not in title:
     if os.environ.get("FAKE_MAKER_IMPORT_MOVE"):
         t = open("tests/test_store.py").read().replace("import unittest\n", "import os  # noqa: F401\nimport unittest\n", 1)
         open("tests/test_store.py", "w").write(t)
+    if os.environ.get("FAKE_MAKER_IMPORT_MOVE_FILE"):
+        rel = os.environ["FAKE_MAKER_IMPORT_MOVE_FILE"]
+        t = open(rel).read().replace("import unittest\n", "import os  # noqa: F401\nimport unittest\n", 1)
+        open(rel, "w").write(t)
+    if os.environ.get("FAKE_MAKER_EDITS_RED"):
+        t = open("tests/test_red.py").read().replace("['milk'])", "['milk'] or [])")
+        open("tests/test_red.py", "w").write(t)
     if os.environ.get("FAKE_MAKER_RENAME_MOVE"):
         t = open("tests/test_store.py").read().replace("StoreTest", "StockTest")
         open("tests/test_stock.py", "w").write(t)

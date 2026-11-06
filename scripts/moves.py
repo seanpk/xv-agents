@@ -54,7 +54,23 @@ def find(root, data, config):
     # Compare with the slice's base, not the wall baseline: each scenario step resets
     # the baseline, and an expected move must stay while the file still differs from base.
     commit = data.get("base") or wall.load_baseline(root, data["id"])["commit"]
-    before = lambda rel: git(["show", f"{commit}:{rel}"], root, check=False)
+
+    def before(rel):
+        """The file at the base; a test file the slice added, as the scenario step left it."""
+        text = git(["show", f"{commit}:{rel}"], root, check=False)
+        if not text:
+            # the newest scenario pass that holds it: a rerun may have changed the file since its first add
+            for red in git(["log", "--format=%H", f"--grep=^xv({data['id']}): red", f"{commit}..HEAD"], root,
+                           check=False).split():
+                text = git(["show", f"{red}:{rel}"], root, check=False)
+                if text:
+                    return text
+            added = git(["log", "--diff-filter=A", "--format=%H", f"{commit}..HEAD", "--", rel], root,
+                        check=False).split()
+            if added:
+                return git(["show", f"{added[-1]}:{rel}"], root, check=False)
+        return text
+
     pairs = data.get("renames") or {}
     held = [m for m in data.get("moved_tests") or [] if m.get("expected")]
     exists = lambda rel: os.path.isfile(os.path.join(root, rel))

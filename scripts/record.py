@@ -15,8 +15,10 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import moves  # noqa: E402
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
+import wall  # noqa: E402
 from spend import row_tokens  # noqa: E402
 from suite import run_suite  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, emit, git, load_config, match_any, names_test, now, read_doc, solo,  # noqa: E402
@@ -451,8 +453,16 @@ def answer_wall(data, stop, a):
             bool(r.get("accepted")) and test not in stop["refused_wall"])
         if r["accepted"]:
             r.pop("refused", None)
+            if r.get("recommend") == "mark slice-only" and not any(
+                    isinstance(m, dict) and (m.get("file"), m.get("test")) == (r.get("file"), test)
+                    for m in data.get("slice_only") or []):
+                data.setdefault("slice_only", []).append(
+                    {"file": r.get("file"), "test": test, "why": r.get("why"), "accepted": True})
         else:
             r["refused"] = True
+            if test in stop["refused_wall"]:
+                data["slice_only"] = [m for m in data.get("slice_only") or [] if not (
+                    isinstance(m, dict) and (m.get("file"), m.get("test")) == (r.get("file"), test))]
 
 
 def cmd_answer(a):
@@ -709,11 +719,27 @@ def apply_report(data, body, agent, text):
     return log_line(body, agent, f"{report.get('status', '?')}: {report.get('summary', '')}"), report
 
 
+def expected_moves(root, data, config):
+    """Record the moves the slice expects; the wall reads the record from disk, so it is saved first."""
+    if not data.get("expect_moves"):
+        return
+    moves.apply(root, data, config)
+    path, _, body = load(root, data["id"])
+    save(path, data, body)
+
+
 def cmd_report(a):
     path, data, body = load(repo_root(), a.id)
     text = sys.stdin.read() if a.file == "-" else open(a.file).read()
     body, report = apply_report(data, body, a.agent, text)
     save(path, data, body)
+    if a.agent in ("maker", "cleaner"):
+        # the same move checks `xv step` runs after these agents; the wall reads the record from disk
+        root = repo_root()
+        config = load_config(slice_root(path))
+        expected_moves(root, data, config)
+        data["checks"].setdefault(a.agent, {})["wall"] = wall.check_or_note(root, data["id"], config)
+        save(path, data, body)
     emit(report or {"agent": a.agent, "status": "no-report"}, True)
 
 
@@ -751,6 +777,11 @@ def cmd_packet(a):
         if pdata.get(field) not in allowed:
             raise XVError(f"the packet's {field} must be {' or '.join(allowed)}, found {pdata.get(field)!r}")
     checks = data.setdefault("checks", {}).setdefault("guardian", {})
+    # the packet checks `xv step` runs: the lint, and the packet's count of expected moves
+    try:
+        checks.update(packetlib.packet_checks(a.file, data))
+    except XVError as e:
+        checks["packet_problems"] = [str(e)]
     guardian_facts(root, data, checks, os.path.abspath(a.file))
     body = log_line(body, "guardian", f"packet: shape_change={data['shape_change']}, "
                                       f"pitch_contradiction={data['pitch_contradiction']}")
@@ -788,7 +819,8 @@ def apply_verdict(data, body, agent, v):
             data["stops"].append({"at": now(), "step": agent, "order": st["order"], "seat": st["seat"],
                                   "question": st["question"], "answered_by": [], "answer": None,
                                   "also": [f["order"] for f in v["fired"] if f is not st],
-                                  "budget_seen": data.get("budget")})
+                                  "budget_seen": data.get("budget"),
+                                  **({"breadth": st["breadth"]} if st.get("breadth") else {})})
             body = log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
         data["status"] = "ready" if st["order"] == "ready_to_merge" else "stopped"
     else:
