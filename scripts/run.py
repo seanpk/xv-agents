@@ -537,9 +537,8 @@ def in_own_red(names, name):
 def move_red_ref(root, data, old_base, onto):
     """Replay the red ref's commits onto the new base. Returns a message naming the ref when it cannot, else None."""
     ref = red_ref(data)
-    held = subprocess.run(["git", "rev-parse", "--verify", "-q", ref + "^{commit}"],
-                          cwd=root, capture_output=True, text=True).stdout.strip()
-    if not held or subprocess.run(["git", "merge-base", "--is-ancestor", old_base, held], cwd=root).returncode != 0:
+    held = red_held(root, data, old_base)
+    if not held:
         return None
     scratch = tempfile.mkdtemp(prefix="xv-redref-")
     try:
@@ -847,11 +846,7 @@ def drop_scratch(root, scratch):
 def scenario_scratch(root, data, config):
     """A checkout at the base, outside the slice worktree, where the scenario agent writes the red without the build."""
     scratch = tempfile.mkdtemp(prefix="xv-scenario-")
-    start = data["base"]
-    held = subprocess.run(["git", "rev-parse", "--verify", "-q", red_ref(data) + "^{commit}"],
-                          cwd=root, capture_output=True, text=True).stdout.strip()
-    if held and subprocess.run(["git", "merge-base", "--is-ancestor", data["base"], held], cwd=root).returncode == 0:
-        start = held  # the red from the earlier passes, at the base and without the build
+    start = red_held(root, data, data["base"]) or data["base"]  # the red from earlier passes, without the build
     git(["worktree", "add", "-q", "--detach", scratch, start], root)
     if is_trial(root):
         copy_layer(root, scratch)
@@ -879,6 +874,15 @@ def scenario_scratch(root, data, config):
 
 def red_ref(data):
     return "refs/xv/" + data["id"] + "/red"
+
+
+def red_held(root, data, base):
+    """The tip of the red ref when it sits on `base`, else None."""
+    held = subprocess.run(["git", "rev-parse", "--verify", "-q", red_ref(data) + "^{commit}"],
+                          cwd=root, capture_output=True, text=True).stdout.strip()
+    if held and subprocess.run(["git", "merge-base", "--is-ancestor", base, held], cwd=root).returncode == 0:
+        return held
+    return None
 
 
 def off_the_base(root, data, token):
