@@ -2,13 +2,13 @@
 id: 2026-11-06-covers-stall
 title: "A missed point goes back with text the check accepts, and stops a person only on a real stall"
 kind: defect
-status: open
+status: stopped
 set_by: Sean
 created: 2026-11-06
 branch: xv/2026-11-06-covers-stall
 base: 859d2262950dbf5235c68b263de288780436bfea
 next: forecaster
-forecast: null
+forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 543000, "turns": null, "usd": 3.4, "basis": ["2026-10-30-covers-list", "2026-10-30-scenario-miss", "2026-11-04-scenario-catches", "2026-11-05-scenario-checks"], "note": "Mean of the four basis rows (range 304k to 715k tokens, $1.70 to $4.74). The guide records no turns."}, {"harness": "claude", "model": "opus", "tokens": 291000, "turns": null, "usd": 3.7, "basis": ["2026-10-30-covers-list", "2026-10-30-scenario-miss", "2026-11-04-scenario-catches", "2026-11-05-scenario-checks"], "note": "Mean of the same four rows (range 172k to 359k tokens, $2.00 to $4.87). The guide records no turns."}], "wall_s": 5250, "shape": "narrow", "breadth": "Expect the coverage match, the send-back wording and the red_misses_point counter to move, plus tests and one CHANGELOG line. The guardian's scenario_miss repeat check shares the sent_back field and is excluded, so touching it would widen the change. Wall is the sum of the sonnet and opus wall means (4277 s and 971 s), as the basis rows do. The budget is Sean's to set."}
 budget: null
 red: null
 wall_baseline: null
@@ -20,12 +20,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: []
-stops: []
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 6, "tokens_out": 3213, "cache_read": 62187, "cache_write": 34077, "tokens": 37296, "usd": 0.009, "turns": 4, "wall_s": 17.5, "session": "aaacfae6-25b0-4685-9fd6-ead755538757", "step": "forecaster", "at": "2026-11-06T19:34:34+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-06-covers-stall/01-forecaster.out"}]
+stops: [{"at": "2026-11-06T19:34:34+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean: set the budget from the forecast (`xv record set 2026-11-06-covers-stall budget ... --by <name>`).", "answered_by": [], "answer": null, "also": [], "budget_seen": null}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast from four scenario and covers-list rows: sonnet about 543k tokens and opus about 291k, with wall about 5250 s in total; shape narrow.", "at": "2026-11-06T19:34:34+00:00"}], "forecaster": {"at": "2026-11-06T19:34:34+00:00", "wrote": []}}
 ---
 # A missed point goes back with text the check accepts, and stops a person only on a real stall
 
@@ -50,3 +50,5 @@ The guardian's scenario_miss repeat check: it also uses sent_back (scripts/order
 
 ## Log
 - 2026-11-06T19:34:08+00:00 watch: slice opened by Sean
+- 2026-11-06T19:34:34+00:00 forecaster: done: Forecast from four scenario and covers-list rows: sonnet about 543k tokens and opus about 291k, with wall about 5250 s in total; shape narrow.
+- 2026-11-06T19:34:34+00:00 watch: stop (budget_not_set) for originator: Sean: set the budget from the forecast (`xv record set 2026-11-06-covers-stall budget ... --by <name>`).
