@@ -171,8 +171,8 @@ def evaluate(data, after, config):
         if checks.get("maker_edited"):
             out.append(fire("rebase_conflict", "originator",
                             f"{owner}: the maker changed {', '.join(checks['maker_edited'])} during the rebase, "
-                            "and a test file or the picture is a person's. Look at the change in the slice "
-                            f"worktree and run {resume}, {undo}."))
+                            "and a test file or the picture is a person's. The edit is uncommitted in the slice "
+                            f"worktree: run {resume} to keep it, `git checkout -- <file>` to drop it, {undo}."))
         elif checks.get("conflicts"):
             out.append(fire("rebase_conflict", "originator",
                             f"{owner}: the rebase stopped on a conflict in {', '.join(checks['conflicts'])}. "

@@ -132,6 +132,14 @@ def main(argv=None):
     sys.exit(1 if res["problems"] else 0)
 
 
+def packet_checks(path, data):
+    """The packet checks `xv step` and `xv record packet` share: the lint, then the record's count of expected moves.
+    Returns what goes into the guardian's checks."""
+    lint_result = fix(path)
+    return {"packet_problems": lint_result["problems"] + expected_moves_problems(path, data),
+            "dropped_findings": len(lint_result["dropped"])}
+
+
 def expected_moves_problems(packet, data):
     """Problems with the packet's `expected_moves`: it is a whole number, and the record's count."""
     with open(packet, encoding="utf-8") as f:

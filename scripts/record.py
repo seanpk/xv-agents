@@ -779,9 +779,7 @@ def cmd_packet(a):
     checks = data.setdefault("checks", {}).setdefault("guardian", {})
     # the packet checks `xv step` runs: the lint, and the packet's count of expected moves
     try:
-        lint = packetlib.fix(a.file)
-        checks["packet_problems"] = lint["problems"] + packetlib.expected_moves_problems(a.file, data)
-        checks["dropped_findings"] = len(lint["dropped"])
+        checks.update(packetlib.packet_checks(a.file, data))
     except XVError as e:
         checks["packet_problems"] = [str(e)]
     guardian_facts(root, data, checks, os.path.abspath(a.file))
