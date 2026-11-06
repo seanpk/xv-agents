@@ -822,7 +822,12 @@ def drop_scratch(root, scratch):
 def scenario_scratch(root, data, config):
     """A checkout at the base, outside the slice worktree, where the scenario agent writes the red without the build."""
     scratch = tempfile.mkdtemp(prefix="xv-scenario-")
-    git(["worktree", "add", "-q", "--detach", scratch, data["base"]], root)
+    start = data["base"]
+    held = subprocess.run(["git", "rev-parse", "--verify", "-q", red_ref(data) + "^{commit}"],
+                          cwd=root, capture_output=True, text=True).stdout.strip()
+    if held and subprocess.run(["git", "merge-base", "--is-ancestor", data["base"], held], cwd=root).returncode == 0:
+        start = held  # the red from the earlier passes, at the base and without the build
+    git(["worktree", "add", "-q", "--detach", scratch, start], root)
     if is_trial(root):
         copy_layer(root, scratch)
     failed = run_worktree_command(worktrees_config(config).get("setup"), scratch, config)
@@ -830,15 +835,6 @@ def scenario_scratch(root, data, config):
         drop_scratch(root, scratch)
         raise XVError(f"the worktree setup `{failed[0]}` failed ({failed[1]}) in the scenario agent's checkout; "
                       f"its last output:\n{failed[2]}")
-    red_subject = f"xv({data['id']}): red"
-    rows = git(["log", "--reverse", "--format=%H %s", f"{build_commit(root, data)}..HEAD"], root).splitlines()
-    for sha in [r.split(" ", 1)[0] for r in rows if r.split(" ", 1)[1:] == [red_subject]]:
-        # only the red commits from the earlier passes: the maker's changes come after them
-        earlier = subprocess.run(["git", "diff", "--binary", f"{sha}^", sha, "--", ".", f":(exclude){XV_DIR}"],
-                                 cwd=root, capture_output=True, text=True).stdout
-        if earlier:
-            subprocess.run(["git", "apply", "--index", "-"], cwd=scratch, input=earlier, text=True, check=True)
-            git(["commit", "-q", "--no-verify", "-m", f"xv({data['id']}): earlier red"], scratch)
     copy = data
     if data.get("build_shared") != "yes":
         copy = dict(data, build="none", branch=data["base"])
@@ -846,7 +842,25 @@ def scenario_scratch(root, data, config):
     path = os.path.join(scratch, XV_DIR, "slices", f"{data['id']}.md")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     record.save(path, copy, record.load(root, data["id"])[2])
+    if data.get("build_shared") != "yes":
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(re.sub(r"\b[0-9a-f]{7,40}\b",
+                           lambda m: "-" if off_the_base(root, data, m.group(0)) else m.group(0), text))
     return scratch
+
+
+def red_ref(data):
+    return "refs/xv/" + data["id"] + "/red"
+
+
+def off_the_base(root, data, token):
+    """True when `token` names a commit that is not an ancestor of the base."""
+    p = subprocess.run(["git", "rev-parse", "--verify", "-q", token + "^{commit}"], cwd=root,
+                       capture_output=True, text=True)
+    return p.returncode == 0 and subprocess.run(
+        ["git", "merge-base", "--is-ancestor", p.stdout.strip(), data["base"]], cwd=root).returncode != 0
 
 
 def build_commit(root, data):
@@ -869,6 +883,7 @@ def land_scratch(root, scratch, data, config, report):
         if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=scratch).returncode != 0:
             git(["commit", "-q", "--no-verify", "-m", f"xv({sid}): red"], scratch)
             sha = git(["rev-parse", "HEAD"], scratch).strip()
+            git(["update-ref", red_ref(data), sha], root)
             p = subprocess.run(["git", "cherry-pick", sha], cwd=root, capture_output=True, text=True)
             if p.returncode != 0:
                 landed["conflict"] = (p.stdout + p.stderr).strip()[-800:]
