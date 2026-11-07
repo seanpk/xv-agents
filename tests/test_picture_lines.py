@@ -26,6 +26,7 @@ def sentences_in(line):
     """Sentence ends outside backticks: a full stop, a space, then a capital letter. Written here on purpose,
     from the scenario's words, so the test does not share a rule with the code under test."""
     plain = re.sub(r"`[^`]*`", "", line)
+    plain = re.sub(r"^\s*(?:[-*]|\d+\.) ", "", plain)  # a list item's own marker is not a sentence end
     return 1 + len(re.findall(r"\. [A-Z]", plain))
 
 
@@ -47,20 +48,23 @@ class ThePictureIsOneSentencePerLineTest(RepoCase):
         crowded = [n for n, line in lines_outside_fences(text) if sentences_in(line) > 1]
         self.assertEqual(crowded, [], "lines of .xv/picture.md with more than one sentence")
 
-    def test_a_list_items_extra_lines_are_indented_two_spaces(self):
-        in_item, bad = False, []
+    def test_a_list_items_extra_lines_line_up_with_the_items_text(self):
+        in_item, width, bad = False, 0, []
         for n, line in lines_outside_fences(read(".xv", "picture.md")):
-            if re.match(r"^(?:[-*]|\d+\.) ", line):
-                in_item = True
+            m = re.match(r"^((?:[-*]|\d+\.) +)", line)
+            if m:
+                in_item, width = True, len(m.group(1))
             elif not line.strip() or line.startswith("#"):
                 in_item = False
-            elif in_item and not re.match(r"^  \S", line):
+            elif in_item and re.match(r"^ +[-*] ", line):
+                continue  # a nested list keeps its own indent
+            elif in_item and not re.match(r"^ {%d}\S" % width, line):
                 bad.append(n)
         self.assertEqual(bad, [])
 
     def test_the_picture_has_item_continuation_lines_at_all(self):
         # the picture's list items hold several sentences, so some must now run over onto indented lines
-        self.assertTrue(any(re.match(r"^  \S", line) for line in read(".xv", "picture.md").splitlines()))
+        self.assertTrue(any(re.match(r"^ {2,}\S", line) for line in read(".xv", "picture.md").splitlines()))
 
     def test_joined_again_the_picture_says_the_same_words_as_at_the_base(self):
         # slice-only: a one-time check of the rewrap against the picture at the slice's base
@@ -91,7 +95,7 @@ class TheBriefsStateTheRuleTest(RepoCase):
     def rule(self, *path):
         text = read(*path)
         self.assertRegex(text, r"(?i)one sentence per line")
-        self.assertRegex(text, r"(?i)indent[^\n]*two spaces|two spaces[^\n]*indent")
+        self.assertRegex(text, r"(?i)line[sd]? up with the item's text")
 
     def test_the_guardian_brief_states_it(self):
         self.rule("skills", "guardian", "SKILL.md")
@@ -163,8 +167,16 @@ class ALongPictureLineGetsAPacketNoteTest(RepoCase):
         packet = self.packet_after("# Picture\n\n- An item. With two.\n  Fine here.\n")
         self.assertEqual(self.noted_lines(packet), [3])
 
+    def test_a_list_marker_is_not_a_sentence_end(self):
+        packet = self.packet_after("# Picture\n\n1. An item.\n12. Another item.\n    Its extra line.\n* A star item.\n- A dash item.\n")
+        self.assertEqual(self.noted_lines(packet), [])
+
+    def test_a_numbered_item_with_two_sentences_is_named(self):
+        packet = self.packet_after("# Picture\n\n1. An item. With two.\n")
+        self.assertEqual(self.noted_lines(packet), [3])
+
 
 # What a person should watch on the first green run: open .xv/picture.md and read a few list items.
-# Each sentence should sit on its own line, with a list item's extra lines indented two spaces, and the
+# Each sentence should sit on its own line, with a list item's extra lines lined up with the item's text, and the
 # packet of the slice should carry no picture-line note. Then put two sentences on one line and run
 # `xv record packet`: the packet should name that line, and the slice should not stop.
