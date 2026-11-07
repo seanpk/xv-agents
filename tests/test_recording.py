@@ -90,6 +90,16 @@ class SliceNewIgnoreRepeatTest(RepoCase):
 
     def test_a_single_ignore_works_as_before(self):
         self.assertIn("\nonly this\n", self.may_ignore("only this"))
+        self.assertNotIn("- only this", self.may_ignore_again("only this"))
+
+    def may_ignore_again(self, value):
+        self.xv("slice", "new", "s2", "--by", "pat", "--scenario", "The household sees X.", "--ignore", value)
+        text = open(os.path.join(self.repo, ".xv", "worktrees", "s2", ".xv", "slices", "s2.md")).read()
+        return text.split("## May ignore")[1]
+
+    def test_more_than_one_ignore_is_a_bullet_list_one_per_value_in_order(self):
+        section = self.may_ignore("first thing", "second thing", "third thing")
+        self.assertIn("\n- first thing\n- second thing\n- third thing\n", section)
 
 
 if __name__ == "__main__":

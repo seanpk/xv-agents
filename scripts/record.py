@@ -129,7 +129,8 @@ def cmd_new(a):
     if a.rename:
         data["renames"] = parse_renames(a.rename)
     body = BODY_TEMPLATE.format(title=data["title"], scenario=scenario,
-                                ignore="\n\n".join(a.ignore) if a.ignore else "Nothing stated.",
+                                ignore=("\n".join("- " + v for v in a.ignore) if len(a.ignore) > 1 else a.ignore[0]) if a.ignore
+                                else "Nothing stated.",
                                 recording=a.recording or "None. A feature starts from words.")
     body = log_line(body, "watch", f"slice opened by {a.by}")
     save(path, data, body)
@@ -810,7 +811,11 @@ def cmd_report(a):
     body, report = apply_report(data, body, a.agent, text)
     reported = ((report or {}).get("red") or {}).get("command") if a.agent == "scenario" else None
     if reported and joined_unsafely(reported):
-        data["red"] = red_before  # as `xv step` does: a refused red is not kept, and the landing sets red_joined
+        data["red"] = red_before  # as `xv step` does: a refused red is not kept, and red_joined is set
+        if not has_build(data):  # no landing on a slice not from a build, so it is set here
+            scenario = data.setdefault("checks", {}).setdefault("scenario", {})
+            scenario["red_fails"] = None
+            scenario["red_joined"] = reported
     save(path, data, body)
     if a.agent == "scenario" and has_build(data):
         # a session-mode scenario step left a checkout at the base: land the red written there, as `xv step` does

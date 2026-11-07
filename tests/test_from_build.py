@@ -1081,3 +1081,37 @@ if __name__ == "__main__":
 # (`git for-each-ref refs/xv`) move onto the new base with the red in it and no build, and
 # see the next scenario pass start from it. Give main a test file that clashes with the
 # red and see the rebase stop and name that ref, rather than leave it on the old base.
+
+
+class SessionScenarioNoBuildJoinedTest(RepoCase):
+    """A slice not from a build: a joined red is kept out and `xv record report` sets red_joined itself."""
+
+    def report(self, command):
+        r = {"agent": "scenario", "status": "red", "summary": "red",
+             "red": {"files": ["tests/test_red.py"], "command": command, "failure": "x", "watch_first_green": None},
+             "covers": [], "not_covered": []}
+        path = os.path.join(self.tmp, "report.txt")
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps(r) + "\n```\n")
+        return path
+
+    def setUp(self):
+        super().setUp()
+        self.wt = self.new_slice()
+        self.xv("record", "set", "s1", "budget", '{"usd": 1}', "--by", "pat", cwd=self.wt)
+
+    def record(self):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+
+    def test_a_joined_red_sets_red_joined_and_the_stop_fires(self):
+        self.xv("record", "report", "s1", "scenario", self.report("python3 -m unittest a; true"), cwd=self.wt)
+        data = self.record()
+        self.assertFalse((data.get("red") or {}).get("command"))
+        self.assertIn("unittest a; true", data["checks"]["scenario"]["red_joined"])
+        o = self.xv("orders", "s1", "--after", "scenario", cwd=self.wt, check=False)
+        self.assertIn("scenario_stopped", o.stdout + o.stderr)
+
+    def test_a_red_joined_with_and_and_is_kept_and_sets_no_red_joined(self):
+        self.xv("record", "report", "s1", "scenario", self.report("python3 -m unittest a && python3 -m unittest b"), cwd=self.wt)
+        data = self.record()
+        self.assertFalse(((data.get("checks") or {}).get("scenario") or {}).get("red_joined"))
