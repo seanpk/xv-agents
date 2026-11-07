@@ -757,7 +757,13 @@ def has_build(data):
 
 
 def build_commit(root, data):
-    return git(["rev-parse", data["build"]["ref"] + "^{commit}"], root).strip()
+    """The build's commit as the slice opened with it; for a record that has none, the ref as it resolves now.
+    "" when neither resolves (the branch was deleted)."""
+    stored = data["build"].get("commit")
+    if stored and subprocess.run(["git", "cat-file", "-e", stored + "^{commit}"], cwd=root,
+                                 capture_output=True).returncode == 0:
+        return stored
+    return git(["rev-parse", "--verify", "-q", data["build"]["ref"] + "^{commit}"], root, check=False).strip()
 
 
 def wall_for_build(root, data, res):
@@ -766,6 +772,11 @@ def wall_for_build(root, data, res):
         asked = " ".join(s.get("question") or "" for s in data["stops"]
                          if s.get("order") == "unrecorded_move" and s.get("answer") is not None)
         build = build_commit(root, data)
+        if not build:
+            # a check that cannot run stops for a person and never passes: the files stay unrecorded
+            res["note"] = (f"the build {data['build'].get('ref')} no longer resolves and the record holds no commit "
+                           "for it, so the build's own changes to test files cannot be told from the slice's")
+            return res
         res["unrecorded"] = [f for f in res["unrecorded"] if f not in asked or
                              subprocess.run(["git", "diff", "--quiet", build, "--", f], cwd=root).returncode != 0]
         res["ok"] = not res["unrecorded"]
@@ -786,6 +797,14 @@ def cmd_report(a):
     text = sys.stdin.read() if a.file == "-" else open(a.file).read()
     body, report = apply_report(data, body, a.agent, text)
     save(path, data, body)
+    if a.agent == "scenario" and has_build(data):
+        # a session-mode scenario step left a checkout at the base: land the red written there, as `xv step` does
+        # (record does not import run: the landing runs there, with the whole report on its stdin)
+        p = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "run.py"),
+                            "land-scenario", a.id], cwd=slice_root(path), input=json.dumps(report or {}),
+                           capture_output=True, text=True)
+        if p.returncode != 0:
+            raise XVError(p.stderr.strip() or "landing the scenario agent's red failed")
     if a.agent in ("maker", "cleaner"):
         # the same move checks `xv step` runs after these agents; the wall reads the record from disk
         root = repo_root()

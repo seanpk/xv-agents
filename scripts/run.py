@@ -263,7 +263,8 @@ def cmd_slice_new(a):
     data, body = record.load(wt, a.id)[1:]
     data["base"] = base
     if a.from_ref is not None:
-        data["build"] = {"kind": "exploration", "ref": a.from_ref}
+        # the commit is kept with the ref: a build branch deleted after the slice opens is still the build
+        data["build"] = {"kind": "exploration", "ref": a.from_ref, "commit": start}
         data["build_shared"] = "yes" if a.share_build else "no"
     if trial:
         data["trial"] = True
@@ -804,7 +805,11 @@ def step(agent, slice_id, review_again=False):
     if (config.get("agents") or {}).get(agent) == "session":
         where = ""
         if agent == "scenario" and record.has_build(data):
-            where = f" (write the red in {scenario_scratch(root, data, config)}, a checkout at the base with no build)"
+            drop_session_scratch(root, slice_id)  # an earlier, unreported checkout
+            scratch = scenario_scratch(root, data, config)
+            session_scratch_state(root, slice_id, {"scratch": scratch, "head_before": git(["rev-parse", "HEAD"], root).strip()})
+            where = (f" (write the red in {scratch}, a checkout at the base with no build; "
+                     f"`xv record report` lands the red from it and drops it)")
         raise XVError(f"{agent} runs in the session{where}: use `xv prompt {agent} {slice_id}`, then "
                       f"`xv record report {slice_id} {agent} -` and `xv orders {slice_id} --after {agent}`")
 
@@ -877,6 +882,51 @@ def accept_listed_marks(data, body, config):
             body = record.log_line(body, "watch", f"slice-only mark on {m.get('test')} accepted: it checks "
                                    f"{m['checks']}, which the config lists in tests.slice_only_files")
     return body
+
+
+def session_scratch_path(root, slice_id):
+    return git_path(root, f"xv-scenario-scratch-{slice_id}.json")
+
+
+def session_scratch_state(root, slice_id, state=None):
+    """The checkout a session-mode scenario step made, kept in the git dir until its report lands the red:
+    {"scratch": path, "head_before": the slice's HEAD then}. None when there is none."""
+    path = session_scratch_path(root, slice_id)
+    if state is not None:
+        with open(path, "w") as f:
+            json.dump(state, f)
+        return state
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
+        return json.load(f)
+
+
+def drop_session_scratch(root, slice_id):
+    """Drop a session-mode scenario checkout nobody reported on, and forget it."""
+    state = session_scratch_state(root, slice_id)
+    if state:
+        drop_scratch(root, state["scratch"])
+        os.remove(session_scratch_path(root, slice_id))
+
+
+def land_session_scenario(root, slice_id, report):
+    """`xv record report <id> scenario -` after a session-mode scenario step on a slice from a build: land the
+    red written in the checkout and run it as the agent path does, record the scenario checks, drop the checkout.
+    `report` is the scenario agent's whole report. False when no such checkout is waiting."""
+    state = session_scratch_state(root, slice_id)
+    if not state:
+        return False
+    os.remove(session_scratch_path(root, slice_id))
+    path, data, body = record.load(root, slice_id)
+    config = load_config(root)
+    if not os.path.isdir(state["scratch"]):
+        raise XVError(f"the scenario agent's checkout {state['scratch']} is gone, so its red cannot be landed: "
+                      f"run `xv step scenario {slice_id}` again")
+    landed = land_scratch(root, state["scratch"], data, config, report)
+    data["checks"]["scenario"] = post_step("scenario", root, data, config, state["head_before"], {}, report, landed)
+    record.save(path, data, body)
+    return True
 
 
 def drop_scratch(root, scratch):
@@ -1450,6 +1500,10 @@ def close(slice_id, why=None, shape=None):
     body = record.log_line(body, "watch", "closed" + ("" if p.returncode == 0 else f"; guide: {p.stderr.strip()}"))
     record.save(path, data, body)
     commit(root, f"xv({slice_id}): close")
+    # the slice's red ref and any scenario checkout nobody reported on go with it: a new slice with the same
+    # id and base would otherwise start its first pass from this slice's red
+    git(["update-ref", "-d", red_ref(data)], root, check=False)
+    drop_session_scratch(root, slice_id)
     failed = run_worktree_command(worktrees_config(config).get("teardown"), root, config)
     if failed:
         command, code, last = failed
@@ -1835,6 +1889,12 @@ def main(argv=None):
     s = sub.add_parser("run")
     s.add_argument("id")
     s.set_defaults(fn=cmd_run)
+
+    s = sub.add_parser("land-scenario", help="what `xv record report <id> scenario` runs after a session-mode "
+                                             "scenario step on a slice from a build (the report is on stdin)")
+    s.add_argument("id")
+    s.set_defaults(fn=lambda a: land_session_scenario(
+        slice_root(record_path(repo_root(), a.id)), a.id, json.loads(sys.stdin.read() or "{}")))
 
     s = sub.add_parser("close")
     s.add_argument("id")

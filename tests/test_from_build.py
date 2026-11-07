@@ -7,6 +7,8 @@ from unittest import mock
 
 from helpers import HOME, RepoCase, sh
 
+import record
+
 FAKE = os.path.join(HOME, "tests", "fake_agent.py")
 SCENARIO = "The household sees milk that expires today in the expiring list."
 BUILD = "explore-milk"
@@ -656,6 +658,21 @@ class BuildConflictTest(FromBuildBase):
         self.assertEqual(sh(["git", "status", "--porcelain", "--untracked-files=no"], self.wt).stdout.strip(), "",
                          "the slice worktree is left mid cherry-pick")
 
+    # #147 point 2: the red of a conflict stop is still on its ref, and the stop says so
+    def test_the_conflict_stop_says_the_red_is_kept_on_its_ref_and_a_later_pass_starts_from_it(self):
+        self.make_build(fixed=False, files={"tests/test_red.py": "# the build's own test file\nBUILD_TEST = True\n"})
+        self.open_slice("--from", BUILD)
+        p = self.scenario_step()
+        stop = json.loads(p.stdout)["stop"]
+        self.assertIn("refs/xv/s1/red", stop["question"])
+        held = sh(["git", "rev-parse", "--verify", "refs/xv/s1/red"], self.repo).stdout.strip()
+        self.assertIn("test_milk_today", sh(["git", "show", f"{held}:tests/test_red.py"], self.repo).stdout)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "landed by hand", "--next", "scenario",
+                "--settled", "the red is landed by hand under its own subject", cwd=self.wt)
+        self.step("scenario", FAKE_RED_TEXT="SECOND-PASS", FAKE_CWD_PROBE="tests/test_red.py")
+        ran = self.ran("# The scenario agent")
+        self.assertEqual(ran["head"], held, "the later pass did not start from the red's ref")
+
     # 13. a test file the build changed stops once, as a change with no record
     def test_a_test_file_the_build_changed_stops_once_as_a_change_with_no_record(self):
         old = open(os.path.join(self.repo, "tests", "test_store.py")).read()
@@ -794,6 +811,200 @@ class SessionScenarioTest(FromBuildBase):
         self.assertTrue(self.is_ancestor(self.main, head), "the named checkout is not at the base")
         self.assertFalse(self.is_ancestor(self.build, head), "the named checkout is at the build")
         self.assertFalse(os.path.exists(os.path.join(checkout, MARKER)), "the named checkout has the build in it")
+
+
+class SessionScenarioReportTest(FromBuildBase):
+    # #147 point 1: `xv record report <id> scenario -` lands the red written in the session's checkout and drops it
+    RED_TEST = ("import unittest\n\n\nclass Red(unittest.TestCase):\n    def test_milk_today(self):\n"
+                "        self.assertEqual(1, 2)\n")
+    REPORT = {"agent": "scenario", "status": "red", "summary": "red",
+              "red": {"files": ["tests/test_red.py"], "command": "python3 -m unittest tests.test_red",
+                      "failure": "1 != 2", "watch_first_green": None},
+              "covers": [{"item": "milk today", "test": "test_milk_today"}], "not_covered": []}
+
+    def setUp(self):
+        super().setUp()
+        cfg = os.path.join(self.repo, ".xv", "config.yml")
+        text = open(cfg).read().replace("agents:\n", "agents:\n  scenario: session\n", 1)
+        open(cfg, "w").write(text)
+        sh(["git", "commit", "-qam", "scenario in the session"], self.repo)
+        self.make_build(fixed=False)
+        self.open_slice("--from", BUILD)
+
+    def checkout_named(self, p):
+        for path in re.findall(r"/[^\s`'\"()]+", p.stdout + p.stderr):
+            path = path.rstrip(".,:;")
+            if os.path.isdir(path) and os.path.realpath(path) not in {os.path.realpath(self.repo), os.path.realpath(self.wt)}:
+                return path
+        self.fail("the stop names no checkout: " + p.stdout + p.stderr)
+
+    def write_the_red_and_report(self, checkout, test=None, report=None):
+        os.makedirs(os.path.join(checkout, "tests"), exist_ok=True)
+        with open(os.path.join(checkout, "tests", "test_red.py"), "w") as f:
+            f.write(test or self.RED_TEST)
+        path = os.path.join(self.tmp, "scenario-report.txt")
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps(report or self.REPORT) + "\n```\n")
+        return self.xv("record", "report", "s1", "scenario", path, cwd=self.wt, check=False)
+
+    def red_refs_of_the_slice(self):
+        return sh(["git", "for-each-ref", "--format=%(refname)", "refs/xv/s1/"], self.repo).stdout.split()
+
+    def test_the_report_lands_the_red_on_the_slice_branch(self):
+        checkout = self.checkout_named(self.scenario_step())
+        p = self.write_the_red_and_report(checkout)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("assertEqual(1, 2)", open(os.path.join(self.wt, "tests", "test_red.py")).read())
+        self.assertEqual(sh(["git", "log", "-1", "--format=%s", "--", "tests/test_red.py"], self.wt).stdout.strip(), "xv(s1): red")
+        self.assertTrue(self.is_ancestor(self.build, "HEAD", cwd=self.wt))
+
+    def test_the_report_keeps_the_red_on_its_ref_at_the_base(self):
+        checkout = self.checkout_named(self.scenario_step())
+        self.write_the_red_and_report(checkout)
+        self.assertEqual(self.red_refs_of_the_slice(), ["refs/xv/s1/red"])
+
+    def test_the_report_runs_the_red_on_the_base_and_on_the_build_and_records_the_checks(self):
+        checkout = self.checkout_named(self.scenario_step())
+        self.write_the_red_and_report(checkout)
+        checks = self.record()["checks"]["scenario"]
+        self.assertIs(checks["red_fails"], True)
+        self.assertEqual(checks["red_on_build"]["passes"], False)
+
+    def test_the_report_drops_the_checkout(self):
+        checkout = self.checkout_named(self.scenario_step())
+        self.write_the_red_and_report(checkout)
+        self.assertFalse(os.path.exists(checkout), "the checkout is still there after the report")
+        self.assertNotIn(checkout, sh(["git", "worktree", "list", "--porcelain"], self.repo).stdout)
+
+    def test_the_report_takes_the_wall_baseline_at_the_base(self):
+        checkout = self.checkout_named(self.scenario_step())
+        self.write_the_red_and_report(checkout)
+        self.assertIn("wall_baseline", self.record())
+        self.assertTrue(os.path.exists(os.path.join(self.wt, ".xv", "slices", "s1.wall.json")))
+
+    def test_a_second_step_drops_the_checkout_nobody_reported_on(self):
+        first = self.checkout_named(self.scenario_step())
+        second = self.checkout_named(self.step("scenario"))
+        self.assertNotEqual(first, second)
+        self.assertFalse(os.path.exists(first), "the first checkout is still there after a second step")
+        self.assertTrue(os.path.exists(second))
+        self.xv("close", "s1", "--why", "x", cwd=self.wt, check=False)  # drops the one left
+
+
+class SessionScenarioConflictTest(FromBuildBase):
+    # #147 point 1: a red that does not apply to the build is reported for orders, and the checkout is dropped
+    checkout_named = SessionScenarioReportTest.checkout_named
+    write_the_red_and_report = SessionScenarioReportTest.write_the_red_and_report
+    RED_TEST = SessionScenarioReportTest.RED_TEST
+    REPORT = SessionScenarioReportTest.REPORT
+
+    def setUp(self):
+        super().setUp()
+        cfg = os.path.join(self.repo, ".xv", "config.yml")
+        text = open(cfg).read().replace("agents:\n", "agents:\n  scenario: session\n", 1)
+        open(cfg, "w").write(text)
+        sh(["git", "commit", "-qam", "scenario in the session"], self.repo)
+        self.make_build(fixed=False, files={"tests/test_red.py": "# the build's own test file\nBUILD_TEST = True\n"})
+        self.open_slice("--from", BUILD)
+
+    def test_a_red_that_conflicts_with_the_build_is_reported_for_orders(self):
+        checkout = self.checkout_named(self.scenario_step())
+        self.write_the_red_and_report(checkout)
+        out = self.xv("orders", "s1", "--after", "scenario", cwd=self.wt, check=False).stdout
+        self.assertIn("red_conflicts_with_build", [f["order"] for f in json.loads(out)["fired"]])
+        self.assertFalse(os.path.exists(checkout))
+        dirty = [l for l in sh(["git", "status", "--porcelain", "--untracked-files=no"], self.wt).stdout.splitlines()
+                 if ".xv/" not in l]
+        self.assertEqual(dirty, [], "the slice worktree is left mid cherry-pick")
+
+
+class CloseRedRefTest(FromBuildBase):
+    # #147 comment 1: `xv close` deletes the slice's red ref
+    def test_close_deletes_the_red_ref(self):
+        self.make_build(fixed=False)
+        self.open_slice("--from", BUILD)
+        p = self.scenario_step()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        refs = sh(["git", "for-each-ref", "--format=%(refname)", "refs/xv/s1/"], self.repo).stdout.split()
+        self.assertEqual(refs, ["refs/xv/s1/red"], "the scenario step kept no red ref")
+        self.xv("close", "s1", "--why", "as forecast", cwd=self.wt)
+        left = sh(["git", "for-each-ref", "--format=%(refname)", "refs/xv/s1/"], self.repo).stdout.split()
+        self.assertEqual(left, [], "close left the red ref")
+
+    def test_close_leaves_another_slices_red_ref(self):
+        self.make_build(fixed=False)
+        self.open_slice("--from", BUILD)
+        self.scenario_step()
+        sh(["git", "update-ref", "refs/xv/other/red", self.main], self.repo)
+        self.xv("close", "s1", "--why", "as forecast", cwd=self.wt)
+        self.assertTrue(sh(["git", "rev-parse", "--verify", "-q", "refs/xv/other/red"], self.repo).stdout.strip())
+
+    def test_a_new_slice_with_the_same_id_does_not_start_from_the_closed_slices_red(self):
+        self.make_build(fixed=False)
+        self.open_slice("--from", BUILD)
+        self.scenario_step()
+        self.xv("close", "s1", "--why", "as forecast", cwd=self.wt)
+        sh(["git", "worktree", "remove", "--force", self.wt], self.repo)
+        sh(["git", "branch", "-D", "xv/s1"], self.repo)
+        self.open_slice("--from", BUILD)
+        self.step("forecaster")
+        self.step("scenario", FAKE_CWD_PROBE=f"tests/test_red.py {MARKER}")
+        ran = self.ran("# The scenario agent")
+        self.assertEqual(ran["head"], self.main, "the new slice's first pass did not start at the base")
+
+
+class BuildRefDeletedTest(FromBuildBase):
+    # #147 comment 2: a build ref deleted after the slice opens does not break `xv record report`
+    def test_the_record_keeps_the_commit_the_build_was_at(self):
+        self.make_build(fixed=False)
+        self.open_slice("--from", BUILD)
+        self.assertEqual(self.record()["build"]["commit"], self.build)
+
+    def maker_report(self):
+        path = os.path.join(self.tmp, "maker-report.txt")
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps({"agent": "maker", "status": "green", "summary": "done",
+                                                  "moved_tests": []}) + "\n```\n")
+        return self.xv("record", "report", "s1", "maker", path, cwd=self.wt, check=False)
+
+    def build_changes_a_test_file(self):
+        old = open(os.path.join(self.repo, "tests", "test_store.py")).read()
+        self.make_build(fixed=False, files={"tests/test_store.py": old.replace('["yogurt"]', '["yogurt"] or []')})
+
+    def test_a_report_after_the_build_branch_is_deleted_saves_the_wall_check(self):
+        self.build_changes_a_test_file()
+        self.open_slice("--from", BUILD)
+        self.scenario_step()
+        sh(["git", "branch", "-D", BUILD], self.repo)
+        p = self.maker_report()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("wall", self.record()["checks"]["maker"])
+
+    def test_the_stored_commit_still_tells_the_builds_own_change_from_the_slices_after_the_branch_is_deleted(self):
+        self.build_changes_a_test_file()
+        self.open_slice("--from", BUILD)
+        self.scenario_step()
+        self.xv("record", "stop", "s1", "--order", "unrecorded_move", "--seat", "originator",
+                "--question", "tests/test_store.py changed with no record", "--step", "maker", cwd=self.wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "the build's change is accepted",
+                "--next", "maker", "--settled", "the build's change to the test file is accepted", cwd=self.wt)
+        sh(["git", "branch", "-D", BUILD], self.repo)
+        self.maker_report()
+        self.assertEqual(self.record()["checks"]["maker"]["wall"]["unrecorded"], [])
+
+    def test_a_record_with_no_stored_commit_and_no_branch_keeps_the_file_unrecorded_and_says_why(self):
+        self.build_changes_a_test_file()
+        self.open_slice("--from", BUILD)
+        self.scenario_step()
+        path, data, body = record.load(self.wt, "s1")
+        data["build"].pop("commit")  # a record from before the commit was kept
+        record.save(path, data, body)
+        sh(["git", "branch", "-D", BUILD], self.repo)
+        p = self.maker_report()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        wall = self.record()["checks"]["maker"]["wall"]
+        self.assertIn("tests/test_store.py", wall["unrecorded"])
+        self.assertIn("no longer resolves", wall["note"])
 
 
 class SliceSkillTest(unittest.TestCase):
