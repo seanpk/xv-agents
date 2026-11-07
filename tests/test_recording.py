@@ -72,5 +72,25 @@ class SliceNewMissingFileTest(RepoCase):
         self.assert_nothing_left("--scenario-file")
 
 
+class SliceNewIgnoreRepeatTest(RepoCase):
+    """--ignore given more than once puts every value in the record's May ignore section, in order."""
+
+    def may_ignore(self, *values):
+        args = []
+        for v in values:
+            args += ["--ignore", v]
+        self.xv("slice", "new", "s1", "--by", "pat", "--scenario", "The household sees X.", *args)
+        text = open(os.path.join(self.repo, ".xv", "worktrees", "s1", ".xv", "slices", "s1.md")).read()
+        return text.split("## May ignore")[1]
+
+    def test_every_ignore_value_reaches_the_record_in_order(self):
+        section = self.may_ignore("first thing", "second thing", "third thing")
+        self.assertEqual([section.index(x) for x in ("first thing", "second thing", "third thing")],
+                         sorted(section.index(x) for x in ("first thing", "second thing", "third thing")))
+
+    def test_a_single_ignore_works_as_before(self):
+        self.assertIn("\nonly this\n", self.may_ignore("only this"))
+
+
 if __name__ == "__main__":
     unittest.main()

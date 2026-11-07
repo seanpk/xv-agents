@@ -128,7 +128,7 @@ def cmd_new(a):
     if a.rename:
         data["renames"] = parse_renames(a.rename)
     body = BODY_TEMPLATE.format(title=data["title"], scenario=scenario,
-                                ignore=a.ignore or "Nothing stated.",
+                                ignore="\n\n".join(a.ignore) if a.ignore else "Nothing stated.",
                                 recording=a.recording or "None. A feature starts from words.")
     body = log_line(body, "watch", f"slice opened by {a.by}")
     save(path, data, body)
@@ -1037,7 +1037,7 @@ def main(argv=None):
     s.add_argument("--scenario-file")
     s.add_argument("--expect-moves", help="the test changes the person expects: imports, renames, or both")
     s.add_argument("--rename", action="append", help="Old=New, a name this slice renames; one flag per pair")
-    s.add_argument("--ignore", help="what this slice may ignore")
+    s.add_argument("--ignore", action="append", help="what this slice may ignore; repeat the flag for more")
     s.add_argument("--recording", help="path to the recording, for a defect")
     s.add_argument("--branch")
     s.add_argument("--axis", help="for a prototype slice: the one axis the three differ on")

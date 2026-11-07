@@ -238,9 +238,11 @@ def cmd_slice_new(a):
     if trial:
         copy_layer(root, wt)
     args = ["new", a.id, "--by", a.by, "--kind", a.kind, "--branch", branch]
-    for flag, value in (("--title", a.title), ("--ignore", a.ignore), ("--axis", a.axis)):
+    for flag, value in (("--title", a.title), ("--axis", a.axis)):
         if value:
             args += [flag, value]
+    for value in a.ignore or []:
+        args += ["--ignore", value]
     if a.expect_moves is not None:
         args += ["--expect-moves", a.expect_moves]
     for pair in a.rename or []:
@@ -1804,7 +1806,7 @@ def main(argv=None):
     n.add_argument("--scenario-file")
     n.add_argument("--expect-moves", help="the test changes the person expects: imports, renames, or both")
     n.add_argument("--rename", action="append", help="Old=New, a name this slice renames; one flag per pair")
-    n.add_argument("--ignore")
+    n.add_argument("--ignore", action="append", help="what this slice may ignore; repeat the flag for more")
     n.add_argument("--recording")
     n.add_argument("--branch")
     n.add_argument("--base", help="the ref the slice branch starts from (default: worktrees.base, then origin/HEAD, then HEAD)")
