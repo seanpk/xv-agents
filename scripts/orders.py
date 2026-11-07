@@ -157,7 +157,7 @@ def evaluate(data, after, config):
                             f"The red command `{checks['red_joined']}` joins its runners with something other than `&&`, "
                             "so only the last one's exit code counts. The scenario agent will rewrite it, joining the runners with `&&`."))
         if checks.get("red_cannot_run"):
-            out.append(fire("scenario_stopped", "originator",
+            out.append(fire("red_cannot_run", "originator",
                             "The red command cannot run: it failed before any test ran (" + checks["red_cannot_run"]
                             + "). That is not a failing red, so the record holds no evidence the red fails for the "
                             "reasons the scenario names. Fix the command or the test files so the tests run, "

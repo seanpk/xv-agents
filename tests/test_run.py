@@ -250,7 +250,7 @@ class WatchLoopTest(WatchLoopSetup):
         p = self.scenario_with_red("python3 -c 'import xv_no_such_module'")
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         stop = json.loads(p.stdout)["stop"]
-        self.assertEqual(stop["order"], "scenario_stopped")
+        self.assertEqual(stop["order"], "red_cannot_run")
         self.assertEqual(stop["seat"], "originator")
         self.assertIn("xv_no_such_module", stop["question"])
         self.assertIn("cannot run", stop["question"])
@@ -262,6 +262,7 @@ class WatchLoopTest(WatchLoopSetup):
     def test_a_red_that_runs_its_tests_and_some_fail_is_still_a_failing_red(self):
         p = self.scenario_with_red("echo 'FAIL: test_x (t.A.test_x)' && echo 'Ran 1 test' && false")
         self.assertNotIn("scenario_stopped", p.stdout)
+        self.assertNotIn("red_cannot_run", p.stdout)
         self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
 
     def test_a_red_joined_with_or_is_refused(self):
