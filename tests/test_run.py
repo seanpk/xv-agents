@@ -1806,5 +1806,208 @@ class ScenarioPointsAfterAmendTest(WatchLoopSetup):
         self.assertEqual(data["next"], "scenario")
 
 
+def _red_command(lines, code=1):
+    """A red command that prints these lines and exits with this code. It joins with `&&`, which the scenario check accepts."""
+    import shlex
+    return "printf '%s\\n' " + " ".join(shlex.quote(x) for x in lines) + f" && exit {code}"
+
+
+# What each of the 11 runners that failing_tests reads says when it could not start or find a test.
+CANNOT_RUN = {
+    "unittest, a file that cannot load": ["ImportError: Failed to import test module: test_gone", "FAILED (errors=1)"],
+    "unittest, no tests": ["Ran 0 tests in 0.000s", "NO TESTS RAN"],
+    "pytest, no tests": ["collected 0 items", "no tests ran in 0.01s"],
+    "pytest, a file that cannot load": ["ERROR collecting tests/test_gone.py", "Interrupted: 1 error during collection"],
+    "jest, no tests": ["No tests found, exiting with code 1"],
+    "jest, a suite that cannot load": ["Test suite failed to run", "Cannot find module './gone' from 'test/a.test.js'"],
+    "vitest, no tests": ["No test files found, exiting with code 1"],
+    "go, a package that does not build": ["FAIL\texample.com/pantry [build failed]"],
+    "rspec, a file that cannot load": ["An error occurred while loading ./spec/a_spec.rb",
+                                       "0 examples, 0 failures, 1 error occurred outside of examples"],
+    "jasmine, no specs": ["No specs found"],
+    "minitest, a file that cannot load": ["cannot load such file -- ./test/a_test.rb (LoadError)"],
+    "minitest, no tests": ["0 runs, 0 assertions, 0 failures, 0 errors, 0 skips"],
+    "mocha, no tests": ['Error: No test files found: "test/*.js"'],
+    "cargo, a crate that does not build": ["error: could not compile `pantry` (lib test) due to 1 previous error"],
+    "playwright, no tests": ["Error: No tests found."],
+}
+
+
+class RedCannotRunTest(WatchLoopSetup):
+    """A red that fails before any test runs is not a failing red (scenario points 1 to 4)."""
+
+    def scenario(self, command):
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"FAKE_RED_COMMAND": command}):
+            self.xv("step", "forecaster", "s1", cwd=self.wt)
+            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+
+    def assert_cannot_run(self, command, *named):
+        p = self.scenario(command)
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["order"], "red_cannot_run")
+        self.assertEqual(stop["seat"], "originator")
+        for n in named:
+            self.assertIn(n, stop["question"])
+        data = self.record()
+        self.assertEqual(data["next"], "scenario")
+        self.assertIsNot(data["checks"]["scenario"].get("red_fails"), True)
+        self.assertNotIn("maker", [s["step"] for s in data["spend"]])
+
+    def assert_failing_red(self, command):
+        p = self.scenario(command)
+        self.assertNotIn("red_cannot_run", p.stdout + p.stderr)
+        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
+        self.assertEqual(self.record()["next"], "maker")
+
+    # 1. exit codes 126 and 127
+    def test_exit_127_stops_and_names_the_error(self):
+        self.assert_cannot_run(_red_command(["sh: 1: nosuchrunner: not found"], 127), "127")
+
+    def test_exit_126_stops_and_names_the_error(self):
+        self.assert_cannot_run(_red_command(["sh: 1: ./run-tests: Permission denied"], 126), "126")
+
+    def test_a_command_that_is_not_installed_stops(self):
+        self.assert_cannot_run("xv-no-such-runner-anywhere tests", "127")
+
+    # 2. a general error name counts only when the output names no real failing test
+    def test_a_general_error_name_alone_stops(self):
+        self.assert_cannot_run(_red_command(["Traceback (most recent call last):",
+                                             "ImportError: No module named pantry_gone"]), "ImportError")
+
+    def test_no_such_file_alone_stops(self):
+        self.assert_cannot_run(_red_command(["python3: can't open file 'tests/gone.py': [Errno 2] No such file "
+                                             "or directory"]), "No such file or directory")
+
+    # 3. a red that runs its tests and some fail is a failing red, even with a general error name in the output
+    def test_failing_tests_with_a_general_error_name_in_the_output_is_a_failing_red(self):
+        self.assert_failing_red(_red_command(["ERROR: test_milk (tests.t.A.test_milk)",
+                                              "ImportError: cannot import name 'gone' from 'pantry'",
+                                              "FAILED (errors=1)"]))
+
+    def test_a_failing_test_that_prints_no_such_file_is_a_failing_red(self):
+        self.assert_failing_red(_red_command(["FAIL: test_milk (tests.t.A.test_milk)",
+                                              "FileNotFoundError: [Errno 2] No such file or directory: 'x'"]))
+
+    # 4. one file cannot load and other tests fail for real: the step still stops
+    def test_a_file_that_cannot_load_beside_a_real_failure_still_stops(self):
+        self.assert_cannot_run(_red_command(["ERROR: test_gone (unittest.loader._FailedTest.test_gone)",
+                                             "ImportError: Failed to import test module: test_gone",
+                                             "FAIL: test_milk (tests.t.A.test_milk)", "FAILED (failures=1, errors=1)"]),
+                               "Failed to import test module: test_gone")
+
+    def test_a_pytest_collection_error_beside_a_real_failure_still_stops(self):
+        self.assert_cannot_run(_red_command(["ERROR collecting tests/test_gone.py",
+                                             "FAILED tests/test_a.py::test_milk - assert 1 == 2",
+                                             "Interrupted: 1 error during collection"]), "error during collection")
+
+
+for _i, (_what, _lines) in enumerate(sorted(CANNOT_RUN.items())):
+    def _case(self, lines=_lines):
+        self.assert_cannot_run(_red_command(lines), lines[0])
+    setattr(RedCannotRunTest, "test_runner_words_stop_%02d_%s" % (_i, re.sub(r"\W+", "_", _what)), _case)
+
+
+class AnsweredStopStaysAnsweredTest(WatchLoopSetup):
+    """Scenario points 5 and 6: a bundled slice_only_marks is accepted, and a directed edit does not re-fire."""
+
+    MARK = {"file": "tests/test_red.py", "test": "test_milk_today", "why": "checks the README wording",
+            "checks": "README.md"}
+    EDIT = ("--edit", "README.md", "--old", "It is small on purpose.",
+            "--new", "It is small on purpose, and stays small.", "--kind", "doc")
+
+    def scenario_with_not_covered(self):
+        from unittest import mock
+        env = {"FAKE_NOT_COVERED": '[{"item": "the grocer share", "why": "no seam"}]'}
+        with mock.patch.dict(os.environ, env):
+            self.xv("step", "forecaster", "s1", cwd=self.wt)
+            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+
+    def open_stops(self):
+        return [s for s in self.record()["stops"] if s.get("answer") is None]
+
+    def add_mark(self):
+        self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=self.wt)
+
+    def test_an_answer_that_bundles_slice_only_marks_accepts_them(self):
+        self.scenario_with_not_covered()
+        self.add_mark()
+        self.assertFalse(self.record()["slice_only"][0].get("accepted"))
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "fine", "--bundle", "slice_only_marks",
+                "--next", "maker", "--settled", "Pat accepts the marks.", cwd=self.wt)
+        self.assertIs(self.record()["slice_only"][0].get("accepted"), True)
+
+    def test_an_answer_that_does_not_bundle_them_leaves_them_unaccepted(self):
+        self.scenario_with_not_covered()
+        self.add_mark()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "fine", "--next", "maker",
+                "--settled", "Pat goes on.", cwd=self.wt)
+        self.assertFalse(self.record()["slice_only"][0].get("accepted"))
+
+    def directed_answer(self, *extra):
+        self.xv("record", "offer", "s1", "--option", "Make the edit", "--settles", "The edit is made.", *self.EDIT,
+                "--option", "Leave it", "--settles", "Nothing changes.", cwd=self.wt)
+        return self.xv("record", "answer", "s1", "--by", "pat", "--answer", "make it", "--pick", "1",
+                       "--next", "maker", *extra, cwd=self.wt, check=False)
+
+    def test_after_a_directed_edit_the_stop_the_answer_closed_does_not_fire_again(self):
+        self.scenario_with_not_covered()
+        before = len(self.record()["stops"])
+        p = self.directed_answer()
+        v = json.loads(p.stdout)
+        self.assertNotIn("red_misses_scenario", [f["order"] for f in v["fired"]])
+        self.assertIsNone(v["stop"], p.stdout)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        data = self.record()
+        self.assertEqual(len(data["stops"]), before, "no new stop in the record")
+        self.assertEqual(self.open_stops(), [])
+        self.assertEqual(data["next"], "maker", "the answer's --next stands")
+        self.assertEqual(data["suite"], "green", "the suite still runs after the edit")
+
+    def test_after_a_directed_edit_a_stop_bundled_with_the_answer_does_not_fire_again(self):
+        self.scenario_with_not_covered()
+        self.add_mark()
+        before = len(self.record()["stops"])
+        p = self.directed_answer("--bundle", "slice_only_marks")
+        v = json.loads(p.stdout)
+        self.assertNotIn("slice_only_marks", [f["order"] for f in v["fired"]])
+        self.assertNotIn("red_misses_scenario", [f["order"] for f in v["fired"]])
+        self.assertEqual(len(self.record()["stops"]), before)
+        self.assertIs(self.record()["slice_only"][0].get("accepted"), True)
+
+    def test_after_a_directed_edit_a_ready_to_merge_bundled_with_the_answer_does_not_fire_again(self):
+        self.scenario_with_not_covered()
+        before = len(self.record()["stops"])
+        p = self.directed_answer("--bundle", "ready_to_merge")
+        v = json.loads(p.stdout)
+        self.assertNotIn("ready_to_merge", [f["order"] for f in v["fired"]])
+        self.assertEqual(len(self.record()["stops"]), before)
+        self.assertEqual(self.record()["next"], "maker")
+
+
+class DefectsStopsDocsTest(unittest.TestCase):
+    """Scenario points 7 and 8: the picture and the CHANGELOG."""
+
+    def read(self, name):
+        with open(os.path.join(HOME, name), encoding="utf-8") as f:
+            return f.read()
+
+    def test_decision_12_in_the_picture_names_a_red_that_cannot_run(self):
+        text = self.read(".xv/picture.md")
+        start = text.index("\n12. A check whose input is broken")
+        end = text.index("\n13. ", start)
+        self.assertRegex(text[start:end], r"(?i)red")
+        self.assertRegex(text[start:end], r"(?i)cannot run|can't run|could not run")
+
+    def test_the_changelog_names_the_new_stop_and_the_two_fixes(self):  # slice-only
+        text = self.read("CHANGELOG.md")
+        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
+        lines = [ln for ln in unreleased.splitlines() if "red_cannot_run" in ln]
+        self.assertEqual(len(lines), 1, "one Unreleased line names red_cannot_run")
+        self.assertRegex(lines[0], r"(?i)slice_only_marks")
+        self.assertRegex(lines[0], r"(?i)directed edit")
+
+
 if __name__ == "__main__":
     unittest.main()
