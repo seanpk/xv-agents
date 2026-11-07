@@ -111,6 +111,16 @@ def budget_before(data):
                 "Continue with a new budget, reshape, or set it aside.")
 
 
+def unfinished(data, slice_id):
+    """Each prototype variant that did not finish, with its error, for the stop after `xv prototype start`."""
+    failed = [p for p in data.get("prototypes") or [] if p.get("error")]
+    if not failed:
+        return ""
+    return "".join(f" Variant {p['name']} did not finish: {str(p['error']).strip().rstrip('.')}." for p in failed) + \
+        (f" It cannot be picked; a second `xv prototype start {slice_id}` runs it again." if len(failed) == 1 else
+         f" They cannot be picked; a second `xv prototype start {slice_id}` runs them again.")
+
+
 def evaluate(data, after, config):
     """All orders that fire after `after`. Pure: reads the record and the config."""
     out = []
@@ -382,7 +392,9 @@ def evaluate(data, after, config):
         n = checks["prototypes_ready"]
         out.append(fire("prototypes_ready", "two_people",
                         f"{n} prototype(s) are ready to pick from, or none. Two people pick, with a user "
-                        "when one can be reached."))
+                        "when one can be reached. The pick is thrown away, or kept as the build this slice starts "
+                        f"from (`xv prototype pick {data['id']} --variant <v> --keep ...`); the people choose."
+                        + unfinished(data, data["id"])))
 
     if not any(f["blocking"] for f in out):
         if after == "scenario" and checks.get("missed_points"):

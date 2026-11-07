@@ -3,15 +3,19 @@
 one named axis, built by maker-kind agents with a prototype brief, recorded,
 and laid side by side for two people to pick from, or pick none.
 
-No wall and a loose model: nothing a prototype builds is a candidate for the
-main line. Every prototype is discarded at the pick, the chosen one too. The
-pick is restated as the slice's scenario, and a fresh maker context builds it
-behind the wall.
+No wall and a loose model: nothing a prototype builds enters the main line
+except through a slice. At the pick every prototype is discarded, the chosen
+one too, unless the people keep the pick: then its branch stays and is merged
+onto the slice branch as the build the slice starts from (`build: {kind:
+kept_pick, ...}`), and the slice runs as one opened with `xv slice new --from`.
+Either way the pick is restated as the slice's scenario, and a fresh maker
+context builds it behind the wall.
 
 Usage:
   xv prototype start <id> [--axis "<axis>"] [--variant "<position>" ...] [--serial]
   xv prototype pick <id> --variant a|b|c|none --by <name>,<name> [--with-user <name>]
                    [--scenario-file <file>]    the restated scenario; required unless none
+                   [--keep [--share-build]]    keep the pick's branch as the build
 """
 
 import argparse
@@ -243,7 +247,49 @@ def start(slice_id, axis=None, positions=None, serial=False):
     return (EXIT_STOP if v["stop"] else 0), v
 
 
-def pick(slice_id, variant, by, with_user=None, scenario_file=None):
+def keep_build(root, config, slice_id, p):
+    """Keep the pick's branch as the build this slice starts from, and merge it onto the slice branch.
+
+    The variant's work left in its worktree is committed on its branch first. The project layer (`.xv/`) stays
+    as the slice has it, except the pick's own recording folder. Returns the build commit."""
+    name, branch = p["name"], p["branch"]
+    wt = os.path.join(worktrees_dir(root, config), f"{slice_id}-proto-{name}")
+    if os.path.isdir(wt):
+        git(["add", "-A", "--", ".", f":(exclude){XV_DIR}/slices/{slice_id}.*"], wt)
+        if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=wt).returncode != 0:
+            git(["commit", "-q", "--no-verify", "-m", f"xv({slice_id}): prototype {name}, kept as the build"], wt)
+    sha = git(["rev-parse", "--verify", "-q", branch + "^{commit}"], root, check=False).strip()
+    if not sha:
+        raise XVError(f"prototype {name}'s branch {branch} is gone, so there is no build to keep; "
+                      "pick it without --keep")
+    if subprocess.run(["git", "merge-base", "--is-ancestor", sha, "HEAD"], cwd=root).returncode == 0:
+        raise XVError(f"prototype {name}'s branch {branch} holds nothing the slice branch does not have, so there "
+                      "is no build to keep; pick it without --keep")
+    m = subprocess.run(["git", "merge", "--no-ff", "--no-commit", sha], cwd=root, capture_output=True, text=True)
+    merging = subprocess.run(["git", "rev-parse", "-q", "--verify", "MERGE_HEAD"], cwd=root,
+                             capture_output=True).returncode == 0
+    if not merging:
+        raise XVError(f"prototype {name} does not merge onto the slice branch: "
+                      f"{(m.stdout + m.stderr).strip()[-600:]}")
+    base = git(["merge-base", "HEAD", sha], root).strip()
+    own = f"{XV_DIR}/prototypes/{slice_id}/{name}/"
+    layer = [f for f in git(["diff", "--name-only", "-z", base, sha, "--", XV_DIR], root).split("\0")
+             if f and not f.startswith(own)]
+    for f in layer:
+        if subprocess.run(["git", "cat-file", "-e", f"HEAD:{f}"], cwd=root, capture_output=True).returncode == 0:
+            git(["checkout", "HEAD", "--", f], root)
+        else:
+            git(["rm", "-q", "-f", "--ignore-unmatch", "--", f], root)
+    left = git(["diff", "--name-only", "--diff-filter=U"], root).split()
+    if left:
+        subprocess.run(["git", "merge", "--abort"], cwd=root, capture_output=True)
+        raise XVError(f"prototype {name} conflicts with the slice branch in {', '.join(left)}; "
+                      "pick it without --keep, or resolve it on its branch and pick again")
+    git(["commit", "-q", "--no-verify", "-m", f"xv({slice_id}): keep prototype {name} as the build"], root)
+    return sha
+
+
+def pick(slice_id, variant, by, with_user=None, scenario_file=None, keep=False, share_build=False):
     path = record_path(repo_root(), slice_id)
     root = slice_root(path)
     config = load_config(root)
@@ -253,6 +299,10 @@ def pick(slice_id, variant, by, with_user=None, scenario_file=None):
     if len(set(who)) < 2 and not solo(config):
         raise XVError("the pick is for two people: --by <name>,<name> "
                       "(a one-person team sets seats.two_people: solo in .xv/config.yml)")
+    if keep and variant == "none":
+        raise XVError("--keep keeps the pick's branch as the build; none has no branch")
+    if share_build and not keep:
+        raise XVError("--share-build needs --keep: it shares a kept build, and no build is kept")
     if variant != "none" and not scenario_file:
         raise XVError("restate the pick as the scenario the maker turns red and then green: --scenario-file <file>")
     names = {p["name"] for p in data.get("prototypes") or []}
@@ -264,14 +314,18 @@ def pick(slice_id, variant, by, with_user=None, scenario_file=None):
         raise XVError(f"prototype {variant} did not finish: its setup or run failed, and it has nothing to pick")
     if variant != "none" and (variant in ran_out or not picked.get("branch")):
         raise XVError(f"prototype {variant} stopped at its budget and has nothing to pick")
-    # discard every prototype, the pick too: the context that built it never builds the pick
+    build = keep_build(root, config, slice_id, picked) if keep else None
+    # discard every prototype, the pick too unless it is kept: its branch stays as the build, never its context
     for p in data.get("prototypes") or []:
         wt = os.path.join(worktrees_dir(root, config), f"{slice_id}-proto-{p['name']}")
         git(["worktree", "remove", "--force", wt], root, check=False)
-        if p.get("branch"):
+        if p.get("branch") and not (build and p["name"] == variant):
             git(["branch", "-D", p["branch"]], root, check=False)
         p["picked"] = p["name"] == variant
+        if build and p["name"] == variant:
+            p["kept"] = True
     answer = (f"picked {variant}" if variant != "none" else "picked none") + \
+             (", kept as the build" if build else "") + \
              (f", with {with_user}" if with_user else ", with no user")
     for s in data["stops"]:
         if s.get("answer") is None and s["order"] in ("prototypes_ready", "prototype_budget_spent"):
@@ -288,13 +342,20 @@ def pick(slice_id, variant, by, with_user=None, scenario_file=None):
         restated = open(scenario_file).read().strip()
         old = body.split("## Scenario\n\n", 1)[1].split("\n\n## ", 1)[0]
         body = body.replace(f"## Scenario\n\n{old}", f"## Scenario\n\n{restated}", 1)
-        body = record.log_line(body, ",".join(who), f"picked {variant}; scenario restated (was: {old})")
+        kept = ", kept as the build" if build else ""
+        body = record.log_line(body, ",".join(who), f"picked {variant}{kept}; scenario restated (was: {old})")
         data["kind"], data["status"], data["next"] = "feature", "working", "forecaster"
+        if build:
+            data["build"] = {"kind": "kept_pick", "ref": picked["branch"], "variant": variant, "commit": build}
+            data["build_shared"] = "yes" if share_build else "no"
         data["prototype_sessions"] = [p.get("session") for p in data["prototypes"] if p.get("session")]
     record.save(path, data, body)
     git(["add", "-A"], root)
     subprocess.run(["git", "commit", "-q", "--no-verify", "-m", f"xv({slice_id}): the pick, {answer}"], cwd=root)
-    return {"slice": slice_id, "picked": variant, "by": who, "decision": rec, "next": data["next"]}
+    out = {"slice": slice_id, "picked": variant, "by": who, "decision": rec, "next": data["next"]}
+    if build:
+        out["build"] = data["build"]
+    return out
 
 
 def run(slice_id):
@@ -318,13 +379,17 @@ def main(argv=None):
     k.add_argument("--by", required=True)
     k.add_argument("--with-user")
     k.add_argument("--scenario-file")
+    k.add_argument("--keep", action="store_true", help="keep the pick's branch as the build this slice starts from")
+    k.add_argument("--share-build", action="store_true",
+                   help="with --keep: name the kept build to the scenario agent, as a reference only")
     a = p.parse_args(argv)
     try:
         if a.cmd == "start":
             code, v = start(a.id, a.axis, a.variant, a.serial)
             print(json.dumps(v, indent=2))
             sys.exit(code)
-        print(json.dumps(pick(a.id, a.variant, a.by, a.with_user, a.scenario_file), indent=2))
+        print(json.dumps(pick(a.id, a.variant, a.by, a.with_user, a.scenario_file, a.keep, a.share_build),
+                         indent=2))
     except XVError as e:
         die(str(e), 2)
 

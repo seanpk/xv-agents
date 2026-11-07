@@ -954,8 +954,10 @@ def scenario_scratch(root, data, config):
     scratch_record = data
     unshared = data.get("build_shared") != "yes"
     if unshared:
-        scratch_record = dict(data, build="none", branch=data["base"])
+        # a kept pick's prototypes name its branch and how to run it: the agent sees none of them
+        scratch_record = dict(data, build="none", branch=data["base"], prototypes=[])
         scratch_record.pop("pre_maker_commit", None)
+        scratch_record.pop("prototype_sessions", None)
     path = os.path.join(scratch, XV_DIR, "slices", f"{data['id']}.md")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     record.save(path, scratch_record, record.load(root, data["id"])[2])
