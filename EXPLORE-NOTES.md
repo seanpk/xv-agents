@@ -24,6 +24,20 @@ Built outside XV's slice process, from main at d87a59c. Covers #147, #148 and #1
 - **5, one move recorded twice.** `same_move` compares assertions with whitespace and commas removed.
 - **6, `xv slice new` with a missing `--recording` path.** It now checks `--recording` and `--scenario-file` are files before it makes the worktree and branch, and refuses with a message.
 
+## Answered by Sean (2026-11-07)
+
+- **#154 item 4, one name for a brief step.** Answered: a step the brief tells the cleaner to do is reported as `brief: slice-only removal`; a real standard is cited by its exact `###` heading text from `.xv/standards.md`. Changed: `retro.counts()` skips rules that start with `brief:` as it skips `baseline` (after the `.xv/standards.md:` prefix is stripped). Old `.xv/retro/*.counts.json` files are not rewritten. Not done here, for the slice (skills/ untouched). Sentences the cleaner brief (`skills/cleaner/SKILL.md`) needs:
+  - In the `applied` format line (now `"rule": ".xv/standards.md: <the rule> | baseline: <smell>"`): "`rule` is the exact `###` heading text of the standard from `.xv/standards.md`, `baseline: <smell>` for a baseline smell, or exactly `brief: slice-only removal` for a step this brief told you to take. Never reword a heading, and never name a brief step as a standard."
+  - In the "Slice-only tests" step, after the removal command: "Report each removal in `applied` as `{"rule": "brief: slice-only removal", "where": "<file>"}`. It is a step of this brief, not a standard, and `xv retro counts` does not count it."
+- ~~**#147 point 1, session-mode `joined_unsafely` red.**~~ (answered above) Answered: yes, do what the CLI path does. Changed: `xv record report <id> scenario` keeps the red from before the report when the reported command is joined with `;`, `||`, `|`, `&` or a newline; the landing (`xv land-scenario`) then sets `checks.scenario.red_joined`, and `xv orders --after scenario` fires `scenario_stopped`. The check (`joined_unsafely`) and the covers parser moved to a new `scripts/names.py` that run.py and record.py both import (record still does not import run). For a slice not from a build, session mode has no landing, so `red_joined` is not set there (the earlier red is still kept); see open questions.
+- **#148 item 2, names in the wall flags.** Answered: keep the ambiguous-bare-name refusal, and accept the forms the covers check takes. Changed: `record.wall_matches` uses `COVERS_SEPARATOR` and `covers_name_found` (now in `names.py`) against the recommendation's file text: `file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`, a path prefix. Class and module parts must be in that file. An exact test name still matches first; a bare name two files share is still refused, naming each `file::test`.
+- **Keep diff3 for the whole rebase.** Answered: yes. No change.
+- **Added by the coordinator: `xv slice new --ignore` repeats.** Only the last value reached "## May ignore". Now each `--ignore` is kept, in order, and written as paragraphs separated by a blank line; a single one is as before. For the slice: README and the xv-slice skill may need a line saying `--ignore` repeats.
+
+For the slice that opens from this build (not edited here): README, the watch/xv-slice/cleaner briefs and the picture need the `build.commit` field, the `file::test` (and other forms) of `--accept-wall` / `--refuse-wall`, `xv land-scenario`, `brief:` names, and the repeating `--ignore`. CHANGELOG, learnings, standards and retro are the slice's.
+
+New open questions: (1) a non-build session-mode slice has no landing step, so a joined red there is kept out but `red_joined` is never set and no stop fires; should `xv record report` set it itself (a flag in the record, not the scratch landing)? (2) A wall form whose path prefix names a different file than the recommendation's could in theory still match by words in the file; ambiguity is still refused, so it fails loud. (3) `--ignore` values are joined by blank lines; Sean may prefer bullets.
+
 ## Left for a person
 
 - **#154 item 4, the cleaner names one rule many ways.** Not fixed. Options: (a) the cleaner skill cites a rule by the exact heading of the line in `.xv/standards.md`, and says what to write for a baseline smell; (b) `xv retro counts` maps each `applied` rule to the nearest standards heading (a fuzzy match, with a miss kept as its own row); (c) the cleaner report gets a fixed `rule_id` field beside the free text, and counts group on it. The question: which, and whether the old counts files are rewritten.
@@ -49,6 +63,15 @@ Built outside XV's slice process, from main at d87a59c. Covers #147, #148 and #1
 
 Each was run against the code before the fix and failed there.
 
+### Tests added on 2026-11-07
+
+- `tests/test_retro.py`: `test_a_step_the_brief_names_is_not_counted_as_a_rule_but_a_standard_is`.
+- `tests/test_from_build.py` (`SessionScenarioReportTest`): `test_a_red_joined_with_a_semicolon_is_not_kept_and_the_stop_fires`, `test_a_red_joined_unsafely_restores_the_earlier_red`.
+- `tests/test_record.py` (`WallAnswerByFileTest`): five form tests (`colons`, `hash`, `dots`, `file_and_class`, `arrow`), plus `test_a_class_form_the_file_does_not_have_names_nothing` and `test_an_ambiguous_name_in_the_hash_form_is_still_refused`. The last two guard rules that already held, so they passed before the fix; the other five failed before it.
+- `tests/test_recording.py`: class `SliceNewIgnoreRepeatTest`: `test_every_ignore_value_reaches_the_record_in_order` failed before the fix; `test_a_single_ignore_works_as_before` guards the old behaviour and passed.
+
+Every behaviour test other than those two guards was run against the code before its fix and failed there.
+
 ## Final suite count
 
-`python3 tests/run.py --jobs 4` ends with OK: Ran 1056 tests (1023 at main d87a59c plus 33 new).
+`python3 tests/run.py --jobs 4` ends with OK: Ran 1056 tests (1023 at main d87a59c plus 33 new). After the 2026-11-07 changes: Ran 1068 tests, OK.
