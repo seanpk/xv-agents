@@ -671,6 +671,35 @@ class BuildConflictTest(FromBuildBase):
         self.assertEqual([s["order"] for s in named], ["unrecorded_move"],
                          "the build's change to tests/test_store.py did not stop exactly once as a change with no record")
 
+    # 13. the same holds when the maker and the cleaner run in the session: `xv record report` + `xv orders`
+    def test_a_test_file_the_build_changed_stops_once_when_the_maker_and_the_cleaner_run_in_the_session(self):
+        cfg = os.path.join(self.repo, ".xv", "config.yml")
+        text = open(cfg).read().replace("agents:\n", "agents:\n  maker: session\n  cleaner: session\n", 1)
+        open(cfg, "w").write(text)
+        sh(["git", "commit", "-qam", "maker and cleaner in the session"], self.repo)
+        old = open(os.path.join(self.repo, "tests", "test_store.py")).read()
+        self.make_build(fixed=False, files={"tests/test_store.py": old.replace('["yogurt"]', '["yogurt"] or []')})
+        self.open_slice("--from", BUILD)
+        self.scenario_step()
+        fired = []
+        for agent, after in (("maker", "cleaner"), ("cleaner", "guardian")):
+            self.step(agent)  # stops for the session, which does the work itself
+            path = os.path.join(self.wt, f"{agent}-report.json")
+            with open(path, "w") as f:
+                f.write("```xv-report\n" + json.dumps({"agent": agent, "status": "green", "summary": "done",
+                                                      "moved_tests": []}) + "\n```\n")
+            self.xv("record", "report", "s1", agent, path, cwd=self.wt)
+            p = self.xv("orders", "s1", "--after", agent, cwd=self.wt, check=False)
+            fired += [f for f in json.loads(p.stdout)["fired"]
+                      if f["order"] == "unrecorded_move" and "tests/test_store.py" in f["question"]]
+            if fired and agent == "maker":  # the person accepts the build's change and the slice goes on
+                self.xv("record", "stop", "s1", "--order", "unrecorded_move", "--seat", "originator",
+                        "--question", "tests/test_store.py changed with no record", "--step", agent, cwd=self.wt)
+                self.xv("record", "answer", "s1", "--by", "pat", "--answer", "the build's change is accepted",
+                        "--next", after, cwd=self.wt)
+        self.assertEqual(len(fired), 1,
+                         "the build's change to tests/test_store.py did not stop exactly once on the session path")
+
 
 class RecordCopyTest(FromBuildBase):
     # 14. when the build is not shared, the scenario agent's record copy names no branch or commit at the build
