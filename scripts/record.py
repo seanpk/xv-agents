@@ -17,6 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import moves  # noqa: E402
+from names import covers_name_found, joined_unsafely  # noqa: E402
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
 import wall  # noqa: E402
@@ -795,7 +796,11 @@ def expected_moves(root, data, config):
 def cmd_report(a):
     path, data, body = load(repo_root(), a.id)
     text = sys.stdin.read() if a.file == "-" else open(a.file).read()
+    red_before = data.get("red")
     body, report = apply_report(data, body, a.agent, text)
+    reported = ((report or {}).get("red") or {}).get("command") if a.agent == "scenario" else None
+    if reported and joined_unsafely(reported):
+        data["red"] = red_before  # as `xv step` does: a refused red is not kept, and the landing sets red_joined
     save(path, data, body)
     if a.agent == "scenario" and has_build(data):
         # a session-mode scenario step left a checkout at the base: land the red written there, as `xv step` does

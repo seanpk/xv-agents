@@ -863,6 +863,26 @@ class SessionScenarioReportTest(FromBuildBase):
         self.write_the_red_and_report(checkout)
         self.assertEqual(self.red_refs_of_the_slice(), ["refs/xv/s1/red"])
 
+    JOINED = dict(REPORT, red=dict(REPORT["red"], command="python3 -m unittest tests.test_red; true"))
+
+    def test_a_red_joined_with_a_semicolon_is_not_kept_and_the_stop_fires(self):
+        checkout = self.checkout_named(self.scenario_step())
+        p = self.write_the_red_and_report(checkout, report=self.JOINED)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertFalse((self.record().get("red") or {}).get("command"))
+        self.assertIn("unittest tests.test_red; true", self.record()["checks"]["scenario"]["red_joined"])
+        o = self.xv("orders", "s1", "--after", "scenario", cwd=self.wt, check=False)
+        self.assertIn("scenario_stopped", o.stdout + o.stderr)
+
+    def test_a_red_joined_unsafely_restores_the_earlier_red(self):
+        checkout = self.checkout_named(self.scenario_step())
+        self.write_the_red_and_report(checkout)
+        earlier = self.record()["red"]["command"]
+        checkout = self.checkout_named(self.step("scenario"))
+        self.write_the_red_and_report(checkout, report=self.JOINED)
+        self.assertEqual(self.record()["red"]["command"], earlier)
+        self.assertTrue(self.record()["checks"]["scenario"]["red_joined"])
+
     def test_the_report_runs_the_red_on_the_base_and_on_the_build_and_records_the_checks(self):
         checkout = self.checkout_named(self.scenario_step())
         self.write_the_red_and_report(checkout)
