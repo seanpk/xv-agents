@@ -431,6 +431,16 @@ def cmd_offer(a):
     save(path, data, body)
 
 
+def wall_matches(recs, spec):
+    """The recommendations a --accept-wall or --refuse-wall value names: a bare test name, or `file::test`
+    when the same name is recommended in more than one file."""
+    named = [r for r in recs if r.get("test") == spec]
+    if not named and "::" in spec:
+        file, test = spec.split("::", 1)
+        named = [r for r in recs if r.get("file") == file and r.get("test") == test]
+    return named
+
+
 def answer_wall(data, stop, a):
     """--accept-wall and --refuse-wall answer an accept_moves stop's wall recommendations, and only that."""
     wall_flags = (("--accept-wall", a.accept_wall), ("--refuse-wall", a.refuse_wall))
@@ -440,19 +450,26 @@ def answer_wall(data, stop, a):
                 raise XVError(f"{flag} only answers an accept_moves stop, not {stop['order']}")
         return
     recs = data.get("wall_recommendations") or []
-    known = {r.get("test") for r in recs}
-    for t in sorted(set(a.accept_wall or []) & set(a.refuse_wall or [])):
-        raise XVError(f"--accept-wall and --refuse-wall both name {t}; give one")
+    picked = {}  # flag -> the recommendations (by position) its values name
     for flag, names in wall_flags:
+        picked[flag] = set()
         for t in names or []:
-            if t not in known:
+            found = wall_matches(recs, t)
+            if not found:
                 raise XVError(f"{flag} {t}: no wall recommendation names that test")
+            if len(found) > 1:
+                files = ", ".join(f"{r.get('file')}::{r.get('test')}" for r in found)
+                raise XVError(f"{flag} {t}: {len(found)} wall recommendations have that name ({files}); "
+                              "give the file too, as file::test")
+            picked[flag].add(next(i for i, r in enumerate(recs) if r is found[0]))
+    for i in sorted(picked["--accept-wall"] & picked["--refuse-wall"]):
+        raise XVError(f"--accept-wall and --refuse-wall both name {recs[i].get('test')} "
+                      f"in {recs[i].get('file')}; give one")
     stop["accepted_wall"] = list(a.accept_wall or [])
     stop["refused_wall"] = list(a.refuse_wall or [])
-    for r in recs:
+    for i, r in enumerate(recs):
         test = r.get("test")
-        r["accepted"] = test in stop["accepted_wall"] or (
-            bool(r.get("accepted")) and test not in stop["refused_wall"])
+        r["accepted"] = i in picked["--accept-wall"] or (bool(r.get("accepted")) and i not in picked["--refuse-wall"])
         if r["accepted"]:
             r.pop("refused", None)
             if r.get("recommend") == "mark slice-only" and not any(
@@ -462,7 +479,7 @@ def answer_wall(data, stop, a):
                     {"file": r.get("file"), "test": test, "why": r.get("why"), "accepted": True})
         else:
             r["refused"] = True
-            if test in stop["refused_wall"]:
+            if i in picked["--refuse-wall"]:
                 data["slice_only"] = [m for m in data.get("slice_only") or [] if not (
                     isinstance(m, dict) and (m.get("file"), m.get("test")) == (r.get("file"), test))]
 
@@ -1082,9 +1099,10 @@ def main(argv=None):
     s.add_argument("--why", help="the person's reason")
     s.add_argument("--bundle", help="comma-separated orders the same reply answered")
     s.add_argument("--accept-wall", dest="accept_wall", action="append", metavar="TEST",
-                   help="accept the wall recommendation for this test; repeat per test")
+                   help="accept the wall recommendation for this test, or file::test when the name is "
+                        "recommended in more than one file; repeat per test")
     s.add_argument("--refuse-wall", dest="refuse_wall", action="append", metavar="TEST",
-                   help="refuse the wall recommendation for this test; repeat per test")
+                   help="refuse the wall recommendation for this test, or file::test; repeat per test")
     s.set_defaults(fn=cmd_answer)
 
     s = sub.add_parser("report", help="apply a worker's xv-report block")

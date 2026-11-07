@@ -213,6 +213,9 @@ def cmd_slice_new(a):
     if not is_trial(root) and git(["status", "--porcelain", "--", XV_DIR], root).strip():
         raise XVError("commit the project layer (.xv/) first "
                       "(or try XV without committing it: xv init --trial)")
+    for flag, path in (("--recording", a.recording), ("--scenario-file", a.scenario_file)):
+        if path and not os.path.isfile(path):
+            raise XVError(f"{flag} {path}: no such file. Nothing was made; fix the path and run it again")
     wt = os.path.join(worktrees_dir(root, config), a.id)
     branch = a.branch or f"xv/{a.id}"
     wcfg = worktrees_config(config)
@@ -330,6 +333,19 @@ def commits_between(root, rng):
     return [line.split(" ", 1) for line in lines]
 
 
+def both_sides(hunk):
+    """One conflict's lines, ours first then theirs. When the hunk shows the base (diff3 style), a base line
+    the other side dropped or edited is not kept from this side: a directed edit of a line is the edit, not the
+    old line and the edit one after the other."""
+    ours, base, theirs = hunk["ours"], hunk["base"], hunk["theirs"]
+    if not base:
+        return ours + theirs
+    dropped_by_theirs = {l for l in base if l.strip() and l not in theirs}
+    dropped_by_ours = {l for l in base if l.strip() and l not in ours}
+    return ([l for l in ours if l not in dropped_by_theirs]
+            + [l for l in theirs if l not in dropped_by_ours and l not in ours])
+
+
 def keep_both_sides(root, rel):
     """Resolve a conflicted file by keeping both sides, ours first. False when the file has no markers to strip."""
     path = os.path.join(root, rel)
@@ -339,14 +355,23 @@ def keep_both_sides(root, rel):
         lines = f.read().splitlines(keepends=True)
     if not any(line.startswith("<<<<<<<") for line in lines):
         return False
-    kept, in_base = [], False
+    kept, hunk, part = [], None, None
     for line in lines:
-        if line.startswith("|||||||"):
-            in_base = True
-        elif line.startswith("=======") and line.strip() == "=======":
-            in_base = False
-        elif not (in_base or line.startswith(("<<<<<<<", ">>>>>>>"))):
+        if line.startswith("<<<<<<<"):
+            hunk, part = {"ours": [], "base": [], "theirs": []}, "ours"
+        elif hunk is None:
             kept.append(line)
+        elif line.startswith("|||||||"):
+            part = "base"
+        elif line.startswith("=======") and line.strip() == "=======":
+            part = "theirs"
+        elif line.startswith(">>>>>>>"):
+            kept.extend(both_sides(hunk))
+            hunk = None
+        else:
+            hunk[part].append(line)
+    if hunk is not None:  # a conflict with no end: keep what it holds
+        kept.extend(both_sides(hunk))
     with open(path, "w", encoding="utf-8") as f:
         f.writelines(kept)
     git(["add", "--", rel], root)
@@ -426,8 +451,22 @@ def without_open_rebase_stops(stops):
     return [s for s in stops if not (s.get("step") == "rebase" and s.get("answer") is None)]
 
 
+def maker_new_files(root, files):
+    """{file: the command that drops it} for each of `files` the maker added: not in HEAD, so `git checkout`
+    cannot restore it. A file git does not track yet goes with `rm`, a staged one with `git rm -f`."""
+    out = {}
+    for f in files:
+        if subprocess.run(["git", "cat-file", "-e", f"HEAD:{f}"], cwd=root, capture_output=True).returncode == 0:
+            continue
+        tracked = bool(git(["ls-files", "--", f], root).strip())
+        out[f] = f"git rm -f {f}" if tracked else f"rm {f}"
+    return out
+
+
 def rebase_stop(root, slice_id, state, config, fired=None, **checks):
     """Write the stop to the record and exit. Mid-rebase the record is left changed in the tree, not committed."""
+    if checks.get("maker_edited"):
+        checks["maker_new"] = maker_new_files(root, checks["maker_edited"])
     path, data, body = record.load(root, slice_id)
     data["stops"] = state["stops"]  # the record in the tree may be an older copy, replayed with the slice's commits
     data["budget"] = state["budget"]
@@ -530,7 +569,7 @@ def rebase_drive(root, slice_id, state, config):
                 rebase_stop(root, slice_id, state, config, maker_edited=for_person)
             if stuck:
                 rebase_stop(root, slice_id, state, config, stuck=stuck)
-        p = run_git(root, ["rebase", "--continue"], {"GIT_EDITOR": "true"})
+        p = run_git(root, ["-c", "merge.conflictStyle=diff3", "rebase", "--continue"], {"GIT_EDITOR": "true"})
         if p.returncode != 0 and rebase_running(root) and not unmerged(root):
             raise XVError(f"git rebase --continue failed: {(p.stderr or p.stdout).strip()}")
     rebase_finish(root, slice_id, state, config)
@@ -615,7 +654,11 @@ def rebase_finish(root, slice_id, state, config):
         touched = set(git(["log", "--format=", "--name-only", f"{state['onto']}..HEAD"], root).split())
         mine = touched - theirs
         keep = {k: {f: v for f, v in (old_wall.get(k) or {}).items() if f in mine} for k in ("files", "assertions")}
-        for f, (h, n) in wall.hashes_at(root, state["onto"], [f for f in touched & theirs if f in old_wall["files"]]).items():
+        # a file both sides changed is hashed as it was at the baseline, replayed on the new base: the slice's
+        # own red edits to it stay in the hash, and main's edits come in with it (the bare base when the
+        # baseline commit did not replay)
+        at = moved.get(old_wall.get("commit"), state["onto"])
+        for f, (h, n) in wall.hashes_at(root, at, [f for f in touched & theirs if f in old_wall["files"]]).items():
             keep["files"][f], keep["assertions"][f] = h, n
         wall.baseline(root, slice_id, config, keep=keep, skip=[f for f in mine if f not in old_wall["files"]])
     suite, out = run_suite(root, config, state["onto"], slice_id)
@@ -687,7 +730,7 @@ def cmd_slice_rebase(a):
              "stops": data["stops"], "first_stops": data["stops"], "spend": data["spend"], "budget": data.get("budget"),
              "runs": [], "applied": 0, "maker_ran": False, "changed": False, "conflicts": []}
     rebase_state(root, a.id, state)
-    p = run_git(root, ["rebase", "--onto", onto, old_base], {"GIT_EDITOR": "true"})
+    p = run_git(root, ["-c", "merge.conflictStyle=diff3", "rebase", "--onto", onto, old_base], {"GIT_EDITOR": "true"})
     if p.returncode != 0 and not rebase_running(root):
         os.remove(rebase_state_path(root, a.id))
         raise XVError(f"git rebase failed: {(p.stderr or p.stdout).strip()}")

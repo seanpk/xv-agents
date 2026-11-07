@@ -975,6 +975,68 @@ class WallChoicesTest(RepoCase):
         self.assertFalse(self.show(wt)["moved_tests"][0].get("slice_only"))
 
 
+class WallAnswerByFileTest(RepoCase):
+    """#148: two wall recommendations with one test name in different files are answered one by one."""
+
+    RECS = [{"file": "tests/test_a.py", "test": "test_same", "recommend": "stay on the wall", "why": "w"},
+            {"file": "tests/test_b.py", "test": "test_same", "recommend": "stay on the wall", "why": "w"},
+            {"file": "tests/test_b.py", "test": "test_only_here", "recommend": "stay on the wall", "why": "w"}]
+
+    def stopped_on_accept_moves(self):
+        wt = self.new_slice("s1")
+        path = os.path.join(self.tmp, "g.txt")
+        report = {"agent": "guardian", "status": "done", "summary": "p", "shape_change": "no",
+                  "pitch_contradiction": "no", "wall_recommendations": self.RECS}
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
+        self.xv("record", "report", "s1", "guardian", path, cwd=wt)
+        self.xv("record", "stop", "s1", "--order", "accept_moves", "--seat", "originator",
+                "--question", "accept?", "--step", "guardian", cwd=wt)
+        return wt
+
+    def accepted(self, wt):
+        recs = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["wall_recommendations"]
+        return [(r["file"], r["test"]) for r in recs if r["accepted"]]
+
+    def answer(self, wt, *flags, check=True):
+        return self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", *flags, cwd=wt, check=check)
+
+    def test_file_and_test_accepts_only_that_recommendation(self):
+        wt = self.stopped_on_accept_moves()
+        self.answer(wt, "--accept-wall", "tests/test_b.py::test_same")
+        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_same")])
+
+    def test_a_bare_name_two_files_share_is_refused_and_names_the_files(self):
+        wt = self.stopped_on_accept_moves()
+        p = self.answer(wt, "--accept-wall", "test_same", check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("tests/test_a.py::test_same", p.stderr)
+        self.assertIn("tests/test_b.py::test_same", p.stderr)
+
+    def test_a_bare_name_only_one_recommendation_has_is_still_taken(self):
+        wt = self.stopped_on_accept_moves()
+        self.answer(wt, "--accept-wall", "test_only_here")
+        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_only_here")])
+
+    def test_accept_and_refuse_of_the_two_files_answer_them_apart(self):
+        wt = self.stopped_on_accept_moves()
+        self.answer(wt, "--accept-wall", "tests/test_a.py::test_same", "--refuse-wall", "tests/test_b.py::test_same")
+        self.assertEqual(self.accepted(wt), [("tests/test_a.py", "test_same")])
+
+    def test_the_same_file_and_test_in_both_flags_is_refused(self):
+        wt = self.stopped_on_accept_moves()
+        p = self.answer(wt, "--accept-wall", "tests/test_a.py::test_same",
+                        "--refuse-wall", "tests/test_a.py::test_same", check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("both", p.stderr)
+
+    def test_a_file_and_test_with_no_recommendation_is_refused(self):
+        wt = self.stopped_on_accept_moves()
+        p = self.answer(wt, "--accept-wall", "tests/test_c.py::test_same", check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("no wall recommendation", p.stderr)
+
+
 class AcceptWallFlagTest(RepoCase):
     """Sean's second set of amendments to the test-marks slice."""
 
