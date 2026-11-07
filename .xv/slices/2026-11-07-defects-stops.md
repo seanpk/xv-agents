@@ -45,7 +45,10 @@ checks: {}
 
 ## May ignore
 
-The defects-tools items (#147, #148, #154). They have their own slice.
+- Runners other than the 11 that failing_tests reads.
+- Runner output in a language other than English, or words that change when a runner is upgraded. A learnings note covers the upgrade case.
+- A red that hangs or times out.
+- The defects-tools items (#147, #148, #154). They have their own slice.
 
 ## Recording
 
