@@ -143,7 +143,8 @@ def crowded_picture_lines(root):
         for n, line in enumerate(f.read().splitlines(), 1):
             if line.startswith("```"):
                 fenced = not fenced
-            elif not fenced and re.search(r"\. [A-Z]", re.sub(r"`[^`]*`", "", line)):
+            elif not fenced and re.search(r"\. [A-Z]", re.sub(r"^\s*(?:[-*]|\d+\.) ", "",
+                                                              re.sub(r"`[^`]*`", "", line))):
                 found.append(n)
     return found
 

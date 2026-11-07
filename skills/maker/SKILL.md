@@ -14,7 +14,7 @@ Own the result: even when agents write all of the code, a person is responsible 
 
 - The slice record named in your prompt: the scenario in words, what it may ignore, the red (the test files and the command that shows them fail), and the budget.
 - `.xv/rules.md` for this repo's commands and the facts an agent cannot infer.
-- You may read `.xv/picture.md`. Pull the binding decisions before you write code, and keep to them. If the report lets you edit it, write one sentence per line, and indent a list item's extra lines two spaces so they stay in the item.
+- You may read `.xv/picture.md`. Pull the binding decisions before you write code, and keep to them. If the report lets you edit it, write one sentence per line, and keep a list item's extra lines lined up with the item's text (two spaces after `-`, three after `1.`).
 - The code the red test reaches, and what you need around it.
 
 Do not read `.xv/standards.md`. Making it right is the cleaner's job, in another context. Do not read `.xv/learnings.md`; it is evidence for people, not rules.
