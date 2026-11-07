@@ -168,3 +168,7 @@ That may be what Sean wants. If so, nothing changes.
 - Wall: `xv wall diff 2026-11-07-picture-lines`
 - Boundary: `xv boundary --base d87a59c5f565efb6935e7fcffa6fd4ba83ae3b50` (`.xv/slices/2026-11-07-picture-lines.boundary.md`)
 - Red and green: `cd tests && python3 -m unittest test_picture_lines`
+
+## Directed edits after the guardian
+
+- CHANGELOG.md (changelog): directed by Sean Kennedy
