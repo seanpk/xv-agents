@@ -386,7 +386,7 @@ def evaluate(data, after, config):
                         f"answer this stop, and then run `xv prototype start {data['id']}` again, which runs only the "
                         f"variants that have not finished and keeps the rest; or {pick}. The person who set the work "
                         "going answers a budget raise alone; a pick, including none, is for two people unless the "
-                        "repo runs solo. A variant that ran out cannot be picked."))
+                        "repo runs solo. A variant that ran out cannot be picked." + unfinished(data, data["id"])))
 
     if after == "prototype" and checks.get("prototypes_ready") is not None and not ran_out:
         n = checks["prototypes_ready"]
