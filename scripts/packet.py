@@ -132,12 +132,48 @@ def main(argv=None):
     sys.exit(1 if res["problems"] else 0)
 
 
-def packet_checks(path, data):
-    """The packet checks `xv step` and `xv record packet` share: the lint, then the record's count of expected moves.
+def crowded_picture_lines(root):
+    """Line numbers of `.xv/picture.md` that hold more than one sentence. A sentence end is a full stop and a
+    space followed by a capital letter, outside backticks; fenced lines are not read."""
+    path = os.path.join(root, ".xv", "picture.md")
+    if not os.path.exists(path):
+        return []
+    found, fenced = [], False
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for n, line in enumerate(f.read().splitlines(), 1):
+            if line.startswith("```"):
+                fenced = not fenced
+                continue
+            prose = re.sub(r"^\s*(?:[-*]|\d+\.) ", "", re.sub(r"`[^`]*`", "", line))
+            if not fenced and re.search(r"\. [A-Z]", prose):
+                found.append(n)
+    return found
+
+
+def note_crowded_picture_lines(path, root):
+    """Add a note to the packet naming each picture line with more than one sentence. A note, not a stop."""
+    lines = crowded_picture_lines(root)
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    kept = re.sub(r"\n*Note: the picture should hold one sentence per line;[^\n]*\n?", "", text)
+    if lines:
+        kept = kept.rstrip("\n") + ("\n\nNote: the picture should hold one sentence per line; more than one sentence on "
+                                    + ", ".join(f".xv/picture.md:{n}" for n in lines) + ".\n")
+    if kept != text:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(kept)
+    return lines
+
+
+def packet_checks(path, data, root=None):
+    """The packet checks `xv step` and `xv record packet` share: the lint, then the record's count of expected moves,
+    then a note for picture lines that hold more than one sentence.
     Returns what goes into the guardian's checks."""
     lint_result = fix(path)
-    return {"packet_problems": lint_result["problems"] + expected_moves_problems(path, data),
-            "dropped_findings": len(lint_result["dropped"])}
+    problems = lint_result["problems"] + expected_moves_problems(path, data)
+    if root:
+        note_crowded_picture_lines(path, root)
+    return {"packet_problems": problems, "dropped_findings": len(lint_result["dropped"])}
 
 
 def expected_moves_problems(packet, data):

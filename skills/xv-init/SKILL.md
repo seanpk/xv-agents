@@ -68,7 +68,7 @@ The sentence goes under the title of `.xv/pitch.md`, the answers under the headi
 
 Write answers 3 to 7 under their headings in `.xv/picture.md`. Then walk the person through the outsider's draft, section by section, and let them correct it. Settle each place the code and the docs disagree: which one is right, or a question for later.
 
-Keep the picture under two pages. The guardian loads all of it on every slice. The listener reads it for names and flows, and the prototype maker reads it loosely. The maker, the cleaner, the scenario agent and the forecaster do not read it. Where the repo's docs already say more, point to them; do not copy them. Keep in the picture what the guardian needs to check a change: users, shape, names, decisions.
+Write the picture with one sentence per line, so a change to one sentence shows as a change to one line. Keep a list item's extra lines lined up with the item's text (two spaces after `-`, three after `1.`), so they stay in the item. Keep the picture under two pages. The guardian loads all of it on every slice. The listener reads it for names and flows, and the prototype maker reads it loosely. The maker, the cleaner, the scenario agent and the forecaster do not read it. Where the repo's docs already say more, point to them; do not copy them. Keep in the picture what the guardian needs to check a change: users, shape, names, decisions.
 
 When the person has corrected it, set `status: checked` and `checked_by: <name>` in its front matter. Note the time.
 
