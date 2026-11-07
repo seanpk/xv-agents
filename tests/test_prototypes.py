@@ -209,6 +209,14 @@ class PrototypesGitSetupTest(PrototypesTest):
         self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
         self.unfinished_b_is_recorded()
 
+    def test_a_vanished_worktree_is_reported_as_a_missing_working_folder_not_a_missing_agent_cli(self):
+        os.environ["FAKE_GIT_VANISH"] = "b"
+        self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
+        b_section = self.side().split("## b:")[1].split("## c:")[0]
+        self.assertNotIn("agent CLI not found", b_section)
+        self.assertIn("working folder", b_section)
+        self.assertIn("p1-proto-b", b_section)
+
     def test_an_error_that_is_not_an_xverror_records_the_variant_not_finished_with_its_error(self):
         self.block_b_run_log()
         self.xv("prototype", "start", "p1", cwd=self.wt, check=False)

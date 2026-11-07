@@ -16,6 +16,19 @@ from xvlib import XVError
 KNOWN = ("claude", "opencode", "codex", "grok")
 
 
+class RanError(XVError):
+    """The agent ran, and then something failed. `result` keeps what it did, so its spend is not lost."""
+
+    def __init__(self, message, result):
+        super().__init__(message)
+        self.result = result
+
+
+def gone(cwd):
+    """The error for a working folder that is not there: never "agent CLI not found"."""
+    return XVError(f"the working folder is gone: {cwd}")
+
+
 def argv_for(config, agent):
     agents = config.get("agents") or {}
     argv = agents.get(agent) or agents.get("default")
@@ -70,6 +83,8 @@ def run(argv, prompt, cwd, log_path=None, timeout=3600, env=None):
         cmd, stdin = argv, prompt
     # a CLI that reads stdin (codex exec) must see EOF, not the parent's open stdin
     extra = {"input": stdin} if stdin is not None else {"stdin": subprocess.DEVNULL}
+    if cwd and not os.path.isdir(cwd):
+        raise gone(cwd)
     start = time.time()
     try:
         p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True,
@@ -79,17 +94,23 @@ def run(argv, prompt, cwd, log_path=None, timeout=3600, env=None):
         out = e.stdout.decode() if isinstance(e.stdout, bytes) else (e.stdout or "")
         err, code = f"timed out after {timeout}s", 124
     except FileNotFoundError:
+        if cwd and not os.path.isdir(cwd):  # it went between the check and the start
+            raise gone(cwd)
         raise XVError(f"agent CLI not found: {cmd[0]}")
     wall = time.time() - start
+    result = {"argv": [a if a != prompt else "{prompt}" for a in cmd], "stdout": out, "stderr": err,
+              "code": code, "wall_s": round(wall, 1), "harness": harness_of(argv),
+              "model": model_of(argv), "session": session_of(harness_of(argv), out)}
     if log_path:
-        os.makedirs(os.path.dirname(log_path), exist_ok=True)
-        with open(log_path, "w") as f:
-            f.write(out)
-        with open(log_path + ".err", "w") as f:
-            f.write(err)
-    return {"argv": [a if a != prompt else "{prompt}" for a in cmd], "stdout": out, "stderr": err,
-            "code": code, "wall_s": round(wall, 1), "harness": harness_of(argv),
-            "model": model_of(argv), "session": session_of(harness_of(argv), out)}
+        try:
+            os.makedirs(os.path.dirname(log_path), exist_ok=True)
+            with open(log_path, "w") as f:
+                f.write(out)
+            with open(log_path + ".err", "w") as f:
+                f.write(err)
+        except OSError as e:  # the agent has already spent: the caller keeps the result
+            raise RanError(f"the agent ran, and its run log could not be written: {e}", result)
+    return result
 
 
 def session_of(harness, out):

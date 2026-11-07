@@ -55,14 +55,29 @@ def run_one(name, axis, position, slice_id, slice_wt, config, budget, spent, out
     except XVError as e:
         out[name] = {"name": name, "branch": None, "axis_position": position, "error": str(e), "recording": False}
         return
+    ran = {}
     try:
-        out[name] = build_one(name, axis, position, slice_id, root, wt, branch, config, budget, spent)
+        out[name] = build_one(name, axis, position, slice_id, root, wt, branch, config, budget, spent, ran)
     except Exception as e:  # a variant that raises is recorded as not finished, never dropped
-        out[name] = {"name": name, "branch": branch, "axis_position": position, "error": str(e) or repr(e),
-                     "recording": False}
+        entry = {"name": name, "branch": branch, "axis_position": position, "error": str(e) or repr(e),
+                 "recording": False}
+        result = getattr(e, "result", None) or ran.get("result")
+        if result:  # the agent ran before the error: what it spent counts against its budget
+            entry["spend"], entry["session"] = spend_of(result), result.get("session")
+        out[name] = entry
 
 
-def build_one(name, axis, position, slice_id, root, wt, branch, config, budget, spent):
+def spend_of(result):
+    try:
+        return spendlib.from_run(result)
+    except Exception:  # a run whose spend cannot be read still counts as a run, with what is known
+        return {"harness": result.get("harness"), "model": result.get("model"), "usd": None,
+                "wall_s": result.get("wall_s")}
+
+
+def build_one(name, axis, position, slice_id, root, wt, branch, config, budget, spent, ran=None):
+    if not os.path.isdir(wt):  # said as what it is, before the prompt or the agent trips on it
+        raise agentcli.gone(wt)
     rec_dir = f"{XV_DIR}/prototypes/{slice_id}/{name}"
     extra = [f"Your variant: {name}. The axis: {axis}. Your position on it: {position}.",
              f"Write your recording script and `recording.md` under `{rec_dir}/`.",
@@ -74,6 +89,8 @@ def build_one(name, axis, position, slice_id, root, wt, branch, config, budget, 
     log = os.path.join(git(["rev-parse", "--path-format=absolute", "--git-common-dir"], root).strip(),
                        "xv", "runs", slice_id, f"prototype-{name}.out")
     result = agentcli.run(argv, text, wt, log, int(config.get("step_timeout") or 3600))
+    if ran is not None:
+        ran["result"] = result  # from here on the agent has spent, whatever fails next
     report = None
     try:
         report = record.extract_report(result["stdout"])
@@ -180,7 +197,7 @@ def start(slice_id, axis=None, positions=None, serial=False):
             if p.get("error"):
                 lines += ["", f"Not finished: {p['error']}"]
                 body = record.log_line(body, "watch", f"variant {n} not finished: {p['error']}")
-        if p and not p.get("kept") and not p.get("error"):
+        if p and not p.get("kept") and (not p.get("error") or p.get("spend")):
             s = p.get("spend") or {}
             s.update(step=f"prototype-{n}", at=now())
             data["spend"].append(s)
