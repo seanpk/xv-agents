@@ -21,7 +21,7 @@ import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
 import wall  # noqa: E402
 from spend import row_tokens  # noqa: E402
-from suite import run_suite  # noqa: E402
+from suite import failing_tests, in_own_red, own_red_names, run_suite  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, emit, git, load_config, match_any, names_test, now, read_doc, solo,  # noqa: E402
                    record_path, repo_root, slice_root, today, write_doc)
 
@@ -581,8 +581,14 @@ def make_directed_edit(root, path, data, body, stop, edit, who):
             rename_in_record(data, file, *name_change(old, new))
     body = log_line(body, ",".join(who), f"directed a {kind} edit in {file}")
     config = load_config(root)
-    data["suite"], _ = run_suite(root, config, data.get("base"), data.get("id"))
+    data["suite"], suite_out = run_suite(root, config, data.get("base"), data.get("id"))
     step = stop.get("step") or data["next"]
+    if data["suite"] == "red" and step == "scenario":
+        # at the scenario step the slice's own red is meant to fail; only a failure outside it makes the suite red
+        failing = [n for n in failing_tests(suite_out or "") if not n.startswith(("(failures=", "(errors="))]
+        own = own_red_names(root, data, data.get("base"))
+        if failing and all(in_own_red(own, n) for n in failing):
+            data["suite"] = "green"
     # the stop this answer closed, and the ones bundled with it, do not fire again from the packet they came from
     closed = {stop["order"], *(stop.get("bundle") or [])}
     v = orders.verdict(data, step, config, closed=closed)

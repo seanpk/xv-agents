@@ -280,6 +280,7 @@ Drafted from the repo's docs; Sean cut and added on 2026-10-24.
 11. Exit codes are a contract with CI: 10 a person must act, 0 nothing left, 2 an error or a refusal.
     (`docs/decisions.md` 12)
 12. A check whose input is broken or that cannot run stops for a person; it never passes.
+    A red that cannot run is not a failing red: the scenario step stops for the person who set the work going.
     Read-only agents are checked, not trusted.
     (`docs/decisions.md` 13, 51, 78)
 13. Every brief opens with Own the result, keeps the stop line, ends with its may-not list, what it writes to the record, and when to stop, and points to files rather than restating them.
