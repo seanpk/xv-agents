@@ -1047,6 +1047,54 @@ class WallAnswerByFileTest(RepoCase):
         self.assertIn("tests/test_a.py::test_same", p.stderr)
         self.assertIn("tests/test_b.py::test_same", p.stderr)
 
+    def with_files(self, wt):
+        for name, cls in (("test_a.py", "AlphaTest"), ("test_b.py", "BetaTest")):
+            with open(os.path.join(wt, "tests", name), "w") as f:
+                f.write(f"class {cls}:\n    def test_same(self):\n        pass\n    def test_only_here(self):\n        pass\n")
+
+    def test_the_colons_form_names_one_recommendation(self):
+        wt = self.stopped_on_accept_moves()
+        self.with_files(wt)
+        self.answer(wt, "--accept-wall", "tests/test_b.py::BetaTest::test_same")
+        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_same")])
+
+    def test_the_hash_form_names_one_recommendation(self):
+        wt = self.stopped_on_accept_moves()
+        self.with_files(wt)
+        self.answer(wt, "--accept-wall", "BetaTest#test_same")
+        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_same")])
+
+    def test_the_dots_form_names_one_recommendation(self):
+        wt = self.stopped_on_accept_moves()
+        self.with_files(wt)
+        self.answer(wt, "--accept-wall", "tests.test_b.BetaTest.test_same")
+        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_same")])
+
+    def test_the_file_and_class_form_names_one_recommendation(self):
+        wt = self.stopped_on_accept_moves()
+        self.with_files(wt)
+        self.answer(wt, "--accept-wall", "tests/test_b.py::BetaTest.test_same")
+        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_same")])
+
+    def test_the_arrow_form_names_one_recommendation(self):
+        wt = self.stopped_on_accept_moves()
+        self.with_files(wt)
+        self.answer(wt, "--accept-wall", "BetaTest > test_same")
+        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_same")])
+
+    def test_a_class_form_the_file_does_not_have_names_nothing(self):
+        wt = self.stopped_on_accept_moves()
+        self.with_files(wt)
+        p = self.answer(wt, "--accept-wall", "GammaTest#test_same", check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("no wall recommendation", p.stderr)
+
+    def test_an_ambiguous_name_in_the_hash_form_is_still_refused(self):
+        wt = self.stopped_on_accept_moves()
+        p = self.answer(wt, "--refuse-wall", "test_same", check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("tests/test_a.py::test_same", p.stderr)
+
     def test_a_bare_name_only_one_recommendation_has_is_still_taken(self):
         wt = self.stopped_on_accept_moves()
         self.answer(wt, "--accept-wall", "test_only_here")

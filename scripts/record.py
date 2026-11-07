@@ -17,7 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import moves  # noqa: E402
-from names import covers_name_found, joined_unsafely  # noqa: E402
+from names import COVERS_SEPARATOR, covers_name_found, joined_unsafely  # noqa: E402
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
 import wall  # noqa: E402
@@ -438,17 +438,27 @@ def cmd_offer(a):
     save(path, data, body)
 
 
-def wall_matches(recs, spec):
-    """The recommendations a --accept-wall or --refuse-wall value names: a bare test name, or `file::test`
-    when the same name is recommended in more than one file."""
+def wall_matches(recs, spec, root=None):
+    """The recommendations a --accept-wall or --refuse-wall value names: a bare test name, or the same forms the
+    covers check takes (`file::test`, `Class#test`, `module.Class.test`, a path prefix, ` > `). Class and module
+    parts are looked for in the recommendation's file, as the covers check does."""
     named = [r for r in recs if r.get("test") == spec]
-    if not named and "::" in spec:
-        file, test = spec.split("::", 1)
-        named = [r for r in recs if r.get("file") == file and r.get("test") == test]
+    if named:
+        return named
+    last = lambda name: COVERS_SEPARATOR.split(name or "")[-1].strip()
+    for r in recs:
+        if last(r.get("test")) != last(spec):
+            continue
+        text = r.get("test") or ""
+        if root and r.get("file") and os.path.isfile(os.path.join(root, r["file"])):
+            with open(os.path.join(root, r["file"]), encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        if covers_name_found(spec, {r.get("file") or "": text}):
+            named.append(r)
     return named
 
 
-def answer_wall(data, stop, a):
+def answer_wall(data, stop, a, root=None):
     """--accept-wall and --refuse-wall answer an accept_moves stop's wall recommendations, and only that."""
     wall_flags = (("--accept-wall", a.accept_wall), ("--refuse-wall", a.refuse_wall))
     if stop["order"] != "accept_moves":
@@ -461,7 +471,7 @@ def answer_wall(data, stop, a):
     for flag, names in wall_flags:
         picked[flag] = set()
         for t in names or []:
-            found = wall_matches(recs, t)
+            found = wall_matches(recs, t, root)
             if not found:
                 raise XVError(f"{flag} {t}: no wall recommendation names that test")
             if len(found) > 1:
@@ -554,7 +564,7 @@ def cmd_answer(a):
         stop["budget_change"] = {"from": amounts(seen), "to": amounts(data.get("budget"))}
     scribed = [name for name, value in (("settled", settled), ("new_info", a.new_info),
                                         ("cause", a.cause)) if value]
-    answer_wall(data, stop, a)
+    answer_wall(data, stop, a, slice_root(path))
     if "slice_only_marks" in [stop["order"], *(stop.get("bundle") or [])]:
         for m in data.get("slice_only") or []:
             if isinstance(m, dict):
