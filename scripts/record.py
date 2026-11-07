@@ -584,8 +584,7 @@ def make_directed_edit(root, path, data, body, stop, edit, who):
     data["suite"], _ = run_suite(root, config, data.get("base"), data.get("id"))
     step = stop.get("step") or data["next"]
     # the stop this answer closed, and the ones bundled with it, do not fire again from the packet they came from
-    # ready_to_merge is the exception: the edit changes what would be merged, so it asks again
-    closed = {stop["order"], *(stop.get("bundle") or [])} - {"ready_to_merge"}
+    closed = {stop["order"], *(stop.get("bundle") or [])}
     v = orders.verdict(data, step, config, closed=closed)
     body = apply_verdict(data, body, step, v)
     save(path, data, body)
