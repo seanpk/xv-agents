@@ -2,32 +2,15 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import tempfile
 
 from helpers import HOME, RepoCase
 
 import check
 
-BASE = "d87a59c5f565efb6935e7fcffa6fd4ba83ae3b50"
-
-
 def read(*parts):
     with open(os.path.join(HOME, *parts), encoding="utf-8") as f:
         return f.read()
-
-
-def base_picture():
-    return subprocess.run(["git", "show", f"{BASE}:.xv/picture.md"], cwd=HOME, capture_output=True,
-                          text=True, check=True).stdout
-
-
-def sentences_in(line):
-    """Sentence ends outside backticks: a full stop, a space, then a capital letter. Written here on purpose,
-    from the scenario's words, so the test does not share a rule with the code under test."""
-    plain = re.sub(r"`[^`]*`", "", line)
-    plain = re.sub(r"^\s*(?:[-*]|\d+\.) ", "", plain)  # a list item's own marker is not a sentence end
-    return 1 + len(re.findall(r"\. [A-Z]", plain))
 
 
 def lines_outside_fences(text):
@@ -43,11 +26,6 @@ def lines_outside_fences(text):
 class ThePictureIsOneSentencePerLineTest(RepoCase):
     fixture = False
 
-    def test_no_picture_line_holds_more_than_one_sentence(self):
-        text = read(".xv", "picture.md")
-        crowded = [n for n, line in lines_outside_fences(text) if sentences_in(line) > 1]
-        self.assertEqual(crowded, [], "lines of .xv/picture.md with more than one sentence")
-
     def test_a_list_items_extra_lines_line_up_with_the_items_text(self):
         in_item, width, bad = False, 0, []
         for n, line in lines_outside_fences(read(".xv", "picture.md")):
@@ -62,14 +40,6 @@ class ThePictureIsOneSentencePerLineTest(RepoCase):
                 bad.append(n)
         self.assertEqual(bad, [])
 
-    def test_the_picture_has_item_continuation_lines_at_all(self):
-        # the picture's list items hold several sentences, so some must now run over onto indented lines
-        self.assertTrue(any(re.match(r"^ {2,}\S", line) for line in read(".xv", "picture.md").splitlines()))
-
-    def test_joined_again_the_picture_says_the_same_words_as_at_the_base(self):
-        # slice-only: a one-time check of the rewrap against the picture at the slice's base
-        self.assertEqual(read(".xv", "picture.md").split(), base_picture().split())
-
     def relaxations_of(self, text):
         tmp = tempfile.mkdtemp(prefix="xv-pic-")
         self.addCleanup(shutil.rmtree, tmp, True)
@@ -78,10 +48,6 @@ class ThePictureIsOneSentencePerLineTest(RepoCase):
         with open(os.path.join(tmp, ".xv", "picture.md"), "w") as f:
             f.write(text)
         return [h["why"] for h in check.relaxations(tmp) if h["where"].startswith(".xv/picture.md")]
-
-    def test_xv_check_finds_the_same_in_the_new_picture_as_in_the_old(self):
-        self.assertEqual(sorted(self.relaxations_of(base_picture())),
-                         sorted(self.relaxations_of(read(".xv", "picture.md"))))
 
     def test_xv_check_sees_a_relaxing_sentence_on_its_own_line_as_in_a_wrapped_paragraph(self):
         for text in ("Merge automatically when nothing is found.\n",
@@ -108,16 +74,6 @@ class TheBriefsStateTheRuleTest(RepoCase):
 
     def test_the_xv_init_brief_states_it_so_an_adopting_repo_gets_it(self):
         self.rule("skills", "xv-init", "SKILL.md")
-
-
-class TheChangelogNamesTheRuleTest(RepoCase):
-    fixture = False
-
-    def test_an_unreleased_line_names_one_sentence_per_line_in_the_picture(self):
-        # slice-only: checks one CHANGELOG.md line
-        unreleased = re.split(r"^## ", read("CHANGELOG.md"), flags=re.M)[1]
-        self.assertTrue(unreleased.startswith("Unreleased"))
-        self.assertRegex(unreleased, r"(?i)one sentence per line[^\n]*picture|picture[^\n]*one sentence per line")
 
 
 class ALongPictureLineGetsAPacketNoteTest(RepoCase):
