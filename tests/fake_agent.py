@@ -25,6 +25,22 @@ if os.environ.get("FAKE_PROMPT_LOG"):
     with open(os.environ["FAKE_PROMPT_LOG"], "a") as f:
         f.write(prompt + "\n=====\n")
 
+if os.environ.get("FAKE_CWD_LOG"):
+    # where this agent ran: its checkout's HEAD, and whether each probed path is there
+    import subprocess
+    head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    probes = (os.environ.get("FAKE_CWD_PROBE") or "").split()
+    with open(os.environ["FAKE_CWD_LOG"], "a") as f:
+        f.write(json.dumps({"title": title, "cwd": os.getcwd(), "head": head,
+                            "exists": {p: os.path.exists(p) for p in probes},
+                            "texts": {p: open(p).read() for p in probes if os.path.isfile(p)}}) + "\n")
+
+if os.environ.get("FAKE_RECORD_LOG") and sid:
+    # the copy of the slice record this agent can read in its checkout
+    own = os.path.join(".xv", "slices", f"{sid}.md")
+    with open(os.environ["FAKE_RECORD_LOG"], "a") as f:
+        f.write(json.dumps({"title": title, "record": open(own).read() if os.path.exists(own) else None}) + "\n")
+
 if title.startswith("# The maker") and "prototype" not in title and os.environ.get("FAKE_REBASE_MODE"):
     # the maker's rebase job: no store edit, only what the mode says
     mode = os.environ["FAKE_REBASE_MODE"]
@@ -81,6 +97,16 @@ elif title.startswith("# The scenario agent"):
         with open("tests/test_red.py", "a") as f:
             f.write("\n# " + os.environ["FAKE_RED_TEXT"] + "\n")
     red_files = ["tests/test_red.py"]
+    if os.environ.get("FAKE_RED_ADDS_TO_OLD"):
+        # a new test written into the existing test file, right after its last assertion
+        last = '        self.assertEqual([i.name for i in found], ["yogurt"])\n'
+        t = open("tests/test_store.py").read()
+        assert last in t, "tests/test_store.py has no yogurt assertion to write after"
+        t = t.replace(last, last + "\n    def test_milk_today_in_the_store(self):\n"
+                      "        self.store.add(\"milk\", 1, date(2026, 10, 21))\n"
+                      "        self.assertEqual([i.name for i in self.store.expiring(3, date(2026, 10, 21))], [\"milk\"])\n", 1)
+        open("tests/test_store.py", "w").write(t)
+        red_files = ["tests/test_red.py", "tests/test_store.py"]
     if os.environ.get("FAKE_SCENARIO_EDITS_OLD"):
         t = open("tests/test_store.py").read().replace('["yogurt"]', '["yogurt"] or []')
         open("tests/test_store.py", "w").write(t)
@@ -127,6 +153,11 @@ elif title.startswith("# The maker") and "prototype" not in title:
             f.write("# the maker was here\n")
     report(agent="maker", status="green", summary="inclusive start", moved_tests=moves)
 elif title.startswith("# The cleaner"):
+    if os.environ.get("FAKE_CLEANER_COMMITS"):
+        # a cleaner that commits its own fix, so the slice HEAD moves
+        with open("pantry/store.py", "a") as f:
+            f.write("\n# cleaned\n")
+        os.system("git commit -q --no-verify -am 'a cleaner fix'")
     report(agent="cleaner", status="done", summary="nothing to fix", commit=None, applied=[])
 elif title.startswith("# The guardian"):
     packet_path = ".xv/slices/pr-packet.md" if sid == "pr-packet" else f".xv/slices/{sid}.packet.md"

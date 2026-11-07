@@ -156,6 +156,11 @@ def evaluate(data, after, config):
             out.append(fire("scenario_stopped", "originator",
                             f"The red command `{checks['red_joined']}` joins its runners with something other than `&&`, "
                             "so only the last one's exit code counts. The scenario agent will rewrite it, joining the runners with `&&`."))
+        if checks.get("cherry_pick_conflict"):
+            out.append(fire("red_conflicts_with_build", "originator",
+                            "The scenario agent wrote its red at the base, and it does not apply to the build the slice "
+                            "starts from: " + checks["cherry_pick_conflict"]
+                            + " Resolve it by hand, or change the red so it fits the build."))
         if checks.get("old_red_changed"):
             out.append(fire("unrecorded_move", "originator",
                             "The scenario agent changed or removed old tests or assertions in old test files that existed at the base: "
@@ -208,6 +213,10 @@ def evaluate(data, after, config):
             out.append(fire("rebase_dropped", "originator",
                             f"{owner}: the rebase dropped a commit the record names: {', '.join(checks['dropped'])}. "
                             f"Run {resume} to clear it from the record, {undo}."))
+        if checks.get("red_ref"):
+            out.append(fire("rebase_red_ref", "originator",
+                            f"{owner}: the rebase could not move the red ref onto the new base: {checks['red_ref']}. "
+                            f"It stays on the old base. Run {resume} to go on without moving it, {undo}."))
         if checks.get("stuck"):
             out.append(fire("rebase_stuck", "originator",
                             f"{owner}: the maker could not fix a problem the new base brings: {checks['stuck']} "
@@ -391,7 +400,12 @@ def next_step(data, after, stop, fired):
             return "scenario"
         return None if stop["order"] == "ready_to_merge" else after
     back = [f for f in fired if f.get("send_back")]
-    return back[-1]["send_back"]["to"] if back else None
+    if back:
+        return back[-1]["send_back"]["to"]
+    checks = (data.get("checks") or {}).get(after) or {}
+    if after == "scenario" and checks.get("red_fails") is True and (checks.get("red_on_build") or {}).get("passes"):
+        return "cleaner"  # the build already passes the red: nothing for the maker to make
+    return None
 
 
 def verdict(data, after, config):
