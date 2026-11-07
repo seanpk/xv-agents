@@ -36,7 +36,11 @@ Built outside XV's slice process, from main at d87a59c. Covers #147, #148 and #1
 
 For the slice that opens from this build (not edited here): README, the watch/xv-slice/cleaner briefs and the picture need the `build.commit` field, the `file::test` (and other forms) of `--accept-wall` / `--refuse-wall`, `xv land-scenario`, `brief:` names, and the repeating `--ignore`. CHANGELOG, learnings, standards and retro are the slice's.
 
-New open questions: (1) a non-build session-mode slice has no landing step, so a joined red there is kept out but `red_joined` is never set and no stop fires; should `xv record report` set it itself (a flag in the record, not the scratch landing)? (2) A wall form whose path prefix names a different file than the recommendation's could in theory still match by words in the file; ambiguity is still refused, so it fails loud. (3) `--ignore` values are joined by blank lines; Sean may prefer bullets.
+- **Session mode on a slice not from a build, a joined red (answered 2026-11-07).** Answered: `xv record report <id> scenario -` sets `checks.scenario.red_joined` itself (and `red_fails` to null) when the reported red is joined unsafely and the slice has no build, so `xv orders --after scenario` fires `scenario_stopped` as on the CLI path and on a slice from a build. record.py still does not import run.py.
+- **A wall-flag path prefix naming a different file (answered 2026-11-07).** Answered: no change. Ambiguity is still refused, so it fails loud.
+- **Repeated `xv slice new --ignore` (answered 2026-11-07).** Answered: with more than one value, "## May ignore" is a Markdown bullet list (`- <value>`), one per value, in order. A single `--ignore` is a plain paragraph as before. This replaces the blank-line paragraphs above.
+
+No open questions remain from this round.
 
 ## Left for a person
 
@@ -72,6 +76,11 @@ Each was run against the code before the fix and failed there.
 
 Every behaviour test other than those two guards was run against the code before its fix and failed there.
 
+### Tests added on 2026-11-07 (second round)
+
+- `tests/test_from_build.py`: class `SessionScenarioNoBuildJoinedTest`: `test_a_joined_red_sets_red_joined_and_the_stop_fires` (failed before the fix), `test_a_red_joined_with_and_and_is_kept_and_sets_no_red_joined` (guard, passed before).
+- `tests/test_recording.py` (`SliceNewIgnoreRepeatTest`): `test_more_than_one_ignore_is_a_bullet_list_one_per_value_in_order` (failed before the fix); `test_a_single_ignore_works_as_before` now also checks a single value has no bullet.
+
 ## Final suite count
 
-`python3 tests/run.py --jobs 4` ends with OK: Ran 1056 tests (1023 at main d87a59c plus 33 new). After the 2026-11-07 changes: Ran 1068 tests, OK.
+`python3 tests/run.py --jobs 4` ends with OK: Ran 1056 tests (1023 at main d87a59c plus 33 new). After the 2026-11-07 changes: Ran 1068 tests, OK. After the second round: Ran 1071 tests, OK.
