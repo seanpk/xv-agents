@@ -42,7 +42,7 @@ checks: {}
 
 ## May ignore
 
-Retro candidate 1 (when picture edits happen at rebase); decide it after a few rebases on the new picture.
+The other .xv files (learnings.md, rules.md, estimation.md) stay as they are. Pictures in other repos that already use xv. Retro candidate 1 (when picture edits happen at rebase); decide it after a few rebases on the new picture.
 
 ## Recording
 
