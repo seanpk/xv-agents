@@ -156,6 +156,12 @@ def evaluate(data, after, config):
             out.append(fire("scenario_stopped", "originator",
                             f"The red command `{checks['red_joined']}` joins its runners with something other than `&&`, "
                             "so only the last one's exit code counts. The scenario agent will rewrite it, joining the runners with `&&`."))
+        if checks.get("red_cannot_run"):
+            out.append(fire("scenario_stopped", "originator",
+                            "The red command cannot run: it failed before any test ran (" + checks["red_cannot_run"]
+                            + "). That is not a failing red, so the record holds no evidence the red fails for the "
+                            "reasons the scenario names. Fix the command or the test files so the tests run, "
+                            "then run the scenario step again."))
         if checks.get("cherry_pick_conflict"):
             out.append(fire("red_conflicts_with_build", "originator",
                             "The scenario agent wrote its red at the base, and it does not apply to the build the slice "
@@ -408,8 +414,9 @@ def next_step(data, after, stop, fired):
     return None
 
 
-def verdict(data, after, config):
-    fired = evaluate(data, after, config)
+def verdict(data, after, config, closed=()):
+    """What fired after a step. `closed` names orders a person's answer just settled: they do not fire again."""
+    fired = [f for f in evaluate(data, after, config) if f["order"] not in closed]
     from xvlib import solo
     if solo(config):
         for f in fired:

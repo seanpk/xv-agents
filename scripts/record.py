@@ -531,7 +531,7 @@ def cmd_answer(a):
     scribed = [name for name, value in (("settled", settled), ("new_info", a.new_info),
                                         ("cause", a.cause)) if value]
     answer_wall(data, stop, a)
-    if stop["order"] == "slice_only_marks":
+    if "slice_only_marks" in [stop["order"], *(stop.get("bundle") or [])]:
         for m in data.get("slice_only") or []:
             if isinstance(m, dict):
                 m["accepted"] = True
@@ -583,7 +583,10 @@ def make_directed_edit(root, path, data, body, stop, edit, who):
     config = load_config(root)
     data["suite"], _ = run_suite(root, config, data.get("base"), data.get("id"))
     step = stop.get("step") or data["next"]
-    v = orders.verdict(data, step, config)
+    # the stop this answer closed, and the ones bundled with it, do not fire again from the packet they came from
+    # ready_to_merge is the exception: the edit changes what would be merged, so it asks again
+    closed = {stop["order"], *(stop.get("bundle") or [])} - {"ready_to_merge"}
+    v = orders.verdict(data, step, config, closed=closed)
     body = apply_verdict(data, body, step, v)
     save(path, data, body)
     rel = os.path.relpath(path, root)

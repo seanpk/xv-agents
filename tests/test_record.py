@@ -1368,6 +1368,24 @@ class OneHomeRecordTest(RepoCase):
         self.assertEqual([m["test"] for m in self.show(wt)["slice_only"]], ["test_a"])
         self.assertNotIn("slice_only_marks", [f["order"] for f in self.fired(wt)])
 
+    def test_a_bundled_answer_marks_the_slice_only_marks_accepted(self):
+        wt = self.new_slice("s1")
+        self.scenario_reports(wt, self.mark("test_a"))
+        self.xv("record", "stop", "s1", "--order", "scenario_not_red", "--seat", "originator",
+                "--question", "Not red, and marks?", "--step", "scenario", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "accepted both", "--next", "maker",
+                "--bundle", "scenario_not_red,slice_only_marks", cwd=wt)
+        self.assertTrue(all(m.get("accepted") for m in self.show(wt)["slice_only"]))
+        self.assertNotIn("slice_only_marks", [f["order"] for f in self.fired(wt)])
+
+    def test_an_answer_to_another_order_without_the_bundle_leaves_the_marks_unaccepted(self):
+        wt = self.new_slice("s1")
+        self.scenario_reports(wt, self.mark("test_a"))
+        self.xv("record", "stop", "s1", "--order", "scenario_not_red", "--seat", "originator",
+                "--question", "Not red?", "--step", "scenario", cwd=wt)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go on", "--next", "maker", cwd=wt)
+        self.assertFalse(any(m.get("accepted") for m in self.show(wt)["slice_only"]))
+
     def test_a_new_mark_beside_an_accepted_one_is_the_only_one_asked_about(self):
         wt = self.new_slice("s1")
         self.scenario_reports(wt, self.mark("test_a"))
@@ -1597,6 +1615,34 @@ class DirectedEditTest(RepoCase):
         for missing in ("--edit", "--old", "--new", "--kind"):
             with self.subTest(missing=missing):
                 self.refused(*[x for flag, value in pairs if flag != missing for x in (flag, value)])
+
+    def miss_stop_from_packet(self):
+        """A guardian packet that says scenario_miss: yes with an amend: yes miss, and the stop it raises."""
+        path = os.path.join(self.wt, "p.md")
+        with open(path, "w") as f:
+            f.write("---\nslice: s1\nshape_change: no\npitch_contradiction: no\nscenario_miss: yes\n"
+                    "expected_moves: 0\n---\n\n# Packet\n\n## Scenario misses\n\n"
+                    "- Point 2: the scenario itself is wrong, to: maker, amend: yes (evidence: tests/test_red.py:7)\n")
+        report = os.path.join(self.wt, "r.json")
+        with open(report, "w") as f:
+            f.write("```xv-report\n" + json.dumps({"agent": "guardian", "status": "done", "summary": "done"})
+                    + "\n```\n")
+        self.xv("record", "report", "s1", "guardian", report, cwd=self.wt)
+        self.xv("record", "packet", "s1", path, cwd=self.wt, check=False)  # the packet raises the stop itself
+        self.assertEqual([s["order"] for s in self.show()["stops"] if s.get("answer") is None], ["scenario_miss"])
+
+    def test_a_directed_edit_does_not_fire_again_the_stop_its_answer_closed_and_the_next_stands(self):
+        self.miss_stop_from_packet()
+        self.offer(*self.CHANGELOG)
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "narrowed", "--pick", "1",
+                    "--next", "close", cwd=self.wt, check=False)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        data = self.show()
+        self.assertEqual([s["order"] for s in data["stops"]], ["scenario_miss"], "no second stop")
+        self.assertEqual([s for s in data["stops"] if s.get("answer") is None], [])
+        self.assertEqual(data["next"], "close")
+        self.assertEqual(len(self.directed()), 1)
+        self.assertEqual(data["suite"], "green", "checks the edit can change still run")
 
     def test_an_edit_with_no_option_before_it_is_refused(self):
         self.stop()
