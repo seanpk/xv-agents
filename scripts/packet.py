@@ -153,10 +153,15 @@ def crowded_picture_lines(root):
 def note_crowded_picture_lines(path, root):
     """Add a note to the packet naming each picture line with more than one sentence. A note, not a stop."""
     lines = crowded_picture_lines(root)
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    kept = re.sub(r"\n*Note: the picture should hold one sentence per line;[^\n]*\n?", "", text)
     if lines:
-        with open(path, "a", encoding="utf-8") as f:
-            f.write("\nNote: the picture should hold one sentence per line; more than one sentence on "
-                    + ", ".join(f".xv/picture.md:{n}" for n in lines) + ".\n")
+        kept = kept.rstrip("\n") + ("\n\nNote: the picture should hold one sentence per line; more than one sentence on "
+                                    + ", ".join(f".xv/picture.md:{n}" for n in lines) + ".\n")
+    if kept != text:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(kept)
     return lines
 
 
