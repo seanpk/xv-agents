@@ -35,7 +35,7 @@ from names import COVERS_SEPARATOR, covers_name_found, joined_unsafely  # noqa: 
 import record  # noqa: E402
 import spend as spendlib  # noqa: E402
 from suite import failing_tests, in_own_red, own_red_names, run_suite, shell, tests_timeout  # noqa: E402
-from xvlib import (XV_DIR, XVError, die, git, load_config, match_any, now,  # noqa: E402
+from xvlib import (XV_DIR, XVError, die, drop_layer_edits, dropped_line, git, load_config, match_any, now,  # noqa: E402
                    join_front_matter, main_root, record_path, repo_root, slice_root, split_front_matter, today,
                    worktrees_config, worktrees_dir)
 
@@ -234,6 +234,7 @@ def cmd_slice_new(a):
             raise XVError(f"--from {a.from_ref}: no such branch or commit")
     os.makedirs(os.path.dirname(wt), exist_ok=True)
     git(["worktree", "add", "-q", "-b", branch, wt, start], root)
+    dropped = drop_layer_edits(wt, base, start, restore=base) if a.from_ref is not None else []
     trial = is_trial(root)
     if trial:
         copy_layer(root, wt)
@@ -269,6 +270,8 @@ def cmd_slice_new(a):
         # the commit is kept with the ref: a build branch deleted after the slice opens is still the build
         data["build"] = {"kind": "exploration", "ref": a.from_ref, "commit": start}
         data["build_shared"] = "yes" if a.share_build else "no"
+        if dropped:
+            body = record.log_line(body, "watch", dropped_line(dropped))
     if trial:
         data["trial"] = True
     record.save(path, data, body)
@@ -1461,6 +1464,11 @@ def close(slice_id, why=None, shape=None):
     # id and base would otherwise start its first pass from this slice's red
     git(["update-ref", "-d", red_ref(data)], root, check=False)
     drop_session_scratch(root, slice_id)
+    build = data.get("build") if isinstance(data.get("build"), dict) else {}
+    if build.get("kind") == "kept_pick" and build.get("commit"):
+        # xv made the kept branch, and its commits are in the slice branch; a --from ref is the people's, so stays
+        if subprocess.run(["git", "merge-base", "--is-ancestor", build["commit"], "HEAD"], cwd=root).returncode == 0:
+            git(["branch", "-D", build["ref"]], root, check=False)
     failed = run_worktree_command(worktrees_config(config).get("teardown"), root, config)
     if failed:
         command, code, last = failed

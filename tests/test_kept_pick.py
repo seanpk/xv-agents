@@ -195,6 +195,35 @@ class PrototypeBendsTheLayerTest(KeptPickBase):
         self.assertTrue(os.path.exists(os.path.join(self.wt, ".xv", "prototypes", "p1", "b", "recording.md")))
 
 
+    def test_the_log_names_each_project_file_the_build_brought_and_was_dropped(self):
+        self.pick("--keep", check=True)
+        log = open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read()
+        self.assertRegex(log, r"(?m)^.*\.xv/picture\.md.*$")
+        self.assertRegex(log, r"(?i)dropp")
+        self.assertNotIn(".xv/prototypes/p1/b/recording.md", log.split("## Log", 1)[-1].split("dropp", 1)[-1])
+
+
+class AfterTheKeptPickTest(KeptPickBase):
+    def test_a_second_prototype_start_is_refused_and_the_kept_branch_stays(self):
+        self.pick("--keep", check=True)
+        before = open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read()
+        head = sh(["git", "rev-parse", "HEAD"], self.wt).stdout
+        p = self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertRegex(p.stdout + p.stderr, r"(?i)no longer a prototype slice")
+        self.assertEqual(self.branches(), ["xv/p1-proto-b"], "the kept branch was deleted or others came back")
+        self.assertEqual(open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read(), before)
+        self.assertEqual(sh(["git", "rev-parse", "HEAD"], self.wt).stdout, head)
+
+    def test_close_deletes_the_kept_branch_its_commits_are_in_the_slice_branch(self):
+        self.pick("--keep", check=True)
+        commit = self.record()["build"]["commit"]
+        p = self.xv("close", "p1", "--why", "done", cwd=self.wt, check=False)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(self.branches(), [], "the kept branch is still there after close")
+        self.assertTrue(self.is_ancestor(commit, "xv/p1"), "the build is not in the slice branch")
+
+
 class RedOnTheKeptPickTest(KeptPickBase):
     def test_the_scenario_agent_runs_at_the_base_without_the_kept_build(self):
         self.pick("--keep", check=True)
@@ -258,6 +287,20 @@ class KeptPickHasTheFixTest(KeptPickBase):
         data = self.record()
         self.assertIs(data["checks"]["scenario"].get("red_fails"), True, "the red did not fail on the base")
         self.assertEqual(data["next"], "cleaner")
+
+
+class BudgetStopListsUnfinishedTest(unittest.TestCase):
+    def test_the_budget_stop_names_each_variant_that_did_not_finish_and_its_error(self):
+        data = {"id": "p1", "kind": "prototype", "stops": [],
+                "prototypes": [{"name": "a", "branch": "xv/p1-proto-a", "error": None},
+                               {"name": "b", "branch": "xv/p1-proto-b", "error": None},
+                               {"name": "c", "branch": None, "error": "fatal: Unable to create index.lock"}],
+                "prototype_budgets": {n: {"usd": 1} for n in "abc"},
+                "checks": {"prototype": {"prototypes_ready": 1, "ran_out": {"b": "$1.10"}, "ran_during": ["b"]}}}
+        fired = [f for f in orders.evaluate(data, "prototype", DEFAULT_CONFIG) if f["order"] == "prototype_budget_spent"]
+        self.assertEqual(len(fired), 1)
+        self.assertIn("Variant c did not finish: fatal: Unable to create index.lock", fired[0]["question"])
+        self.assertNotIn("Variant a did not finish", fired[0]["question"])
 
 
 class PickStopWordsTest(unittest.TestCase):

@@ -32,7 +32,7 @@ import orders  # noqa: E402
 import prompt as promptlib  # noqa: E402
 import record  # noqa: E402
 import spend as spendlib  # noqa: E402
-from xvlib import (XV_DIR, XVError, die, git, load_config, now, read_doc, record_path,  # noqa: E402
+from xvlib import (XV_DIR, XVError, die, drop_layer_edits, dropped_line, git, load_config, now, read_doc, record_path,  # noqa: E402
                    repo_root, slice_root, today, worktrees_dir)
 
 NAMES = ["a", "b", "c"]
@@ -110,6 +110,9 @@ def start(slice_id, axis=None, positions=None, serial=False):
     root = slice_root(path)
     config = load_config(root)
     data, body = record.load(root, slice_id)[1:]
+    if data.get("kind") != "prototype":  # after the pick: a second start would delete a kept branch
+        raise XVError(f"{slice_id} is no longer a prototype slice (it is {data.get('kind')}), so it builds no "
+                      "more prototypes")
     waiting = [s for s in data["stops"] if s.get("answer") is None]
     if waiting:
         return EXIT_STOP, {"slice": slice_id, "stop": waiting[-1],
@@ -251,7 +254,7 @@ def keep_build(root, config, slice_id, p):
     """Keep the pick's branch as the build this slice starts from, and merge it onto the slice branch.
 
     The variant's work left in its worktree is committed on its branch first. The project layer (`.xv/`) stays
-    as the slice has it, except the pick's own recording folder. Returns the build commit."""
+    as the slice has it, except the pick's own recording folder. Returns the build commit and the project files dropped."""
     name, branch = p["name"], p["branch"]
     wt = os.path.join(worktrees_dir(root, config), f"{slice_id}-proto-{name}")
     if os.path.isdir(wt):
@@ -271,22 +274,15 @@ def keep_build(root, config, slice_id, p):
     if not merging:
         raise XVError(f"prototype {name} does not merge onto the slice branch: "
                       f"{(m.stdout + m.stderr).strip()[-600:]}")
-    base = git(["merge-base", "HEAD", sha], root).strip()
-    own = f"{XV_DIR}/prototypes/{slice_id}/{name}/"
-    layer = [f for f in git(["diff", "--name-only", "-z", base, sha, "--", XV_DIR], root).split("\0")
-             if f and not f.startswith(own)]
-    for f in layer:
-        if subprocess.run(["git", "cat-file", "-e", f"HEAD:{f}"], cwd=root, capture_output=True).returncode == 0:
-            git(["checkout", "HEAD", "--", f], root)
-        else:
-            git(["rm", "-q", "-f", "--ignore-unmatch", "--", f], root)
+    dropped = drop_layer_edits(root, git(["merge-base", "HEAD", sha], root).strip(), sha,
+                               keep=(f"{XV_DIR}/prototypes/{slice_id}/{name}/",))
     left = git(["diff", "--name-only", "--diff-filter=U"], root).split()
     if left:
         subprocess.run(["git", "merge", "--abort"], cwd=root, capture_output=True)
         raise XVError(f"prototype {name} conflicts with the slice branch in {', '.join(left)}; "
                       "pick it without --keep, or resolve it on its branch and pick again")
     git(["commit", "-q", "--no-verify", "-m", f"xv({slice_id}): keep prototype {name} as the build"], root)
-    return sha
+    return sha, dropped
 
 
 def pick(slice_id, variant, by, with_user=None, scenario_file=None, keep=False, share_build=False):
@@ -314,7 +310,7 @@ def pick(slice_id, variant, by, with_user=None, scenario_file=None, keep=False, 
         raise XVError(f"prototype {variant} did not finish: its setup or run failed, and it has nothing to pick")
     if variant != "none" and (variant in ran_out or not picked.get("branch")):
         raise XVError(f"prototype {variant} stopped at its budget and has nothing to pick")
-    build = keep_build(root, config, slice_id, picked) if keep else None
+    build, dropped = keep_build(root, config, slice_id, picked) if keep else (None, [])
     # discard every prototype, the pick too unless it is kept: its branch stays as the build, never its context
     for p in data.get("prototypes") or []:
         wt = os.path.join(worktrees_dir(root, config), f"{slice_id}-proto-{p['name']}")
@@ -344,6 +340,8 @@ def pick(slice_id, variant, by, with_user=None, scenario_file=None, keep=False, 
         body = body.replace(f"## Scenario\n\n{old}", f"## Scenario\n\n{restated}", 1)
         kept = ", kept as the build" if build else ""
         body = record.log_line(body, ",".join(who), f"picked {variant}{kept}; scenario restated (was: {old})")
+        if dropped:
+            body = record.log_line(body, "watch", dropped_line(dropped))
         data["kind"], data["status"], data["next"] = "feature", "working", "forecaster"
         if build:
             data["build"] = {"kind": "kept_pick", "ref": picked["branch"], "variant": variant, "commit": build}

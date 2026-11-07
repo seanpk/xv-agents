@@ -282,6 +282,26 @@ def git(args, cwd, check=True):
     return run(["git"] + args, cwd=cwd, check=check).stdout
 
 
+def drop_layer_edits(root, since, build, restore="HEAD", keep=()):
+    """Set every `.xv/` file the build changed since `since` back to its copy at `restore`, in `root`'s index and
+    tree, and return the files dropped. A file the build added is removed. Files under a `keep` prefix stay.
+
+    Decision 78: the files people own change only through people, and a build is not a step that checks them."""
+    changed = git(["diff", "--name-only", "-z", since, build, "--", XV_DIR], root).split("\0")
+    dropped = [f for f in changed if f and not f.startswith(tuple(keep))]
+    for f in dropped:
+        if run(["git", "cat-file", "-e", f"{restore}:{f}"], cwd=root, check=False).returncode == 0:
+            git(["checkout", restore, "--", f], root)
+        else:
+            git(["rm", "-q", "-f", "--ignore-unmatch", "--", f], root)
+    return dropped
+
+
+def dropped_line(dropped):
+    """The slice log's words for the project files a build brought and the slice did not keep."""
+    return "dropped from the build, which may not change the files people own: " + ", ".join(dropped)
+
+
 def repo_root(start=None):
     p = run(["git", "rev-parse", "--show-toplevel"], cwd=start or os.getcwd(), check=False)
     if p.returncode != 0:
