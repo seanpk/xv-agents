@@ -48,6 +48,32 @@ def sent_back(data, order, after):
             and earlier(st) for k in st.get("keys") or []}
 
 
+def miss_run(data, order, after):
+    """For each key, how many send-backs of this order in a row end at the report now being read.
+    A pass that did not miss the key, an amendment, or a person's answer ends the run."""
+    here = report_index(data, after)
+    stops = data.get("stops") or []
+    # a person's answer is the last stop they answered, by its place in the list
+    answered = max([i for i, s in enumerate(stops) if s.get("answered_by") and s.get("answered_by") != ["watch"]],
+                   default=-1)
+    amended = data.get("amended_at_report") or 0
+    mine = [st for i, st in enumerate(stops) if st.get("order") == order and st.get("seat") == "watch"
+            and (st.get("report_n") is None or (st["report_n"] >= amended and (here is None or st["report_n"] < here)))
+            and i > answered]
+    out = {}
+    for key in {k for st in mine for k in st.get("keys") or []}:
+        n, expected = 0, None if here is None else here - 1
+        for st in reversed(mine):
+            at = st.get("report_n")
+            if key not in (st.get("keys") or []) or (expected is not None and at is not None and at != expected):
+                break
+            n += 1
+            if at is not None:
+                expected = at - 1
+        out[key] = n
+    return out
+
+
 def report_index(data, step):
     """Where the last report of `step` sits among the record's reports, or None."""
     reports = (data.get("checks") or {}).get("reports", [])
@@ -149,9 +175,10 @@ def evaluate(data, after, config):
             out.append(fire("red_misses_scenario", "originator",
                             f"The scenario agent did not cover {n.get('item')}: {n.get('why')}"))
         points = [str(p) for p in checks.get("missed_points") or []]
-        if set(points) & sent_back(data, "red_misses_point", after):
+        run = miss_run(data, "red_misses_point", after)
+        if any(run.get(p, 0) >= 2 for p in points):
             out.append(fire("red_misses_point", "originator",
-                            "The same scenario points are still in neither covers nor not_covered after a send-back: "
+                            "The same scenario points are still in neither covers nor not_covered after two send-backs: "
                             + "; ".join(points) + ". " + STALL_CHOICES))
         if checks.get("red_fails") is False:
             out.append(fire("scenario_not_red", "originator",
@@ -343,7 +370,10 @@ def evaluate(data, after, config):
         if after == "scenario" and checks.get("missed_points"):
             points = sorted({str(p) for p in checks["missed_points"]})
             out.append(fire("red_misses_point", "watch",
-                            "These points are in neither covers nor not_covered: " + "; ".join(points),
+                            "These points are in neither covers nor not_covered; put each in `covers` or `not_covered` "
+                            "as the item shown: " + "; ".join(points) + ". Every point of the scenario and its "
+                            "amendments goes in `covers` or `not_covered` on each pass, not only the points of the "
+                            "newest amendment.",
                             blocking=False, send_back={"to": "scenario", "misses": points}))
         elif after == "guardian" and data.get("scenario_miss") == "yes" and checks.get("misses"):
             found = checks["misses"]

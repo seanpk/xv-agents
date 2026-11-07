@@ -267,6 +267,7 @@ def cmd_slice_amend(a):
     body = body[:at].rstrip("\n") + note + body[at:]
     data["red"] = None
     data["next"] = "scenario"
+    data["amended_at_report"] = len((data.get("checks") or {}).get("reports") or [])
     body = record.log_line(body, a.by, "amended the scenario")
     record.save(path, data, body)
 
@@ -864,7 +865,9 @@ def post_step(agent, root, data, config, head_before, pre, report):
             checks["old_red_unchecked"] = ("The check for changes to old test files that existed at the base could not run: "
                                            "the record has no base, or the wall module did not load.")
         checks["red_gaps"] = scenario_red_gaps(root, data, red)
-        report = with_kept_covers(report, (data.get("checks", {}).get("scenario") or {}).get("covers_kept"))
+        # coverage stays across a send-back; a pass that went on to the maker ended the run, so it starts again
+        report = with_kept_covers(report, (data.get("checks", {}).get("scenario") or {}).get("covers_kept")
+                                  if data.get("next") != "maker" else None)
         checks["covers_kept"] = [c for c in report.get("covers") or []
                                  if isinstance(c, dict) and c.get("item") and covers_names(c.get("test"))]
         checks["unreadable"] = unreadable_input(root, data, report)
@@ -921,7 +924,7 @@ POINT = re.compile(r"^\s*(\d+)\.\s+(\S.*)$", re.M)
 
 
 def norm(text):
-    return " ".join(str(text).lower().split())
+    return " ".join(re.sub(r"[`*_]", "", str(text)).lower().split())
 
 
 def with_kept_covers(report, kept):
