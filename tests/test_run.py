@@ -1903,10 +1903,55 @@ class RedCannotRunTest(WatchLoopSetup):
                                              "Interrupted: 1 error during collection"]), "error during collection")
 
 
-for _i, (_what, _lines) in enumerate(sorted(CANNOT_RUN.items())):
-    def _case(self, lines=_lines):
+    # 2. the runner words of each of the 11 runners, one plain test per sample
+    def assert_runner_words_stop(self, what):
+        lines = CANNOT_RUN[what]
         self.assert_cannot_run(_red_command(lines), lines[0])
-    setattr(RedCannotRunTest, "test_runner_words_stop_%02d_%s" % (_i, re.sub(r"\W+", "_", _what)), _case)
+
+    def test_runner_words_stop_00_cargo_a_crate_that_does_not_build(self):
+        self.assert_runner_words_stop("cargo, a crate that does not build")
+
+    def test_runner_words_stop_01_go_a_package_that_does_not_build(self):
+        self.assert_runner_words_stop("go, a package that does not build")
+
+    def test_runner_words_stop_02_jasmine_no_specs(self):
+        self.assert_runner_words_stop("jasmine, no specs")
+
+    def test_runner_words_stop_03_jest_a_suite_that_cannot_load(self):
+        self.assert_runner_words_stop("jest, a suite that cannot load")
+
+    def test_runner_words_stop_04_jest_no_tests(self):
+        self.assert_runner_words_stop("jest, no tests")
+
+    def test_runner_words_stop_05_minitest_a_file_that_cannot_load(self):
+        self.assert_runner_words_stop("minitest, a file that cannot load")
+
+    def test_runner_words_stop_06_minitest_no_tests(self):
+        self.assert_runner_words_stop("minitest, no tests")
+
+    def test_runner_words_stop_07_mocha_no_tests(self):
+        self.assert_runner_words_stop("mocha, no tests")
+
+    def test_runner_words_stop_08_playwright_no_tests(self):
+        self.assert_runner_words_stop("playwright, no tests")
+
+    def test_runner_words_stop_09_pytest_a_file_that_cannot_load(self):
+        self.assert_runner_words_stop("pytest, a file that cannot load")
+
+    def test_runner_words_stop_10_pytest_no_tests(self):
+        self.assert_runner_words_stop("pytest, no tests")
+
+    def test_runner_words_stop_11_rspec_a_file_that_cannot_load(self):
+        self.assert_runner_words_stop("rspec, a file that cannot load")
+
+    def test_runner_words_stop_12_unittest_a_file_that_cannot_load(self):
+        self.assert_runner_words_stop("unittest, a file that cannot load")
+
+    def test_runner_words_stop_13_unittest_no_tests(self):
+        self.assert_runner_words_stop("unittest, no tests")
+
+    def test_runner_words_stop_14_vitest_no_tests(self):
+        self.assert_runner_words_stop("vitest, no tests")
 
 
 class AnsweredStopStaysAnsweredTest(WatchLoopSetup):
