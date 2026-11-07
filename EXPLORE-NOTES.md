@@ -132,4 +132,4 @@ Round 1:
 
 ## Suite
 
-`python3 tests/run.py --jobs 4` ends with `Ran 1051 tests in shard 1/1` and `OK`: main's 1023 plus 28 new tests (6 + 1 + 21).
+`python3 tests/run.py --jobs 4` ends with `Ran 1060 tests in shard 1/1` and `OK`: main's 1023 plus 37 new tests (28 in round 1, 9 in round 2).
