@@ -51,5 +51,26 @@ class RedFromRecordingTest(RepoCase):
             server.wait()
 
 
+class SliceNewMissingFileTest(RepoCase):
+    """#154 item 6: a path that is not a file is refused before the worktree and the branch are made."""
+
+    def assert_nothing_left(self, flag):
+        missing = os.path.join(self.tmp, "no-such-file")
+        p = self.xv("slice", "new", "s1", "--by", "pat", "--scenario", "The household sees X.",
+                    flag, missing, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("no such file", p.stderr)
+        self.assertNotIn("Traceback", p.stderr)
+        self.assertNotIn("xv/s1", sh(["git", "branch", "--list"], self.repo).stdout)
+        self.assertEqual(len(sh(["git", "worktree", "list"], self.repo).stdout.strip().splitlines()), 1)
+        self.assertFalse(os.path.exists(os.path.join(self.repo, ".xv", "worktrees", "s1")))
+
+    def test_a_missing_recording_path_makes_no_worktree_and_no_branch(self):
+        self.assert_nothing_left("--recording")
+
+    def test_a_missing_scenario_file_makes_no_worktree_and_no_branch(self):
+        self.assert_nothing_left("--scenario-file")
+
+
 if __name__ == "__main__":
     unittest.main()

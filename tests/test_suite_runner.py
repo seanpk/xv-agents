@@ -139,6 +139,25 @@ class RunnerTest(RunnerCase):
         self.assertRegex(p.stdout + p.stderr,
                          r"(?m)^FAIL: test_five \(test_b\.TestBCase(\.test_five)?\)")
 
+    def test_a_test_file_that_gives_no_test_fails_the_run_and_is_named(self):
+        self.write()
+        with open(os.path.join(self.tmp, "test_empty.py"), "w") as f:
+            f.write("import unittest\n\n\nclass Helper(unittest.TestCase):\n    pass\n")
+        p = self.launch("--shard", "1/1", "--jobs", "2")
+        self.assertNotEqual(p.returncode, 0, p.stdout)
+        self.assertIn("test_empty.py", p.stdout)
+        self.assertNotIn("\nOK", p.stdout)
+
+    def test_a_worker_that_exits_early_with_zero_fails_the_run(self):
+        self.suite["test_quit"] = ["quits"]
+        self.write()
+        with open(os.path.join(self.tmp, "test_quit.py"), "w") as f:
+            f.write("import os\nimport unittest\n\n\nclass QuitCase(unittest.TestCase):\n"
+                    "    def test_quits(self):\n        os._exit(0)\n")
+        p = self.launch("--shard", "1/1", "--jobs", "1")
+        self.assertNotEqual(p.returncode, 0, p.stdout)
+        self.assertRegex(p.stdout, r"\d+ tests were collected for this shard and \d+ ran")
+
     def test_a_passing_run_names_no_failure(self):
         p, _ = self.run_runner("--shard", "1/1", "--jobs", "2")
         self.assertEqual(p.returncode, 0, p.stderr + p.stdout)

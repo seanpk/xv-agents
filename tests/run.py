@@ -5,7 +5,9 @@ processes at the same time. The output is unittest's, so a failure reads `FAIL: 
 Exits non-zero if any test fails.
 """
 import argparse
+import glob
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -27,6 +29,13 @@ def collect():
     return sorted(set(t.id() for t in walk(suite)))
 
 
+def files_with_no_tests(ids):
+    """The test files in this folder that gave no test id: a file that was dropped, not one that passed."""
+    modules = {i.split(".")[0] for i in ids}
+    return sorted(os.path.basename(f) for f in glob.glob(os.path.join(HERE, "test_*.py"))
+                  if os.path.basename(f)[:-3] not in modules)
+
+
 def run_ids(path):
     with open(path) as f:
         ids = f.read().split()
@@ -46,7 +55,13 @@ def main(argv):
     i, n = (int(x) for x in a.shard.split("/"))
     if not 1 <= i <= n or a.jobs < 1:
         p.error("--shard needs 1 <= i <= n and --jobs needs at least 1")
-    mine = collect()[i - 1::n]
+    every = collect()
+    missing = files_with_no_tests(every)
+    if missing:
+        print("FAIL: no tests were collected from " + ", ".join(missing) + ": the runner dropped the file")
+        print("FAILED")
+        return 1
+    mine = every[i - 1::n]
     chunks = [c for c in (mine[k::a.jobs] for k in range(a.jobs)) if c]
     procs = []
     with tempfile.TemporaryDirectory(prefix="xv-run-") as tmp:
@@ -58,12 +73,17 @@ def main(argv):
             procs.append((subprocess.Popen(
                 [sys.executable, os.path.abspath(__file__), "--run-ids", path],
                 cwd=HERE, stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL), out))
-        failed = False
+        failed, ran = False, 0
         for proc, out in procs:
             failed |= proc.wait() != 0
             out.seek(0)
-            sys.stdout.write(out.read())
+            text = out.read()
+            ran += sum(int(m) for m in re.findall(r"^Ran (\d+) tests? in ", text, re.M))
+            sys.stdout.write(text)
             out.close()
+    if ran != len(mine):
+        print("FAIL: %d tests were collected for this shard and %d ran" % (len(mine), ran))
+        failed = True
     print("Ran %d tests in shard %d/%d" % (len(mine), i, n))
     print("FAILED" if failed else "OK")
     return 1 if failed else 0
