@@ -12,6 +12,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -720,6 +721,26 @@ def apply_report(data, body, agent, text):
     return log_line(body, agent, f"{report.get('status', '?')}: {report.get('summary', '')}"), report
 
 
+def has_build(data):
+    return isinstance(data.get("build"), dict)
+
+
+def build_commit(root, data):
+    return git(["rev-parse", data["build"]["ref"] + "^{commit}"], root).strip()
+
+
+def wall_for_build(root, data, res):
+    if has_build(data) and res.get("unrecorded"):
+        # the build's own change to a test file stops once: a person has answered, and the file is still as the build left it
+        asked = " ".join(s.get("question") or "" for s in data["stops"]
+                         if s.get("order") == "unrecorded_move" and s.get("answer") is not None)
+        build = build_commit(root, data)
+        res["unrecorded"] = [f for f in res["unrecorded"] if f not in asked or
+                             subprocess.run(["git", "diff", "--quiet", build, "--", f], cwd=root).returncode != 0]
+        res["ok"] = not res["unrecorded"]
+    return res
+
+
 def expected_moves(root, data, config):
     """Record the moves the slice expects; the wall reads the record from disk, so it is saved first."""
     if not data.get("expect_moves"):
@@ -739,7 +760,8 @@ def cmd_report(a):
         root = repo_root()
         config = load_config(slice_root(path))
         expected_moves(root, data, config)
-        data["checks"].setdefault(a.agent, {})["wall"] = wall.check_or_note(root, data["id"], config)
+        data["checks"].setdefault(a.agent, {})["wall"] = wall_for_build(
+            root, data, wall.check_or_note(root, data["id"], config))
         save(path, data, body)
     emit(report or {"agent": a.agent, "status": "no-report"}, True)
 

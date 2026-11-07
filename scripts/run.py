@@ -758,14 +758,14 @@ def step(agent, slice_id, review_again=False):
 
     if (config.get("agents") or {}).get(agent) == "session":
         where = ""
-        if agent == "scenario" and has_build(data):
+        if agent == "scenario" and record.has_build(data):
             where = f" (write the red in {scenario_scratch(root, data, config)}, a checkout at the base with no build)"
         raise XVError(f"{agent} runs in the session{where}: use `xv prompt {agent} {slice_id}`, then "
                       f"`xv record report {slice_id} {agent} -` and `xv orders {slice_id} --after {agent}`")
 
     head_before = git(["rev-parse", "HEAD"], root).strip()
     pre = pre_step(agent, root, data, config)
-    scratch = scenario_scratch(root, data, config) if agent == "scenario" and has_build(data) else None
+    scratch = scenario_scratch(root, data, config) if agent == "scenario" and record.has_build(data) else None
     extra = None
     if scratch and data.get("build_shared") == "yes":
         extra = [f"The build is at `{data['build']['ref']}`, a reference only: the red tests what the scenario says, "
@@ -834,10 +834,6 @@ def accept_listed_marks(data, body, config):
     return body
 
 
-def has_build(data):
-    return isinstance(data.get("build"), dict)
-
-
 def drop_scratch(root, scratch):
     subprocess.run(["git", "worktree", "remove", "--force", scratch], cwd=root, capture_output=True)
     shutil.rmtree(scratch, ignore_errors=True)
@@ -891,10 +887,6 @@ def off_the_base(root, data, token):
                        capture_output=True, text=True)
     return p.returncode == 0 and subprocess.run(
         ["git", "merge-base", "--is-ancestor", p.stdout.strip(), data["base"]], cwd=root).returncode != 0
-
-
-def build_commit(root, data):
-    return git(["rev-parse", data["build"]["ref"] + "^{commit}"], root).strip()
 
 
 def land_scratch(root, scratch, data, config, report):
@@ -1046,7 +1038,7 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         checks["diff_history"] = (before.get("diff_history") or []) + [checks["diff_lines"]]
         import wall
         record.expected_moves(root, data, config)
-        checks["wall"] = wall_for_build(root, data, wall.check_or_note(root, data["id"], config))
+        checks["wall"] = record.wall_for_build(root, data, wall.check_or_note(root, data["id"], config))
     if agent == "cleaner":
         sp = os.path.join(root, XV_DIR, "standards.md")
         now_text = open(sp).read() if os.path.exists(sp) else None
@@ -1330,18 +1322,6 @@ def wall_baseline(root, data, config):
     except ImportError:
         return None
     return wall.baseline(root, data["id"], config)
-
-
-def wall_for_build(root, data, res):
-    if has_build(data) and res.get("unrecorded"):
-        # the build's own change to a test file stops once: a person has answered, and the file is still as the build left it
-        asked = " ".join(s.get("question") or "" for s in data["stops"]
-                         if s.get("order") == "unrecorded_move" and s.get("answer") is not None)
-        build = build_commit(root, data)
-        res["unrecorded"] = [f for f in res["unrecorded"] if f not in asked or
-                             subprocess.run(["git", "diff", "--quiet", build, "--", f], cwd=root).returncode != 0]
-        res["ok"] = not res["unrecorded"]
-    return res
 
 
 def boundary(root, data):
