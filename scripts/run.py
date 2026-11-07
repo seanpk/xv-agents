@@ -34,7 +34,7 @@ import prompt as promptlib  # noqa: E402
 import record  # noqa: E402
 import spend as spendlib  # noqa: E402
 from suite import failing_tests, in_own_red, own_red_names, run_suite, shell, tests_timeout  # noqa: E402
-from xvlib import (XV_DIR, XVError, die, git, load_config, match_any, names_test, now,  # noqa: E402
+from xvlib import (XV_DIR, XVError, die, git, load_config, match_any, now,  # noqa: E402
                    join_front_matter, main_root, record_path, repo_root, slice_root, split_front_matter, today,
                    worktrees_config, worktrees_dir)
 

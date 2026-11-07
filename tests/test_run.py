@@ -2045,14 +2045,6 @@ class DefectsStopsDocsTest(unittest.TestCase):
         self.assertRegex(text[start:end], r"(?i)red")
         self.assertRegex(text[start:end], r"(?i)cannot run|can't run|could not run")
 
-    def test_the_changelog_names_the_new_stop_and_the_two_fixes(self):  # slice-only
-        text = self.read("CHANGELOG.md")
-        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        lines = [ln for ln in unreleased.splitlines() if "red_cannot_run" in ln]
-        self.assertEqual(len(lines), 1, "one Unreleased line names red_cannot_run")
-        self.assertRegex(lines[0], r"(?i)slice_only_marks")
-        self.assertRegex(lines[0], r"(?i)directed edit")
-
 
 if __name__ == "__main__":
     unittest.main()
