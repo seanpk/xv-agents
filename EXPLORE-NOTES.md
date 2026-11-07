@@ -46,6 +46,12 @@ An exploration build for #117 (the kept-pick half) and #121, made outside XV's s
 6. **`prototype_budget_spent` (G6).** Lists each unfinished variant and its error, with `orders.unfinished`, as `prototypes_ready` does.
 7. **Spend lost in `xv step` when a run log cannot be written (G7).** Ignore it: too rare to file. No issue, no code.
 
+Round 3 (Sean's answers to the three open questions):
+
+8. **The dropped-files log line.** A list of file names is enough. The line now also names the build commit (short hash) the dropped content lives in: "dropped from the build, which may not change the files people own: <files> (the build's copy: `git show <hash>:<file>`)". Both paths pass the commit to `xvlib.dropped_line(dropped, commit)`: the recorded pick commit for the kept pick, the resolved `--from` commit for `xv slice new --from`.
+9. **A base that moved on.** A file is named as dropped only when the build changed it since the merge-base of the build and the base. `xvlib.drop_layer_edits` now restores every `.xv/` file that differs between the base and the build (so the tree is right), but returns, and so names, only the files in the diff from the merge-base. A file that differs only because the base moved on takes the base's copy with no log line. `xv slice new --from` passes `git merge-base <base> <build>` as `since`. Kept pick: the same case (a prototype branch behind the slice branch on `.xv/`) can arise, since people may commit to `.xv/` on the slice branch while the prototypes build. It was already handled there: the kept pick always compared with `git merge-base HEAD <pick>`, and a merge keeps the slice branch's copy of a file only it changed. So no code change; a guard test shows it.
+10. **Pick `none`.** Stays `kind: prototype`, and `xv prototype start` still runs on it. Kept; a guard test added (none existed).
+
 ## Draft for G1: the prototype brief (`skills/maker/prototype.md`)
 
 Two sentences go. Nothing is added that says the version may be kept.
@@ -88,11 +94,22 @@ Other lines that will need to change (not edited here):
 
 ## New open questions
 
-- The dropped-files log line is a `watch` entry in the slice log. If a person later needs the diff of a dropped file, it is in the build's own commits, not in the record. Is the file list enough?
-- `drop_layer_edits` compares the base with the build ref. A `--from` ref that is behind the base on `.xv/` (the base moved on) has those files reverted to the base's copy and named in the log, as "dropped", though the build did not change them. This is the right tree, but the log wording says the build brought them. Fine, or say "differs from the base"?
-- A prototype slice picked as `none` stays `kind: prototype`, so `xv prototype start` still runs on it. That seems right (the exploration may go on) but was not asked.
+- A `.xv/` file the build changed and the base changed too (both moved) is named as dropped and takes the base's copy. The log says the build's copy is in the commit, but not that the base also changed it. Enough?
+- The kept pick restores `.xv/` files by diffing the slice branch with the pick (merge in progress), so a file the slice branch changed and the prototype did not is restored to the same copy, a no-op. Nothing to decide, but the picture should say it compares with the merge-base only for the names.
 
 ## Tests added
+
+Round 3 (red before the fix, run on the round-2 code: the four behaviour tests failed; the two guards passed):
+
+`tests/test_from_build.py`:
+- `ProjectLayerFromBuildTest.test_the_log_line_names_the_build_commit_the_dropped_content_lives_in` (red: no hash in the line)
+- `BaseMovedOnFromBuildTest.test_a_file_the_base_changed_takes_the_bases_copy_and_is_not_named` (red: the moved file was named)
+- `BaseMovedOnFromBuildTest.test_a_build_that_changed_no_project_file_logs_no_drop_though_the_base_moved` (red: a drop line was logged)
+
+`tests/test_kept_pick.py`:
+- `KeptPickLogNamesTheCommitTest.test_the_log_line_names_the_build_commit_the_dropped_content_lives_in` (red: no hash)
+- guard: `SliceMovedOnBeforeTheKeptPickTest.test_a_project_file_only_the_slice_branch_changed_is_kept_and_not_named` (passes before and after)
+- guard: `PickNoneGuardTest.test_a_pick_of_none_stays_a_prototype_slice_and_start_still_runs_on_it` (passes before and after)
 
 Round 2 (all fail on the code before the fix unless marked as a guard):
 
@@ -132,4 +149,4 @@ Round 1:
 
 ## Suite
 
-`python3 tests/run.py --jobs 4` ends with `Ran 1060 tests in shard 1/1` and `OK`: main's 1023 plus 37 new tests (28 in round 1, 9 in round 2).
+`python3 tests/run.py --jobs 4` ends with `Ran 1066 tests in shard 1/1` and `OK`: main's 1023 plus 43 new tests (28 in round 1, 9 in round 2, 6 in round 3).
