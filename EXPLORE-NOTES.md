@@ -36,15 +36,78 @@ An exploration build for #117 (the kept-pick half) and #121, made outside XV's s
 6. **`--share-build` on the pick**, mirroring `xv slice new --share-build`, was cheap to add.
 7. **The blind copy drops `prototypes` for every unshared build**, not only kept picks. For an exploration that list is empty anyway.
 
-## Open questions for the person
+## Answered by Sean (2026-11-07)
 
-- The prototype brief (`skills/maker/prototype.md`) still says "Your version is discarded when the pick is made, whichever it is" and "Nothing you write is a candidate for the main line." With a kept pick, the first is no longer always true. That is a brief change (binding decision 1: two people and a CHANGELOG line), so I left it alone. Should the prototype agent be told its version may be kept? Being told might change how it builds.
-- `xv prototype start` still runs on a slice whose pick was made, and it would delete the kept branch (`git branch -D`). Should it refuse once `kind` is no longer `prototype`?
-- The `prototypes_ready` question changed, and so did the watch brief: a CHANGELOG line is owed. Do the README, `docs/decisions.md` decision 71 ("every prototype is discarded at the pick") and the picture's `build` line change in the slice? I did not edit them; they are outside this build's allowed edits.
-- `prototype_budget_spent` does not list unfinished variants; only `prototypes_ready` does, as the #117 comment asked. Should it list them too?
-- `agentcli.RanError` is caught only in the prototype path. `xv step` would still lose the spend of an agent whose run log could not be written. That is outside #121's scope; does it need its own issue?
+1. **Brief (G1).** Do not tell the prototype agent its version may be kept. Remove only the words that became untrue, and say that people pick on how it feels in use, not on the code. Not applied here (a brief change); the exact sentences are under "Draft for G1" below.
+2. **`xv prototype start` after the pick (G2).** It refuses once `kind` is no longer `prototype`: "<id> is no longer a prototype slice (it is feature), so it builds no more prototypes". It changes nothing, so it can never delete a kept branch (`prototypes.start`).
+3. **`.xv/` edits from a build (G3).** Both build paths drop them, and the slice log names each dropped file ("dropped from the build, which may not change the files people own: ..."). Kept pick: as before, except the prototype's own `.xv/prototypes/<id>/<v>/` folder, which stays; the log line is new. `xv slice new --from <ref>`: new. Every `.xv/` file that differs between the base and the build ref is set back to the base's copy (a file the build added is removed), before the slice's own record is written, so the record files `xv slice new` writes are kept. Both paths use one function, `xvlib.drop_layer_edits` (and `xvlib.dropped_line` for the words). Reason: decision 78.
+4. **Kept branch at close (G4).** `xv close` deletes `xv/<id>-proto-<v>` when the build is a kept pick and its recorded commit is already in the slice branch. A `--from` ref is never deleted.
+5. **Decision 71 (G5).** Replaced by a new decision. Draft under "Draft for G5" below. Not applied (docs/ is outside this build).
+6. **`prototype_budget_spent` (G6).** Lists each unfinished variant and its error, with `orders.unfinished`, as `prototypes_ready` does.
+7. **Spend lost in `xv step` when a run log cannot be written (G7).** Ignore it: too rare to file. No issue, no code.
+
+## Draft for G1: the prototype brief (`skills/maker/prototype.md`)
+
+Two sentences go. Nothing is added that says the version may be kept.
+
+Paragraph 1, old:
+
+> You are not building the product. Your version is discarded when the pick is made, whichever it is.
+
+New:
+
+> You are not building the product. People will pick among the three on how each feels in use, not on the code.
+
+Build step 2, old:
+
+> 2. There is no test wall here. You may change what you need, tests included. Nothing you write is a candidate for the main line.
+
+New:
+
+> 2. There is no test wall here. You may change what you need, tests included. People judge the version by using it, not by reading its code.
+
+## Draft for G5: a decision that replaces 71
+
+Next free number in `docs/decisions.md` is 92 (the last is 91).
+
+New decision, to add after 91 in a new section or at the end:
+
+> 92. **At the pick, the people choose: throw every prototype away, or keep the pick as the build its slice starts from.** Replaces 71. Without `--keep`, nothing changes from 71: every worktree and branch is removed, the picked one too; the recordings stay in the slice record as evidence. With `--keep`, the pick's branch is merged onto the slice branch (`xv/<id>: keep prototype <v> as the build`), the record says `build: {kind: kept_pick, ref, variant, commit}`, and the other two are removed. The slice then runs as one opened with `xv slice new --from`: the scenario agent writes the red blind at the base, the red must fail there, and it then runs on the build. The pick is restated as the scenario either way, and the maker is a new context (72 stands). The build's edits to `.xv/` are dropped and named in the log, as for `--from` (78): files people own change only through people. The pick takes two names and may name a user who took part. A prototype slice that has been picked is no longer a prototype slice, so `xv prototype start` refuses on it. `xv close` deletes the kept branch, since xv made it and its commits are in the slice branch; it never deletes a `--from` ref. The prototype agent is not told its version may be kept: people pick on how it feels, and a version built to be kept would be built differently.
+
+One-line marker to add at the end of 71:
+
+> *Replaced by 92: the pick may now be kept as the build.*
+
+Other lines that will need to change (not edited here):
+
+- `README.md`, the stops table, line 326: `| Prototypes ready to pick from | two people |` becomes `| Prototypes ready to pick from; the pick is thrown away or kept as the build | two people |`.
+- `README.md`, the method block ("Build to find out", about line 99-100): generated from the map; run `bin/publish-readme.py` (#117 says it is stale).
+- `README.md`, the `xv slice new` description if it names `--from`: add "the build's edits to `.xv/` are dropped and named in the slice log".
+- `.xv/picture.md`, the line that starts "No database. State is files" (about line 27): change "The record holds `build` (`none`, or `{kind: exploration, ref}`)" to "(`none`, `{kind: exploration, ref}`, or `{kind: kept_pick, ref, variant, commit}`)"; after "With `xv slice new --from <ref>` the branch starts at the build" add "and every `.xv/` file the build changed is set back to the base's copy, the files named in the log"; after "A variant that ran out cannot be picked." add "`xv prototype pick --keep` merges the pick's branch onto the slice branch as the build; the other two are removed. `xv prototype start` refuses once `kind` is not `prototype`. `xv close` deletes a kept pick's branch, never a `--from` ref." Also add `prototype_budget_spent` to the sentence that says it names each variant that ran out: "and each variant that did not finish, with its error".
+- `skills/watch/SKILL.md` (done in this build) and `skills/maker/prototype.md` (G1 above).
+
+## New open questions
+
+- The dropped-files log line is a `watch` entry in the slice log. If a person later needs the diff of a dropped file, it is in the build's own commits, not in the record. Is the file list enough?
+- `drop_layer_edits` compares the base with the build ref. A `--from` ref that is behind the base on `.xv/` (the base moved on) has those files reverted to the base's copy and named in the log, as "dropped", though the build did not change them. This is the right tree, but the log wording says the build brought them. Fine, or say "differs from the base"?
+- A prototype slice picked as `none` stays `kind: prototype`, so `xv prototype start` still runs on it. That seems right (the exploration may go on) but was not asked.
 
 ## Tests added
+
+Round 2 (all fail on the code before the fix unless marked as a guard):
+
+`tests/test_kept_pick.py`:
+- `AfterTheKeptPickTest.test_a_second_prototype_start_is_refused_and_the_kept_branch_stays` (red: start ran and deleted the branch)
+- `AfterTheKeptPickTest.test_close_deletes_the_kept_branch_its_commits_are_in_the_slice_branch` (red: the branch stayed)
+- `PrototypeBendsTheLayerTest.test_the_log_names_each_project_file_the_build_brought_and_was_dropped` (red: no log line)
+- `BudgetStopListsUnfinishedTest.test_the_budget_stop_names_each_variant_that_did_not_finish_and_its_error` (red: not listed)
+
+`tests/test_from_build.py`, `ProjectLayerFromBuildTest`:
+- `test_the_build_s_edits_to_the_project_layer_are_not_in_the_slice` (red: the edits were kept)
+- `test_the_log_names_each_dropped_file` (red: no log line)
+- guards, which pass before and after: `test_the_slice_s_own_record_is_kept`, `test_close_does_not_delete_the_ref_people_made`, `test_a_build_that_changed_no_project_file_logs_no_drop`
+
+Round 1:
 
 `tests/test_prototype_errored_spend.py` (new):
 - `ErroredVariantSpendTest.test_a_variant_that_errors_after_its_agent_ran_keeps_that_runs_spend`
