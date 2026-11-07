@@ -172,6 +172,24 @@ class WatchLoopTest(WatchLoopSetup):
         self.assertIn("base", stop["question"])
         self.assertNotIn("maker", [s["step"] for s in self.record()["spend"]])
 
+    def test_a_red_that_cannot_run_is_not_a_failing_red_and_stops_the_scenario_step(self):
+        p = self.scenario_with_red("python3 -c 'import xv_no_such_module'")
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["order"], "scenario_stopped")
+        self.assertEqual(stop["seat"], "originator")
+        self.assertIn("xv_no_such_module", stop["question"])
+        self.assertIn("cannot run", stop["question"])
+        data = self.record()
+        self.assertIsNot(data["checks"]["scenario"].get("red_fails"), True)
+        self.assertEqual(data["next"], "scenario")
+        self.assertNotIn("maker", [s["step"] for s in data["spend"]])
+
+    def test_a_red_that_runs_its_tests_and_some_fail_is_still_a_failing_red(self):
+        p = self.scenario_with_red("echo 'FAIL: test_x (t.A.test_x)' && echo 'Ran 1 test' && false")
+        self.assertNotIn("scenario_stopped", p.stdout)
+        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
+
     def test_a_red_joined_with_or_is_refused(self):
         p = self.scenario_with_red("false || true")
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "scenario_stopped")

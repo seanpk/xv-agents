@@ -69,6 +69,25 @@ def failing_tests(output):
     return sorted(names)
 
 
+CANNOT_RUN = re.compile(
+    r"^.*(?:_FailedTest|Failed to import test module|ModuleNotFoundError|ImportError|SyntaxError"
+    r"|ERROR collecting|Interrupted: \d+ errors? during collection|collected 0 items|no tests ran"
+    r"|Ran 0 tests|NO TESTS RAN|Cannot find module|No tests found|Test suite failed to run"
+    r"|\[setup failed\]|\[build failed\]|could not compile|An error occurred while loading"
+    r"|0 examples, 0 failures|command not found|No such file or directory).*$", re.I | re.M)
+
+
+def red_cannot_run(code, output):
+    """Why a red command failed before any test ran, or None when its tests ran. An import error,
+    a test that is not found, no tests collected, a command that is not there: none of them is a failing red."""
+    if code in (None, 0):
+        return None
+    if code in (126, 127):
+        return f"the red command exited {code}: " + (output.strip().splitlines() or ["it could not start"])[-1]
+    m = CANNOT_RUN.search(output)
+    return m.group(0).strip()[:300] if m else None
+
+
 def changed_files(root, since):
     """Files changed since a commit, committed or not, plus untracked files."""
     files = set(git(["diff", "--name-only", since], root).split())
@@ -987,6 +1006,10 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
             code, out = landed["base_run"] if landed else red_run(root, data, red, config)
             checks["red_fails"] = None if code is None else code != 0
             checks["red_output"] = out[-800:]
+            cannot = red_cannot_run(code, out)
+            if cannot:
+                checks["red_fails"] = None
+                checks["red_cannot_run"] = cannot
             if code is None:
                 checks["setup_failed"] = out
             if landed and landed["conflict"]:
