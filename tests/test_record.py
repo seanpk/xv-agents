@@ -367,6 +367,40 @@ class ScenarioRerunMergeTest(RepoCase):
         self.assertEqual(sorted(files), ["tests/test_x.py", "tests/test_y.py"])
 
 
+class SameMoveTest(RepoCase):
+    """#154 item 5: one move told twice with a comma of difference is recorded once."""
+
+    def move(self, wt, assertion, file="tests/test_x.py"):
+        self.xv("record", "move", "s1", "--file", file, "--assertion", assertion, "--why", "w", cwd=wt)
+
+    def moves(self, wt):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["moved_tests"]
+
+    def test_two_tellings_that_differ_by_a_comma_are_one_move(self):
+        wt = self.new_slice("s1")
+        self.move(wt, "was: assertEqual(a, b); now: removed")
+        self.move(wt, "was: assertEqual(a b); now: removed")
+        self.assertEqual(len(self.moves(wt)), 1)
+
+    def test_two_tellings_that_differ_by_spacing_are_one_move(self):
+        wt = self.new_slice("s1")
+        self.move(wt, "was: x == 1; now: x == 2")
+        self.move(wt, "was:  x  ==  1;  now: x == 2")
+        self.assertEqual(len(self.moves(wt)), 1)
+
+    def test_equal_and_not_equal_are_two_moves(self):
+        wt = self.new_slice("s1")
+        self.move(wt, "was: x == 1; now: removed")
+        self.move(wt, "was: x != 1; now: removed")
+        self.assertEqual(len(self.moves(wt)), 2)
+
+    def test_the_same_assertion_in_two_files_is_two_moves(self):
+        wt = self.new_slice("s1")
+        self.move(wt, "was: a; now: b")
+        self.move(wt, "was: a; now: b", file="tests/test_y.py")
+        self.assertEqual(len(self.moves(wt)), 2)
+
+
 class SliceOnlyGateTest(RepoCase):
     """--slice-only counts only for a test the scenario listed in slice_only."""
 

@@ -211,10 +211,16 @@ def cmd_unmark(a):
     save(path, data, body)
 
 
+def move_words(assertion):
+    """An assertion for comparing: its whitespace and commas dropped, so two tellings of one move that differ
+    only there are one. Other punctuation stays, because `==` and `!=` are different moves."""
+    return re.sub(r"[\s,]+", "", assertion) if isinstance(assertion, str) else assertion
+
+
 def same_move(moves, entry):
     """The move already recorded for this file and assertion, if any: one move is recorded once."""
     return next((m for m in moves if m.get("file") == entry.get("file")
-                 and m.get("assertion") == entry.get("assertion")), None)
+                 and move_words(m.get("assertion")) == move_words(entry.get("assertion"))), None)
 
 
 def cmd_move(a):
