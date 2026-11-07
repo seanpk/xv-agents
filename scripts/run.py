@@ -69,22 +69,43 @@ def failing_tests(output):
     return sorted(names)
 
 
-CANNOT_RUN = re.compile(
-    r"^.*(?:_FailedTest|Failed to import test module|ModuleNotFoundError|ImportError|SyntaxError"
-    r"|ERROR collecting|Interrupted: \d+ errors? during collection|collected 0 items|no tests ran"
-    r"|Ran 0 tests|NO TESTS RAN|Cannot find module|No tests found|Test suite failed to run"
-    r"|\[setup failed\]|\[build failed\]|could not compile|An error occurred while loading"
-    r"|0 examples, 0 failures|command not found|No such file or directory).*$", re.I | re.M)
+# What each runner prints when it could not load or find tests. Same eleven runners as failing_tests; the words come
+# from real output (tests/data/cannot-run), except where noted. Jasmine prints nothing of its own when a spec file
+# fails to load (Node's error comes out before it runs), so only its no-specs line is here; its load failure is a
+# generic error name below.
+RUNNER_WORDS = {
+    "unittest": [r"_FailedTest", r"Failed to import test module", r"Ran 0 tests", r"NO TESTS RAN"],
+    "pytest": [r"ERROR collecting", r"Interrupted: \d+ errors? during collection", r"collected 0 items",
+               r"no tests ran"],
+    "jest": [r"Test suite failed to run", r"No tests found, exiting"],
+    "vitest": [r"Failed Suites", r"No test files found"],
+    "go": [r"\[build failed\]", r"\[setup failed\]", r"no packages to test", r"matched no packages"],
+    "rspec": [r"An error occurred while loading", r"errors? occurred outside of examples", r"No examples found",
+              r"0 examples, 0 failures"],
+    "jasmine": [r"No specs found"],
+    "minitest": [r"\b0 runs, 0 assertions"],
+    "mocha": [r"Exception during run:", r"No test files found"],
+    "cargo": [r"could not compile", r"no test target named"],
+    "playwright": [r"Error: No tests found"],
+}
+RUNNER_CANNOT_RUN = re.compile("^.*(?:" + "|".join(w for ws in RUNNER_WORDS.values() for w in ws) + ").*$", re.I | re.M)
+# Error names any program prints, a test that fails for a real reason included: they count only when no real test failed
+GENERIC_ERRORS = re.compile(
+    r"^.*(?:ModuleNotFoundError|ImportError|SyntaxError|LoadError|Cannot find module"
+    r"|command not found|No such file or directory).*$", re.I | re.M)
 
 
 def red_cannot_run(code, output):
-    """Why a red command failed before any test ran, or None when its tests ran. An import error,
-    a test that is not found, no tests collected, a command that is not there: none of them is a failing red."""
+    """Why a red command failed before its tests ran, or None when they ran. Exit 126 or 127; a runner's own words
+    for "could not load or find tests" anywhere in the output (one file that cannot load stops the red even when
+    other tests fail for real); or a generic error name when `failing_tests` finds no real failing test."""
     if code in (None, 0):
         return None
     if code in (126, 127):
         return f"the red command exited {code}: " + (output.strip().splitlines() or ["it could not start"])[-1]
-    m = CANNOT_RUN.search(output)
+    m = RUNNER_CANNOT_RUN.search(output)
+    if not m and not [n for n in failing_tests(output) if "_FailedTest" not in n]:
+        m = GENERIC_ERRORS.search(output)
     return m.group(0).strip()[:300] if m else None
 
 

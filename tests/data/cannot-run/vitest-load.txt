@@ -1,0 +1,44 @@
+
+ RUN  v5.1.0 /work/js/t1
+
+ ❯ broken.test.js (0 test)
+ ❯ ok.test.js (1 test | 1 failed) 4ms
+   × adds 3ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  broken.test.js [ broken.test.js ]
+Error: Cannot find module './no_such_module' imported from /work/js/t1/broken.test.js
+ ❯ broken.test.js:1:1
+      1| import x from './no_such_module';
+       | ^
+      2| import { test } from 'vitest';
+      3| test('never', () => {});
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  ok.test.js > adds
+AssertionError: expected 1 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ ok.test.js:2:32
+      1| import { test, expect } from 'vitest';
+      2| test('adds', () => { expect(1).toBe(2); });
+       |                                ^
+      3|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  1 failed (1)
+   Start at  09:56:16
+   Duration  75ms (transform 39%, import 22%, worker 21%, tests 17%, environment 1%)

@@ -1,0 +1,9 @@
+# xvt/bad [xvt/bad.test]
+bad/bad_test.go:3:32: undefined: undefinedThing
+FAIL	xvt/bad [build failed]
+?   	xvt/empty	[no test files]
+--- FAIL: TestAdds (0.00s)
+    ok_test.go:3: 1 != 2
+FAIL
+FAIL	xvt/ok	0.001s
+FAIL

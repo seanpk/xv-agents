@@ -1,0 +1,15 @@
+Error: Cannot find module './no_such_module'
+Require stack:
+- /work/js/p1/broken.spec.js
+- /work/js/node_modules/playwright/lib/common/index.js
+- /work/js/node_modules/playwright/lib/program.js
+- /work/js/node_modules/@playwright/test/cli.js
+
+   at p1/broken.spec.js:2
+
+  1 | const { test } = require('@playwright/test');
+> 2 | require('./no_such_module');
+    | ^
+  3 | test('never', async () => {});
+  4 |
+    at Object.<anonymous> (/work/js/p1/broken.spec.js:2:1)

@@ -1,0 +1,8 @@
+<internal:/usr/lib/ruby/3.4.0/rubygems/core_ext/kernel_require.rb>:136:in 'Kernel#require': cannot load such file -- no_such_lib (LoadError)
+	from <internal:/usr/lib/ruby/3.4.0/rubygems/core_ext/kernel_require.rb>:136:in 'Kernel#require'
+	from /work/mt1/broken_test.rb:2:in '<top (required)>'
+	from <internal:/usr/lib/ruby/3.4.0/rubygems/core_ext/kernel_require.rb>:136:in 'Kernel#require'
+	from <internal:/usr/lib/ruby/3.4.0/rubygems/core_ext/kernel_require.rb>:136:in 'Kernel#require'
+	from -e:1:in 'block in <main>'
+	from -e:1:in 'Array#each'
+	from -e:1:in '<main>'

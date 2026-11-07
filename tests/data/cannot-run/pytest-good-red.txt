@@ -1,0 +1,31 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.8, pytest-9.2.0, pluggy-1.7.0
+rootdir: /work/gr
+collected 2 items
+
+test_gr.py FF                                                            [100%]
+
+=================================== FAILURES ===================================
+________________________________ A.test_asserts ________________________________
+
+self = <test_gr.A testMethod=test_asserts>
+
+    def test_asserts(self):
+>       self.assertEqual(1, 2)
+E       AssertionError: 1 != 2
+
+test_gr.py:7: AssertionError
+_______________________ A.test_reads_the_missing_folder ________________________
+
+self = <test_gr.A testMethod=test_reads_the_missing_folder>
+
+    def test_reads_the_missing_folder(self):
+>       with open("no_such_folder/file.txt") as f:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'no_such_folder/file.txt'
+
+test_gr.py:4: FileNotFoundError
+=========================== short test summary info ============================
+FAILED test_gr.py::A::test_asserts - AssertionError: 1 != 2
+FAILED test_gr.py::A::test_reads_the_missing_folder - FileNotFoundError: [Err...
+============================== 2 failed in 0.01s ===============================

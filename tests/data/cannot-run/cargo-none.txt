@@ -1,0 +1,4 @@
+error: no test target named `nosuch` in default-run packages
+help: available test targets:
+    bad
+    ok

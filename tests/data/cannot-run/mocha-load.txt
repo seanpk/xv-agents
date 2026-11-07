@@ -1,0 +1,8 @@
+
+ Exception during run: Error: Cannot find module './no_such_module'
+Require stack:
+- /work/js/m1/broken.test.js
+    at Object.<anonymous> (/work/js/m1/broken.test.js:1:1)
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/work/js/m1/broken.test.js' ]
+}

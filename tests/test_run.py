@@ -53,6 +53,80 @@ class FailingTestsTest(unittest.TestCase):
         self.assertEqual(failing_tests(out), ["./spec/a_spec.rb:1", "B fails"])
 
 
+class RedCannotRunTest(unittest.TestCase):
+    """A red that cannot run (#141): the runner's own words for "I could not load or find tests" stop it wherever they
+    appear; a generic error name stops it only when no real test failed. The samples are real output from each runner
+    (tests/data/cannot-run/<runner>-*.txt), long stack frames trimmed."""
+
+    DATA = os.path.join(HOME, "tests", "data", "cannot-run")
+
+    def sample(self, name):
+        with open(os.path.join(self.DATA, name + ".txt")) as f:
+            return f.read()
+
+    def runners(self):
+        import run
+        named = re.search(r"from (.+?) output", run.failing_tests.__doc__, re.S).group(1)
+        return [n.lower() for n in re.split(r",\s*|\s+or\s+", " ".join(named.split())) if n]
+
+    def samples_of(self, runner):
+        return sorted(f[:-4] for f in os.listdir(self.DATA) if f.startswith(runner + "-") and f.endswith(".txt")
+                      and "good-red" not in f)
+
+    def test_every_runner_failing_tests_parses_has_a_cannot_run_sample(self):
+        import run
+        runners = self.runners()
+        self.assertEqual(len(runners), 11, runners)
+        self.assertEqual(sorted(run.RUNNER_WORDS), sorted(runners), "every runner has its own words, and no others")
+        for runner in runners:
+            with self.subTest(runner=runner):
+                names = self.samples_of(runner)
+                self.assertTrue(names, f"{runner} has no cannot-run sample in tests/data/cannot-run")
+                for name in names:
+                    self.assertTrue(run.red_cannot_run(1, self.sample(name)), name)
+
+    def test_every_runner_has_a_sample_its_own_words_catch(self):
+        import run
+        for runner in self.runners():
+            with self.subTest(runner=runner):
+                words = re.compile("|".join(run.RUNNER_WORDS[runner]), re.I)
+                self.assertTrue(any(words.search(self.sample(n)) for n in self.samples_of(runner)))
+
+    def test_a_runners_own_words_stop_it_even_when_other_tests_fail_for_real(self):
+        from run import failing_tests, red_cannot_run
+        out = self.sample("unittest-load")
+        self.assertIn("test_x (test_ok.A.test_x)", failing_tests(out))
+        self.assertTrue(red_cannot_run(1, out))
+        out = self.sample("go-load")
+        self.assertEqual(failing_tests(out), ["TestAdds"])
+        self.assertTrue(red_cannot_run(1, out))
+
+    def test_a_generic_error_name_stops_a_red_only_when_no_real_test_failed(self):
+        from run import failing_tests, red_cannot_run
+        out = self.sample("jasmine-load")
+        self.assertEqual(failing_tests(out), [])
+        self.assertTrue(red_cannot_run(1, out))
+        self.assertIn("Cannot find module", red_cannot_run(1, "Error: Cannot find module './x'\n"))
+        self.assertFalse(red_cannot_run(1, "FAIL: test_a (t.A.test_a)\nImportError: boom\nRan 1 test\n"))
+
+    def test_a_no_such_file_from_a_real_failing_test_is_a_failing_red(self):
+        from run import failing_tests, red_cannot_run
+        for name, real in (("unittest-good-red", "test_asserts (test_gr.A.test_asserts)"),
+                           ("pytest-good-red", "test_gr.py::A::test_asserts")):
+            with self.subTest(name=name):
+                out = self.sample(name)
+                self.assertIn("No such file or directory", out)
+                self.assertIn(real, " ".join(failing_tests(out)))
+                self.assertIsNone(red_cannot_run(1, out))
+
+    def test_exit_126_and_127_cannot_run(self):
+        from run import red_cannot_run
+        for code in (126, 127):
+            self.assertIn(str(code), red_cannot_run(code, "sh: 1: nosuch: not found\n"))
+        self.assertIsNone(red_cannot_run(0, "No tests found"))
+        self.assertIsNone(red_cannot_run(None, "No tests found"))
+
+
 class RunSuiteTest(RepoCase):
     def test_the_command_sees_the_slice_base_and_id(self):
         from run import run_suite, LAYER_SKIP
