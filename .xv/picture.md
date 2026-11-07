@@ -7,6 +7,8 @@ date: 2026-10-24
 
 # The shared operating picture
 
+This picture is written one sentence per line, and a list item's extra lines line up with the item's text.
+
 ## What an outsider sees
 A toolkit for running software changes through AI agents with people kept in charge.
 It has two parts: prompts ("skills") for seven agents (watch, forecaster, scenario, maker, cleaner, guardian, listener) and five person-facing skills, plus a standard-library Python CLI, `xv`, that does the checkable work: it keeps a per-change record, hashes the tests (the "wall"), computes stop conditions, and runs the agents headless or in CI.
@@ -60,6 +62,7 @@ Sean Kennedy sits with them.
   One move is recorded once.
   `xv record report` for the maker and the cleaner runs the expected-move and wall checks.
   `packet.packet_checks` is the one place where `xv step` and `xv record packet` run the packet lint and the `expected_moves` count.
+  It also writes a note, not a stop, naming each `.xv/picture.md` line that holds more than one sentence (`packet.crowded_picture_lines`); a second run replaces the note.
   When no stop blocks, `orders` also returns a send-back with seat `watch`, naming where the slice goes and the misses: `scenario_miss` after the guardian, `red_misses_point` after the scenario step.
   `orders.verdict` also returns `next`.
   After the scenario step, `next` is `cleaner` when the red failed on the base and passes on the build.
