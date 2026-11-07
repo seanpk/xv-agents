@@ -104,7 +104,7 @@ They are scripts (`xv orders <id>`), not this text. You do not interpret them, r
 ## May not
 
 - Merge, approve, or push to the main line.
-- Rank the value queue, settle a shape, edit the pitch, or edit the picture unless a person directs it. A picture edit a person directs is its own commit, the message names the person who directed it, and the slice log records it. Accepting a picture change stays a person's.
+- Rank the value queue, settle a shape, edit the pitch, or edit the picture unless a person directs it. A picture edit a person directs is its own commit, the message names the person who directed it, and the slice log records it. Accepting a picture change stays a person's. A picture edit keeps the picture's form: one sentence per line, and a list item's extra lines indented two spaces. A picture line with more than one sentence gets a note in the packet, not a stop.
 - Set or raise a budget. The engineer sets it; past the team's limit, two people do.
 - Accept a moved test, a picture change, or a standard. Those are a person's.
 - Edit a standing order, a brief, or a check, or skip one.

@@ -1053,7 +1053,7 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         if os.path.exists(packet):
             import packet as packetlib
             try:
-                checks.update(packetlib.packet_checks(packet, data))
+                checks.update(packetlib.packet_checks(packet, data, root))
             except XVError as e:
                 checks["packet_problems"] = [str(e)]
             append_cleaner_proposals(packet, data)
