@@ -283,23 +283,30 @@ def git(args, cwd, check=True):
 
 
 def drop_layer_edits(root, since, build, restore="HEAD", keep=()):
-    """Set every `.xv/` file the build changed since `since` back to its copy at `restore`, in `root`'s index and
-    tree, and return the files dropped. A file the build added is removed. Files under a `keep` prefix stay.
+    """Set every `.xv/` file that differs between `restore` and the build back to its copy at `restore`, in `root`'s
+    index and tree. A file the build added is removed. Files under a `keep` prefix stay. Return only the files the
+    build changed since `since` (the merge-base of the build and the base): a file that differs because the base
+    moved on takes the base's copy and is not named.
 
     Decision 78: the files people own change only through people, and a build is not a step that checks them."""
-    changed = git(["diff", "--name-only", "-z", since, build, "--", XV_DIR], root).split("\0")
-    dropped = [f for f in changed if f and not f.startswith(tuple(keep))]
-    for f in dropped:
+    def names(a, b):
+        return [f for f in git(["diff", "--name-only", "-z", a, b, "--", XV_DIR], root).split("\0")
+                if f and not f.startswith(tuple(keep))]
+    built = set(names(since, build))
+    differ = names(restore, build)
+    for f in differ:
         if run(["git", "cat-file", "-e", f"{restore}:{f}"], cwd=root, check=False).returncode == 0:
             git(["checkout", restore, "--", f], root)
         else:
             git(["rm", "-q", "-f", "--ignore-unmatch", "--", f], root)
-    return dropped
+    return [f for f in differ if f in built]
 
 
-def dropped_line(dropped):
-    """The slice log's words for the project files a build brought and the slice did not keep."""
-    return "dropped from the build, which may not change the files people own: " + ", ".join(dropped)
+def dropped_line(dropped, commit):
+    """The slice log's words for the project files a build brought and the slice did not keep, and the build
+    commit the dropped content lives in."""
+    return (f"dropped from the build, which may not change the files people own: {', '.join(dropped)} "
+            f"(the build's copy: `git show {commit[:7]}:<file>`)")
 
 
 def repo_root(start=None):

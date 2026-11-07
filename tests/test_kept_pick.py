@@ -203,6 +203,47 @@ class PrototypeBendsTheLayerTest(KeptPickBase):
         self.assertNotIn(".xv/prototypes/p1/b/recording.md", log.split("## Log", 1)[-1].split("dropp", 1)[-1])
 
 
+class KeptPickLogNamesTheCommitTest(KeptPickBase):
+    PROTO_ENV = {"FAKE_PROTO_BUILDS": "1", "FAKE_PROTO_EDITS_LAYER": "b"}
+
+    def test_the_log_line_names_the_build_commit_the_dropped_content_lives_in(self):
+        self.pick("--keep", check=True)
+        commit = self.record()["build"]["commit"]
+        log = open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read()
+        line = [l for l in log.splitlines() if "dropp" in l.lower()][0]
+        self.assertIn(commit[:7], line)
+        shown = sh(["git", "show", f"{commit[:7]}:.xv/picture.md"], self.repo).stdout
+        self.assertIn("A line prototype b wrote into the picture.", shown)
+
+
+class SliceMovedOnBeforeTheKeptPickTest(KeptPickBase):
+    """Guard: the prototype branch is behind the slice branch on `.xv/`. The merge compares with the merge-base, so
+    a file only the slice branch changed is neither dropped nor named."""
+
+    def test_a_project_file_only_the_slice_branch_changed_is_kept_and_not_named(self):
+        with open(os.path.join(self.wt, ".xv", "moved.md"), "w") as f:
+            f.write("people wrote this after the prototypes started\n")
+        sh(["git", "add", "-A"], self.wt)
+        sh(["git", "commit", "-qm", "people moved on"], self.wt)
+        self.pick("--keep", check=True)
+        self.assertTrue(os.path.exists(os.path.join(self.wt, ".xv", "moved.md")))
+        log = open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read()
+        self.assertNotIn("moved.md", log)
+
+
+class PickNoneGuardTest(KeptPickBase):
+    def test_a_pick_of_none_stays_a_prototype_slice_and_start_still_runs_on_it(self):
+        p = self.xv("prototype", "pick", "p1", "--variant", "none", "--by", "pat,sam", cwd=self.wt, check=False)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(self.record()["kind"], "prototype")
+        with mock.patch.dict(os.environ, self.PROTO_ENV):
+            q = self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
+        self.assertNotRegex(q.stdout + q.stderr, r"(?i)no longer a prototype slice")
+        self.assertEqual(q.returncode, 10, q.stdout + q.stderr)
+        self.assertIn("prototypes_ready", q.stdout)
+        self.assertEqual(self.record()["kind"], "prototype")
+
+
 class AfterTheKeptPickTest(KeptPickBase):
     def test_a_second_prototype_start_is_refused_and_the_kept_branch_stays(self):
         self.pick("--keep", check=True)

@@ -234,7 +234,7 @@ def cmd_slice_new(a):
             raise XVError(f"--from {a.from_ref}: no such branch or commit")
     os.makedirs(os.path.dirname(wt), exist_ok=True)
     git(["worktree", "add", "-q", "-b", branch, wt, start], root)
-    dropped = drop_layer_edits(wt, base, start, restore=base) if a.from_ref is not None else []
+    dropped = drop_layer_edits(wt, git(["merge-base", base, start], root).strip(), start, restore=base) if a.from_ref is not None else []
     trial = is_trial(root)
     if trial:
         copy_layer(root, wt)
@@ -271,7 +271,7 @@ def cmd_slice_new(a):
         data["build"] = {"kind": "exploration", "ref": a.from_ref, "commit": start}
         data["build_shared"] = "yes" if a.share_build else "no"
         if dropped:
-            body = record.log_line(body, "watch", dropped_line(dropped))
+            body = record.log_line(body, "watch", dropped_line(dropped, start))
     if trial:
         data["trial"] = True
     record.save(path, data, body)

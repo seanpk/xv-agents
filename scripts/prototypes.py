@@ -341,7 +341,7 @@ def pick(slice_id, variant, by, with_user=None, scenario_file=None, keep=False, 
         kept = ", kept as the build" if build else ""
         body = record.log_line(body, ",".join(who), f"picked {variant}{kept}; scenario restated (was: {old})")
         if dropped:
-            body = record.log_line(body, "watch", dropped_line(dropped))
+            body = record.log_line(body, "watch", dropped_line(dropped, build))
         data["kind"], data["status"], data["next"] = "feature", "working", "forecaster"
         if build:
             data["build"] = {"kind": "kept_pick", "ref": picked["branch"], "variant": variant, "commit": build}
