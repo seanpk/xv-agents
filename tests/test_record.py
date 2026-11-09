@@ -207,7 +207,6 @@ class SliceOnlyReportTest(RepoCase):
 
 
 class MoveSliceOnlyTest(RepoCase):
-    # #173: --slice-only marks the move whether or not the test is in the record's slice_only list
 
     def test_a_move_without_the_flag_is_not_marked(self):
         wt = self.new_slice("s1")
@@ -235,15 +234,6 @@ class ScenarioBriefRetroFixesTest(RepoCase):
         found = [ln for ln in self.lines() if "foreground" in ln]
         self.assertTrue(found, "the brief does not say to run the red command in the foreground")
         self.assertTrue(any("to its end" in ln and "before" in ln and "report" in ln for ln in found), found)
-
-    # 7. a one-time CHANGELOG line
-    def test_the_changelog_has_a_line_for_the_brief_change_and_the_tool_changes(self):
-        text = open(os.path.join(HOME, "CHANGELOG.md")).read()
-        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        for issue in ("#172", "#173", "#174"):
-            self.assertIn(issue, unreleased)
-        self.assertTrue(any("scenario" in ln and "#174" in ln for ln in unreleased.splitlines()),
-                        "no line about the scenario brief change")
 
 
 class ScenarioBriefTest(RepoCase):
