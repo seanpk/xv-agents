@@ -122,6 +122,7 @@ Sean Kennedy sits with them.
   `.xv/config.yml` runs `--jobs 4`.
   The `tests` workflow runs four shards on each Python, eight jobs at once.
   No test class that holds tests is the base of another, and `tests/test_suite_runner.py` `NoRerunTest` guards this.
+  No `.py` file under `tests/` or `scripts/` defines a top-level class or function name twice, or one method name twice in a class, and `tests/test_one_name.py` `OneNameOneDefinitionTest` guards this.
 - No database.
   State is files: `.xv/slices/<id>.md` (front matter plus log), `.xv/decisions/`, `estimation.md`, `learnings.md`, `config.yml`.
   The slice record also holds `amended_at_report`, the report count at the last amendment.
