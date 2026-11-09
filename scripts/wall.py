@@ -135,7 +135,10 @@ def check(root, slice_id, config=None):
     d["unrecorded"] = sorted(f for f in moved if f not in recorded)
     if isinstance(data.get("build"), dict) and data.get("base"):
         # a build that only added tests to a file has moved nothing: no line at the base changed or went
-        d["unrecorded"] = [f for f in d["unrecorded"] if f in d["deleted"] or removed_lines(root, data["base"], f, None)]
+        # and nothing the maker or cleaner did to the build's own lines: measured from the build's commit too
+        since = data["build"].get("commit")
+        d["unrecorded"] = [f for f in d["unrecorded"] if f in d["deleted"] or removed_lines(root, data["base"], f, None)
+                           or (since and removed_lines(root, since, f, None))]
     d["ok"] = not d["unrecorded"]
     return d
 

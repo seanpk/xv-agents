@@ -789,8 +789,16 @@ def wall_for_build(root, data, res):
             res["note"] = (f"the build {data['build'].get('ref')} no longer resolves and the record holds no commit "
                            "for it, so the build's own changes to test files cannot be told from the slice's")
             return res
-        res["unrecorded"] = [f for f in res["unrecorded"] if f not in asked or
-                             subprocess.run(["git", "diff", "--quiet", build, "--", f], cwd=root).returncode != 0]
+        seen = {}  # the file's content at each answered stop: a person accepted it as it was then
+        for s in data["stops"]:
+            if s.get("order") == "unrecorded_move" and s.get("answer") is not None:
+                for f, blob in (s.get("blobs") or {}).items():
+                    seen.setdefault(f, set()).add(blob)
+        blobs = {f: git(["hash-object", f], root, check=False).strip() for f in res["unrecorded"]}
+        res["unrecorded"] = [f for f in res["unrecorded"] if f not in asked or (
+            blobs[f] not in seen.get(f, ()) and
+            subprocess.run(["git", "diff", "--quiet", build, "--", f], cwd=root).returncode != 0)]
+        res["blobs"] = {f: b for f, b in blobs.items() if f in res["unrecorded"]}
         res["ok"] = not res["unrecorded"]
     return res
 
@@ -909,10 +917,12 @@ def apply_verdict(data, body, agent, v):
     if st:
         already = any(s.get("order") == st["order"] and not s.get("answer") for s in data["stops"])
         if not already:
+            blobs = ((data.get("checks", {}).get(agent) or {}).get("wall") or {}).get("blobs")
             data["stops"].append({"at": now(), "step": agent, "order": st["order"], "seat": st["seat"],
                                   "question": st["question"], "answered_by": [], "answer": None,
                                   "also": [f["order"] for f in v["fired"] if f is not st],
                                   "budget_seen": data.get("budget"),
+                                  **({"blobs": blobs} if blobs and st["order"] == "unrecorded_move" else {}),
                                   **({"breadth": st["breadth"]} if st.get("breadth") else {})})
             body = log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
         data["status"] = "ready" if st["order"] == "ready_to_merge" else "stopped"
