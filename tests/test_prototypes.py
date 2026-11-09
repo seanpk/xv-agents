@@ -263,18 +263,24 @@ print(json.dumps({{"result": p.stdout, "total_cost_usd": 0.6, "num_turns": 3, "s
 '''
 
 
-class PrototypesErroredSpendTest(PrototypesGitSetupTest):
-    test_one_variants_git_setup_never_overlaps_another_variants = None
-    test_the_agents_still_run_at_the_same_time = None
-    test_a_variant_git_refuses_is_recorded_not_finished_with_its_error_and_the_others_run = None
-    test_a_second_start_runs_the_refused_variant_again_and_keeps_the_others = None
-    test_an_error_after_setup_records_the_variant_not_finished_with_its_error = None
-    test_an_error_that_is_not_an_xverror_records_the_variant_not_finished_with_its_error = None
-    test_pick_refuses_a_variant_whose_setup_failed_and_says_so = None
-    test_pick_refuses_a_variant_whose_run_failed_and_says_so = None
+class PrototypesErroredSpendTest(PrototypesTest):
+    test_three_prototypes_side_by_side_then_a_pick_by_two_people = None  # not rerun here
 
     def setUp(self):
         super().setUp()
+        self.addCleanup(self.restore_env)
+        self.saved = dict(os.environ)
+        bindir = os.path.join(self.tmp, "bin")
+        os.makedirs(bindir)
+        fake_git = os.path.join(bindir, "git")
+        open(fake_git, "w").write(FAKE_GIT.format(python=sys.executable))
+        os.chmod(fake_git, 0o755)
+        self.git_log = os.path.join(self.tmp, "git.log")
+        os.environ["REAL_GIT"] = shutil.which("git")
+        os.environ["PATH"] = bindir + os.pathsep + os.environ["PATH"]
+        os.environ["FAKE_GIT_LOG"] = self.git_log
+        self.xv("record", "set", "p1", "prototype_budgets", json.dumps({n: {"usd": 1} for n in "abc"}),
+                "--by", "pat", cwd=self.wt)
         claude = os.path.join(self.tmp, "bin", "claude")
         open(claude, "w").write(FAKE_CLAUDE.format(python=sys.executable, fake=FAKE))
         os.chmod(claude, 0o755)
@@ -285,6 +291,26 @@ class PrototypesErroredSpendTest(PrototypesGitSetupTest):
         start, end = text.index("agents:"), text.index("seats:")
         text = text[:start] + f'agents:\n  default: ["{claude}", "-p", "{{prompt}}"]\n' + text[end:]
         open(cfg, "w").write(text)
+
+    def restore_env(self):
+        os.environ.clear()
+        os.environ.update(self.saved)
+
+    def side(self):
+        return open(os.path.join(self.wt, ".xv", "slices", "p1.prototypes.md")).read()
+
+    def block_b_run_log(self):
+        common = sh(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], self.wt).stdout.strip()
+        # the run log for b cannot be written: a directory sits where the file goes
+        os.makedirs(os.path.join(common, "xv", "runs", "p1", "prototype-b.out"))
+
+    def unfinished_b_is_recorded(self):
+        protos = {p["name"]: p for p in self.record()["prototypes"]}
+        self.assertEqual(sorted(protos), ["a", "b", "c"], "b is recorded, not dropped")
+        self.assertTrue(protos["a"]["recording"] and protos["c"]["recording"], "a and c still finish")
+        self.assertFalse(protos["b"]["recording"], "b did not finish")
+        b_section = self.side().split("## b:")[1].split("## c:")[0]
+        self.assertRegex(b_section, r"Not finished: \S", "the side-by-side file shows b's error")
 
     def spend_of(self, variant):
         return [s for s in self.record()["spend"] if s.get("step") == f"prototype-{variant}"]
