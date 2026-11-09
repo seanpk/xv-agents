@@ -30,19 +30,20 @@ Sean Kennedy sits with them.
   Cursor reads the same skill format and has not been run (README).
   `xv init` gives Claude Code agent lines a starter Bash allow list; other harnesses' lines are left as written.
   `xv prompt` shows each Claude Code agent its own line's Bash rules as the commands it may run, with cautions: chain only listed forms, no extra flags in front, no pipe to an unlisted program.
-- 25 modules, all flat Python files: `scripts/*.py` (22) and `evals/{run,grade,report}.py`.
-  `.xv/boundary-all.md` shows 67 edges between them.
+- 26 modules, all flat Python files: `scripts/*.py` (23) and `evals/{run,grade,report}.py`.
+  `.xv/boundary-all.md` shows 69 edges between them.
   `record` and `run` reach `suite`.
   `record` reaches `moves` and `wall`; `run` reaches `moves` through `record`; `moves` reaches `wall` and `xvlib`.
   `run` reaches most of the others: `agentcli`, `boundary`, `orders`, `packet`, `prompt`, `prototypes`, `record`, `retro`, `spend`, `wall` and `xvlib`.
   `orders` reaches `spend` and `xvlib`.
   `record` and `evals/report` reach `spend`.
   `record` reaches `orders`, `packet`, `moves` and `wall`.
+  `names` holds `covers_name_found`, `COVERS_SEPARATOR` and `joined_unsafely`, which `record` and `run` both import.
 - `bin/xv` is the only entry point.
   It maps each command name to one script and runs it.
   `init`, `slice`, `run`, `step`, `close` and `guard` all land in `run.py`, the largest script.
   `slice` also runs `xv slice rebase` (`--onto`, `--continue`, `--abort`).
-- Roughly: `xvlib` is the shared base (config, git, record paths, and the shared test-name matcher `names_test`; `covers` names use `run.covers_name_found`).
+- Roughly: `xvlib` is the shared base (config, git, record paths, and the shared test-name matcher `names_test`; `covers` names use `names.covers_name_found`).
   `record` owns the slice record, and the build rules: `has_build`, `build_commit` and `wall_for_build`.
   `suite` runs `tests.command` for `run` and `record`.
   `suite` also holds `failing_tests`, `own_red_names` and `in_own_red`, which `run` and `record` both import.
@@ -52,6 +53,8 @@ Sean Kennedy sits with them.
   `orders` holds the stop rules.
   After `rebase`, `orders` decides `rebase_conflict`, `rebase_dropped`, `rebase_stuck`, `rebase_suite_red` and `rebase_red_ref`; `record.apply_verdict` writes a rebase stop as it does any other, and `orders.budget_before` checks before each rebase maker run.
   On a slice from a build, `xv slice rebase` moves `refs/xv/<id>/red` onto the new base before it runs the suite, and stops with `rebase_red_ref` when the red does not apply there.
+  `xv slice rebase` runs git with `merge.conflictStyle=diff3`, and keeping both sides drops a base line that the other side edited.
+  A red file that both sides changed is hashed at the replayed baseline commit.
   `prompt.build` takes `part` (the rebase part of the maker's brief) and `saved` (the record from before the rebase).
   `wall.baseline` takes `keep` and `skip`, and `wall.hashes_at` hashes files at a ref.
   `shape_or_pitch` fires on `yes`, not on `accepted`; `accepted` holds only when `accepted_by` names a decision in the slice's `decisions` list with `order: shape_or_pitch` (`xv run`, `xv record packet`), and `xv guard` always reads it as `yes`.
@@ -61,9 +64,11 @@ Sean Kennedy sits with them.
   It records a fit as a move marked `expected`, which replaces a hand-recorded entry for the same file.
   After the guardian, `expected_moves_wrong` stops for the originator when the packet's `expected_moves` does not match the record.
   One move is recorded once.
+  Two tellings that differ only in whitespace or commas are one move; `==` and `!=` stay two (`record.move_words`).
   `xv record report` for the maker and the cleaner runs the expected-move and wall checks.
   `packet.packet_checks` is the one place where `xv step` and `xv record packet` run the packet lint and the `expected_moves` count.
   It also writes a note, not a stop, naming each `.xv/picture.md` line that holds more than one sentence (`packet.crowded_picture_lines`); a second run replaces the note.
+  An old note is stripped only where it starts a line (`packet.note_crowded_picture_lines`).
   When no stop blocks, `orders` also returns a send-back with seat `watch`, naming where the slice goes and the misses: `scenario_miss` after the guardian, `red_misses_point` after the scenario step.
   `orders.verdict` also returns `next`.
   After the scenario step, `next` is `cleaner` when the red failed on the base and passes on the build.
@@ -101,6 +106,7 @@ Sean Kennedy sits with them.
   An agent's report cannot set `accepted` on its own mark.
   The guardian's `wall_recommendations` go to the same person in `accept_moves`.
   Only a person's `--accept-wall <test>` accepts one, and only `--refuse-wall <test>` takes back one accepted earlier; an accepted `mark slice-only` recommendation is listed in `slice_only`, and refusing it later takes it out, matched on file and test; a new recommendation not named is refused, and an agent's report sets neither.
+  Both flags take the test with its file, in the forms the covers check takes (`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`); a bare name that two files share is refused, and the refusal names each `file::test`.
   Giving either flag on another kind of stop, or both on one test, is refused.
   Each answered `accept_moves` stop keeps `accepted_wall` and `refused_wall`.
   `decisions` reads every slice record through `retro.records()` and counts answered stops per order: picks equal to the recommendation, `new_info: none`, and causes.
@@ -119,6 +125,8 @@ Sean Kennedy sits with them.
   The suite's `RepoCase` passes `--no-try` by default; `tests/test_init_tries.py` and the `--trial` test in `tests/test_install.py` opt out.
   `worktrees:` may be a path or a block with `path`, `base`, `setup` and `teardown`; `{worktree}` is substituted already shell-quoted.
 - This repo's suite runs through `tests/run.py --shard i/n --jobs k` (standard library; unittest output, one process per job, each printed in turn).
+  It fails, naming the file, when a `test_*.py` gives no test, and when fewer tests ran than were collected.
+  So a test class that skips in `setUpClass` with `unittest.SkipTest` fails the run, because its tests never count as run.
   `.xv/config.yml` runs `--jobs 4`.
   The `tests` workflow runs four shards on each Python, eight jobs at once.
   No test class that holds tests is the base of another, and `tests/test_suite_runner.py` `NoRerunTest` guards this.
@@ -129,9 +137,12 @@ Sean Kennedy sits with them.
   Each slice has a git branch `xv/<id>` and a worktree under `.xv/worktrees/`.
   The branch starts from `--base`, else `worktrees.base`, else `origin/HEAD`, else HEAD.
   With `xv slice new --from <ref>` the branch starts at the build, and `base` stays the merge target.
-  The record holds `build` (`none`, or `{kind: exploration, ref}`) and `build_shared` (`yes` or `no`).
+  The record holds `build` (`none`, or `{kind: exploration, ref, commit}`) and `build_shared` (`yes` or `no`).
   `--share-build` needs `--from`.
-  A slice from a build also has a git ref, `refs/xv/<id>/red`, which holds its red at the base.
+  A slice from a build also has a git ref, `refs/xv/<id>/red`, which holds its red at the base, and `xv close` deletes it.
+  The record keeps the build's commit in `build.commit`, so the slice still finds the build when its ref is deleted.
+  In session mode, `xv record report <id> scenario -` runs `scripts/run.py land-scenario` in a subprocess, which lands the red, runs it at the base and on the build, takes the wall baseline at the base, and drops the checkout.
+  `bin/xv` does not route `land-scenario`.
   `xv slice new` refuses a base without a committed `.xv/config.yml`, `pitch.md` and `picture.md`.
   The worktree's own config, from the base, gives `worktrees.setup`, which runs before the forecaster, and `worktrees.teardown`, which runs at close.
   Both run under `tests.timeout`, and a timed-out command keeps its output.
@@ -154,12 +165,14 @@ Sean Kennedy sits with them.
   Its commit moves the ref, and it is cherry-picked onto the slice branch; a conflict stops with `red_conflicts_with_build` for the originator.
   The red then runs on the build, and the maker's prompt names the tests that fail.
   A session scenario step makes that checkout and names it.
+  The next `xv step scenario` or `xv close` drops a checkout that no report landed.
   A red command joined at the top level by anything but `&&` (`;`, `||`, `|`, `&` or a new line, outside quotes) is not run and not kept as the slice's red; the scenario step stops for the originator (`scenario_stopped`), and `next` stays `scenario`, so the scenario agent rewrites it with `&&`.
+  `xv record report` applies the same rule in session mode, with or without a build (`record.cmd_report`).
   A red that fails before any test runs (exit 126 or 127, a runner's own words that a file could not load or no tests were found, or a general error name with no real failing test) stops the scenario step for the originator (`red_cannot_run`), and `next` stays `scenario`.
   After the scenario step, `red_misses_scenario` stops for the originator before the maker when the report lists a `not_covered` item, when `red_gaps` lists anything, or when the check cannot read its input: no `## Scenario` heading, `covers` or `not_covered` missing or not a list, `covers` empty, or with an item whose `test` is not one name, a list of non-empty strings, or a string joined with `,` or `;`, or a `covers` name that matches no whole word in any red file.
   On a later scenario pass, the coverage kept from earlier passes (`checks.scenario.covers_kept`) is added to the report's `covers` before the check, except when the record's `next` is `maker` (a pass that went on to the maker ends the run), so an empty `covers` does not stop when something was kept; each kept name is checked again against the red files.
   A `covers` name whose last part is a slice-only test that the cleaner removed by a recorded move does not stop; only the move's assertion before a `;` is read.
-  A `covers` name may start with a red file's path or module and is split by `::`, `.`, `#`, `/` or ` > `; it matches when each part after the path is a whole word in that red file, in order (`run.covers_name_found`); a name whose test part is empty stops, and the stop names the name that does not match.
+  A `covers` name may start with a red file's path or module and is split by `::`, `.`, `#`, `/` or ` > `; it matches when each part after the path is a whole word in that red file, in order (`names.covers_name_found`); a name whose test part is empty stops, and the stop names the name that does not match.
   A numbered point of the scenario or an amendment that is in neither `covers` nor `not_covered` sends the slice back to the scenario agent (`xv step` and `xv run` compute this).
   The match ignores backticks, `*` and `_` in both the point and the item (`run.norm`).
   The send-back lists each missed point as `<number>. <text>`, an item the check accepts, and says every point goes in on each pass.
@@ -209,6 +222,7 @@ Sean Kennedy sits with them.
   The guardian lists the edit.
   The rebase maker may not edit a test file or `.xv/picture.md`: on a conflict replay such an edit stops with `rebase_conflict`, and on a replay with no conflict it stops with `rebase_conflict` too.
   The edit is left uncommitted in the worktree, and the question says `--continue` keeps it and `git checkout -- <file>` drops it.
+  For a file the maker added, the question names `rm <file>` or `git rm -f <file>` and says `git status` shows it and `git diff` does not (`orders.drop_edit`).
   The watch edits it only when a person directs it, in its own commit naming that person.
   This is not a directed `doc` edit, because that kind refuses `.xv/`.
   Accepting a picture change is a person's (#88, #68, #90).

@@ -166,7 +166,9 @@ def evaluate(data, after, config):
             out.append(fire("red_conflicts_with_build", "originator",
                             "The scenario agent wrote its red at the base, and it does not apply to the build the slice "
                             "starts from: " + checks["cherry_pick_conflict"]
-                            + " Resolve it by hand, or change the red so it fits the build."))
+                            + f" The red is kept on `refs/xv/{data.get('id')}/red` at the base, and a later scenario "
+                            "pass starts from it whatever you land by hand, so a hand-landed red under another "
+                            "commit subject is not lost. Resolve it by hand, or change the red so it fits the build."))
         if checks.get("old_red_changed"):
             out.append(fire("unrecorded_move", "originator",
                             "The scenario agent changed or removed old tests or assertions in old test files that existed at the base: "
@@ -207,10 +209,11 @@ def evaluate(data, after, config):
         resume = f"`xv slice rebase {data.get('id')} --continue`"
         undo = f"or `xv slice rebase {data.get('id')} --abort` to give it up"
         if checks.get("maker_edited"):
+            drop, note = drop_edit(checks)
             out.append(fire("rebase_conflict", "originator",
                             f"{owner}: the maker changed {', '.join(checks['maker_edited'])} during the rebase, "
                             "and a test file or the picture is a person's. The edit is uncommitted in the slice "
-                            f"worktree: run {resume} to keep it, `git checkout -- <file>` to drop it, {undo}."))
+                            f"worktree: run {resume} to keep it, {drop} to drop it, {undo}.{note}"))
         elif checks.get("conflicts"):
             out.append(fire("rebase_conflict", "originator",
                             f"{owner}: the rebase stopped on a conflict in {', '.join(checks['conflicts'])}. "
@@ -412,6 +415,18 @@ def next_step(data, after, stop, fired):
     if after == "scenario" and checks.get("red_fails") is True and (checks.get("red_on_build") or {}).get("passes"):
         return "cleaner"  # the build already passes the red: nothing for the maker to make
     return None
+
+
+def drop_edit(checks):
+    """How to drop the maker's edit, and a note when it is a new file: `git checkout` restores a file that was
+    already tracked; a file the maker added is not known to it, and `git diff` does not list it."""
+    new = checks.get("maker_new") or {}
+    old = [f for f in checks.get("maker_edited") or [] if f not in new]
+    cmds = ([f"git checkout -- {' '.join(old)}"] if old else []) + list(new.values())
+    note = " `git checkout -- <file>` restores a tracked file." if old else ""
+    if new:
+        note += f" {', '.join(new)} is a new file the maker added: `git status` shows it, `git diff` does not."
+    return " and ".join(f"`{c}`" for c in cmds) or "`git checkout -- <file>`", note
 
 
 def verdict(data, after, config, closed=()):

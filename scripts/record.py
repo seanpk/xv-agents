@@ -17,6 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import moves  # noqa: E402
+from names import COVERS_SEPARATOR, covers_name_found, joined_unsafely  # noqa: E402
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
 import wall  # noqa: E402
@@ -128,7 +129,8 @@ def cmd_new(a):
     if a.rename:
         data["renames"] = parse_renames(a.rename)
     body = BODY_TEMPLATE.format(title=data["title"], scenario=scenario,
-                                ignore=a.ignore or "Nothing stated.",
+                                ignore=("\n".join("- " + v for v in a.ignore) if len(a.ignore) > 1 else a.ignore[0]) if a.ignore
+                                else "Nothing stated.",
                                 recording=a.recording or "None. A feature starts from words.")
     body = log_line(body, "watch", f"slice opened by {a.by}")
     save(path, data, body)
@@ -211,10 +213,16 @@ def cmd_unmark(a):
     save(path, data, body)
 
 
+def move_words(assertion):
+    """An assertion for comparing: its whitespace and commas dropped, so two tellings of one move that differ
+    only there are one. Other punctuation stays, because `==` and `!=` are different moves."""
+    return re.sub(r"[\s,]+", "", assertion) if isinstance(assertion, str) else assertion
+
+
 def same_move(moves, entry):
     """The move already recorded for this file and assertion, if any: one move is recorded once."""
     return next((m for m in moves if m.get("file") == entry.get("file")
-                 and m.get("assertion") == entry.get("assertion")), None)
+                 and move_words(m.get("assertion")) == move_words(entry.get("assertion"))), None)
 
 
 def cmd_move(a):
@@ -431,7 +439,27 @@ def cmd_offer(a):
     save(path, data, body)
 
 
-def answer_wall(data, stop, a):
+def wall_matches(recs, spec, root=None):
+    """The recommendations a --accept-wall or --refuse-wall value names: a bare test name, or the same forms the
+    covers check takes (`file::test`, `Class#test`, `module.Class.test`, a path prefix, ` > `). Class and module
+    parts are looked for in the recommendation's file, as the covers check does."""
+    named = [r for r in recs if r.get("test") == spec]
+    if named:
+        return named
+    last = lambda name: COVERS_SEPARATOR.split(name or "")[-1].strip()
+    for r in recs:
+        if last(r.get("test")) != last(spec):
+            continue
+        text = r.get("test") or ""
+        if root and r.get("file") and os.path.isfile(os.path.join(root, r["file"])):
+            with open(os.path.join(root, r["file"]), encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        if covers_name_found(spec, {r.get("file") or "": text}):
+            named.append(r)
+    return named
+
+
+def answer_wall(data, stop, a, root=None):
     """--accept-wall and --refuse-wall answer an accept_moves stop's wall recommendations, and only that."""
     wall_flags = (("--accept-wall", a.accept_wall), ("--refuse-wall", a.refuse_wall))
     if stop["order"] != "accept_moves":
@@ -440,19 +468,26 @@ def answer_wall(data, stop, a):
                 raise XVError(f"{flag} only answers an accept_moves stop, not {stop['order']}")
         return
     recs = data.get("wall_recommendations") or []
-    known = {r.get("test") for r in recs}
-    for t in sorted(set(a.accept_wall or []) & set(a.refuse_wall or [])):
-        raise XVError(f"--accept-wall and --refuse-wall both name {t}; give one")
+    picked = {}  # flag -> the recommendations (by position) its values name
     for flag, names in wall_flags:
+        picked[flag] = set()
         for t in names or []:
-            if t not in known:
+            found = wall_matches(recs, t, root)
+            if not found:
                 raise XVError(f"{flag} {t}: no wall recommendation names that test")
+            if len(found) > 1:
+                files = ", ".join(f"{r.get('file')}::{r.get('test')}" for r in found)
+                raise XVError(f"{flag} {t}: {len(found)} wall recommendations have that name ({files}); "
+                              "give the file too, as file::test")
+            picked[flag].add(next(i for i, r in enumerate(recs) if r is found[0]))
+    for i in sorted(picked["--accept-wall"] & picked["--refuse-wall"]):
+        raise XVError(f"--accept-wall and --refuse-wall both name {recs[i].get('test')} "
+                      f"in {recs[i].get('file')}; give one")
     stop["accepted_wall"] = list(a.accept_wall or [])
     stop["refused_wall"] = list(a.refuse_wall or [])
-    for r in recs:
+    for i, r in enumerate(recs):
         test = r.get("test")
-        r["accepted"] = test in stop["accepted_wall"] or (
-            bool(r.get("accepted")) and test not in stop["refused_wall"])
+        r["accepted"] = i in picked["--accept-wall"] or (bool(r.get("accepted")) and i not in picked["--refuse-wall"])
         if r["accepted"]:
             r.pop("refused", None)
             if r.get("recommend") == "mark slice-only" and not any(
@@ -462,7 +497,7 @@ def answer_wall(data, stop, a):
                     {"file": r.get("file"), "test": test, "why": r.get("why"), "accepted": True})
         else:
             r["refused"] = True
-            if test in stop["refused_wall"]:
+            if i in picked["--refuse-wall"]:
                 data["slice_only"] = [m for m in data.get("slice_only") or [] if not (
                     isinstance(m, dict) and (m.get("file"), m.get("test")) == (r.get("file"), test))]
 
@@ -530,7 +565,7 @@ def cmd_answer(a):
         stop["budget_change"] = {"from": amounts(seen), "to": amounts(data.get("budget"))}
     scribed = [name for name, value in (("settled", settled), ("new_info", a.new_info),
                                         ("cause", a.cause)) if value]
-    answer_wall(data, stop, a)
+    answer_wall(data, stop, a, slice_root(path))
     if "slice_only_marks" in [stop["order"], *(stop.get("bundle") or [])]:
         for m in data.get("slice_only") or []:
             if isinstance(m, dict):
@@ -734,7 +769,13 @@ def has_build(data):
 
 
 def build_commit(root, data):
-    return git(["rev-parse", data["build"]["ref"] + "^{commit}"], root).strip()
+    """The build's commit as the slice opened with it; for a record that has none, the ref as it resolves now.
+    "" when neither resolves (the branch was deleted)."""
+    stored = data["build"].get("commit")
+    if stored and subprocess.run(["git", "cat-file", "-e", stored + "^{commit}"], cwd=root,
+                                 capture_output=True).returncode == 0:
+        return stored
+    return git(["rev-parse", "--verify", "-q", data["build"]["ref"] + "^{commit}"], root, check=False).strip()
 
 
 def wall_for_build(root, data, res):
@@ -743,6 +784,11 @@ def wall_for_build(root, data, res):
         asked = " ".join(s.get("question") or "" for s in data["stops"]
                          if s.get("order") == "unrecorded_move" and s.get("answer") is not None)
         build = build_commit(root, data)
+        if not build:
+            # a check that cannot run stops for a person and never passes: the files stay unrecorded
+            res["note"] = (f"the build {data['build'].get('ref')} no longer resolves and the record holds no commit "
+                           "for it, so the build's own changes to test files cannot be told from the slice's")
+            return res
         res["unrecorded"] = [f for f in res["unrecorded"] if f not in asked or
                              subprocess.run(["git", "diff", "--quiet", build, "--", f], cwd=root).returncode != 0]
         res["ok"] = not res["unrecorded"]
@@ -761,8 +807,24 @@ def expected_moves(root, data, config):
 def cmd_report(a):
     path, data, body = load(repo_root(), a.id)
     text = sys.stdin.read() if a.file == "-" else open(a.file).read()
+    red_before = data.get("red")
     body, report = apply_report(data, body, a.agent, text)
+    reported = ((report or {}).get("red") or {}).get("command") if a.agent == "scenario" else None
+    if reported and joined_unsafely(reported):
+        data["red"] = red_before  # as `xv step` does: a refused red is not kept, and red_joined is set
+        if not has_build(data):  # no landing on a slice not from a build, so it is set here
+            scenario = data.setdefault("checks", {}).setdefault("scenario", {})
+            scenario["red_fails"] = None
+            scenario["red_joined"] = reported
     save(path, data, body)
+    if a.agent == "scenario" and has_build(data):
+        # a session-mode scenario step left a checkout at the base: land the red written there, as `xv step` does
+        # (record does not import run: the landing runs there, with the whole report on its stdin)
+        p = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "run.py"),
+                            "land-scenario", a.id], cwd=slice_root(path), input=json.dumps(report or {}),
+                           capture_output=True, text=True)
+        if p.returncode != 0:
+            raise XVError(p.stderr.strip() or "landing the scenario agent's red failed")
     if a.agent in ("maker", "cleaner"):
         # the same move checks `xv step` runs after these agents; the wall reads the record from disk
         root = repo_root()
@@ -995,7 +1057,7 @@ def main(argv=None):
     s.add_argument("--scenario-file")
     s.add_argument("--expect-moves", help="the test changes the person expects: imports, renames, or both")
     s.add_argument("--rename", action="append", help="Old=New, a name this slice renames; one flag per pair")
-    s.add_argument("--ignore", help="what this slice may ignore")
+    s.add_argument("--ignore", action="append", help="what this slice may ignore; repeat the flag for more")
     s.add_argument("--recording", help="path to the recording, for a defect")
     s.add_argument("--branch")
     s.add_argument("--axis", help="for a prototype slice: the one axis the three differ on")
@@ -1082,9 +1144,10 @@ def main(argv=None):
     s.add_argument("--why", help="the person's reason")
     s.add_argument("--bundle", help="comma-separated orders the same reply answered")
     s.add_argument("--accept-wall", dest="accept_wall", action="append", metavar="TEST",
-                   help="accept the wall recommendation for this test; repeat per test")
+                   help="accept the wall recommendation for this test, or file::test when the name is "
+                        "recommended in more than one file; repeat per test")
     s.add_argument("--refuse-wall", dest="refuse_wall", action="append", metavar="TEST",
-                   help="refuse the wall recommendation for this test; repeat per test")
+                   help="refuse the wall recommendation for this test, or file::test; repeat per test")
     s.set_defaults(fn=cmd_answer)
 
     s = sub.add_parser("report", help="apply a worker's xv-report block")

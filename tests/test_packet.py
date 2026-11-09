@@ -178,5 +178,60 @@ class PacketFieldDocsTest(unittest.TestCase):
         self.assertIn("list", decisions)
 
 
+class CrowdedPictureNoteTest(unittest.TestCase):
+    """defects-tools 15: the note on crowded picture lines is left once, and an old note is stripped only where it starts a line."""
+
+    NOTE = "Note: the picture should hold one sentence per line;"
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="xv-note-")
+        self.addCleanup(__import__("shutil").rmtree, self.tmp, True)
+        os.makedirs(os.path.join(self.tmp, ".xv"))
+        self.picture("One sentence. Another sentence on the same line.\n")
+        self.path = os.path.join(self.tmp, "packet.md")
+
+    def picture(self, text):
+        with open(os.path.join(self.tmp, ".xv", "picture.md"), "w") as f:
+            f.write(text)
+
+    def packet(self, text):
+        with open(self.path, "w") as f:
+            f.write(text)
+
+    def run_note(self):
+        packet.note_crowded_picture_lines(self.path, self.tmp)
+        with open(self.path) as f:
+            return f.read()
+
+    def starting_a_line(self, text):
+        return [ln for ln in text.splitlines() if ln.startswith(self.NOTE)]
+
+    def test_a_second_run_leaves_exactly_one_note(self):
+        self.packet(GOOD)
+        self.run_note()
+        text = self.run_note()
+        self.assertEqual(len(self.starting_a_line(text)), 1, text)
+        self.assertEqual(text.count(self.NOTE), 1, text)
+
+    def test_a_note_quoted_inside_a_line_is_not_stripped(self):
+        quote = f"- The guardian saw that {self.NOTE} more than one sentence on .xv/picture.md:9 (evidence: x:1)"
+        self.packet(GOOD.rstrip("\n") + "\n\n" + quote + "\n")
+        text = self.run_note()
+        self.assertIn(quote, text, "a line that quotes the note lost its text")
+        self.assertEqual(len(self.starting_a_line(text)), 1, text)
+
+    def test_an_old_note_that_starts_a_line_is_replaced_by_the_new_one(self):
+        self.packet(GOOD.rstrip("\n") + f"\n\n{self.NOTE} more than one sentence on .xv/picture.md:9.\n")
+        text = self.run_note()
+        self.assertEqual(len(self.starting_a_line(text)), 1, text)
+        self.assertNotIn(".xv/picture.md:9", text)
+        self.assertIn(".xv/picture.md:1", text)
+
+    def test_an_old_note_goes_when_no_picture_line_is_crowded(self):
+        self.packet(GOOD.rstrip("\n") + f"\n\n{self.NOTE} more than one sentence on .xv/picture.md:9.\n")
+        self.picture("One sentence per line.\n")
+        self.assertEqual(self.starting_a_line(self.run_note()), [])
+
+
 if __name__ == "__main__":
     unittest.main()

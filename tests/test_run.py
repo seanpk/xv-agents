@@ -2031,5 +2031,45 @@ class AnsweredStopStaysAnsweredTest(WatchLoopSetup):
         self.assertEqual(self.record()["next"], "maker")
 
 
+class SliceNewInputsTest(RepoCase):
+    """defects-tools 13 and 14: `xv slice new` checks its input paths first, and --ignore can repeat."""
+
+    def branches(self):
+        return sh(["git", "branch", "--list", "xv/*"], self.repo).stdout.strip()
+
+    def nothing_made(self):
+        self.assertEqual(self.branches(), "", "a branch was made")
+        self.assertFalse(os.path.exists(os.path.join(self.repo, ".xv", "worktrees", "s1")), "a worktree was made")
+
+    def refused(self, *flags):
+        p = self.xv("slice", "new", "s1", "--by", "pat", *flags, check=False)
+        self.assertNotEqual(p.returncode, 0, p.stdout)
+        self.assertNotIn("Traceback", p.stderr)
+        self.nothing_made()
+        return p
+
+    def test_a_missing_recording_path_is_refused_before_any_branch_or_worktree(self):
+        p = self.refused("--scenario", "x", "--kind", "defect", "--recording", "/no/such/recording.har")
+        self.assertIn("/no/such/recording.har", p.stderr)
+
+    def test_a_missing_scenario_file_is_refused_before_any_branch_or_worktree(self):
+        p = self.refused("--scenario-file", "/no/such/scenario.md")
+        self.assertIn("/no/such/scenario.md", p.stderr)
+
+    def may_ignore(self, *values):
+        flags = [x for v in values for x in ("--ignore", v)]
+        wt = self.xv("slice", "new", "s1", "--by", "pat", "--scenario", "x", *flags).stdout.strip().splitlines()[-1]
+        with open(os.path.join(wt, ".xv", "slices", "s1.md")) as f:
+            text = f.read()
+        return text.split("## May ignore\n", 1)[1].split("\n## ", 1)[0].strip()
+
+    def test_a_repeated_ignore_gives_a_bullet_list_in_order(self):
+        self.assertEqual(self.may_ignore("First thing.", "Second thing.", "Third thing."),
+                         "- First thing.\n- Second thing.\n- Third thing.")
+
+    def test_a_single_ignore_stays_a_plain_paragraph(self):
+        self.assertEqual(self.may_ignore("Only thing."), "Only thing.")
+
+
 if __name__ == "__main__":
     unittest.main()

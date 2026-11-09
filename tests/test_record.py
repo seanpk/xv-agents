@@ -367,6 +367,22 @@ class ScenarioRerunMergeTest(RepoCase):
         self.assertEqual(sorted(files), ["tests/test_x.py", "tests/test_y.py"])
 
 
+class SameMoveTest(RepoCase):
+    """#154 item 5: one move told twice with a comma of difference is recorded once."""
+
+    def move(self, wt, assertion, file="tests/test_x.py"):
+        self.xv("record", "move", "s1", "--file", file, "--assertion", assertion, "--why", "w", cwd=wt)
+
+    def moves(self, wt):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["moved_tests"]
+
+    def test_the_same_assertion_in_two_files_is_two_moves(self):
+        wt = self.new_slice("s1")
+        self.move(wt, "was: a; now: b")
+        self.move(wt, "was: a; now: b", file="tests/test_y.py")
+        self.assertEqual(len(self.moves(wt)), 2)
+
+
 class SliceOnlyGateTest(RepoCase):
     """--slice-only counts only for a test the scenario listed in slice_only."""
 
@@ -973,6 +989,93 @@ class WallChoicesTest(RepoCase):
         self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion",
                 "test_other; removed", "--why", "w", "--slice-only", cwd=wt)
         self.assertFalse(self.show(wt)["moved_tests"][0].get("slice_only"))
+
+
+class WallAnswerByFileTest(RepoCase):
+    """#148: two wall recommendations with one test name in different files are answered one by one."""
+
+    RECS = [{"file": "tests/test_a.py", "test": "test_same", "recommend": "stay on the wall", "why": "w"},
+            {"file": "tests/test_b.py", "test": "test_same", "recommend": "stay on the wall", "why": "w"},
+            {"file": "tests/test_b.py", "test": "test_only_here", "recommend": "stay on the wall", "why": "w"}]
+
+    def stopped_on_accept_moves(self):
+        wt = self.new_slice("s1")
+        path = os.path.join(self.tmp, "g.txt")
+        report = {"agent": "guardian", "status": "done", "summary": "p", "shape_change": "no",
+                  "pitch_contradiction": "no", "wall_recommendations": self.RECS}
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
+        self.xv("record", "report", "s1", "guardian", path, cwd=wt)
+        self.xv("record", "stop", "s1", "--order", "accept_moves", "--seat", "originator",
+                "--question", "accept?", "--step", "guardian", cwd=wt)
+        return wt
+
+    def accepted(self, wt):
+        recs = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["wall_recommendations"]
+        return [(r["file"], r["test"]) for r in recs if r["accepted"]]
+
+    def answer(self, wt, *flags, check=True):
+        return self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", *flags, cwd=wt, check=check)
+
+    def with_files(self, wt):
+        for name, cls in (("test_a.py", "AlphaTest"), ("test_b.py", "BetaTest")):
+            with open(os.path.join(wt, "tests", name), "w") as f:
+                f.write(f"class {cls}:\n    def test_same(self):\n        pass\n    def test_only_here(self):\n        pass\n")
+
+    def test_the_colons_form_names_one_recommendation(self):
+        wt = self.stopped_on_accept_moves()
+        self.with_files(wt)
+        self.answer(wt, "--accept-wall", "tests/test_b.py::BetaTest::test_same")
+        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_same")])
+
+    def test_the_hash_form_names_one_recommendation(self):
+        wt = self.stopped_on_accept_moves()
+        self.with_files(wt)
+        self.answer(wt, "--accept-wall", "BetaTest#test_same")
+        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_same")])
+
+    def test_the_dots_form_names_one_recommendation(self):
+        wt = self.stopped_on_accept_moves()
+        self.with_files(wt)
+        self.answer(wt, "--accept-wall", "tests.test_b.BetaTest.test_same")
+        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_same")])
+
+    def test_the_file_and_class_form_names_one_recommendation(self):
+        wt = self.stopped_on_accept_moves()
+        self.with_files(wt)
+        self.answer(wt, "--accept-wall", "tests/test_b.py::BetaTest.test_same")
+        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_same")])
+
+    def test_the_arrow_form_names_one_recommendation(self):
+        wt = self.stopped_on_accept_moves()
+        self.with_files(wt)
+        self.answer(wt, "--accept-wall", "BetaTest > test_same")
+        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_same")])
+
+    def test_a_class_form_the_file_does_not_have_names_nothing(self):
+        wt = self.stopped_on_accept_moves()
+        self.with_files(wt)
+        p = self.answer(wt, "--accept-wall", "GammaTest#test_same", check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("no wall recommendation", p.stderr)
+
+    def test_accept_and_refuse_of_the_two_files_answer_them_apart(self):
+        wt = self.stopped_on_accept_moves()
+        self.answer(wt, "--accept-wall", "tests/test_a.py::test_same", "--refuse-wall", "tests/test_b.py::test_same")
+        self.assertEqual(self.accepted(wt), [("tests/test_a.py", "test_same")])
+
+    def test_the_same_file_and_test_in_both_flags_is_refused(self):
+        wt = self.stopped_on_accept_moves()
+        p = self.answer(wt, "--accept-wall", "tests/test_a.py::test_same",
+                        "--refuse-wall", "tests/test_a.py::test_same", check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("both", p.stderr)
+
+    def test_a_file_and_test_with_no_recommendation_is_refused(self):
+        wt = self.stopped_on_accept_moves()
+        p = self.answer(wt, "--accept-wall", "tests/test_c.py::test_same", check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("no wall recommendation", p.stderr)
 
 
 class AcceptWallFlagTest(RepoCase):
@@ -2412,6 +2515,120 @@ class RecordStateTest(RepoCase):
         self.report(wt, "maker", status="green", moved_tests=[])
         p = self.xv("orders", "s1", "--after", "maker", cwd=wt, check=False)
         self.assertIn("unrecorded_move", [f["order"] for f in json.loads(p.stdout)["fired"]], p.stdout)
+
+
+class WallFlagFormsTest(RepoCase):
+    """defects-tools 7: --accept-wall and --refuse-wall take the test with its file, in the forms the covers check takes."""
+
+    RECS = [{"file": "tests/test_a.py", "test": "test_one", "recommend": "stay on the wall", "why": "w"},
+            {"file": "tests/test_b.py", "test": "test_one", "recommend": "stay on the wall", "why": "w"},
+            {"file": "tests/test_a.py", "test": "test_only_a", "recommend": "stay on the wall", "why": "w"},
+            {"file": "tests/test_c.py", "test": "Wall.test_cls", "recommend": "stay on the wall", "why": "w"}]
+
+    def stopped(self):
+        wt = self.new_slice("s1")
+        path = os.path.join(self.tmp, "g.txt")
+        report = {"agent": "guardian", "status": "done", "summary": "p", "shape_change": "no",
+                  "pitch_contradiction": "no", "wall_recommendations": self.RECS}
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
+        self.xv("record", "report", "s1", "guardian", path, cwd=wt)
+        self.xv("record", "stop", "s1", "--order", "accept_moves", "--seat", "originator",
+                "--question", "accept?", "--step", "guardian", cwd=wt)
+        return wt
+
+    def answer(self, wt, *flags):
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", *flags, cwd=wt, check=False)
+        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+        return p, {(r["file"], r["test"]): r for r in data["wall_recommendations"]}
+
+    def test_file_then_test_picks_one_of_two_files_that_share_a_name(self):
+        wt = self.stopped()
+        p, recs = self.answer(wt, "--accept-wall", "tests/test_a.py::test_one")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIs(recs[("tests/test_a.py", "test_one")]["accepted"], True)
+        self.assertIs(recs[("tests/test_b.py", "test_one")]["accepted"], False)
+
+    def test_refuse_wall_takes_the_same_form(self):
+        wt = self.stopped()
+        p, recs = self.answer(wt, "--accept-wall", "tests/test_b.py::test_one",
+                              "--refuse-wall", "tests/test_a.py::test_one")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIs(recs[("tests/test_b.py", "test_one")]["accepted"], True)
+        self.assertIs(recs[("tests/test_a.py", "test_one")]["accepted"], False)
+        self.assertIs(recs[("tests/test_a.py", "test_one")].get("refused"), True)
+
+    def accepts_the_class_test(self, form):
+        wt = self.stopped()
+        p, recs = self.answer(wt, "--accept-wall", form)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIs(recs[("tests/test_c.py", "Wall.test_cls")]["accepted"], True)
+        self.assertIs(recs[("tests/test_a.py", "test_only_a")]["accepted"], False)
+
+    def test_file_then_class_dot_test(self):
+        self.accepts_the_class_test("tests/test_c.py::Wall.test_cls")
+
+    def test_class_hash_test(self):
+        self.accepts_the_class_test("Wall#test_cls")
+
+    def test_module_dot_class_dot_test(self):
+        self.accepts_the_class_test("tests.test_c.Wall.test_cls")
+
+    def test_class_arrow_test(self):
+        self.accepts_the_class_test("Wall > test_cls")
+
+    def test_a_bare_name_still_works_when_one_recommendation_has_it(self):
+        wt = self.stopped()
+        p, recs = self.answer(wt, "--accept-wall", "test_only_a")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIs(recs[("tests/test_a.py", "test_only_a")]["accepted"], True)
+
+    def test_a_bare_name_two_files_share_is_refused_and_the_refusal_names_each_file_and_test(self):
+        wt = self.stopped()
+        p, recs = self.answer(wt, "--accept-wall", "test_one")
+        self.assertNotEqual(p.returncode, 0, "a bare name two files share was taken")
+        self.assertIn("tests/test_a.py::test_one", p.stderr)
+        self.assertIn("tests/test_b.py::test_one", p.stderr)
+        open_stops = [s for s in json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["stops"]
+                      if s.get("answer") is None]
+        self.assertEqual(len(open_stops), 1, "the refused answer closed the stop")
+
+    def test_a_bare_name_two_files_share_is_refused_for_refuse_wall_too(self):
+        wt = self.stopped()
+        p, recs = self.answer(wt, "--refuse-wall", "test_one")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("tests/test_a.py::test_one", p.stderr)
+        self.assertIn("tests/test_b.py::test_one", p.stderr)
+
+
+class SameMoveTwiceTest(RepoCase):
+    """defects-tools 12: one move told twice, with only a comma or a space of difference, is recorded once."""
+
+    BASE = "was: self.assertEqual(x, 1); now: self.assertEqual(x, 2)"
+
+    def move(self, wt, assertion):
+        self.xv("record", "move", "s1", "--file", "tests/test_store.py", "--assertion", assertion, "--why", "w", cwd=wt)
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["moved_tests"]
+
+    def told_twice(self, variant):
+        wt = self.new_slice("s1")
+        self.move(wt, self.BASE)
+        self.assertEqual(len(self.move(wt, variant)), 1, "the same move was recorded twice")
+
+    def test_a_dropped_comma_is_the_same_move(self):
+        self.told_twice("was: self.assertEqual(x 1); now: self.assertEqual(x, 2)")
+
+    def test_a_dropped_space_is_the_same_move(self):
+        self.told_twice("was: self.assertEqual(x,1); now: self.assertEqual(x,2)")
+
+    def test_an_extra_space_is_the_same_move(self):
+        self.told_twice("was:  self.assertEqual(x, 1);  now: self.assertEqual(x,  2)")
+
+    def test_an_equal_and_a_not_equal_are_two_moves(self):
+        wt = self.new_slice("s1")
+        self.move(wt, "was: self.assertTrue(x == 1); now: self.assertTrue(x == 2)")
+        moves = self.move(wt, "was: self.assertTrue(x != 1); now: self.assertTrue(x != 2)")
+        self.assertEqual(len(moves), 2)
 
 
 # What a person should watch on the first green run of RecordStateTest: accept a narrow shape at

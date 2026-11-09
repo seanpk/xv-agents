@@ -221,5 +221,24 @@ class RetroDocsNameNumberedFilesTest(unittest.TestCase):
         self.assertIn("<date>-3.md", text)
 
 
+class DefectsToolsDocsTest(unittest.TestCase):
+    """defects-tools 16 and 17: the docs name what changed. README, the watch, xv-slice and cleaner briefs and the
+    picture name `build.commit`, the wall-flag forms, `run.py land-scenario`, `brief:` names and the repeating `--ignore`."""
+
+    def test_the_watch_brief_names_the_session_landing_and_the_wall_flag_forms(self):
+        text = brief("skills", "watch", "SKILL.md")
+        self.assertIn("run.py land-scenario", text)
+        self.assertIn("file::test", text)
+
+    def test_the_xv_slice_brief_says_ignore_can_repeat(self):
+        text = brief("skills", "xv-slice", "SKILL.md")
+        self.assertRegex(text, r"(?is)--ignore[^\n]{0,300}(repeat|more than once)|(repeat|more than once)[^\n]{0,300}--ignore")
+
+    def test_the_cleaner_brief_names_the_brief_step_and_the_standards_heading(self):
+        text = brief("skills", "cleaner", "SKILL.md")
+        self.assertIn("brief: slice-only removal", text)
+        self.assertRegex(text, r"(?is)exact\s+`###`\s+heading|`###` heading[^\n]{0,80}exact|exact[^\n]{0,80}`###` heading")
+
+
 if __name__ == "__main__":
     unittest.main()

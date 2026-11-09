@@ -37,6 +37,8 @@ xv slice new <id> --title "<title>" --by <name> --kind feature|defect|prototype|
   [--expect-moves imports,renames] [--rename Old=New] [--from <ref> [--share-build]]
 ```
 
+`--ignore` can repeat (more than once): each value goes into "May ignore" as a bullet, in order; a single value stays a paragraph.
+
 The id is short and dated, such as `2026-10-21-expiring-today`. The command creates the branch `xv/<id>`, a worktree for it, and `.xv/slices/<id>.md` in that worktree, and prints the worktree path.
 
 With `--from <ref>` the branch starts at the build, and `base` stays the branch the slice merges into. The scenario agent still writes the red at `base`, without the build, and the red must fail there; then it runs on the build. A red test that fails on the build goes to the maker as a miss; a red that passes on it skips the maker. `--share-build` names the build to the scenario agent as a reference only, and needs `--from`.

@@ -109,7 +109,7 @@ def counts(root, config=None):
             for a in rep.get("applied") or []:
                 rule = (a.get("rule") if isinstance(a, dict) else str(a)) or ""
                 rule = re.sub(r"^\.xv/standards\.md:\s*", "", rule).strip()
-                if rule and not rule.startswith("baseline"):
+                if rule and not rule.startswith(("baseline", "brief:")):  # a step the brief names is not a standard
                     fired[rule] = fired.get(rule, 0) + 1
         for o in d.get("overrides") or []:
             rule = (o.get("rule") or "").strip()

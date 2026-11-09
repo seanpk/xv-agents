@@ -177,6 +177,18 @@ class SliceRebaseTest(RepoCase):
         self.assertNotIn("<<<<<<<", text)
         self.assertNotIn(">>>>>>>", text)
 
+    def test_a_directed_changelog_edit_replaces_the_old_line_in_a_rebase_not_adds_one_beside_it(self):
+        self.on_slice("CHANGELOG.md", "# Changelog\n\n## Unreleased\n\n- the base line, now edited\n",
+                      "slice edits its line")
+        self.on_main("CHANGELOG.md", "# Changelog\n\n## Unreleased\n\n- the base line\n- main's new line\n",
+                     "main adds a line beside it")
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        lines = self.read(self.wt, "CHANGELOG.md").splitlines()
+        self.assertIn("- the base line, now edited", lines)
+        self.assertIn("- main's new line", lines)
+        self.assertNotIn("- the base line", lines)
+
     def test_an_estimation_conflict_keeps_both_sides(self):
         self.on_slice(".xv/estimation.md", "| slice-row | 1 |\n", "slice row", "a")
         self.on_main(".xv/estimation.md", "| main-row | 2 |\n", "main row", "a")
@@ -511,6 +523,18 @@ class SliceRebaseTest(RepoCase):
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertIn("4 or 1", self.read(self.wt, "tests/test_store.py"))
         self.assertIn("tests/test_store.py", self.wall_diff()["changed"])
+
+    def test_a_red_edit_to_a_file_main_also_changed_stays_in_the_wall_after_a_rebase(self):
+        text = self.read(self.wt, "tests/test_store.py")
+        self.on_slice("tests/test_store.py", "# the slice's red adds this\n" + text, "the slice's red edits an old file")
+        self.xv("wall", "baseline", "s1", cwd=self.wt)
+        sh(["git", "add", "-A"], self.wt)
+        sh(["git", "commit", "-qm", "wall baseline"], self.wt)
+        self.on_main("tests/test_store.py", text + "# a note from main\n", "main edits the same file elsewhere")
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("the slice's red adds this", self.read(self.wt, "tests/test_store.py"))
+        self.assertEqual(self.wall_diff()["changed"], [])
 
     def test_a_test_file_resolved_by_hand_after_a_conflict_still_shows_the_slices_change_in_the_wall(self):
         self.slice_weakens_an_old_test()
@@ -854,6 +878,28 @@ class SliceRebaseTest(RepoCase):
     def test_the_picture_the_maker_changed_on_a_replay_with_no_conflict_is_left_uncommitted(self):
         self.assert_git_diff_shows_the_makers_edit(".xv/picture.md")
 
+    def test_the_question_for_a_new_test_file_the_maker_added_says_how_to_drop_it(self):
+        rel = "tests/test_added_by_maker.py"
+        self.on_main("docs.txt", "news\n")
+        p = self.rebase(FAKE_REBASE_MODE="logical", FAKE_REBASE_FILE=rel, FAKE_REBASE_TEXT="# MAKER-NEW-FILE\n")
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertEqual(stop["order"], "rebase_conflict")
+        self.assertIn(f"`rm {rel}`", stop["question"])
+        self.assertNotIn("git checkout", stop["question"])
+        self.assertIn("is a new file", stop["question"])
+        # the command works: the file is untracked, `git diff` does not list it, and `rm` drops it
+        self.assertEqual(sh(["git", "diff", "--name-only"], self.wt).stdout.split().count(rel), 0)
+        self.assertIn(rel, sh(["git", "status", "--porcelain"], self.wt).stdout)
+        os.remove(os.path.join(self.wt, rel))
+        self.assertNotIn(rel, sh(["git", "status", "--porcelain"], self.wt).stdout)
+
+    def test_the_question_for_an_edited_test_file_still_names_git_checkout(self):
+        rel = "tests/test_store.py"
+        self.on_main("docs.txt", "news\n")
+        p = self.rebase(FAKE_REBASE_MODE="logical", FAKE_REBASE_FILE=rel)
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertIn(f"`git checkout -- {rel}`", stop["question"])
+
     # -- record-state 7: after an error mid-rebase, --continue and --abort read the record of truth
 
     def maker_cli_missing(self):
@@ -994,6 +1040,58 @@ class SliceRebaseTest(RepoCase):
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertEqual(self.read(self.wt, "pantry/shared.py"), "RESOLVED = True\n")
         self.assertFalse(self.in_progress())
+
+    # -- defects-tools 6: the maker's edit to a new test file is untracked, so the question says how to drop it
+
+    def test_a_new_test_file_the_maker_added_stops_and_the_question_says_how_to_drop_it(self):
+        self.shared_conflict()
+        p = self.rebase(FAKE_REBASE_MODE="resolve_and_edit", FAKE_REBASE_FILE="pantry/shared.py",
+                        FAKE_REBASE_FILE2="tests/test_brand_new.py")
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertEqual(stop["order"], "rebase_conflict")
+        q = stop["question"]
+        self.assertIn("tests/test_brand_new.py", q)
+        self.assertRegex(q, r"\brm\b|git clean", "the question does not say how to drop a new file")
+        self.assertIn("git status", q)
+        self.assertRegex(q, r"git diff[^.]*(not|n't|does not|doesn't|no)", "the question does not say `git diff` hides it")
+
+    def test_an_edit_to_a_tracked_test_file_still_names_git_checkout(self):
+        self.shared_conflict()
+        p = self.rebase(FAKE_REBASE_MODE="resolve_and_edit", FAKE_REBASE_FILE="pantry/shared.py",
+                        FAKE_REBASE_FILE2="tests/test_store.py")
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertIn("git checkout -- <file>", stop["question"])
+
+    # -- defects-tools 8: a red file the new base also changed keeps the slice's red edits in the wall hash
+
+    def test_a_red_file_main_also_changed_keeps_the_slices_red_edits_in_the_wall_hash(self):
+        self.slice_adds_a_failing_test_to_an_old_file()
+        self.xv("wall", "baseline", "s1", cwd=self.wt)  # the red lands with the wall hashed after it, as at the scenario step
+        sh(["git", "add", "-A"], self.wt)
+        sh(["git", "commit", "-qm", "wall baseline"], self.wt)
+        text = self.read(self.repo, "tests/test_store.py")
+        self.on_main("tests/test_store.py", "# a note from main\n" + text, "main edits the red file elsewhere")
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("test_slice_added_red", self.read(self.wt, "tests/test_store.py"))
+        self.assertNotIn("tests/test_store.py", self.wall_diff()["changed"],
+                         "the slice's own red edits show in the wall diff after the rebase")
+
+    # -- defects-tools 9: a directed CHANGELOG edit replaces the old line after a rebase
+
+    def test_a_directed_changelog_edit_replaces_the_old_line_after_a_rebase(self):
+        self.on_slice("CHANGELOG.md", "- the slice's line\n", "slice changelog", "a")
+        text = self.read(self.wt, "CHANGELOG.md")
+        self.on_slice("CHANGELOG.md", text.replace("- the slice's line\n", "- the slice's line, reworded\n"),
+                      "directed changelog edit")
+        self.on_main("CHANGELOG.md", "- main's line\n", "main changelog", "a")
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        text = self.read(self.wt, "CHANGELOG.md")
+        self.assertIn("- the slice's line, reworded\n", text)
+        self.assertNotIn("- the slice's line\n", text, "the old line is still there beside the edited one")
+        self.assertIn("- main's line\n", text)
+        self.assertIn("- the base line\n", text)
 
 
 # What a person should watch on the first green run: that a slice with a real change of its own

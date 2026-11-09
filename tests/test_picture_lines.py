@@ -131,6 +131,10 @@ class ALongPictureLineGetsAPacketNoteTest(RepoCase):
         packet = self.packet_after("# Picture\n\n1. An item. With two.\n")
         self.assertEqual(self.noted_lines(packet), [3])
 
+    def record_packet_again(self, packet):
+        self.xv("record", "packet", "s1", packet, cwd=self.wt)
+        with open(packet) as f:
+            return f.read()
 
 # What a person should watch on the first green run: open .xv/picture.md and read a few list items.
 # Each sentence should sit on its own line, with a list item's extra lines lined up with the item's text, and the

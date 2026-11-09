@@ -201,7 +201,7 @@ To try XV before your team commits to it, start with `xv init --trial`. It lists
      --kind feature --scenario-file scenario.md --ignore "quantities; the mobile layout"
    ```
 
-   The file holds the scenario in words: the steps a user takes and what they see, and for a defect what happened and what should have. The id is short and dated. The command makes the branch `xv/<id>`, a worktree under `.xv/worktrees/<id>`, and the record `.xv/slices/<id>.md` in that worktree, and prints the worktree path. `xv record show <id>` finds the record from the repo root too.
+   The file holds the scenario in words: the steps a user takes and what they see, and for a defect what happened and what should have. The id is short and dated. The command makes the branch `xv/<id>`, a worktree under `.xv/worktrees/<id>`, and the record `.xv/slices/<id>.md` in that worktree, and prints the worktree path. `xv record show <id>` finds the record from the repo root too. `--ignore` can repeat, once for each thing the slice may ignore.
 3. Set the budget. The forecaster runs first and leaves the numbers null on a fresh repo, so the first budget is yours:
 
    ```sh
@@ -243,7 +243,7 @@ To try XV before your team commits to it, start with `xv init --trial`. It lists
 
 Each agent runs in a context that has never seen the others. `xv prompt <agent> <id>` builds that context's entire input: the skill's body, then pointers to this slice (the record, the base commit, the budget, the project files). Nothing is restated that the agent can read itself, with one exception: after a person answers a stop, the next agent's prompt carries that answer word for word. The same text goes to a CLI run or to a harness's own subagent.
 
-The CLI for each step is a line in `.xv/config.yml`, a list of arguments with `{prompt}` where the text goes. The default is Claude Code in print mode with the person's own customisations off (`claude -p --safe-mode --disable-slash-commands`), so the brief is the whole user prompt. Claude Code's own system prompt stays, as opencode's does; what is gone is everything the person or the project added. A step may name a different CLI and model: Haiku for the forecaster, Opus for the guardian, a local model through opencode for the maker. A step set to `session` runs in the person's own harness as a subagent instead, with the same text.
+The CLI for each step is a line in `.xv/config.yml`, a list of arguments with `{prompt}` where the text goes. The default is Claude Code in print mode with the person's own customisations off (`claude -p --safe-mode --disable-slash-commands`), so the brief is the whole user prompt. Claude Code's own system prompt stays, as opencode's does; what is gone is everything the person or the project added. A step may name a different CLI and model: Haiku for the forecaster, Opus for the guardian, a local model through opencode for the maker. A step set to `session` runs in the person's own harness as a subagent instead, with the same text. On a slice from a build (`xv slice new --from`), the record keeps the build's `build.commit`, and in session mode `xv record report <id> scenario -` runs `scripts/run.py land-scenario` in a subprocess: it lands the red, runs it at the base and on the build, and takes the wall baseline at the base.
 
 An agent reports back in one block at the end of its final message:
 
@@ -299,6 +299,8 @@ One file per slice, `.xv/slices/<id>.md`, on its own branch `xv/<id>` in a workt
 ### The wall
 
 After the scenario agent's red, `xv wall baseline` hashes every file matching the test paths in `.xv/config.yml`. After the maker and the cleaner, `xv wall check` compares. A test file that changed or disappeared with no matching entry in the record's `moved_tests` fails the check and stops the slice for the person who set the work going. The wall does not forbid a move; it forbids a silent one. The same check runs as a pre-commit hook on slice branches (`xv wall install-hook`) and in CI against the pull request's base. It reads files and the record, so it needs nothing from the harness. The eval results that are committed are from before the wall existed; the runs with it go in with the final results.
+
+The guardian recommends which new tests join the wall or leave it, and a person answers with `xv record answer --accept-wall` or `--refuse-wall`. Both take the test with its file, `file::test`, or the other forms the covers check takes.
 
 ### The stops
 
@@ -373,7 +375,7 @@ The shared skills are never edited in place. An upgrade is a copy, not a merge, 
 
 ### How the agents learn
 
-XV's bet is that a miss turned into a check stops repeating, and a miss turned into a sentence may not. No use is behind that yet. So the main path from a miss to a rule is `xv-retro`, run after a slice that stopped, overran its budget, or drew the same guardian finding twice: a fresh context proposes candidates, each tied to a moment in a slice record, and a person picks. A check becomes a slice like any other. A judgement call becomes a line in the standards file. An Open learning seen twice is promoted inside the repo with `xv promote local`, and shared across repos as an issue on this repo with `xv promote draft` and `post`, which is the only command here that writes in public, and only with a person's approval. A change to a brief, a may-not list or a standing order takes two people and a line in [`CHANGELOG.md`](CHANGELOG.md).
+XV's bet is that a miss turned into a check stops repeating, and a miss turned into a sentence may not. No use is behind that yet. So the main path from a miss to a rule is `xv-retro`, run after a slice that stopped, overran its budget, or drew the same guardian finding twice: a fresh context proposes candidates, each tied to a moment in a slice record, and a person picks. A check becomes a slice like any other. A judgement call becomes a line in the standards file. An Open learning seen twice is promoted inside the repo with `xv promote local`, and shared across repos as an issue on this repo with `xv promote draft` and `post`, which is the only command here that writes in public, and only with a person's approval. A change to a brief, a may-not list or a standing order takes two people and a line in [`CHANGELOG.md`](CHANGELOG.md). `xv retro counts` tallies how often each standard fires; the cleaner names a standard by its exact heading, reports a step its brief names as `brief: slice-only removal`, and the counts skip `brief:` lines.
 
 ```mermaid
 flowchart LR

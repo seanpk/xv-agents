@@ -31,6 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import agentcli  # noqa: E402
 import orders  # noqa: E402
 import prompt as promptlib  # noqa: E402
+from names import COVERS_SEPARATOR, covers_name_found, joined_unsafely  # noqa: E402,F401
 import record  # noqa: E402
 import spend as spendlib  # noqa: E402
 from suite import failing_tests, in_own_red, own_red_names, run_suite, shell, tests_timeout  # noqa: E402
@@ -213,6 +214,9 @@ def cmd_slice_new(a):
     if not is_trial(root) and git(["status", "--porcelain", "--", XV_DIR], root).strip():
         raise XVError("commit the project layer (.xv/) first "
                       "(or try XV without committing it: xv init --trial)")
+    for flag, path in (("--recording", a.recording), ("--scenario-file", a.scenario_file)):
+        if path and not os.path.isfile(path):
+            raise XVError(f"{flag} {path}: no such file. Nothing was made; fix the path and run it again")
     wt = os.path.join(worktrees_dir(root, config), a.id)
     branch = a.branch or f"xv/{a.id}"
     wcfg = worktrees_config(config)
@@ -234,9 +238,11 @@ def cmd_slice_new(a):
     if trial:
         copy_layer(root, wt)
     args = ["new", a.id, "--by", a.by, "--kind", a.kind, "--branch", branch]
-    for flag, value in (("--title", a.title), ("--ignore", a.ignore), ("--axis", a.axis)):
+    for flag, value in (("--title", a.title), ("--axis", a.axis)):
         if value:
             args += [flag, value]
+    for value in a.ignore or []:
+        args += ["--ignore", value]
     if a.expect_moves is not None:
         args += ["--expect-moves", a.expect_moves]
     for pair in a.rename or []:
@@ -260,7 +266,8 @@ def cmd_slice_new(a):
     data, body = record.load(wt, a.id)[1:]
     data["base"] = base
     if a.from_ref is not None:
-        data["build"] = {"kind": "exploration", "ref": a.from_ref}
+        # the commit is kept with the ref: a build branch deleted after the slice opens is still the build
+        data["build"] = {"kind": "exploration", "ref": a.from_ref, "commit": start}
         data["build_shared"] = "yes" if a.share_build else "no"
     if trial:
         data["trial"] = True
@@ -330,6 +337,19 @@ def commits_between(root, rng):
     return [line.split(" ", 1) for line in lines]
 
 
+def both_sides(hunk):
+    """One conflict's lines, ours first then theirs. When the hunk shows the base (diff3 style), a base line
+    the other side dropped or edited is not kept from this side: a directed edit of a line is the edit, not the
+    old line and the edit one after the other."""
+    ours, base, theirs = hunk["ours"], hunk["base"], hunk["theirs"]
+    if not base:
+        return ours + theirs
+    dropped_by_theirs = {l for l in base if l.strip() and l not in theirs}
+    dropped_by_ours = {l for l in base if l.strip() and l not in ours}
+    return ([l for l in ours if l not in dropped_by_theirs]
+            + [l for l in theirs if l not in dropped_by_ours and l not in ours])
+
+
 def keep_both_sides(root, rel):
     """Resolve a conflicted file by keeping both sides, ours first. False when the file has no markers to strip."""
     path = os.path.join(root, rel)
@@ -339,14 +359,23 @@ def keep_both_sides(root, rel):
         lines = f.read().splitlines(keepends=True)
     if not any(line.startswith("<<<<<<<") for line in lines):
         return False
-    kept, in_base = [], False
+    kept, hunk, part = [], None, None
     for line in lines:
-        if line.startswith("|||||||"):
-            in_base = True
-        elif line.startswith("=======") and line.strip() == "=======":
-            in_base = False
-        elif not (in_base or line.startswith(("<<<<<<<", ">>>>>>>"))):
+        if line.startswith("<<<<<<<"):
+            hunk, part = {"ours": [], "base": [], "theirs": []}, "ours"
+        elif hunk is None:
             kept.append(line)
+        elif line.startswith("|||||||"):
+            part = "base"
+        elif line.startswith("=======") and line.strip() == "=======":
+            part = "theirs"
+        elif line.startswith(">>>>>>>"):
+            kept.extend(both_sides(hunk))
+            hunk = None
+        else:
+            hunk[part].append(line)
+    if hunk is not None:  # a conflict with no end: keep what it holds
+        kept.extend(both_sides(hunk))
     with open(path, "w", encoding="utf-8") as f:
         f.writelines(kept)
     git(["add", "--", rel], root)
@@ -426,8 +455,22 @@ def without_open_rebase_stops(stops):
     return [s for s in stops if not (s.get("step") == "rebase" and s.get("answer") is None)]
 
 
+def maker_new_files(root, files):
+    """{file: the command that drops it} for each of `files` the maker added: not in HEAD, so `git checkout`
+    cannot restore it. A file git does not track yet goes with `rm`, a staged one with `git rm -f`."""
+    out = {}
+    for f in files:
+        if subprocess.run(["git", "cat-file", "-e", f"HEAD:{f}"], cwd=root, capture_output=True).returncode == 0:
+            continue
+        tracked = bool(git(["ls-files", "--", f], root).strip())
+        out[f] = f"git rm -f {f}" if tracked else f"rm {f}"
+    return out
+
+
 def rebase_stop(root, slice_id, state, config, fired=None, **checks):
     """Write the stop to the record and exit. Mid-rebase the record is left changed in the tree, not committed."""
+    if checks.get("maker_edited"):
+        checks["maker_new"] = maker_new_files(root, checks["maker_edited"])
     path, data, body = record.load(root, slice_id)
     data["stops"] = state["stops"]  # the record in the tree may be an older copy, replayed with the slice's commits
     data["budget"] = state["budget"]
@@ -530,7 +573,7 @@ def rebase_drive(root, slice_id, state, config):
                 rebase_stop(root, slice_id, state, config, maker_edited=for_person)
             if stuck:
                 rebase_stop(root, slice_id, state, config, stuck=stuck)
-        p = run_git(root, ["rebase", "--continue"], {"GIT_EDITOR": "true"})
+        p = run_git(root, ["-c", "merge.conflictStyle=diff3", "rebase", "--continue"], {"GIT_EDITOR": "true"})
         if p.returncode != 0 and rebase_running(root) and not unmerged(root):
             raise XVError(f"git rebase --continue failed: {(p.stderr or p.stdout).strip()}")
     rebase_finish(root, slice_id, state, config)
@@ -615,7 +658,11 @@ def rebase_finish(root, slice_id, state, config):
         touched = set(git(["log", "--format=", "--name-only", f"{state['onto']}..HEAD"], root).split())
         mine = touched - theirs
         keep = {k: {f: v for f, v in (old_wall.get(k) or {}).items() if f in mine} for k in ("files", "assertions")}
-        for f, (h, n) in wall.hashes_at(root, state["onto"], [f for f in touched & theirs if f in old_wall["files"]]).items():
+        # a file both sides changed is hashed as it was at the baseline, replayed on the new base: the slice's
+        # own red edits to it stay in the hash, and main's edits come in with it (the bare base when the
+        # baseline commit did not replay)
+        at = moved.get(old_wall.get("commit"), state["onto"])
+        for f, (h, n) in wall.hashes_at(root, at, [f for f in touched & theirs if f in old_wall["files"]]).items():
             keep["files"][f], keep["assertions"][f] = h, n
         wall.baseline(root, slice_id, config, keep=keep, skip=[f for f in mine if f not in old_wall["files"]])
     suite, out = run_suite(root, config, state["onto"], slice_id)
@@ -687,7 +734,7 @@ def cmd_slice_rebase(a):
              "stops": data["stops"], "first_stops": data["stops"], "spend": data["spend"], "budget": data.get("budget"),
              "runs": [], "applied": 0, "maker_ran": False, "changed": False, "conflicts": []}
     rebase_state(root, a.id, state)
-    p = run_git(root, ["rebase", "--onto", onto, old_base], {"GIT_EDITOR": "true"})
+    p = run_git(root, ["-c", "merge.conflictStyle=diff3", "rebase", "--onto", onto, old_base], {"GIT_EDITOR": "true"})
     if p.returncode != 0 and not rebase_running(root):
         os.remove(rebase_state_path(root, a.id))
         raise XVError(f"git rebase failed: {(p.stderr or p.stdout).strip()}")
@@ -761,7 +808,11 @@ def step(agent, slice_id, review_again=False):
     if (config.get("agents") or {}).get(agent) == "session":
         where = ""
         if agent == "scenario" and record.has_build(data):
-            where = f" (write the red in {scenario_scratch(root, data, config)}, a checkout at the base with no build)"
+            drop_session_scratch(root, slice_id)  # an earlier, unreported checkout
+            scratch = scenario_scratch(root, data, config)
+            session_scratch_state(root, slice_id, {"scratch": scratch, "head_before": git(["rev-parse", "HEAD"], root).strip()})
+            where = (f" (write the red in {scratch}, a checkout at the base with no build; "
+                     f"`xv record report` lands the red from it and drops it)")
         raise XVError(f"{agent} runs in the session{where}: use `xv prompt {agent} {slice_id}`, then "
                       f"`xv record report {slice_id} {agent} -` and `xv orders {slice_id} --after {agent}`")
 
@@ -834,6 +885,51 @@ def accept_listed_marks(data, body, config):
             body = record.log_line(body, "watch", f"slice-only mark on {m.get('test')} accepted: it checks "
                                    f"{m['checks']}, which the config lists in tests.slice_only_files")
     return body
+
+
+def session_scratch_path(root, slice_id):
+    return git_path(root, f"xv-scenario-scratch-{slice_id}.json")
+
+
+def session_scratch_state(root, slice_id, state=None):
+    """The checkout a session-mode scenario step made, kept in the git dir until its report lands the red:
+    {"scratch": path, "head_before": the slice's HEAD then}. None when there is none."""
+    path = session_scratch_path(root, slice_id)
+    if state is not None:
+        with open(path, "w") as f:
+            json.dump(state, f)
+        return state
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
+        return json.load(f)
+
+
+def drop_session_scratch(root, slice_id):
+    """Drop a session-mode scenario checkout nobody reported on, and forget it."""
+    state = session_scratch_state(root, slice_id)
+    if state:
+        drop_scratch(root, state["scratch"])
+        os.remove(session_scratch_path(root, slice_id))
+
+
+def land_session_scenario(root, slice_id, report):
+    """`xv record report <id> scenario -` after a session-mode scenario step on a slice from a build: land the
+    red written in the checkout and run it as the agent path does, record the scenario checks, drop the checkout.
+    `report` is the scenario agent's whole report. False when no such checkout is waiting."""
+    state = session_scratch_state(root, slice_id)
+    if not state:
+        return False
+    os.remove(session_scratch_path(root, slice_id))
+    path, data, body = record.load(root, slice_id)
+    config = load_config(root)
+    if not os.path.isdir(state["scratch"]):
+        raise XVError(f"the scenario agent's checkout {state['scratch']} is gone, so its red cannot be landed: "
+                      f"run `xv step scenario {slice_id}` again")
+    landed = land_scratch(root, state["scratch"], data, config, report)
+    data["checks"]["scenario"] = post_step("scenario", root, data, config, state["head_before"], {}, report, landed)
+    record.save(path, data, body)
+    return True
 
 
 def drop_scratch(root, scratch):
@@ -1140,37 +1236,6 @@ def covers_names(test):
     return names if names and all(names) else []
 
 
-COVERS_SEPARATOR = re.compile(r"::|\s>\s|[.#/]")
-
-
-def covers_name_found(name, files):
-    """A name that may start with a red file's path or module and is split by `::`, `.`, `#`, `/` or ` > `;
-    each part after the path must be a whole name in that file, in order."""
-    rest, best = name, None
-    for f in files:
-        slashed, dotted = f.split("/"), os.path.splitext(f)[0].replace("/", ".").split(".")
-        forms = ["/".join(slashed[i:]) for i in range(len(slashed))] + [".".join(dotted[i:]) for i in range(len(dotted))]
-        for form in forms:
-            m = re.match(re.escape(form) + "(?:" + COVERS_SEPARATOR.pattern + "|$)", name)
-            if m and (best is None or len(form) > best[1]):
-                best = (f, len(form), m.end())
-    if best:
-        files, rest = {best[0]: files[best[0]]}, name[best[2]:]
-    parts = [p.strip() for p in COVERS_SEPARATOR.split(rest)]
-    if not all(parts):
-        return False
-    for t in files.values():
-        pos = 0
-        for part in parts:
-            m = re.compile(r"(?<!\w)" + re.escape(part) + r"(?!\w)").search(t, pos)
-            if not m:
-                break
-            pos = m.end()
-        else:
-            return True
-    return False
-
-
 def scenario_red_gaps(root, data, red):
     """The flags and `xv` commands in backticks in the scenario and its amendments that no red file has."""
     import wall
@@ -1265,30 +1330,6 @@ def commit_step(agent, root, slice_id, checks):
 
 # The wall and the boundary picture arrive with their own scripts; until a repo
 # has them, these steps are no-ops so the loop still runs and a person reads.
-
-def joined_unsafely(command):
-    """True when the command joins parts other than with && at the top level (outside quotes): a ;, ||, |, &
-    or newline hides a failing exit code, as only the last part's counts."""
-    quote = None
-    i = 0
-    while i < len(command):
-        c = command[i]
-        if quote:
-            if c == "\\" and quote == '"':
-                i += 1
-            elif c == quote:
-                quote = None
-        elif c == "\\":
-            i += 1
-        elif c in "'\"":
-            quote = c
-        elif command.startswith("&&", i):
-            i += 1
-        elif c in ";|\n" or (c == "&" and command[i - 1:i] != ">" and command[i + 1:i + 2] != ">"):
-            return True
-        i += 1
-    return False
-
 
 def red_run(root, data, red, config):
     """Run the red command. Once the maker has run, run it on the code from before the maker's first change."""
@@ -1407,6 +1448,10 @@ def close(slice_id, why=None, shape=None):
     body = record.log_line(body, "watch", "closed" + ("" if p.returncode == 0 else f"; guide: {p.stderr.strip()}"))
     record.save(path, data, body)
     commit(root, f"xv({slice_id}): close")
+    # the slice's red ref and any scenario checkout nobody reported on go with it: a new slice with the same
+    # id and base would otherwise start its first pass from this slice's red
+    git(["update-ref", "-d", red_ref(data)], root, check=False)
+    drop_session_scratch(root, slice_id)
     failed = run_worktree_command(worktrees_config(config).get("teardown"), root, config)
     if failed:
         command, code, last = failed
@@ -1761,7 +1806,7 @@ def main(argv=None):
     n.add_argument("--scenario-file")
     n.add_argument("--expect-moves", help="the test changes the person expects: imports, renames, or both")
     n.add_argument("--rename", action="append", help="Old=New, a name this slice renames; one flag per pair")
-    n.add_argument("--ignore")
+    n.add_argument("--ignore", action="append", help="what this slice may ignore; repeat the flag for more")
     n.add_argument("--recording")
     n.add_argument("--branch")
     n.add_argument("--base", help="the ref the slice branch starts from (default: worktrees.base, then origin/HEAD, then HEAD)")
@@ -1792,6 +1837,12 @@ def main(argv=None):
     s = sub.add_parser("run")
     s.add_argument("id")
     s.set_defaults(fn=cmd_run)
+
+    s = sub.add_parser("land-scenario", help="what `xv record report <id> scenario` runs after a session-mode "
+                                             "scenario step on a slice from a build (the report is on stdin)")
+    s.add_argument("id")
+    s.set_defaults(fn=lambda a: land_session_scenario(
+        slice_root(record_path(repo_root(), a.id)), a.id, json.loads(sys.stdin.read() or "{}")))
 
     s = sub.add_parser("close")
     s.add_argument("id")
