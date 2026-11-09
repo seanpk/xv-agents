@@ -2,18 +2,18 @@
 id: 2026-11-09-errored-spend
 title: "An errored prototype variant keeps its spend, and a gone worktree says so"
 kind: defect
-status: stopped
+status: working
 set_by: Sean Kennedy
 created: 2026-11-09
 branch: xv/2026-11-09-errored-spend
 base: 4f6dcb707076f9b7a130b27302e6cafdd92e73e1
-next: forecaster
+next: cleaner
 build: {"kind": "exploration", "ref": "explore/errored-spend", "commit": "c7205f151b64e47a26b88afec54acfbdc3e4942d"}
 build_shared: no
 forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 370000, "turns": null, "usd": 2.5, "basis": ["2026-11-09-defects-tools", "2026-11-07-defects-stops"]}, {"harness": "claude", "model": "opus", "tokens": 230000, "turns": null, "usd": 2.8, "basis": ["2026-11-09-defects-tools", "2026-11-07-defects-stops"]}], "wall_s": 1400, "shape": "narrow", "breadth": "Two small changes: the errored prototype variant's spend recording and the missing-worktree message. No new commands or surfaces, but the spend path is near prototype budgets, which reopened three times in its own slice; no reopen is priced."}
-budget: null
-red: null
-wall_baseline: null
+budget: {"tokens": 600000, "usd": 5.3, "set_by": "Sean Kennedy"}
+red: {"files": ["tests/test_prototypes.py"], "command": "cd tests && python3 -m unittest test_prototypes.PrototypesErroredSpendTest", "failure": "AssertionError: 0 != 1 : b's agent ran and then errored; its run is in the record", "watch_first_green": null}
+wall_baseline: {"commit": "4f6dcb707076f9b7a130b27302e6cafdd92e73e1", "count": 93, "digest": "a57abe8a0245bfe5", "file": ".xv/slices/2026-11-09-errored-spend.wall.json"}
 moved_tests: []
 slice_only: []
 wall_recommendations: []
@@ -22,12 +22,14 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 6, "tokens_out": 3048, "cache_read": 61543, "cache_write": 37375, "tokens": 40429, "usd": 0.0096, "turns": 4, "wall_s": 15.3, "session": "7f8e5c0e-f202-4c06-8492-d35647251e42", "step": "forecaster", "at": "2026-11-09T16:28:55+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-09-errored-spend/01-forecaster.out"}]
-stops: [{"at": "2026-11-09T16:28:55+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-09-errored-spend budget ... --by <name>`).", "answered_by": [], "answer": null, "also": [], "budget_seen": null}]
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 6, "tokens_out": 3048, "cache_read": 61543, "cache_write": 37375, "tokens": 40429, "usd": 0.0096, "turns": 4, "wall_s": 15.3, "session": "7f8e5c0e-f202-4c06-8492-d35647251e42", "step": "forecaster", "at": "2026-11-09T16:28:55+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-09-errored-spend/01-forecaster.out"}, {"harness": "claude", "model": "sonnet", "model_id": "claude-sonnet-5-5", "tokens_in": 20, "tokens_out": 7353, "cache_read": 314453, "cache_write": 40482, "tokens": 47855, "usd": 0.2669, "turns": 13, "wall_s": 59.3, "session": "c08db3a8-7e47-47fd-ae61-b1fceae8cc1e", "step": "scenario", "at": "2026-11-09T16:29:55+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-09-errored-spend/02-scenario.out"}]
+stops: [{"at": "2026-11-09T16:28:55+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-09-errored-spend budget ... --by <name>`).", "answered_by": ["Sean Kennedy"], "answer": "let's open them and go with the forecaster's estimate for both of them without stopping", "also": [], "answered_at": "2026-11-09T16:28:55+00:00", "pick": "other", "settled": "the budget is the forecast: {\"tokens\": 600000, \"usd\": 5.3}", "new_info": "none", "cause": "decision: the budget is set from the forecast", "budget_change": {"from": null, "to": {"tokens": 600000, "usd": 5.3}}}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast narrow defect on claude/sonnet and claude/opus from two narrow defect rows; haiku not used.", "at": "2026-11-09T16:28:55+00:00"}], "forecaster": {"at": "2026-11-09T16:28:55+00:00", "wrote": []}}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast narrow defect on claude/sonnet and claude/opus from two narrow defect rows; haiku not used.", "at": "2026-11-09T16:28:55+00:00"}, {"agent": "scenario", "status": "red", "summary": "Three reds in tests/test_prototypes.py: an errored variant's run is missing from the record, its budget is not reduced on a second start, and a gone working folder is reported as an Errno 2 message that never says the folder is missing.", "at": "2026-11-09T16:29:55+00:00"}], "forecaster": {"at": "2026-11-09T16:28:55+00:00", "wrote": []}, "scenario": {"at": "2026-11-09T16:30:03+00:00", "protected_changed": [], "outside_tests": [], "red_fails": true, "red_output": "PrototypesErroredSpendTest.test_the_errored_variants_spend_counts_against_its_budget_on_the_second_start)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/xv-scenario-ij78uz8t/tests/test_prototypes.py\", line 302, in test_the_errored_variants_spend_counts_against_its_budget_on_the_second_start\n    self.assertAlmostEqual(float(caps[0][\"cap\"]), 0.4, msg=\"b's budget of 1 dollar less the 0.6 it spent\")\n    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1.0 != 0.4 within 7 places (0.6 difference) : b's budget of 1 dollar less the 0.6 it spent\n\n----------------------------------------------------------------------\nRan 3 tests in 7.947s\n\nFAILED (failures=3)\n", "red_on_build": {"passes": true, "failing": []}, "old_red_changed": [], "red_gaps": [], "covers_kept": [{"item": "1", "test": ["PrototypesErroredSpendTest.test_a_variant_that_ran_and_then_errored_keeps_its_spend", "PrototypesErroredSpendTest.test_the_errored_variants_spend_counts_against_its_budget_on_the_second_start"]}, {"item": "2", "test": ["PrototypesErroredSpendTest.test_a_variant_whose_working_folder_is_gone_says_the_folder_is_missing"]}], "unreadable": [], "not_covered": [], "missed_points": []}}
+old_tests_forced: []
+may_not_files: []
 ---
 # An errored prototype variant keeps its spend, and a gone worktree says so
 
@@ -49,3 +51,7 @@ None. A feature starts from words.
 - 2026-11-09T16:28:25+00:00 watch: slice opened by Sean Kennedy
 - 2026-11-09T16:28:55+00:00 forecaster: done: Forecast narrow defect on claude/sonnet and claude/opus from two narrow defect rows; haiku not used.
 - 2026-11-09T16:28:55+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-09-errored-spend budget ... --by <name>`).
+- 2026-11-09T16:28:55+00:00 Sean Kennedy: set budget
+- 2026-11-09T16:28:55+00:00 Sean Kennedy: answered budget_not_set: let's open them and go with the forecaster's estimate for both of them without stopping
+- 2026-11-09T16:28:55+00:00 watch: scribe: wrote settled, new_info, cause for budget_not_set as the scribe of Sean Kennedy
+- 2026-11-09T16:29:55+00:00 scenario: red: Three reds in tests/test_prototypes.py: an errored variant's run is missing from the record, its budget is not reduced on a second start, and a gone working folder is reported as an Errno 2 message that never says the folder is missing.
