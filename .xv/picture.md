@@ -101,6 +101,7 @@ Sean Kennedy sits with them.
   An agent's report cannot set `accepted` on its own mark.
   The guardian's `wall_recommendations` go to the same person in `accept_moves`.
   Only a person's `--accept-wall <test>` accepts one, and only `--refuse-wall <test>` takes back one accepted earlier; an accepted `mark slice-only` recommendation is listed in `slice_only`, and refusing it later takes it out, matched on file and test; a new recommendation not named is refused, and an agent's report sets neither.
+  Both flags take the test with its file, in the forms the covers check takes (`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`); a bare name that two files share is refused, and the refusal names each `file::test`.
   Giving either flag on another kind of stop, or both on one test, is refused.
   Each answered `accept_moves` stop keeps `accepted_wall` and `refused_wall`.
   `decisions` reads every slice record through `retro.records()` and counts answered stops per order: picks equal to the recommendation, `new_info: none`, and causes.
@@ -131,7 +132,9 @@ Sean Kennedy sits with them.
   With `xv slice new --from <ref>` the branch starts at the build, and `base` stays the merge target.
   The record holds `build` (`none`, or `{kind: exploration, ref}`) and `build_shared` (`yes` or `no`).
   `--share-build` needs `--from`.
-  A slice from a build also has a git ref, `refs/xv/<id>/red`, which holds its red at the base.
+  A slice from a build also has a git ref, `refs/xv/<id>/red`, which holds its red at the base, and `xv close` deletes it.
+  The record keeps the build's commit in `build.commit`, so the slice still finds the build when its ref is deleted.
+  In session mode, `xv record report <id> scenario -` lands the red through `xv land-scenario`, which runs it at the base and on the build and takes the wall baseline at the base.
   `xv slice new` refuses a base without a committed `.xv/config.yml`, `pitch.md` and `picture.md`.
   The worktree's own config, from the base, gives `worktrees.setup`, which runs before the forecaster, and `worktrees.teardown`, which runs at close.
   Both run under `tests.timeout`, and a timed-out command keeps its output.
@@ -294,10 +297,6 @@ Drafted from the repo's docs; Sean cut and added on 2026-10-24.
     (`docs/decisions.md` 74)
 15. Python 3.10 through 3.13 are supported; CI tests both.
     (`.github/workflows/tests.yml`)
-16. A slice from a build keeps `build.commit` in its record, and in session mode the scenario report lands the red through `xv land-scenario`.
-    (`scripts/run.py`)
-    `--accept-wall` and `--refuse-wall` take `file::test` and the other covers forms.
-    (`scripts/record.py`)
 
 The builder's other choices are in [`docs/decisions.md`](../docs/decisions.md); they do not bind on their own.
 
