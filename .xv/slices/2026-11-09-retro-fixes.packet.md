@@ -119,3 +119,7 @@ Two-way door: a revert of `scripts/wall.py`, `scripts/record.py` and `scripts/ru
 These findings cite no line, rule or hunk, so they do not count.
 
 - 1. Point 7, read with amendments 9 and 10, `to: maker`: `scripts/run.py:1114` and `scripts/wall.py:136` changed, and `CHANGELOG.md:7` was not updated to match.
+
+## Directed edits after the guardian
+
+- CHANGELOG.md (changelog): directed by Sean Kennedy
