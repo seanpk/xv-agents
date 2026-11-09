@@ -217,11 +217,26 @@ class PrototypesGitSetupTest(PrototypesTest):
         self.assertIn("working folder", b_section)
         self.assertIn("p1-proto-b", b_section)
 
+    def make_b_raise_a_plain_error(self):
+        # b's agent prints bytes that are not text: reading its output raises a ValueError, not an XVError
+        bad = os.path.join(self.tmp, "bad_agent.py")
+        open(bad, "w").write("import subprocess, sys\n"
+                             "if 'Your variant: b.' in sys.argv[1]:\n"
+                             "    sys.stdout.buffer.write(b'\\xff\\xfe')\n"
+                             "    sys.exit(0)\n"
+                             f"sys.stdout.write(subprocess.run([{sys.executable!r}, {FAKE!r}, sys.argv[1]],"
+                             " capture_output=True, text=True).stdout)\n")
+        cfg = os.path.join(self.wt, ".xv", "config.yml")
+        text = open(cfg).read()
+        start, end = text.index("agents:"), text.index("seats:")
+        open(cfg, "w").write(text[:start] + f'agents:\n  default: ["{sys.executable}", "{bad}", "{{prompt}}"]\n'
+                             + text[end:])
+
     def test_an_error_that_is_not_an_xverror_records_the_variant_not_finished_with_its_error(self):
-        self.block_b_run_log()
+        self.make_b_raise_a_plain_error()
         self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
         self.unfinished_b_is_recorded()
-        self.assertIn("prototype-b.out", open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read(),
+        self.assertIn("codec", open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read(),
                       "the record keeps b's error")
 
     def pick_b_after(self):
