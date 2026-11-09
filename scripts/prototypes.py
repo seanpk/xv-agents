@@ -75,7 +75,7 @@ def spend_of(result):
                 "wall_s": result.get("wall_s")}
 
 
-def build_one(name, axis, position, slice_id, root, wt, branch, config, budget, spent, ran=None):
+def build_one(name, axis, position, slice_id, root, wt, branch, config, budget, spent, ran):
     if not os.path.isdir(wt):  # said as what it is, before the prompt or the agent trips on it
         raise agentcli.gone(wt)
     rec_dir = f"{XV_DIR}/prototypes/{slice_id}/{name}"
@@ -89,8 +89,7 @@ def build_one(name, axis, position, slice_id, root, wt, branch, config, budget, 
     log = os.path.join(git(["rev-parse", "--path-format=absolute", "--git-common-dir"], root).strip(),
                        "xv", "runs", slice_id, f"prototype-{name}.out")
     result = agentcli.run(argv, text, wt, log, int(config.get("step_timeout") or 3600))
-    if ran is not None:
-        ran["result"] = result  # from here on the agent has spent, whatever fails next
+    ran["result"] = result  # from here on the agent has spent, whatever fails next
     report = None
     try:
         report = record.extract_report(result["stdout"])
