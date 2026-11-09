@@ -118,3 +118,4 @@ None. A feature starts from words.
 - 2026-11-09T19:16:43+00:00 Sean Kennedy: answered accept_moves: 1 / it's good (the CHANGELOG draft)
 - 2026-11-09T19:16:43+00:00 watch: scribe: wrote settled, new_info, cause for accept_moves as the scribe of Sean Kennedy
 - 2026-11-09T19:16:43+00:00 Sean Kennedy: directed a changelog edit in CHANGELOG.md
+- 2026-11-09T19:20:34+00:00 watch: picture edit directed by Sean Kennedy: the guardian's §4 lines as worded (the wall.py line reference named as wall.check); commit 78df05e
