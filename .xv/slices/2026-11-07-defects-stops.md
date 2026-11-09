@@ -7,12 +7,12 @@ set_by: Sean Kennedy
 created: 2026-11-07
 branch: xv/2026-11-07-defects-stops
 base: 1f325dd57c3e12eef670800ea39d10166aa2b4fa
-next: cleaner
+next: scenario
 build: {"kind": "exploration", "ref": "explore/defects-stops"}
 build_shared: no
 forecast: {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 500000, "turns": null, "usd": 2.9, "basis": ["2026-11-07-picture-lines", "2026-11-05-directed-edit", "2026-10-30-stop-words", "2026-10-29-red-covers-scenario"], "note": "Mean of the four basis rows is about 484k tokens and $2.86. Rows run 361k to 570k tokens and $2.15 to $3.36. No turns column in the guide. The picture-lines row shows the re-fire this slice fixes, so the forecast keeps one reopen band."}, {"harness": "claude", "model": "opus", "tokens": 300000, "turns": null, "usd": 3.5, "basis": ["2026-11-07-picture-lines", "2026-11-05-directed-edit", "2026-10-30-stop-words", "2026-10-29-red-covers-scenario"], "note": "Rows run 177k to 1,007k tokens and $2.14 to $12.86. The 1,007k and $12.86 row ran its scenario on opus, which this slice does not do, so the forecast sits near the median of the rest. Guardian passes are the cost driver: each accept_moves send-back reruns one."}], "wall_s": 3000, "shape": "narrow", "breadth": "The scenario step's red check and the stop-answer re-fire path, plus the decision 12 picture and a CHANGELOG line. Tests move with it, but the source change should stay in a few files."}
 budget: {"tokens": 800000, "usd": 6.4, "set_by": "Sean Kennedy"}
-red: {"files": ["tests/test_run.py"], "command": "cd tests && python3 -m unittest test_run.RedCannotRunTest test_run.AnsweredStopStaysAnsweredTest test_run.DefectsStopsDocsTest", "failure": "AssertionError: 0 != 10 (exit 127 red does not stop with red_cannot_run)", "watch_first_green": null}
+red: null
 wall_baseline: {"commit": "7341e5e76479649f8b9b3cbc88bd3b4e2d148aac", "count": 67, "digest": "6cd567584e4d504d", "file": ".xv/slices/2026-11-07-defects-stops.wall.json"}
 moved_tests: [{"file": "tests/test_record.py", "assertion": "test_a_stop_after_the_edit_is_written_to_the_record_and_can_be_answered: was a CHANGELOG edit at ready_to_merge that asserted the merge stop fires again; now a rename that causes accept_moves. New: test_a_directed_edit_at_the_merge_stop_does_not_ask_again_and_the_next_stands", "why": "Scenario point 6: after a directed edit, the stop the answer closed does not fire again, including ready_to_merge; the build made the change and Sean accepted it at the scenario stop", "by": "Sean Kennedy", "at": "2026-11-07T21:36:06+00:00"}, {"file": "tests/test_run.py", "assertion": "RedCannotRunTest runner-word cases: a setattr loop at the wall baseline, now 15 plain test methods (test_runner_words_stop_00_... to _14_...)", "why": "Sean's answer B at the scenario stop: write each runner case as its own plain test so the covers check and the wall can name each; the scenario agent's second red pass made the change after the wall baseline, and the maker changed no test file", "by": "Sean Kennedy", "at": "2026-11-07T22:00:36+00:00"}, {"file": "tests/test_run.py", "assertion": "DefectsStopsDocsTest.test_the_changelog_names_the_new_stop_and_the_two_fixes", "why": "checks one one-time CHANGELOG line", "by": "cleaner", "at": "2026-11-07T22:04:14+00:00", "slice_only": true}]
 slice_only: [{"file": "tests/test_run.py", "test": "DefectsStopsDocsTest.test_the_changelog_names_the_new_stop_and_the_two_fixes", "why": "checks one one-time CHANGELOG line", "checks": "CHANGELOG.md", "accepted": true}, {"file": "tests/test_run.py", "test": "DefectsStopsDocsTest.test_decision_12_in_the_picture_names_a_red_that_cannot_run", "why": "checks the wording of one picture line once (tests/test_run.py:2041-2046); on the wall it fails on any later rewording of decision 12", "accepted": true}, {"file": "tests/test_record.py", "test": "OneHomeRecordTest.test_a_bundled_answer_marks_the_slice_only_marks_accepted", "why": "restates AnsweredStopStaysAnsweredTest.test_an_answer_that_bundles_slice_only_marks_accepts_them (tests/test_run.py:1978)", "accepted": true}, {"file": "tests/test_record.py", "test": "OneHomeRecordTest.test_an_answer_to_another_order_without_the_bundle_leaves_the_marks_unaccepted", "why": "restates AnsweredStopStaysAnsweredTest.test_an_answer_that_does_not_bundle_them_leaves_them_unaccepted (tests/test_run.py:1986)", "accepted": true}]
@@ -32,6 +32,7 @@ old_tests_forced: [{"file": "tests/test_record.py", "test": "test_a_stop_after_t
 may_not_files: [{"file": ".xv/picture.md", "why": "decision 12 must name a red that cannot run"}]
 pre_maker_commit: 7608d6bf3e1e0ecf4b764f2786dd79c0ece31cae
 scenario_miss: no
+amended_at_report: 7
 ---
 # A red that cannot run stops the slice, and an answered stop stays answered
 
@@ -46,6 +47,12 @@ scenario_miss: no
 7. Decision 12 in the picture names a red that cannot run.
 8. A `CHANGELOG.md` line names the new stop and the two fixes.
 9. `EXPLORE-NOTES.md` is not in what merges.
+
+### Amended 2026-11-08 by Sean Kennedy
+
+After the maker's second pass, Sean chose to make "one name, one definition" a check for the whole repo. The guardian found that `tests/test_run.py` defines `RedCannotRunTest` twice, so the first class (the build's six tests over `tests/data/cannot-run/`) never ran, and the maker reported it fixed without changing it. This point loosens no may-not line and no binding decision.
+
+10. A test in the suite reads every `.py` file under `tests/` and `scripts/` and fails when a file defines the same top-level class or function name twice, or a class defines the same method name twice; its failure names the file, the name and both line numbers. It parses the files (Python's `ast`) and does not import them. It does not cover names made at run time (`setattr`, `type(...)`) or names inside a function body. `tests/test_run.py` passes it: the build's first `RedCannotRunTest` class (the one over `tests/data/cannot-run/`) gets its own name, the second keeps `RedCannotRunTest`, and the first class's six tests run and pass.
 
 ## May ignore
 
@@ -93,3 +100,4 @@ scenario_miss: no
 - 2026-11-07T22:15:24+00:00 watch: scribe: wrote settled, new_info, cause for accept_moves as the scribe of Sean Kennedy
 - 2026-11-07T22:15:44+00:00 watch: picture edit directed by Sean Kennedy: the guardian's five lines as worded (67 edges; suite holds the failing-test helpers; no re-fire after a directed edit; bundled marks accepted; red_cannot_run), commit 94b4b11
 - 2026-11-07T22:19:36+00:00 maker: green: No new change needed: red command and whole suite (1074 tests) pass with the build, accepted picture edits and renamed RedCannotRunTest class already in place
+- 2026-11-09T00:28:44+00:00 Sean Kennedy: amended the scenario
