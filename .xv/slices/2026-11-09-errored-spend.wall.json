@@ -72,7 +72,7 @@
   "tests/test_picture_lines.py": 13,
   "tests/test_promote.py": 34,
   "tests/test_promote_draft.py": 8,
-  "tests/test_prototypes.py": 45,
+  "tests/test_prototypes.py": 49,
   "tests/test_record.py": 468,
   "tests/test_recording.py": 9,
   "tests/test_refactor_kind.py": 60,
@@ -94,7 +94,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "4f6dcb707076f9b7a130b27302e6cafdd92e73e1",
+ "commit": "0da135edda6114c88d69416529f17589b4f7b9f9",
  "files": {
   "tests/data/cannot-run/cargo-load.txt": "d3e835e2490c11e3f1b7c1a00ef224a143e7badb854bddd76372f2c3a55b5dd6",
   "tests/data/cannot-run/cargo-none.txt": "7553d787f97f86d518d5fa9ec516c5226bb880a466df2f96684c69bf4595cd46",
@@ -168,7 +168,7 @@
   "tests/test_picture_lines.py": "e196fdddc033bd22fb44f5415222523ff1918ee0d85abcd1bd1f41bbfbdb84e0",
   "tests/test_promote.py": "e4b71c7d56aec8cbe9e6c6105c343f0d340ee666aa96007203d7f9d47ac12568",
   "tests/test_promote_draft.py": "564226e253e4b8a0308407fcd8eade9a132af0c500276234d6e56303c39f226d",
-  "tests/test_prototypes.py": "7ff8a5713acb2dfc0b93f3d8adf72b00b85c1d077cab1c3d47f980da41b1ae02",
+  "tests/test_prototypes.py": "f607bf1e725070e87aa97efab6eb307b29cd9d2aa2a6f9f7f65ef55ebbaca8f9",
   "tests/test_record.py": "8c42b8bf718954f7b3440c1a6ff82601605c01661a717d21382fb7431f83f254",
   "tests/test_recording.py": "4eee96f7e371bfa10a9ca823684f7ad68619b7129654e6b91d4bab0fd39073f3",
   "tests/test_refactor_kind.py": "c1571ef73cf4f63e8b3851c68c94ebedd8668b7ca3665341a50d0cf3dc7df067",
