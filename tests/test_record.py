@@ -206,6 +206,53 @@ class SliceOnlyReportTest(RepoCase):
         self.assertEqual(data["slice_only"], slice_only)
 
 
+class MoveSliceOnlyTest(RepoCase):
+    # #173: --slice-only marks the move whether or not the test is in the record's slice_only list
+    def test_slice_only_on_a_test_not_in_the_slice_only_list_marks_the_move(self):
+        wt = self.new_slice("s1")
+        self.assertEqual(json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["slice_only"], [])
+        self.xv("record", "move", "s1", "--file", "tests/test_store.py", "--assertion", "test_gone; removed",
+                "--why", "only proved the slice did its job", "--slice-only", cwd=wt)
+        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+        self.assertIs(data["moved_tests"][0].get("slice_only"), True)
+
+    def test_a_move_without_the_flag_is_not_marked(self):
+        wt = self.new_slice("s1")
+        self.xv("record", "move", "s1", "--file", "tests/test_store.py", "--assertion", "test_gone; removed",
+                "--why", "w", cwd=wt)
+        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+        self.assertNotIn("slice_only", data["moved_tests"][0])
+
+
+class ScenarioBriefRetroFixesTest(RepoCase):
+    fixture = False
+
+    def lines(self):
+        text = open(os.path.join(HOME, "skills", "scenario", "SKILL.md")).read()
+        return [ln.lower() for ln in text.splitlines()]
+
+    # #174 point 5
+    def test_the_brief_says_a_red_that_fails_only_on_the_build_is_reported_and_does_not_stop(self):
+        found = [ln for ln in self.lines() if "from a build" in ln and "fails only on the build" in ln]
+        self.assertTrue(found, "no line says what a red that fails only on the build means on a slice from a build")
+        self.assertTrue(any("report" in ln and ("not stop" in ln or "no stop" in ln) for ln in found), found)
+
+    # #174 point 6
+    def test_the_brief_says_to_run_the_red_in_the_foreground_to_its_end_before_the_report(self):
+        found = [ln for ln in self.lines() if "foreground" in ln]
+        self.assertTrue(found, "the brief does not say to run the red command in the foreground")
+        self.assertTrue(any("to its end" in ln and "before" in ln and "report" in ln for ln in found), found)
+
+    # 7. a one-time CHANGELOG line
+    def test_the_changelog_has_a_line_for_the_brief_change_and_the_tool_changes(self):
+        text = open(os.path.join(HOME, "CHANGELOG.md")).read()
+        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
+        for issue in ("#172", "#173", "#174"):
+            self.assertIn(issue, unreleased)
+        self.assertTrue(any("scenario" in ln and "#174" in ln for ln in unreleased.splitlines()),
+                        "no line about the scenario brief change")
+
+
 class ScenarioBriefTest(RepoCase):
     fixture = False
 

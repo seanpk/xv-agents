@@ -1413,6 +1413,20 @@ class ScenarioChecksTest(WatchLoopSetup):
         self.send_back_to_the_scenario()
         self.assert_stops(self.scenario(FAKE_REPORT_EXTRA='{"covers": []}'), "test_cheese")
 
+    # #174 point 4: a not_covered item a person answered is not asked again; a new item is
+    def test_a_not_covered_item_a_person_answered_does_not_stop_again_on_a_later_pass(self):
+        self.send_back_to_the_scenario()
+        p = self.scenario(FAKE_NOT_COVERED='[{"item": "the grocer share", "why": "no seam"}]')
+        self.assert_goes_on(p)
+        self.assertEqual([s["order"] for s in self.record()["stops"]].count("red_misses_scenario"), 1)
+
+    def test_a_new_not_covered_item_still_stops_on_a_later_pass(self):
+        self.send_back_to_the_scenario()
+        p = self.scenario(FAKE_NOT_COVERED='[{"item": "the grocer share", "why": "no seam"},'
+                                           ' {"item": "the pantry export", "why": "no seam"}]')
+        self.assert_stops(p, "the pantry export")
+        self.assertNotIn("the grocer share", json.loads(p.stdout)["stop"]["question"])
+
     def test_an_empty_covers_on_the_first_pass_still_stops(self):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.assert_stops(self.scenario(FAKE_REPORT_EXTRA='{"covers": []}'), "covers")

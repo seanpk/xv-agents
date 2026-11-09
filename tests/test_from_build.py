@@ -719,6 +719,53 @@ class BuildConflictTest(FromBuildBase):
                          "the build's change to tests/test_store.py did not stop exactly once on the session path")
 
 
+class BuildAddedTestsTest(FromBuildBase):
+    # #172: a build that only adds tests to a test file has moved nothing; one that changes or removes a line has
+    ADDED = "    def test_added_by_the_build(self):\n        self.assertTrue(True)\n"
+    TAIL = '\n\n\nif __name__ == "__main__":'
+
+    def build_adds(self):
+        old = open(os.path.join(self.repo, "tests", "test_store.py")).read()
+        self.assertEqual(old.count(self.TAIL), 1)
+        return old.replace(self.TAIL, "\n\n" + self.ADDED + self.TAIL)
+
+    def build_adds_and_removes_a_line(self):
+        line = '        self.assertEqual([i.name for i in found], ["yogurt"])\n'
+        text = self.build_adds()
+        self.assertEqual(text.count(line), 1)
+        return text.replace(line, "")
+
+    def run_through(self):
+        """The steps up to the guardian; a stop for the build's change is answered like a person would."""
+        self.open_slice("--from", BUILD)
+        self.step("forecaster")
+        for agent, after in (("scenario", "maker"), ("maker", "cleaner"), ("cleaner", "guardian")):
+            self.step(agent)
+            if self.open_stops():
+                self.xv("record", "answer", "s1", "--by", "pat", "--answer", "the build's change is accepted",
+                        "--next", after, cwd=self.wt)
+        named = [s for s in self.record()["stops"] if "tests/test_store.py" in s["question"]]
+        p = self.xv("wall", "check", "s1", "--json", cwd=self.wt, check=False)
+        return named, json.loads(p.stdout)
+
+    def test_a_test_file_the_build_only_added_tests_to_is_not_an_unrecorded_move(self):
+        self.make_build(fixed=False, files={"tests/test_store.py": self.build_adds()})
+        named, wall = self.run_through()
+        self.assertEqual([s["order"] for s in named], [], "unrecorded_move fired for a file the build only added to")
+        self.assertNotIn("tests/test_store.py", wall["unrecorded"])
+
+    def test_a_test_file_the_build_changed_a_line_of_still_stops_with_unrecorded_move(self):
+        text = self.build_adds().replace('["yogurt"]', '["yogurt"] or []')
+        self.make_build(fixed=False, files={"tests/test_store.py": text})
+        named, wall = self.run_through()
+        self.assertEqual([s["order"] for s in named], ["unrecorded_move"])
+
+    def test_a_test_file_the_build_removed_a_line_from_still_stops_with_unrecorded_move(self):
+        self.make_build(fixed=False, files={"tests/test_store.py": self.build_adds_and_removes_a_line()})
+        named, wall = self.run_through()
+        self.assertEqual([s["order"] for s in named], ["unrecorded_move"])
+
+
 class RecordCopyTest(FromBuildBase):
     # 14. when the build is not shared, the scenario agent's record copy names no branch or commit at the build
     def setUp(self):
