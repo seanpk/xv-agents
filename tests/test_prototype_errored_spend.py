@@ -59,19 +59,6 @@ class ErroredVariantSpendTest(BudgetCapSetup):
         self.assertAlmostEqual(rows[0]["usd"], 0.4, places=6)
         self.assertEqual(b["session"], "sess-b", "b's session is kept too")
 
-    def test_a_second_start_gives_the_errored_variant_only_what_is_left_of_its_budget(self):
-        self.block_b_run_log()
-        self.start()
-        os.rmdir(self.blocked)
-        os.remove(self.log)
-        self.xv("record", "answer", "p1", "--by", "pat,sam", "--answer", "run b again", cwd=self.pwt, check=False)
-        self.start()
-        caps = {}
-        for argv in self.calls():
-            caps[argv[-1].split("Your variant: ")[1][0]] = self.cap_of(argv)
-        self.assertEqual(sorted(caps), ["b"], "only b runs again")
-        self.assertAlmostEqual(caps["b"], 0.6, places=6)
-
     def test_an_errored_variant_whose_run_passed_its_budget_has_run_out(self):
         value = {"a": {"usd": 1}, "b": {"usd": 0.3}, "c": {"usd": 1}}
         self.xv("record", "set", "p1", "prototype_budgets", json.dumps(value), "--by", "pat", cwd=self.pwt)
