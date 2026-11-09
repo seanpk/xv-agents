@@ -99,7 +99,7 @@ They are scripts (`xv orders <id>`), not this text. You do not interpret them, r
 
 ## Running a step in your own harness's subagent
 
-`xv step` shells out to a CLI so that the per-step CLI in `.xv/config.yml`, the budget caps and the spend capture hold on every harness. If `.xv/config.yml` sets a step to `session`, run it in your harness's own fresh context instead (a subagent, a task): give it exactly the text of `xv prompt <agent> <id>` and nothing else, then pass its final message to `xv record report <id> <agent> -` and run `xv orders <id> --after <agent>`.
+`xv step` shells out to a CLI so that the per-step CLI in `.xv/config.yml`, the budget caps and the spend capture hold on every harness. If `.xv/config.yml` sets a step to `session`, run it in your harness's own fresh context instead (a subagent, a task): give it exactly the text of `xv prompt <agent> <id>` and nothing else, then pass its final message to `xv record report <id> <agent> -` and run `xv orders <id> --after <agent>`. On a slice from a build, the scenario step's report lands the red through `xv land-scenario`, which `xv record report` runs: it runs the red at the base and on the build, takes the wall baseline at the base, and keeps the red on `refs/xv/<id>/red`. `xv record answer --accept-wall` and `--refuse-wall` take the test with its file (`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`); a bare name that two files share is refused, and the refusal names each `file::test`.
 
 ## May not
 

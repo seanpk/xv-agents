@@ -294,6 +294,10 @@ Drafted from the repo's docs; Sean cut and added on 2026-10-24.
     (`docs/decisions.md` 74)
 15. Python 3.10 through 3.13 are supported; CI tests both.
     (`.github/workflows/tests.yml`)
+16. A slice from a build keeps `build.commit` in its record, and in session mode the scenario report lands the red through `xv land-scenario`.
+    (`scripts/run.py`)
+    `--accept-wall` and `--refuse-wall` take `file::test` and the other covers forms.
+    (`scripts/record.py`)
 
 The builder's other choices are in [`docs/decisions.md`](../docs/decisions.md); they do not bind on their own.
 

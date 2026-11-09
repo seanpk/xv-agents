@@ -298,6 +298,8 @@ One file per slice, `.xv/slices/<id>.md`, on its own branch `xv/<id>` in a workt
 
 ### The wall
 
+A slice from a build (`xv slice new --from`) keeps the build's `build.commit` in the record. In session mode `xv record report <id> scenario -` runs `xv land-scenario`, which lands the red, runs it at the base and on the build, and takes the baseline at the base. `xv record answer --accept-wall` and `--refuse-wall` take `file::test` and the other forms the covers check takes. `xv slice new --ignore` can repeat, once for each point. The cleaner reports `brief: slice-only removal` for a step its brief names, and `xv retro counts` does not count `brief:` lines.
+
 After the scenario agent's red, `xv wall baseline` hashes every file matching the test paths in `.xv/config.yml`. After the maker and the cleaner, `xv wall check` compares. A test file that changed or disappeared with no matching entry in the record's `moved_tests` fails the check and stops the slice for the person who set the work going. The wall does not forbid a move; it forbids a silent one. The same check runs as a pre-commit hook on slice branches (`xv wall install-hook`) and in CI against the pull request's base. It reads files and the record, so it needs nothing from the harness. The eval results that are committed are from before the wall existed; the runs with it go in with the final results.
 
 ### The stops

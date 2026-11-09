@@ -423,9 +423,9 @@ def drop_edit(checks):
     new = checks.get("maker_new") or {}
     old = [f for f in checks.get("maker_edited") or [] if f not in new]
     cmds = ([f"git checkout -- {' '.join(old)}"] if old else []) + list(new.values())
-    note = ""
+    note = " `git checkout -- <file>` restores a tracked file." if old else ""
     if new:
-        note = f" {', '.join(new)} is a new file the maker added: `git status` shows it, `git diff` does not."
+        note += f" {', '.join(new)} is a new file the maker added: `git status` shows it, `git diff` does not."
     return " and ".join(f"`{c}`" for c in cmds) or "`git checkout -- <file>`", note
 
 
