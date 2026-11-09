@@ -735,12 +735,12 @@ class BuildAddedTestsTest(FromBuildBase):
         self.assertEqual(text.count(line), 1)
         return text.replace(line, "")
 
-    def run_through(self):
+    def run_through(self, **env):
         """The steps up to the guardian; a stop for the build's change is answered like a person would."""
         self.open_slice("--from", BUILD)
         self.step("forecaster")
         for agent, after in (("scenario", "maker"), ("maker", "cleaner"), ("cleaner", "guardian")):
-            self.step(agent)
+            self.step(agent, **env)
             if self.open_stops():
                 self.xv("record", "answer", "s1", "--by", "pat", "--answer", "the build's change is accepted",
                         "--next", after, cwd=self.wt)
@@ -764,6 +764,30 @@ class BuildAddedTestsTest(FromBuildBase):
         self.make_build(fixed=False, files={"tests/test_store.py": self.build_adds_and_removes_a_line()})
         named, wall = self.run_through()
         self.assertEqual([s["order"] for s in named], ["unrecorded_move"])
+
+    # amendment 10: the exemption covers only what the build did; a later change by the maker or cleaner stops
+    def assert_later_change_stops(self, **env):
+        self.make_build(fixed=False, files={"tests/test_store.py": self.build_adds()})
+        named, wall = self.run_through(**env)
+        self.assertEqual([s["order"] for s in named], ["unrecorded_move"],
+                         "a change to what the build added went through as the build's own")
+
+    def test_a_test_the_build_added_and_the_maker_changed_stops_with_unrecorded_move(self):
+        self.assert_later_change_stops(FAKE_MAKER_EDITS_BUILD_ADDED="change")
+
+    def test_a_test_the_build_added_and_the_maker_removed_stops_with_unrecorded_move(self):
+        self.assert_later_change_stops(FAKE_MAKER_EDITS_BUILD_ADDED="remove")
+
+    def test_a_test_the_build_added_and_the_cleaner_changed_stops_with_unrecorded_move(self):
+        self.assert_later_change_stops(FAKE_CLEANER_EDITS_BUILD_ADDED="change")
+
+    def test_a_test_the_build_added_and_the_cleaner_removed_stops_with_unrecorded_move(self):
+        self.assert_later_change_stops(FAKE_CLEANER_EDITS_BUILD_ADDED="remove")
+
+    def test_the_wall_names_a_file_whose_build_added_test_the_maker_changed(self):
+        self.make_build(fixed=False, files={"tests/test_store.py": self.build_adds()})
+        named, wall = self.run_through(FAKE_MAKER_EDITS_BUILD_ADDED="change")
+        self.assertIn("tests/test_store.py", wall["unrecorded"])
 
 
 class RecordCopyTest(FromBuildBase):

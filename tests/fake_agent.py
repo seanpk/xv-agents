@@ -21,6 +21,14 @@ def report(**kw):
     print("done\n```xv-report\n" + json.dumps(kw) + "\n```")
 
 
+def edit_build_added(mode):
+    """Change or remove the test a build added to tests/test_store.py (lines the base never had)."""
+    t = open("tests/test_store.py").read()
+    added = "    def test_added_by_the_build(self):\n        self.assertTrue(True)\n"
+    t = t.replace(added, "") if mode == "remove" else t.replace("self.assertTrue(True)", "self.assertTrue(1)")
+    open("tests/test_store.py", "w").write(t)
+
+
 if os.environ.get("FAKE_PROMPT_LOG"):
     with open(os.environ["FAKE_PROMPT_LOG"], "a") as f:
         f.write(prompt + "\n=====\n")
@@ -141,6 +149,8 @@ elif title.startswith("# The maker") and "prototype" not in title:
         rel = os.environ["FAKE_MAKER_IMPORT_MOVE_FILE"]
         t = open(rel).read().replace("import unittest\n", "import os  # noqa: F401\nimport unittest\n", 1)
         open(rel, "w").write(t)
+    if os.environ.get("FAKE_MAKER_EDITS_BUILD_ADDED"):
+        edit_build_added(os.environ["FAKE_MAKER_EDITS_BUILD_ADDED"])
     if os.environ.get("FAKE_MAKER_EDITS_RED"):
         t = open("tests/test_red.py").read().replace("['milk'])", "['milk'] or [])")
         open("tests/test_red.py", "w").write(t)
@@ -153,6 +163,8 @@ elif title.startswith("# The maker") and "prototype" not in title:
             f.write("# the maker was here\n")
     report(agent="maker", status="green", summary="inclusive start", moved_tests=moves)
 elif title.startswith("# The cleaner"):
+    if os.environ.get("FAKE_CLEANER_EDITS_BUILD_ADDED"):
+        edit_build_added(os.environ["FAKE_CLEANER_EDITS_BUILD_ADDED"])
     if os.environ.get("FAKE_CLEANER_COMMITS"):
         # a cleaner that commits its own fix, so the slice HEAD moves
         with open("pantry/store.py", "a") as f:
