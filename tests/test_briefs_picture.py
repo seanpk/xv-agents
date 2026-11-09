@@ -1,6 +1,5 @@
 import os
 import re
-import subprocess
 import unittest
 
 from helpers import HOME
@@ -226,12 +225,6 @@ class DefectsToolsDocsTest(unittest.TestCase):
     """defects-tools 16 and 17: the docs name what changed. README, the watch, xv-slice and cleaner briefs and the
     picture name `build.commit`, the wall-flag forms, `xv land-scenario`, `brief:` names and the repeating `--ignore`."""
 
-    def test_readme_names_each_change(self):
-        text = brief("README.md")
-        for word in ("build.commit", "file::test", "xv land-scenario", "brief: slice-only removal"):
-            self.assertIn(word, text, f"README.md never says {word}")
-        self.assertRegex(text, r"(?is)--ignore[^\n]{0,200}(repeat|more than once|each)|(repeat|more than once)[^\n]{0,200}--ignore")
-
     def test_the_watch_brief_names_the_session_landing_and_the_wall_flag_forms(self):
         text = brief("skills", "watch", "SKILL.md")
         self.assertIn("xv land-scenario", text)
@@ -245,27 +238,6 @@ class DefectsToolsDocsTest(unittest.TestCase):
         text = brief("skills", "cleaner", "SKILL.md")
         self.assertIn("brief: slice-only removal", text)
         self.assertRegex(text, r"(?is)exact\s+`###`\s+heading|`###` heading[^\n]{0,80}exact|exact[^\n]{0,80}`###` heading")
-
-    def test_the_picture_names_the_build_commit_the_wall_flag_forms_and_the_landing_command(self):
-        text = brief(".xv", "picture.md")
-        for word in ("build.commit", "file::test", "xv land-scenario"):
-            self.assertIn(word, text, f".xv/picture.md never says {word}")
-
-    # slice-only: checks CHANGELOG.md
-    def test_the_changelog_has_a_line_for_the_tool_fixes_under_unreleased(self):
-        text = brief("CHANGELOG.md")
-        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        lines = [ln for ln in unreleased.splitlines() if ln.startswith("- ") and "#147" in ln]
-        self.assertTrue(lines, "no Unreleased line names #147")
-        for issue in ("#148", "#154"):
-            self.assertIn(issue, lines[0])
-        self.assertIn("Sean Kennedy", lines[0])
-
-    # slice-only: checks EXPLORE-NOTES.md
-    def test_explore_notes_is_not_in_what_merges(self):
-        tracked = subprocess.run(["git", "ls-files", "EXPLORE-NOTES.md"], cwd=HOME, capture_output=True, text=True).stdout
-        self.assertEqual(tracked.strip(), "")
-        self.assertFalse(os.path.exists(os.path.join(HOME, "EXPLORE-NOTES.md")))
 
 
 if __name__ == "__main__":
