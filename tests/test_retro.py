@@ -337,6 +337,21 @@ class ReworkSignalTest(RepoCase):
         self.assertEqual(sh(["git", "branch", "--list", "xv/*"], self.repo).stdout, branches)
         self.assertEqual(sorted(os.listdir(os.path.join(self.repo, ".xv", "slices"))), slices)
 
+    # defects-tools 11: `xv retro counts` does not count `brief:` lines, and does count a standard by its heading
+    def test_counts_skip_a_brief_line_and_count_a_standard_by_its_heading(self):
+        self.xv("record", "new", "s9", "--by", "pat", "--scenario", "A scenario.")
+        path = os.path.join(self.tmp, "cleaner.txt")
+        report = {"agent": "cleaner", "status": "done", "summary": "removed a slice-only test", "commit": None,
+                  "applied": [{"rule": "brief: slice-only removal", "where": "tests/test_x.py:1"},
+                              {"rule": ".xv/standards.md: A standard heading", "where": "pantry/store.py:2"}]}
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
+        self.xv("record", "report", "s9", "cleaner", path)
+        rows = json.loads(self.xv("retro", "counts", "--json").stdout)["rules"]
+        rules = [r["rule"] for r in rows]
+        self.assertFalse([r for r in rules if r.startswith("brief:")], f"a brief: line was counted: {rules}")
+        self.assertIn("A standard heading", rules)
+
 
 if __name__ == "__main__":
     unittest.main()

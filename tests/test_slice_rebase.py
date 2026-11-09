@@ -1041,6 +1041,58 @@ class SliceRebaseTest(RepoCase):
         self.assertEqual(self.read(self.wt, "pantry/shared.py"), "RESOLVED = True\n")
         self.assertFalse(self.in_progress())
 
+    # -- defects-tools 6: the maker's edit to a new test file is untracked, so the question says how to drop it
+
+    def test_a_new_test_file_the_maker_added_stops_and_the_question_says_how_to_drop_it(self):
+        self.shared_conflict()
+        p = self.rebase(FAKE_REBASE_MODE="resolve_and_edit", FAKE_REBASE_FILE="pantry/shared.py",
+                        FAKE_REBASE_FILE2="tests/test_brand_new.py")
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertEqual(stop["order"], "rebase_conflict")
+        q = stop["question"]
+        self.assertIn("tests/test_brand_new.py", q)
+        self.assertRegex(q, r"\brm\b|git clean", "the question does not say how to drop a new file")
+        self.assertIn("git status", q)
+        self.assertRegex(q, r"git diff[^.]*(not|n't|does not|doesn't|no)", "the question does not say `git diff` hides it")
+
+    def test_an_edit_to_a_tracked_test_file_still_names_git_checkout(self):
+        self.shared_conflict()
+        p = self.rebase(FAKE_REBASE_MODE="resolve_and_edit", FAKE_REBASE_FILE="pantry/shared.py",
+                        FAKE_REBASE_FILE2="tests/test_store.py")
+        stop = self.assert_a_stop_for_the_originator(p)
+        self.assertIn("git checkout -- <file>", stop["question"])
+
+    # -- defects-tools 8: a red file the new base also changed keeps the slice's red edits in the wall hash
+
+    def test_a_red_file_main_also_changed_keeps_the_slices_red_edits_in_the_wall_hash(self):
+        self.slice_adds_a_failing_test_to_an_old_file()
+        self.xv("wall", "baseline", "s1", cwd=self.wt)  # the red lands with the wall hashed after it, as at the scenario step
+        sh(["git", "add", "-A"], self.wt)
+        sh(["git", "commit", "-qm", "wall baseline"], self.wt)
+        text = self.read(self.repo, "tests/test_store.py")
+        self.on_main("tests/test_store.py", "# a note from main\n" + text, "main edits the red file elsewhere")
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("test_slice_added_red", self.read(self.wt, "tests/test_store.py"))
+        self.assertNotIn("tests/test_store.py", self.wall_diff()["changed"],
+                         "the slice's own red edits show in the wall diff after the rebase")
+
+    # -- defects-tools 9: a directed CHANGELOG edit replaces the old line after a rebase
+
+    def test_a_directed_changelog_edit_replaces_the_old_line_after_a_rebase(self):
+        self.on_slice("CHANGELOG.md", "- the slice's line\n", "slice changelog", "a")
+        text = self.read(self.wt, "CHANGELOG.md")
+        self.on_slice("CHANGELOG.md", text.replace("- the slice's line\n", "- the slice's line, reworded\n"),
+                      "directed changelog edit")
+        self.on_main("CHANGELOG.md", "- main's line\n", "main changelog", "a")
+        p = self.rebase()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        text = self.read(self.wt, "CHANGELOG.md")
+        self.assertIn("- the slice's line, reworded\n", text)
+        self.assertNotIn("- the slice's line\n", text, "the old line is still there beside the edited one")
+        self.assertIn("- main's line\n", text)
+        self.assertIn("- the base line\n", text)
+
 
 # What a person should watch on the first green run: that a slice with a real change of its own
 # is replayed on a moved base, that the record's base and named commits point at the replayed
