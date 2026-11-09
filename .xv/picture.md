@@ -174,6 +174,7 @@ Sean Kennedy sits with them.
   `xv record report` applies the same rule in session mode, with or without a build (`record.cmd_report`).
   A red that fails before any test runs (exit 126 or 127, a runner's own words that a file could not load or no tests were found, or a general error name with no real failing test) stops the scenario step for the originator (`red_cannot_run`), and `next` stays `scenario`.
   After the scenario step, `red_misses_scenario` stops for the originator before the maker when the report lists a `not_covered` item, when `red_gaps` lists anything, or when the check cannot read its input: no `## Scenario` heading, `covers` or `not_covered` missing or not a list, `covers` empty, or with an item whose `test` is not one name, a list of non-empty strings, or a string joined with `,` or `;`, or a `covers` name that matches no whole word in any red file.
+  A `not_covered` item named in an earlier answered `red_misses_scenario` stop does not stop again, unless that answer sent the slice back (`sent_back`).
   On a later scenario pass, the coverage kept from earlier passes (`checks.scenario.covers_kept`) is added to the report's `covers` before the check, except when the record's `next` is `maker` (a pass that went on to the maker ends the run), so an empty `covers` does not stop when something was kept; each kept name is checked again against the red files.
   A `covers` name whose last part is a slice-only test that the cleaner removed by a recorded move does not stop; only the move's assertion before a `;` is read.
   A `covers` name may start with a red file's path or module and is split by `::`, `.`, `#`, `/` or ` > `; it matches when each part after the path is a whole word in that red file, in order (`names.covers_name_found`); a name whose test part is empty stops, and the stop names the name that does not match.
@@ -183,7 +184,9 @@ Sean Kennedy sits with them.
   A `covers` item that is a number, or starts with one, covers the scenario's own point with that number.
   It never covers an amendment's point (`run.missed_points`).
   After the scenario step, `unrecorded_move` stops for the originator before the maker when any test file that existed at the base, under `tests.paths` or in the red, lost or changed a line other than a blank, comment or import, unless a recorded move names the file.
-  In a slice from a build, a test file the build changed stops once.
+  In a slice from a build, a test file the build only added lines to is not unrecorded; a line the build changed or removed at the base still stops.
+  A line the build added that the maker or the cleaner later changes or removes stops too, measured from the build's commit (`wall.check`).
+  An answered `unrecorded_move` stop records each file's content (`blobs`), and the same content does not stop again.
   The maker and the cleaner record a move in their own names (`--by maker`, `--by cleaner`).
   The scenario agent records none: it says what it moved in its report, and the stop puts it before the person.
   A person's name reaches the record only through an answer at a stop (#93).

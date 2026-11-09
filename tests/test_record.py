@@ -206,6 +206,26 @@ class SliceOnlyReportTest(RepoCase):
         self.assertEqual(data["slice_only"], slice_only)
 
 
+class ScenarioBriefRetroFixesTest(RepoCase):
+    fixture = False
+
+    def lines(self):
+        text = open(os.path.join(HOME, "skills", "scenario", "SKILL.md")).read()
+        return [ln.lower() for ln in text.splitlines()]
+
+    # #174 point 5
+    def test_the_brief_says_a_red_that_fails_only_on_the_build_is_reported_and_does_not_stop(self):
+        found = [ln for ln in self.lines() if "from a build" in ln and "fails only on the build" in ln]
+        self.assertTrue(found, "no line says what a red that fails only on the build means on a slice from a build")
+        self.assertTrue(any("report" in ln and ("not stop" in ln or "no stop" in ln) for ln in found), found)
+
+    # #174 point 6
+    def test_the_brief_says_to_run_the_red_in_the_foreground_to_its_end_before_the_report(self):
+        found = [ln for ln in self.lines() if "foreground" in ln]
+        self.assertTrue(found, "the brief does not say to run the red command in the foreground")
+        self.assertTrue(any("to its end" in ln and "before" in ln and "report" in ln for ln in found), found)
+
+
 class ScenarioBriefTest(RepoCase):
     fixture = False
 

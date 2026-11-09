@@ -34,6 +34,8 @@ Own the result: even when agents write all of the code, a person is responsible 
 6f. **Set every stand-in setting.** Each red test sets every stand-in setting its result depends on, such as the fake agent's environment or a config value; it does not rely on a default.
 7. **After the maker, report the whole red.** When the slice has been through the maker and you are sent to fix a test, your `red` lists every file in the record's `red.files` plus any you added, and one command that runs all of them. The record keeps every old file.
 8. **Join several runners with `&&`.** When the red runs more than one test runner, join them in `command` with `&&`, so the first failing runner fails the whole command. Never join them with `;`, `||`, `|`, `&` or a new line: only one part's exit code would count, and xv refuses such a command and sends the slice back to you to rewrite it.
+9. **A red that fails only on the build is expected.** On a slice from a build, a red test that fails only on the build is expected: report it, and do not stop to ask.
+10. **Run the red in the foreground.** Run the red command in the foreground, to its end, before you write the report.
 
 ### With Playwright
 
