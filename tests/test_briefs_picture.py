@@ -223,11 +223,11 @@ class RetroDocsNameNumberedFilesTest(unittest.TestCase):
 
 class DefectsToolsDocsTest(unittest.TestCase):
     """defects-tools 16 and 17: the docs name what changed. README, the watch, xv-slice and cleaner briefs and the
-    picture name `build.commit`, the wall-flag forms, `xv land-scenario`, `brief:` names and the repeating `--ignore`."""
+    picture name `build.commit`, the wall-flag forms, `run.py land-scenario`, `brief:` names and the repeating `--ignore`."""
 
     def test_the_watch_brief_names_the_session_landing_and_the_wall_flag_forms(self):
         text = brief("skills", "watch", "SKILL.md")
-        self.assertIn("xv land-scenario", text)
+        self.assertIn("run.py land-scenario", text)
         self.assertIn("file::test", text)
 
     def test_the_xv_slice_brief_says_ignore_can_repeat(self):
