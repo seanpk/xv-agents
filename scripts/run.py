@@ -1110,7 +1110,10 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         checks["covers_kept"] = [c for c in report.get("covers") or []
                                  if isinstance(c, dict) and c.get("item") and covers_names(c.get("test"))]
         checks["unreadable"] = unreadable_input(root, data, report)
-        checks["not_covered"] = [n for n in (report.get("not_covered") or []) if isinstance(n, dict)]
+        answered = " ".join(s.get("question") or "" for s in data.get("stops") or []
+                            if s.get("order") == "red_misses_scenario" and s.get("answer"))
+        checks["not_covered"] = [n for n in (report.get("not_covered") or []) if isinstance(n, dict)
+                                 and f"did not cover {n.get('item')}:" not in answered]
         checks["missed_points"] = missed_points(root, data, report)
         if landed:  # the wall hashes the test files at the base, not at the build
             wb, wall_text = landed["wall"]

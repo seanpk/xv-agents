@@ -133,6 +133,9 @@ def check(root, slice_id, config=None):
     moved = d["changed"] + d["deleted"]
     d["recorded"] = sorted(f for f in moved if f in recorded)
     d["unrecorded"] = sorted(f for f in moved if f not in recorded)
+    if isinstance(data.get("build"), dict) and data.get("base"):
+        # a build that only added tests to a file has moved nothing: no line at the base changed or went
+        d["unrecorded"] = [f for f in d["unrecorded"] if f in d["deleted"] or removed_lines(root, data["base"], f, None)]
     d["ok"] = not d["unrecorded"]
     return d
 
