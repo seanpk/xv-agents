@@ -31,7 +31,7 @@ Sean Kennedy sits with them.
   `xv init` gives Claude Code agent lines a starter Bash allow list; other harnesses' lines are left as written.
   `xv prompt` shows each Claude Code agent its own line's Bash rules as the commands it may run, with cautions: chain only listed forms, no extra flags in front, no pipe to an unlisted program.
 - 25 modules, all flat Python files: `scripts/*.py` (22) and `evals/{run,grade,report}.py`.
-  `.xv/boundary-all.md` shows 66 edges between them.
+  `.xv/boundary-all.md` shows 67 edges between them.
   `record` and `run` reach `suite`.
   `record` reaches `moves` and `wall`; `run` reaches `moves` through `record`; `moves` reaches `wall` and `xvlib`.
   `run` reaches most of the others: `agentcli`, `boundary`, `orders`, `packet`, `prompt`, `prototypes`, `record`, `retro`, `spend`, `wall` and `xvlib`.
@@ -45,6 +45,7 @@ Sean Kennedy sits with them.
 - Roughly: `xvlib` is the shared base (config, git, record paths, and the shared test-name matcher `names_test`; `covers` names use `run.covers_name_found`).
   `record` owns the slice record, and the build rules: `has_build`, `build_commit` and `wall_for_build`.
   `suite` runs `tests.command` for `run` and `record`.
+  `suite` also holds `failing_tests`, `own_red_names` and `in_own_red`, which `run` and `record` both import.
   `xv record offer` can put one directed edit on an option, and refuses one that does not fit its kind (`skills/watch/SKILL.md` lists the refusals).
   `xv record answer --pick` on that option makes the edit, runs the suite and the orders, and commits the file, the record and, after the guardian, the packet line, in the person's name (`record.make_directed_edit`).
   Both the offer and the answer read and edit the file in the slice's worktree, wherever they are run from.
@@ -67,6 +68,8 @@ Sean Kennedy sits with them.
   `orders.verdict` also returns `next`.
   After the scenario step, `next` is `cleaner` when the red failed on the base and passes on the build.
   One function, `record.apply_verdict`, writes the stop or the send-backs, and `next`, on `xv step`, `xv run`, `xv record packet`, and `xv record answer` after a directed edit; it adds no second open stop of the same order.
+  After a directed edit, `orders.verdict` does not fire the order the answer closed or any order bundled with it, `ready_to_merge` included, and the answer's `--next` stands.
+  At the scenario step, a directed edit counts the suite green when every failing test is one of the slice's own red tests.
   `record.guardian_facts` turns the packet into the record's fields on every path.
   For `scenario_miss`, a miss is a repeat when an earlier pass sent back the same key, and the repeat stops for the originator.
   For `red_misses_point`, `orders.miss_run` counts the send-backs of the same point in an unbroken run of scenario reports.
@@ -92,7 +95,7 @@ Sean Kennedy sits with them.
   `retro.reworked` finds the modules that at least `limits.rework_slices` closed, sent-back slices touched; `due` and the retro prompt both use it on slices created since the last retro.
   `retro.accept` only prints the `xv slice new --kind refactor` command for a candidate of kind `refactor`.
   After the scenario step, `slice_only_marks` lists slice-only marks for the person who set the work going; they accept the marks or run `xv record unmark`.
-  An answer marks every listed mark `accepted`.
+  An answer to `slice_only_marks`, or an answer that bundles it, marks every listed mark `accepted`.
   An accepted mark is kept when the scenario runs again and is not asked about again.
   A mark whose `checks` names a file listed in `tests.slice_only_files` (default `CHANGELOG.md`) is accepted by the watch with a log line and is not asked about.
   An agent's report cannot set `accepted` on its own mark.
@@ -119,6 +122,7 @@ Sean Kennedy sits with them.
   `.xv/config.yml` runs `--jobs 4`.
   The `tests` workflow runs four shards on each Python, eight jobs at once.
   No test class that holds tests is the base of another, and `tests/test_suite_runner.py` `NoRerunTest` guards this.
+  No `.py` file under `tests/` or `scripts/` defines a top-level class or function name twice, or one method name twice in a class, and `tests/test_one_name.py` `OneNameOneDefinitionTest` guards this.
 - No database.
   State is files: `.xv/slices/<id>.md` (front matter plus log), `.xv/decisions/`, `estimation.md`, `learnings.md`, `config.yml`.
   The slice record also holds `amended_at_report`, the report count at the last amendment.
@@ -151,6 +155,7 @@ Sean Kennedy sits with them.
   The red then runs on the build, and the maker's prompt names the tests that fail.
   A session scenario step makes that checkout and names it.
   A red command joined at the top level by anything but `&&` (`;`, `||`, `|`, `&` or a new line, outside quotes) is not run and not kept as the slice's red; the scenario step stops for the originator (`scenario_stopped`), and `next` stays `scenario`, so the scenario agent rewrites it with `&&`.
+  A red that fails before any test runs (exit 126 or 127, a runner's own words that a file could not load or no tests were found, or a general error name with no real failing test) stops the scenario step for the originator (`red_cannot_run`), and `next` stays `scenario`.
   After the scenario step, `red_misses_scenario` stops for the originator before the maker when the report lists a `not_covered` item, when `red_gaps` lists anything, or when the check cannot read its input: no `## Scenario` heading, `covers` or `not_covered` missing or not a list, `covers` empty, or with an item whose `test` is not one name, a list of non-empty strings, or a string joined with `,` or `;`, or a `covers` name that matches no whole word in any red file.
   On a later scenario pass, the coverage kept from earlier passes (`checks.scenario.covers_kept`) is added to the report's `covers` before the check, except when the record's `next` is `maker` (a pass that went on to the maker ends the run), so an empty `covers` does not stop when something was kept; each kept name is checked again against the red files.
   A `covers` name whose last part is a slice-only test that the cleaner removed by a recorded move does not stop; only the move's assertion before a `;` is read.
@@ -280,6 +285,7 @@ Drafted from the repo's docs; Sean cut and added on 2026-10-24.
 11. Exit codes are a contract with CI: 10 a person must act, 0 nothing left, 2 an error or a refusal.
     (`docs/decisions.md` 12)
 12. A check whose input is broken or that cannot run stops for a person; it never passes.
+    A red that cannot run is not a failing red: the scenario step stops for the person who set the work going.
     Read-only agents are checked, not trusted.
     (`docs/decisions.md` 13, 51, 78)
 13. Every brief opens with Own the result, keeps the stop line, ends with its may-not list, what it writes to the record, and when to stop, and points to files rather than restating them.

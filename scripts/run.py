@@ -33,8 +33,8 @@ import orders  # noqa: E402
 import prompt as promptlib  # noqa: E402
 import record  # noqa: E402
 import spend as spendlib  # noqa: E402
-from suite import run_suite, shell, tests_timeout  # noqa: E402
-from xvlib import (XV_DIR, XVError, die, git, load_config, match_any, names_test, now,  # noqa: E402
+from suite import failing_tests, in_own_red, own_red_names, run_suite, shell, tests_timeout  # noqa: E402
+from xvlib import (XV_DIR, XVError, die, git, load_config, match_any, now,  # noqa: E402
                    join_front_matter, main_root, record_path, repo_root, slice_root, split_front_matter, today,
                    worktrees_config, worktrees_dir)
 
@@ -46,27 +46,45 @@ EXIT_STOP = 10
 
 # ---------------------------------------------------------------- helpers
 
-FAILING = re.compile(r"^(?:FAIL|ERROR): (\S+(?: \([^)]*\))?)|^FAILED (\S+)"
-                     r"|^\s*[✕×] (.+?)(?: \(\d+ ?ms\)| \d+(?:\.\d+)? ?ms)?$|^ FAIL  \S+ > (.+)$"
-                     r"|^--- FAIL: (\S+)|^rspec (\S+)|^\d+\) (.+)\n[ \t]+Message:"
-                     r"|^\s*(?:\d+\) )?(?:Failure|Error):\n\s*([\w:]+#\w+)"
-                     r"|^test (\S+) \.\.\. FAILED$|^\s+\d+\) (\[[^\]]+\] › .+?)\s*─*$", re.M)
-# mocha prints a failure's title over several lines, one per describe, the last ending in a colon
-MOCHA = re.compile(r"^ +\d+\) (.+(?:\n +[^\n]+?)*?):$", re.M)
+# What each runner prints when it could not load or find tests. Same eleven runners as failing_tests; the words come
+# from real output (tests/data/cannot-run), except where noted. Jasmine prints nothing of its own when a spec file
+# fails to load (Node's error comes out before it runs), so only its no-specs line is here; its load failure is a
+# generic error name below.
+RUNNER_WORDS = {
+    "unittest": [r"_FailedTest", r"Failed to import test module", r"Ran 0 tests", r"NO TESTS RAN"],
+    "pytest": [r"ERROR collecting", r"Interrupted: \d+ errors? during collection", r"collected 0 items",
+               r"no tests ran"],
+    "jest": [r"Test suite failed to run", r"No tests found, exiting"],
+    "vitest": [r"Failed Suites", r"No test files found"],
+    "go": [r"\[build failed\]", r"\[setup failed\]", r"no packages to test", r"matched no packages"],
+    "rspec": [r"An error occurred while loading", r"errors? occurred outside of examples", r"No examples found",
+              r"0 examples, 0 failures"],
+    "jasmine": [r"No specs found"],
+    "minitest": [r"\b0 runs, 0 assertions"],
+    "mocha": [r"Exception during run:", r"No test files found"],
+    "cargo": [r"could not compile", r"no test target named"],
+    "playwright": [r"Error: No tests found"],
+}
+RUNNER_CANNOT_RUN = re.compile("^.*(?:" + "|".join(w for ws in RUNNER_WORDS.values() for w in ws) + ").*$", re.I | re.M)
+# Error names any program prints, a test that fails for a real reason included: they count only when no real test failed
+GENERIC_ERRORS = re.compile(
+    r"^.*(?:ModuleNotFoundError|ImportError|SyntaxError|LoadError|Cannot find module"
+    r"|command not found|No such file or directory).*$", re.I | re.M)
 
 
-def failing_tests(output):
-    """Names of failing tests from unittest, pytest, jest, vitest, go, RSpec, Jasmine,
-    minitest, mocha, cargo or Playwright output.
-
-    RSpec is named by its rerun handle, ./spec/x_spec.rb:42, which is unique where
-    descriptions repeat. Jasmine's numbered entries count only when a Message: line follows.
-    Vitest names a test in its tree and again in its summary; both read `suite > test`.
-    """
-    names = {next(g for g in m if g) for m in FAILING.findall(output)}
-    if re.search(r"^ +\d+ failing$", output, re.M):
-        names |= {" ".join(part.strip() for part in m.split("\n")) for m in MOCHA.findall(output)}
-    return sorted(names)
+def red_cannot_run(code, output):
+    """Why a red command failed before its tests ran, or None when they ran. Exit 126 or 127; a runner's own words
+    for "could not load or find tests" anywhere in the output (one file that cannot load stops the red even when
+    other tests fail for real); or a generic error name when `failing_tests` finds no real failing test."""
+    if code in (None, 0):
+        return None
+    if code in (126, 127):
+        return f"the red command exited {code}: " + (output.strip().splitlines() or ["it could not start"])[-1]
+    lines = RUNNER_CANNOT_RUN.findall(output)
+    if not lines and not [n for n in failing_tests(output) if "_FailedTest" not in n]:
+        lines = GENERIC_ERRORS.findall(output)
+    seen = list(dict.fromkeys(line.strip() for line in lines))
+    return "; ".join(seen)[:300] if seen else None
 
 
 def changed_files(root, since):
@@ -516,22 +534,6 @@ def rebase_drive(root, slice_id, state, config):
         if p.returncode != 0 and rebase_running(root) and not unmerged(root):
             raise XVError(f"git rebase --continue failed: {(p.stderr or p.stdout).strip()}")
     rebase_finish(root, slice_id, state, config)
-
-
-def own_red_names(root, data, onto):
-    """The names of the tests the slice added to its red files, read from the lines it added."""
-    names = set()
-    for f in (data.get("red") or {}).get("files") or []:
-        out = git(["diff", "--unified=0", "--no-renames", f"{onto}...HEAD", "--", f], root)
-        for line in out.splitlines():
-            if line.startswith("+") and not line.startswith("+++"):
-                names |= set(re.findall(r"\b(?:def|func|fn|it|test|specify)\b[\s(]*[\"']?(\w[\w ]*\w|\w)", line))
-    return names
-
-
-def in_own_red(names, name):
-    """Is this failing test one of the tests the slice added to its red, named as a whole name?"""
-    return any(names_test(name, n) for n in names)
 
 
 def move_red_ref(root, data, old_base, onto):
@@ -987,6 +989,10 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
             code, out = landed["base_run"] if landed else red_run(root, data, red, config)
             checks["red_fails"] = None if code is None else code != 0
             checks["red_output"] = out[-800:]
+            cannot = red_cannot_run(code, out)
+            if cannot:
+                checks["red_fails"] = None
+                checks["red_cannot_run"] = cannot
             if code is None:
                 checks["setup_failed"] = out
             if landed and landed["conflict"]:

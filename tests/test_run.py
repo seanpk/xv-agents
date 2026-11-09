@@ -53,6 +53,80 @@ class FailingTestsTest(unittest.TestCase):
         self.assertEqual(failing_tests(out), ["./spec/a_spec.rb:1", "B fails"])
 
 
+class RedCannotRunSamplesTest(unittest.TestCase):
+    """A red that cannot run (#141): the runner's own words for "I could not load or find tests" stop it wherever they
+    appear; a generic error name stops it only when no real test failed. The samples are real output from each runner
+    (tests/data/cannot-run/<runner>-*.txt), long stack frames trimmed."""
+
+    DATA = os.path.join(HOME, "tests", "data", "cannot-run")
+
+    def sample(self, name):
+        with open(os.path.join(self.DATA, name + ".txt")) as f:
+            return f.read()
+
+    def runners(self):
+        import run
+        named = re.search(r"from (.+?) output", run.failing_tests.__doc__, re.S).group(1)
+        return [n.lower() for n in re.split(r",\s*|\s+or\s+", " ".join(named.split())) if n]
+
+    def samples_of(self, runner):
+        return sorted(f[:-4] for f in os.listdir(self.DATA) if f.startswith(runner + "-") and f.endswith(".txt")
+                      and "good-red" not in f)
+
+    def test_every_runner_failing_tests_parses_has_a_cannot_run_sample(self):
+        import run
+        runners = self.runners()
+        self.assertEqual(len(runners), 11, runners)
+        self.assertEqual(sorted(run.RUNNER_WORDS), sorted(runners), "every runner has its own words, and no others")
+        for runner in runners:
+            with self.subTest(runner=runner):
+                names = self.samples_of(runner)
+                self.assertTrue(names, f"{runner} has no cannot-run sample in tests/data/cannot-run")
+                for name in names:
+                    self.assertTrue(run.red_cannot_run(1, self.sample(name)), name)
+
+    def test_every_runner_has_a_sample_its_own_words_catch(self):
+        import run
+        for runner in self.runners():
+            with self.subTest(runner=runner):
+                words = re.compile("|".join(run.RUNNER_WORDS[runner]), re.I)
+                self.assertTrue(any(words.search(self.sample(n)) for n in self.samples_of(runner)))
+
+    def test_a_runners_own_words_stop_it_even_when_other_tests_fail_for_real(self):
+        from run import failing_tests, red_cannot_run
+        out = self.sample("unittest-load")
+        self.assertIn("test_x (test_ok.A.test_x)", failing_tests(out))
+        self.assertTrue(red_cannot_run(1, out))
+        out = self.sample("go-load")
+        self.assertEqual(failing_tests(out), ["TestAdds"])
+        self.assertTrue(red_cannot_run(1, out))
+
+    def test_a_generic_error_name_stops_a_red_only_when_no_real_test_failed(self):
+        from run import failing_tests, red_cannot_run
+        out = self.sample("jasmine-load")
+        self.assertEqual(failing_tests(out), [])
+        self.assertTrue(red_cannot_run(1, out))
+        self.assertIn("Cannot find module", red_cannot_run(1, "Error: Cannot find module './x'\n"))
+        self.assertFalse(red_cannot_run(1, "FAIL: test_a (t.A.test_a)\nImportError: boom\nRan 1 test\n"))
+
+    def test_a_no_such_file_from_a_real_failing_test_is_a_failing_red(self):
+        from run import failing_tests, red_cannot_run
+        for name, real in (("unittest-good-red", "test_asserts (test_gr.A.test_asserts)"),
+                           ("pytest-good-red", "test_gr.py::A::test_asserts")):
+            with self.subTest(name=name):
+                out = self.sample(name)
+                self.assertIn("No such file or directory", out)
+                self.assertIn(real, " ".join(failing_tests(out)))
+                self.assertIsNone(red_cannot_run(1, out))
+
+    def test_exit_126_and_127_cannot_run(self):
+        from run import red_cannot_run
+        for code in (126, 127):
+            self.assertIn(str(code), red_cannot_run(code, "sh: 1: nosuch: not found\n"))
+        self.assertIsNone(red_cannot_run(0, "No tests found"))
+        self.assertIsNone(red_cannot_run(None, "No tests found"))
+
+
 class RunSuiteTest(RepoCase):
     def test_the_command_sees_the_slice_base_and_id(self):
         from run import run_suite, LAYER_SKIP
@@ -171,6 +245,25 @@ class WatchLoopTest(WatchLoopSetup):
         self.assertEqual(stop["seat"], "originator")
         self.assertIn("base", stop["question"])
         self.assertNotIn("maker", [s["step"] for s in self.record()["spend"]])
+
+    def test_a_red_that_cannot_run_is_not_a_failing_red_and_stops_the_scenario_step(self):
+        p = self.scenario_with_red("python3 -c 'import xv_no_such_module'")
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["order"], "red_cannot_run")
+        self.assertEqual(stop["seat"], "originator")
+        self.assertIn("xv_no_such_module", stop["question"])
+        self.assertIn("cannot run", stop["question"])
+        data = self.record()
+        self.assertIsNot(data["checks"]["scenario"].get("red_fails"), True)
+        self.assertEqual(data["next"], "scenario")
+        self.assertNotIn("maker", [s["step"] for s in data["spend"]])
+
+    def test_a_red_that_runs_its_tests_and_some_fail_is_still_a_failing_red(self):
+        p = self.scenario_with_red("echo 'FAIL: test_x (t.A.test_x)' && echo 'Ran 1 test' && false")
+        self.assertNotIn("scenario_stopped", p.stdout)
+        self.assertNotIn("red_cannot_run", p.stdout)
+        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
 
     def test_a_red_joined_with_or_is_refused(self):
         p = self.scenario_with_red("false || true")
@@ -1711,6 +1804,231 @@ class ScenarioPointsAfterAmendTest(WatchLoopSetup):
         self.open_kind("feature")
         p, data = self.run_scenario(["3. The tally also shows milk."])
         self.assertEqual(data["next"], "scenario")
+
+
+def _red_command(lines, code=1):
+    """A red command that prints these lines and exits with this code. It joins with `&&`, which the scenario check accepts."""
+    import shlex
+    return "printf '%s\\n' " + " ".join(shlex.quote(x) for x in lines) + f" && exit {code}"
+
+
+# What each of the 11 runners that failing_tests reads says when it could not start or find a test.
+CANNOT_RUN = {
+    "unittest, a file that cannot load": ["ImportError: Failed to import test module: test_gone", "FAILED (errors=1)"],
+    "unittest, no tests": ["Ran 0 tests in 0.000s", "NO TESTS RAN"],
+    "pytest, no tests": ["collected 0 items", "no tests ran in 0.01s"],
+    "pytest, a file that cannot load": ["ERROR collecting tests/test_gone.py", "Interrupted: 1 error during collection"],
+    "jest, no tests": ["No tests found, exiting with code 1"],
+    "jest, a suite that cannot load": ["Test suite failed to run", "Cannot find module './gone' from 'test/a.test.js'"],
+    "vitest, no tests": ["No test files found, exiting with code 1"],
+    "go, a package that does not build": ["FAIL\texample.com/pantry [build failed]"],
+    "rspec, a file that cannot load": ["An error occurred while loading ./spec/a_spec.rb",
+                                       "0 examples, 0 failures, 1 error occurred outside of examples"],
+    "jasmine, no specs": ["No specs found"],
+    "minitest, a file that cannot load": ["cannot load such file -- ./test/a_test.rb (LoadError)"],
+    "minitest, no tests": ["0 runs, 0 assertions, 0 failures, 0 errors, 0 skips"],
+    "mocha, no tests": ['Error: No test files found: "test/*.js"'],
+    "cargo, a crate that does not build": ["error: could not compile `pantry` (lib test) due to 1 previous error"],
+    "playwright, no tests": ["Error: No tests found."],
+}
+
+
+class RedCannotRunTest(WatchLoopSetup):
+    """A red that fails before any test runs is not a failing red (scenario points 1 to 4)."""
+
+    def scenario(self, command):
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"FAKE_RED_COMMAND": command}):
+            self.xv("step", "forecaster", "s1", cwd=self.wt)
+            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+
+    def assert_cannot_run(self, command, *named):
+        p = self.scenario(command)
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["order"], "red_cannot_run")
+        self.assertEqual(stop["seat"], "originator")
+        for n in named:
+            self.assertIn(n, stop["question"])
+        data = self.record()
+        self.assertEqual(data["next"], "scenario")
+        self.assertIsNot(data["checks"]["scenario"].get("red_fails"), True)
+        self.assertNotIn("maker", [s["step"] for s in data["spend"]])
+
+    def assert_failing_red(self, command):
+        p = self.scenario(command)
+        self.assertNotIn("red_cannot_run", p.stdout + p.stderr)
+        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
+        self.assertEqual(self.record()["next"], "maker")
+
+    # 1. exit codes 126 and 127
+    def test_exit_127_stops_and_names_the_error(self):
+        self.assert_cannot_run(_red_command(["sh: 1: nosuchrunner: not found"], 127), "127")
+
+    def test_exit_126_stops_and_names_the_error(self):
+        self.assert_cannot_run(_red_command(["sh: 1: ./run-tests: Permission denied"], 126), "126")
+
+    def test_a_command_that_is_not_installed_stops(self):
+        self.assert_cannot_run("xv-no-such-runner-anywhere tests", "127")
+
+    # 2. a general error name counts only when the output names no real failing test
+    def test_a_general_error_name_alone_stops(self):
+        self.assert_cannot_run(_red_command(["Traceback (most recent call last):",
+                                             "ImportError: No module named pantry_gone"]), "ImportError")
+
+    def test_no_such_file_alone_stops(self):
+        self.assert_cannot_run(_red_command(["python3: can't open file 'tests/gone.py': [Errno 2] No such file "
+                                             "or directory"]), "No such file or directory")
+
+    # 3. a red that runs its tests and some fail is a failing red, even with a general error name in the output
+    def test_failing_tests_with_a_general_error_name_in_the_output_is_a_failing_red(self):
+        self.assert_failing_red(_red_command(["ERROR: test_milk (tests.t.A.test_milk)",
+                                              "ImportError: cannot import name 'gone' from 'pantry'",
+                                              "FAILED (errors=1)"]))
+
+    def test_a_failing_test_that_prints_no_such_file_is_a_failing_red(self):
+        self.assert_failing_red(_red_command(["FAIL: test_milk (tests.t.A.test_milk)",
+                                              "FileNotFoundError: [Errno 2] No such file or directory: 'x'"]))
+
+    # 4. one file cannot load and other tests fail for real: the step still stops
+    def test_a_file_that_cannot_load_beside_a_real_failure_still_stops(self):
+        self.assert_cannot_run(_red_command(["ERROR: test_gone (unittest.loader._FailedTest.test_gone)",
+                                             "ImportError: Failed to import test module: test_gone",
+                                             "FAIL: test_milk (tests.t.A.test_milk)", "FAILED (failures=1, errors=1)"]),
+                               "Failed to import test module: test_gone")
+
+    def test_a_pytest_collection_error_beside_a_real_failure_still_stops(self):
+        self.assert_cannot_run(_red_command(["ERROR collecting tests/test_gone.py",
+                                             "FAILED tests/test_a.py::test_milk - assert 1 == 2",
+                                             "Interrupted: 1 error during collection"]), "error during collection")
+
+
+    # 2. the runner words of each of the 11 runners, one plain test per sample
+    def assert_runner_words_stop(self, what):
+        lines = CANNOT_RUN[what]
+        self.assert_cannot_run(_red_command(lines), lines[0])
+
+    def test_runner_words_stop_00_cargo_a_crate_that_does_not_build(self):
+        self.assert_runner_words_stop("cargo, a crate that does not build")
+
+    def test_runner_words_stop_01_go_a_package_that_does_not_build(self):
+        self.assert_runner_words_stop("go, a package that does not build")
+
+    def test_runner_words_stop_02_jasmine_no_specs(self):
+        self.assert_runner_words_stop("jasmine, no specs")
+
+    def test_runner_words_stop_03_jest_a_suite_that_cannot_load(self):
+        self.assert_runner_words_stop("jest, a suite that cannot load")
+
+    def test_runner_words_stop_04_jest_no_tests(self):
+        self.assert_runner_words_stop("jest, no tests")
+
+    def test_runner_words_stop_05_minitest_a_file_that_cannot_load(self):
+        self.assert_runner_words_stop("minitest, a file that cannot load")
+
+    def test_runner_words_stop_06_minitest_no_tests(self):
+        self.assert_runner_words_stop("minitest, no tests")
+
+    def test_runner_words_stop_07_mocha_no_tests(self):
+        self.assert_runner_words_stop("mocha, no tests")
+
+    def test_runner_words_stop_08_playwright_no_tests(self):
+        self.assert_runner_words_stop("playwright, no tests")
+
+    def test_runner_words_stop_09_pytest_a_file_that_cannot_load(self):
+        self.assert_runner_words_stop("pytest, a file that cannot load")
+
+    def test_runner_words_stop_10_pytest_no_tests(self):
+        self.assert_runner_words_stop("pytest, no tests")
+
+    def test_runner_words_stop_11_rspec_a_file_that_cannot_load(self):
+        self.assert_runner_words_stop("rspec, a file that cannot load")
+
+    def test_runner_words_stop_12_unittest_a_file_that_cannot_load(self):
+        self.assert_runner_words_stop("unittest, a file that cannot load")
+
+    def test_runner_words_stop_13_unittest_no_tests(self):
+        self.assert_runner_words_stop("unittest, no tests")
+
+    def test_runner_words_stop_14_vitest_no_tests(self):
+        self.assert_runner_words_stop("vitest, no tests")
+
+
+class AnsweredStopStaysAnsweredTest(WatchLoopSetup):
+    """Scenario points 5 and 6: a bundled slice_only_marks is accepted, and a directed edit does not re-fire."""
+
+    MARK = {"file": "tests/test_red.py", "test": "test_milk_today", "why": "checks the README wording",
+            "checks": "README.md"}
+    EDIT = ("--edit", "README.md", "--old", "It is small on purpose.",
+            "--new", "It is small on purpose, and stays small.", "--kind", "doc")
+
+    def scenario_with_not_covered(self):
+        from unittest import mock
+        env = {"FAKE_NOT_COVERED": '[{"item": "the grocer share", "why": "no seam"}]'}
+        with mock.patch.dict(os.environ, env):
+            self.xv("step", "forecaster", "s1", cwd=self.wt)
+            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+
+    def open_stops(self):
+        return [s for s in self.record()["stops"] if s.get("answer") is None]
+
+    def add_mark(self):
+        self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=self.wt)
+
+    def test_an_answer_that_bundles_slice_only_marks_accepts_them(self):
+        self.scenario_with_not_covered()
+        self.add_mark()
+        self.assertFalse(self.record()["slice_only"][0].get("accepted"))
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "fine", "--bundle", "slice_only_marks",
+                "--next", "maker", "--settled", "Pat accepts the marks.", cwd=self.wt)
+        self.assertIs(self.record()["slice_only"][0].get("accepted"), True)
+
+    def test_an_answer_that_does_not_bundle_them_leaves_them_unaccepted(self):
+        self.scenario_with_not_covered()
+        self.add_mark()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "fine", "--next", "maker",
+                "--settled", "Pat goes on.", cwd=self.wt)
+        self.assertFalse(self.record()["slice_only"][0].get("accepted"))
+
+    def directed_answer(self, *extra):
+        self.xv("record", "offer", "s1", "--option", "Make the edit", "--settles", "The edit is made.", *self.EDIT,
+                "--option", "Leave it", "--settles", "Nothing changes.", cwd=self.wt)
+        return self.xv("record", "answer", "s1", "--by", "pat", "--answer", "make it", "--pick", "1",
+                       "--next", "maker", *extra, cwd=self.wt, check=False)
+
+    def test_after_a_directed_edit_the_stop_the_answer_closed_does_not_fire_again(self):
+        self.scenario_with_not_covered()
+        before = len(self.record()["stops"])
+        p = self.directed_answer()
+        v = json.loads(p.stdout)
+        self.assertNotIn("red_misses_scenario", [f["order"] for f in v["fired"]])
+        self.assertIsNone(v["stop"], p.stdout)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        data = self.record()
+        self.assertEqual(len(data["stops"]), before, "no new stop in the record")
+        self.assertEqual(self.open_stops(), [])
+        self.assertEqual(data["next"], "maker", "the answer's --next stands")
+        self.assertEqual(data["suite"], "green", "the suite still runs after the edit")
+
+    def test_after_a_directed_edit_a_stop_bundled_with_the_answer_does_not_fire_again(self):
+        self.scenario_with_not_covered()
+        self.add_mark()
+        before = len(self.record()["stops"])
+        p = self.directed_answer("--bundle", "slice_only_marks")
+        v = json.loads(p.stdout)
+        self.assertNotIn("slice_only_marks", [f["order"] for f in v["fired"]])
+        self.assertNotIn("red_misses_scenario", [f["order"] for f in v["fired"]])
+        self.assertEqual(len(self.record()["stops"]), before)
+        self.assertIs(self.record()["slice_only"][0].get("accepted"), True)
+
+    def test_after_a_directed_edit_a_ready_to_merge_bundled_with_the_answer_does_not_fire_again(self):
+        self.scenario_with_not_covered()
+        before = len(self.record()["stops"])
+        p = self.directed_answer("--bundle", "ready_to_merge")
+        v = json.loads(p.stdout)
+        self.assertNotIn("ready_to_merge", [f["order"] for f in v["fired"]])
+        self.assertEqual(len(self.record()["stops"]), before)
+        self.assertEqual(self.record()["next"], "maker")
 
 
 if __name__ == "__main__":

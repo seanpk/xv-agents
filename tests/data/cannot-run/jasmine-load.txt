@@ -1,0 +1,7 @@
+Error: Cannot find module './no_such_module'
+Require stack:
+- /work/js/j1/spec/broken_spec.js
+    at Object.<anonymous> (/work/js/j1/spec/broken_spec.js:1:1)
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/work/js/j1/spec/broken_spec.js' ]
+}

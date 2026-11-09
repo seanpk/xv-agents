@@ -1598,6 +1598,34 @@ class DirectedEditTest(RepoCase):
             with self.subTest(missing=missing):
                 self.refused(*[x for flag, value in pairs if flag != missing for x in (flag, value)])
 
+    def miss_stop_from_packet(self):
+        """A guardian packet that says scenario_miss: yes with an amend: yes miss, and the stop it raises."""
+        path = os.path.join(self.wt, "p.md")
+        with open(path, "w") as f:
+            f.write("---\nslice: s1\nshape_change: no\npitch_contradiction: no\nscenario_miss: yes\n"
+                    "expected_moves: 0\n---\n\n# Packet\n\n## Scenario misses\n\n"
+                    "- Point 2: the scenario itself is wrong, to: maker, amend: yes (evidence: tests/test_red.py:7)\n")
+        report = os.path.join(self.wt, "r.json")
+        with open(report, "w") as f:
+            f.write("```xv-report\n" + json.dumps({"agent": "guardian", "status": "done", "summary": "done"})
+                    + "\n```\n")
+        self.xv("record", "report", "s1", "guardian", report, cwd=self.wt)
+        self.xv("record", "packet", "s1", path, cwd=self.wt, check=False)  # the packet raises the stop itself
+        self.assertEqual([s["order"] for s in self.show()["stops"] if s.get("answer") is None], ["scenario_miss"])
+
+    def test_a_directed_edit_does_not_fire_again_the_stop_its_answer_closed_and_the_next_stands(self):
+        self.miss_stop_from_packet()
+        self.offer(*self.CHANGELOG)
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "narrowed", "--pick", "1",
+                    "--next", "close", cwd=self.wt, check=False)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        data = self.show()
+        self.assertEqual([s["order"] for s in data["stops"]], ["scenario_miss"], "no second stop")
+        self.assertEqual([s for s in data["stops"] if s.get("answer") is None], [])
+        self.assertEqual(data["next"], "close")
+        self.assertEqual(len(self.directed()), 1)
+        self.assertEqual(data["suite"], "green", "checks the edit can change still run")
+
     def test_an_edit_with_no_option_before_it_is_refused(self):
         self.stop()
         p = self.xv("record", "offer", "s1", *self.CHANGELOG, "--option", "A", "--settles", "a",
@@ -1892,26 +1920,41 @@ class DirectedEditTest(RepoCase):
         self.assertEqual(len(self.directed()), 1)
 
     def test_a_stop_after_the_edit_is_written_to_the_record_and_can_be_answered(self):
+        # a rename adds a moved test with a record, so accept_moves is a stop this edit really causes (the answered
+        # stop is the ready_to_merge the packet raised, and it does not come back)
         self.guardian_ran()
         before = len(self.show()["stops"])
-        logged = self.read(self.REC).count("stop (ready_to_merge)")
-        self.offer(*self.CHANGELOG)
+        logged = self.read(self.REC).count("stop (accept_moves)")
+        self.offer(*self.RENAME)
         p = self.answer("1")
         self.assertEqual(len(self.directed()), 1)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         v = json.loads(p.stdout)
-        self.assertEqual(v["stop"]["order"], "ready_to_merge")
+        self.assertEqual(v["stop"]["order"], "accept_moves")
         data = self.show()
         self.assertEqual(len(data["stops"]), before + 1, "the stop after the edit is a new stop in the record")
         open_stops = [s for s in data["stops"] if s.get("answer") is None]
-        self.assertEqual([(s["order"], s["step"]) for s in open_stops], [("ready_to_merge", "guardian")])
-        self.assertEqual(data["status"], "ready")
-        self.assertEqual(self.read(self.REC).count("stop (ready_to_merge)"), logged + 1, "the log says the stop fired")
-        self.xv("record", "offer", "s1", "--option", "Merge", "--settles", "The slice merges.",
+        self.assertEqual([(s["order"], s["step"]) for s in open_stops], [("accept_moves", "guardian")])
+        self.assertEqual(self.read(self.REC).count("stop (accept_moves)"), logged + 1, "the log says the stop fired")
+        self.xv("record", "offer", "s1", "--option", "Accept", "--settles", "The moves are accepted.",
                 "--option", "Wait", "--settles", "The slice waits.", cwd=self.wt)
         self.assertEqual(len(self.show()["stops"][-1]["options"]), 2)
         self.answer("2")
         self.assertEqual([s for s in self.show()["stops"] if s.get("answer") is None], [])
+
+    def test_a_directed_edit_at_the_merge_stop_does_not_ask_again_and_the_next_stands(self):
+        self.guardian_ran()
+        self.assertEqual([s["order"] for s in self.show()["stops"] if s.get("answer") is None], ["ready_to_merge"])
+        before = len(self.show()["stops"])
+        self.offer(*self.CHANGELOG)
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "worded", "--pick", "1",
+                    "--next", "close", cwd=self.wt, check=False)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(len(self.directed()), 1)
+        data = self.show()
+        self.assertEqual(len(data["stops"]), before, "no second merge stop")
+        self.assertEqual([s for s in data["stops"] if s.get("answer") is None], [])
+        self.assertEqual(data["next"], "close")
 
     # ---- amended (third): decorators, the packet in the commit, a renamed name used elsewhere
 
@@ -2166,7 +2209,7 @@ class DirectedEditTest(RepoCase):
 # (`git show`): only the test file and the record, its message naming the person, and the packet line when the
 # guardian has run. Look for the case nobody wrote down, such as a rename whose old name is a prefix of another
 # test's name in slice_only or wall_recommendations. Then try a test-remove that stops one line short of a test's
-# end, and pick a CHANGELOG edit at ready_to_merge: the new ready_to_merge stop should be in the record, answerable.
+# end, and pick a CHANGELOG edit at ready_to_merge: no second merge stop, and the answer's --next stands.
 # Then remove a decorated test, decorators and all, and read the commit: the next test carries no decorator, and after
 # the guardian the packet line is in that same commit.
 

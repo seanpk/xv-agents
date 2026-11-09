@@ -2,7 +2,50 @@
 """Run the repo's test command: the one place `record` and `run` both call."""
 
 import os
+import re
 import subprocess
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from xvlib import git, names_test  # noqa: E402
+
+FAILING = re.compile(r"^(?:FAIL|ERROR): (\S+(?: \([^)]*\))?)|^FAILED (\S+)"
+                     r"|^\s*[✕×] (.+?)(?: \(\d+ ?ms\)| \d+(?:\.\d+)? ?ms)?$|^ FAIL  \S+ > (.+)$"
+                     r"|^--- FAIL: (\S+)|^rspec (\S+)|^\d+\) (.+)\n[ \t]+Message:"
+                     r"|^\s*(?:\d+\) )?(?:Failure|Error):\n\s*([\w:]+#\w+)"
+                     r"|^test (\S+) \.\.\. FAILED$|^\s+\d+\) (\[[^\]]+\] › .+?)\s*─*$", re.M)
+# mocha prints a failure's title over several lines, one per describe, the last ending in a colon
+MOCHA = re.compile(r"^ +\d+\) (.+(?:\n +[^\n]+?)*?):$", re.M)
+
+
+def failing_tests(output):
+    """Names of failing tests from unittest, pytest, jest, vitest, go, RSpec, Jasmine,
+    minitest, mocha, cargo or Playwright output.
+
+    RSpec is named by its rerun handle, ./spec/x_spec.rb:42, which is unique where
+    descriptions repeat. Jasmine's numbered entries count only when a Message: line follows.
+    Vitest names a test in its tree and again in its summary; both read `suite > test`.
+    """
+    names = {next(g for g in m if g) for m in FAILING.findall(output)}
+    if re.search(r"^ +\d+ failing$", output, re.M):
+        names |= {" ".join(part.strip() for part in m.split("\n")) for m in MOCHA.findall(output)}
+    return sorted(names)
+
+
+def own_red_names(root, data, onto):
+    """The names of the tests the slice added to its red files, read from the lines it added."""
+    names = set()
+    for f in (data.get("red") or {}).get("files") or []:
+        out = git(["diff", "--unified=0", "--no-renames", f"{onto}...HEAD", "--", f], root)
+        for line in out.splitlines():
+            if line.startswith("+") and not line.startswith("+++"):
+                names |= set(re.findall(r"\b(?:def|func|fn|it|test|specify)\b[\s(]*[\"']?(\w[\w ]*\w|\w)", line))
+    return names
+
+
+def in_own_red(names, name):
+    """Is this failing test one of the tests the slice added to its red, named as a whole name?"""
+    return any(names_test(name, n) for n in names)
 
 
 def shell(cmd, cwd, timeout=900, env=None):

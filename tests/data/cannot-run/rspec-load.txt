@@ -1,0 +1,13 @@
+
+An error occurred while loading ./spec/broken_spec.rb. - Did you mean?
+                    rspec ./spec/ok_spec.rb
+
+Failure/Error: require 'no_such_lib'
+
+LoadError:
+  cannot load such file -- no_such_lib
+# ./spec/broken_spec.rb:1:in '<top (required)>'
+
+
+Finished in 0.00002 seconds (files took 0.03147 seconds to load)
+0 examples, 0 failures, 1 error occurred outside of examples
