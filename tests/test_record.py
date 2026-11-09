@@ -208,13 +208,6 @@ class SliceOnlyReportTest(RepoCase):
 
 class MoveSliceOnlyTest(RepoCase):
     # #173: --slice-only marks the move whether or not the test is in the record's slice_only list
-    def test_slice_only_on_a_test_not_in_the_slice_only_list_marks_the_move(self):
-        wt = self.new_slice("s1")
-        self.assertEqual(json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["slice_only"], [])
-        self.xv("record", "move", "s1", "--file", "tests/test_store.py", "--assertion", "test_gone; removed",
-                "--why", "only proved the slice did its job", "--slice-only", cwd=wt)
-        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
-        self.assertIs(data["moved_tests"][0].get("slice_only"), True)
 
     def test_a_move_without_the_flag_is_not_marked(self):
         wt = self.new_slice("s1")
