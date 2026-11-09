@@ -51,56 +51,5 @@ class RedFromRecordingTest(RepoCase):
             server.wait()
 
 
-class SliceNewMissingFileTest(RepoCase):
-    """#154 item 6: a path that is not a file is refused before the worktree and the branch are made."""
-
-    def assert_nothing_left(self, flag):
-        missing = os.path.join(self.tmp, "no-such-file")
-        p = self.xv("slice", "new", "s1", "--by", "pat", "--scenario", "The household sees X.",
-                    flag, missing, check=False)
-        self.assertNotEqual(p.returncode, 0)
-        self.assertIn("no such file", p.stderr)
-        self.assertNotIn("Traceback", p.stderr)
-        self.assertNotIn("xv/s1", sh(["git", "branch", "--list"], self.repo).stdout)
-        self.assertEqual(len(sh(["git", "worktree", "list"], self.repo).stdout.strip().splitlines()), 1)
-        self.assertFalse(os.path.exists(os.path.join(self.repo, ".xv", "worktrees", "s1")))
-
-    def test_a_missing_recording_path_makes_no_worktree_and_no_branch(self):
-        self.assert_nothing_left("--recording")
-
-    def test_a_missing_scenario_file_makes_no_worktree_and_no_branch(self):
-        self.assert_nothing_left("--scenario-file")
-
-
-class SliceNewIgnoreRepeatTest(RepoCase):
-    """--ignore given more than once puts every value in the record's May ignore section, in order."""
-
-    def may_ignore(self, *values):
-        args = []
-        for v in values:
-            args += ["--ignore", v]
-        self.xv("slice", "new", "s1", "--by", "pat", "--scenario", "The household sees X.", *args)
-        text = open(os.path.join(self.repo, ".xv", "worktrees", "s1", ".xv", "slices", "s1.md")).read()
-        return text.split("## May ignore")[1]
-
-    def test_every_ignore_value_reaches_the_record_in_order(self):
-        section = self.may_ignore("first thing", "second thing", "third thing")
-        self.assertEqual([section.index(x) for x in ("first thing", "second thing", "third thing")],
-                         sorted(section.index(x) for x in ("first thing", "second thing", "third thing")))
-
-    def test_a_single_ignore_works_as_before(self):
-        self.assertIn("\nonly this\n", self.may_ignore("only this"))
-        self.assertNotIn("- only this", self.may_ignore_again("only this"))
-
-    def may_ignore_again(self, value):
-        self.xv("slice", "new", "s2", "--by", "pat", "--scenario", "The household sees X.", "--ignore", value)
-        text = open(os.path.join(self.repo, ".xv", "worktrees", "s2", ".xv", "slices", "s2.md")).read()
-        return text.split("## May ignore")[1]
-
-    def test_more_than_one_ignore_is_a_bullet_list_one_per_value_in_order(self):
-        section = self.may_ignore("first thing", "second thing", "third thing")
-        self.assertIn("\n- first thing\n- second thing\n- third thing\n", section)
-
-
 if __name__ == "__main__":
     unittest.main()

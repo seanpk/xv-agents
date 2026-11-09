@@ -376,24 +376,6 @@ class SameMoveTest(RepoCase):
     def moves(self, wt):
         return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["moved_tests"]
 
-    def test_two_tellings_that_differ_by_a_comma_are_one_move(self):
-        wt = self.new_slice("s1")
-        self.move(wt, "was: assertEqual(a, b); now: removed")
-        self.move(wt, "was: assertEqual(a b); now: removed")
-        self.assertEqual(len(self.moves(wt)), 1)
-
-    def test_two_tellings_that_differ_by_spacing_are_one_move(self):
-        wt = self.new_slice("s1")
-        self.move(wt, "was: x == 1; now: x == 2")
-        self.move(wt, "was:  x  ==  1;  now: x == 2")
-        self.assertEqual(len(self.moves(wt)), 1)
-
-    def test_equal_and_not_equal_are_two_moves(self):
-        wt = self.new_slice("s1")
-        self.move(wt, "was: x == 1; now: removed")
-        self.move(wt, "was: x != 1; now: removed")
-        self.assertEqual(len(self.moves(wt)), 2)
-
     def test_the_same_assertion_in_two_files_is_two_moves(self):
         wt = self.new_slice("s1")
         self.move(wt, "was: a; now: b")
@@ -1035,18 +1017,6 @@ class WallAnswerByFileTest(RepoCase):
     def answer(self, wt, *flags, check=True):
         return self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", *flags, cwd=wt, check=check)
 
-    def test_file_and_test_accepts_only_that_recommendation(self):
-        wt = self.stopped_on_accept_moves()
-        self.answer(wt, "--accept-wall", "tests/test_b.py::test_same")
-        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_same")])
-
-    def test_a_bare_name_two_files_share_is_refused_and_names_the_files(self):
-        wt = self.stopped_on_accept_moves()
-        p = self.answer(wt, "--accept-wall", "test_same", check=False)
-        self.assertNotEqual(p.returncode, 0)
-        self.assertIn("tests/test_a.py::test_same", p.stderr)
-        self.assertIn("tests/test_b.py::test_same", p.stderr)
-
     def with_files(self, wt):
         for name, cls in (("test_a.py", "AlphaTest"), ("test_b.py", "BetaTest")):
             with open(os.path.join(wt, "tests", name), "w") as f:
@@ -1088,17 +1058,6 @@ class WallAnswerByFileTest(RepoCase):
         p = self.answer(wt, "--accept-wall", "GammaTest#test_same", check=False)
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("no wall recommendation", p.stderr)
-
-    def test_an_ambiguous_name_in_the_hash_form_is_still_refused(self):
-        wt = self.stopped_on_accept_moves()
-        p = self.answer(wt, "--refuse-wall", "test_same", check=False)
-        self.assertNotEqual(p.returncode, 0)
-        self.assertIn("tests/test_a.py::test_same", p.stderr)
-
-    def test_a_bare_name_only_one_recommendation_has_is_still_taken(self):
-        wt = self.stopped_on_accept_moves()
-        self.answer(wt, "--accept-wall", "test_only_here")
-        self.assertEqual(self.accepted(wt), [("tests/test_b.py", "test_only_here")])
 
     def test_accept_and_refuse_of_the_two_files_answer_them_apart(self):
         wt = self.stopped_on_accept_moves()

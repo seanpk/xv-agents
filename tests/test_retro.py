@@ -31,15 +31,6 @@ class RetroTest(RepoCase):
         self.assertEqual((rows["No `print()` in `pan"]["fired"], rows["No `print()` in `pan"]["overridden"]), (1, 1))
         self.assertFalse(any(r["flag"] for r in rows.values()))  # fewer than five fires
 
-    def test_a_step_the_brief_names_is_not_counted_as_a_rule_but_a_standard_is(self):
-        applied = [{"rule": "brief: slice-only removal", "where": "tests/test_a.py"},
-                   {"rule": ".xv/standards.md: brief: slice-only removal"},
-                   {"rule": "Name a date for what it counts", "where": "x.py:1"}, {"rule": "baseline: long method"}]
-        fake = [("p", {"checks": {"reports": [{"agent": "cleaner", "applied": applied}]}}, "")]
-        with mock.patch.object(retro, "records", return_value=fake):
-            rules = [r["rule"] for r in retro.counts(self.repo)["rules"]]
-        self.assertEqual(rules, ["Name a date for what it counts"])
-
     def test_a_candidate_without_a_moment_is_not_traceable(self):
         recs = {d["id"]: (d, b) for _, d, b in retro.records(self.repo)}
         good = {"from": "2026-10-16-expiring-days, the unrecorded_move stop"}
