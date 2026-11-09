@@ -209,11 +209,26 @@ class PrototypesGitSetupTest(PrototypesTest):
         self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
         self.unfinished_b_is_recorded()
 
+    def make_b_raise_a_plain_error(self):
+        # b's agent prints bytes that are not text: reading its output raises a ValueError, not an XVError
+        bad = os.path.join(self.tmp, "bad_agent.py")
+        open(bad, "w").write("import subprocess, sys\n"
+                             "if 'Your variant: b.' in sys.argv[1]:\n"
+                             "    sys.stdout.buffer.write(b'\\xff\\xfe')\n"
+                             "    sys.exit(0)\n"
+                             f"sys.stdout.write(subprocess.run([{sys.executable!r}, {FAKE!r}, sys.argv[1]],"
+                             " capture_output=True, text=True).stdout)\n")
+        cfg = os.path.join(self.wt, ".xv", "config.yml")
+        text = open(cfg).read()
+        start, end = text.index("agents:"), text.index("seats:")
+        open(cfg, "w").write(text[:start] + f'agents:\n  default: ["{sys.executable}", "{bad}", "{{prompt}}"]\n'
+                             + text[end:])
+
     def test_an_error_that_is_not_an_xverror_records_the_variant_not_finished_with_its_error(self):
-        self.block_b_run_log()
+        self.make_b_raise_a_plain_error()
         self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
         self.unfinished_b_is_recorded()
-        self.assertIn("prototype-b.out", open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read(),
+        self.assertIn("codec", open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read(),
                       "the record keeps b's error")
 
     def pick_b_after(self):
@@ -238,6 +253,103 @@ class PrototypesGitSetupTest(PrototypesTest):
         self.assertNotEqual(p.returncode, 0, "b did not finish and cannot be picked")
         self.assertNotIn("budget", p.stderr)
         self.assertRegex(p.stderr, r"(?i)setup|failed|did not finish")
+
+
+# A stand-in `claude` for the prototype step: it logs the budget cap it was given, does the fake agent's job
+# in its working folder, and prints the JSON `claude -p --output-format json` prints, with a cost of 0.6 dollars.
+FAKE_CLAUDE = '''#!{python}
+import json, os, re, subprocess, sys
+prompt = sys.argv[-1]
+v = re.search(r"Your variant: (\\w)\\.", prompt).group(1)
+cap = sys.argv[sys.argv.index("--max-budget-usd") + 1] if "--max-budget-usd" in sys.argv else None
+with open(os.environ["CAP_LOG"], "a") as f:
+    f.write(json.dumps({{"variant": v, "cap": cap}}) + "\\n")
+p = subprocess.run([{python!r}, {fake!r}, prompt], capture_output=True, text=True)
+print(json.dumps({{"result": p.stdout, "total_cost_usd": 0.6, "num_turns": 3, "session_id": "sess-" + v,
+                  "usage": {{"input_tokens": 1000, "output_tokens": 500}}}}))
+'''
+
+
+class PrototypesErroredSpendTest(PrototypesTest):
+    test_three_prototypes_side_by_side_then_a_pick_by_two_people = None  # not rerun here
+
+    def setUp(self):
+        super().setUp()
+        self.addCleanup(self.restore_env)
+        self.saved = dict(os.environ)
+        bindir = os.path.join(self.tmp, "bin")
+        os.makedirs(bindir)
+        fake_git = os.path.join(bindir, "git")
+        open(fake_git, "w").write(FAKE_GIT.format(python=sys.executable))
+        os.chmod(fake_git, 0o755)
+        self.git_log = os.path.join(self.tmp, "git.log")
+        os.environ["REAL_GIT"] = shutil.which("git")
+        os.environ["PATH"] = bindir + os.pathsep + os.environ["PATH"]
+        os.environ["FAKE_GIT_LOG"] = self.git_log
+        self.xv("record", "set", "p1", "prototype_budgets", json.dumps({n: {"usd": 1} for n in "abc"}),
+                "--by", "pat", cwd=self.wt)
+        claude = os.path.join(self.tmp, "bin", "claude")
+        open(claude, "w").write(FAKE_CLAUDE.format(python=sys.executable, fake=FAKE))
+        os.chmod(claude, 0o755)
+        self.cap_log = os.path.join(self.tmp, "caps.log")
+        os.environ["CAP_LOG"] = self.cap_log
+        cfg = os.path.join(self.wt, ".xv", "config.yml")
+        text = open(cfg).read()
+        start, end = text.index("agents:"), text.index("seats:")
+        text = text[:start] + f'agents:\n  default: ["{claude}", "-p", "{{prompt}}"]\n' + text[end:]
+        open(cfg, "w").write(text)
+
+    def restore_env(self):
+        os.environ.clear()
+        os.environ.update(self.saved)
+
+    def side(self):
+        return open(os.path.join(self.wt, ".xv", "slices", "p1.prototypes.md")).read()
+
+    def block_b_run_log(self):
+        common = sh(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], self.wt).stdout.strip()
+        # the run log for b cannot be written: a directory sits where the file goes
+        os.makedirs(os.path.join(common, "xv", "runs", "p1", "prototype-b.out"))
+
+    def unfinished_b_is_recorded(self):
+        protos = {p["name"]: p for p in self.record()["prototypes"]}
+        self.assertEqual(sorted(protos), ["a", "b", "c"], "b is recorded, not dropped")
+        self.assertTrue(protos["a"]["recording"] and protos["c"]["recording"], "a and c still finish")
+        self.assertFalse(protos["b"]["recording"], "b did not finish")
+        b_section = self.side().split("## b:")[1].split("## c:")[0]
+        self.assertRegex(b_section, r"Not finished: \S", "the side-by-side file shows b's error")
+
+    def spend_of(self, variant):
+        return [s for s in self.record()["spend"] if s.get("step") == f"prototype-{variant}"]
+
+    def test_a_variant_that_ran_and_then_errored_keeps_its_spend(self):
+        self.block_b_run_log()
+        self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
+        self.assertEqual(len(self.spend_of("a")), 1, "a finished and keeps its spend")
+        rows = self.spend_of("b")
+        self.assertEqual(len(rows), 1, "b's agent ran and then errored; its run is in the record")
+        self.assertEqual(rows[0]["usd"], 0.6)
+
+    def test_the_errored_variants_spend_counts_against_its_budget_on_the_second_start(self):
+        self.block_b_run_log()
+        self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
+        common = sh(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], self.wt).stdout.strip()
+        os.rmdir(os.path.join(common, "xv", "runs", "p1", "prototype-b.out"))
+        os.remove(self.cap_log)
+        self.xv("record", "answer", "p1", "--by", "pat,sam", "--answer", "run b again", cwd=self.wt, check=False)
+        self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
+        caps = [json.loads(l) for l in open(self.cap_log).read().splitlines() if l]
+        self.assertEqual([c["variant"] for c in caps], ["b"], "only b runs again")
+        self.assertAlmostEqual(float(caps[0]["cap"]), 0.4, msg="b's budget of 1 dollar less the 0.6 it spent")
+
+    def test_a_variant_whose_working_folder_is_gone_says_the_folder_is_missing(self):
+        os.environ["FAKE_GIT_VANISH"] = "b"
+        self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
+        self.unfinished_b_is_recorded()
+        b_section = self.side().split("## b:")[1].split("## c:")[0]
+        self.assertRegex(b_section, r"(?i)working (folder|directory)")
+        self.assertNotIn("agent CLI not found", b_section)
+        self.assertNotIn("agent CLI not found", open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read())
 
 
 if __name__ == "__main__":

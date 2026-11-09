@@ -92,6 +92,8 @@ Sean Kennedy sits with them.
   `orders.budget_before` checks it before every step, `session` steps too; the after-maker check and the retro use the same count.
   `agentcli` and `prompt` build and run the agent calls.
   `agentcli.run` gives every agent CLI a closed stdin when the prompt is in argv.
+  `agentcli.run` reports a working folder that is not there as gone, never as a missing agent CLI.
+  When the agent ran but its run log cannot be written, `agentcli.run` raises `RanError`, which keeps the run's result.
   `boundary`, `packet` and `check` are the guardian's checks.
   `packet` also holds the allowed field values (`ALLOWED`, `YES_NO`).
   `listen`, `retro`, `promote` and `prototypes` are the side loops.
@@ -154,6 +156,8 @@ Sean Kennedy sits with them.
   A second `xv prototype start` reruns every variant that has not finished, from HEAD, on what is left of its budget, and keeps the finished ones.
   Each variant's git setup (worktree remove, branch delete, worktree add) runs one at a time under a lock in `prototypes`; the agents still run together.
   A variant whose setup or run raises any error is recorded with no recording and with its `error`, so it has not finished and a second start reruns it.
+  A variant whose agent ran before the error keeps that run's spend and session, and the spend counts against its own budget, so a second start gives it only what is left (#121).
+  An agent whose output is not text raises before `agentcli.run` has a result, so that variant keeps no spend.
   The error goes into its section of the side-by-side file and the slice log.
   A variant with an `error` cannot be picked, and the refusal says its setup or run failed.
   A new `--axis` keeps none.
