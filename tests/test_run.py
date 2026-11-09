@@ -53,7 +53,7 @@ class FailingTestsTest(unittest.TestCase):
         self.assertEqual(failing_tests(out), ["./spec/a_spec.rb:1", "B fails"])
 
 
-class RedCannotRunTest(unittest.TestCase):
+class RedCannotRunSamplesTest(unittest.TestCase):
     """A red that cannot run (#141): the runner's own words for "I could not load or find tests" stop it wherever they
     appear; a generic error name stops it only when no real test failed. The samples are real output from each runner
     (tests/data/cannot-run/<runner>-*.txt), long stack frames trimmed."""
