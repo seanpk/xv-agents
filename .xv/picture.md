@@ -157,6 +157,7 @@ Sean Kennedy sits with them.
   Each variant's git setup (worktree remove, branch delete, worktree add) runs one at a time under a lock in `prototypes`; the agents still run together.
   A variant whose setup or run raises any error is recorded with no recording and with its `error`, so it has not finished and a second start reruns it.
   A variant whose agent ran before the error keeps that run's spend and session, and the spend counts against its own budget, so a second start gives it only what is left (#121).
+  An agent whose output is not text raises before `agentcli.run` has a result, so that variant keeps no spend.
   The error goes into its section of the side-by-side file and the slice log.
   A variant with an `error` cannot be picked, and the refusal says its setup or run failed.
   A new `--axis` keeps none.
