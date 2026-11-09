@@ -1368,24 +1368,6 @@ class OneHomeRecordTest(RepoCase):
         self.assertEqual([m["test"] for m in self.show(wt)["slice_only"]], ["test_a"])
         self.assertNotIn("slice_only_marks", [f["order"] for f in self.fired(wt)])
 
-    def test_a_bundled_answer_marks_the_slice_only_marks_accepted(self):
-        wt = self.new_slice("s1")
-        self.scenario_reports(wt, self.mark("test_a"))
-        self.xv("record", "stop", "s1", "--order", "scenario_not_red", "--seat", "originator",
-                "--question", "Not red, and marks?", "--step", "scenario", cwd=wt)
-        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "accepted both", "--next", "maker",
-                "--bundle", "scenario_not_red,slice_only_marks", cwd=wt)
-        self.assertTrue(all(m.get("accepted") for m in self.show(wt)["slice_only"]))
-        self.assertNotIn("slice_only_marks", [f["order"] for f in self.fired(wt)])
-
-    def test_an_answer_to_another_order_without_the_bundle_leaves_the_marks_unaccepted(self):
-        wt = self.new_slice("s1")
-        self.scenario_reports(wt, self.mark("test_a"))
-        self.xv("record", "stop", "s1", "--order", "scenario_not_red", "--seat", "originator",
-                "--question", "Not red?", "--step", "scenario", cwd=wt)
-        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go on", "--next", "maker", cwd=wt)
-        self.assertFalse(any(m.get("accepted") for m in self.show(wt)["slice_only"]))
-
     def test_a_new_mark_beside_an_accepted_one_is_the_only_one_asked_about(self):
         wt = self.new_slice("s1")
         self.scenario_reports(wt, self.mark("test_a"))

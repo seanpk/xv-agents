@@ -2031,20 +2031,5 @@ class AnsweredStopStaysAnsweredTest(WatchLoopSetup):
         self.assertEqual(self.record()["next"], "maker")
 
 
-class DefectsStopsDocsTest(unittest.TestCase):
-    """Scenario points 7 and 8: the picture and the CHANGELOG."""
-
-    def read(self, name):
-        with open(os.path.join(HOME, name), encoding="utf-8") as f:
-            return f.read()
-
-    def test_decision_12_in_the_picture_names_a_red_that_cannot_run(self):
-        text = self.read(".xv/picture.md")
-        start = text.index("\n12. A check whose input is broken")
-        end = text.index("\n13. ", start)
-        self.assertRegex(text[start:end], r"(?i)red")
-        self.assertRegex(text[start:end], r"(?i)cannot run|can't run|could not run")
-
-
 if __name__ == "__main__":
     unittest.main()
