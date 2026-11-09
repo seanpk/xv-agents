@@ -131,6 +131,35 @@ class ALongPictureLineGetsAPacketNoteTest(RepoCase):
         packet = self.packet_after("# Picture\n\n1. An item. With two.\n")
         self.assertEqual(self.noted_lines(packet), [3])
 
+    def record_packet_again(self, packet):
+        self.xv("record", "packet", "s1", packet, cwd=self.wt)
+        with open(packet) as f:
+            return f.read()
+
+    def test_running_the_note_twice_leaves_exactly_one_note_naming_the_current_lines(self):
+        packet = self.packet_after("# Picture\n\nThis is one. And this is two.\n")
+        path = os.path.join(self.wt, "hand-packet.md")
+        with open(os.path.join(self.wt, ".xv", "picture.md"), "w") as f:
+            f.write("# Picture\n\nOne.\nThis is one. And this is two.\n")
+        again = self.record_packet_again(path)
+        self.assertEqual(again.count("Note: the picture should hold one sentence per line"), 1)
+        self.assertEqual(self.noted_lines(again), [4])
+        self.assertEqual(self.record_packet_again(path), again)
+
+    def test_the_old_note_is_stripped_only_at_the_start_of_a_line(self):
+        mid = "Quote: Note: the picture should hold one sentence per line; keep this text."
+        picture = "# Picture\n\nThis is one. And this is two.\n"
+        with open(os.path.join(self.wt, ".xv", "picture.md"), "w") as f:
+            f.write(picture)
+        packet = os.path.join(self.wt, "hand-packet.md")
+        with open(packet, "w") as f:
+            f.write("---\nshape_change: no\npitch_contradiction: no\ndoor: two-way\nexpected_moves: 0\n---\n"
+                    + mid + "\nAfter.\n")
+        text = self.record_packet_again(packet)
+        self.assertIn(mid + "\nAfter.", text)
+        self.assertEqual(self.noted_lines(text), [3])
+        self.assertEqual(self.record_packet_again(packet).count(mid), 1)
+
 
 # What a person should watch on the first green run: open .xv/picture.md and read a few list items.
 # Each sentence should sit on its own line, with a list item's extra lines lined up with the item's text, and the

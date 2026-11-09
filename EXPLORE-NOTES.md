@@ -84,3 +84,12 @@ Every behaviour test other than those two guards was run against the code before
 ## Final suite count
 
 `python3 tests/run.py --jobs 4` ends with OK: Ran 1056 tests (1023 at main d87a59c plus 33 new). After the 2026-11-07 changes: Ran 1068 tests, OK. After the second round: Ran 1071 tests, OK.
+
+## Rebase onto main 1f325dd (2026-11-08)
+
+Rebased onto main at 1f325dd (PR #158, one sentence per line in the picture, and the packet note in `scripts/packet.py`). No conflicts. Two leftovers from #153, both in `scripts/packet.py` (`note_crowded_picture_lines`) and `tests/test_picture_lines.py`:
+
+- A test that running the packet note twice leaves exactly one note, naming the current lines. It passed before the change (the replace already worked).
+- The strip of an old note now matches only at the start of a line (`(?m)` and `^`). A test puts the note's heading text mid-line in other packet text and checks it is left alone. It failed before the change.
+
+`python3 tests/run.py --jobs 4` ends with OK: Ran 1088 tests.
