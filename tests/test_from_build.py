@@ -1159,7 +1159,7 @@ class SessionLandsTheRedTest(SessionBase):
         self.send(self.checkout())
         baseline = self.record().get("wall_baseline")
         self.assertTrue(baseline, "no wall baseline was taken")
-        self.assertEqual(baseline["commit"], self.main, "the wall baseline was not taken at the base")
+        self.assertEqual(baseline["commit"], self.record()["base"], "the wall baseline was not taken at the base")
 
     def test_the_report_keeps_the_red_on_its_ref_and_orders_find_no_stop_for_a_good_red(self):
         self.send(self.checkout())
