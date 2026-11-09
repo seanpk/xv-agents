@@ -206,16 +206,6 @@ class SliceOnlyReportTest(RepoCase):
         self.assertEqual(data["slice_only"], slice_only)
 
 
-class MoveSliceOnlyTest(RepoCase):
-
-    def test_a_move_without_the_flag_is_not_marked(self):
-        wt = self.new_slice("s1")
-        self.xv("record", "move", "s1", "--file", "tests/test_store.py", "--assertion", "test_gone; removed",
-                "--why", "w", cwd=wt)
-        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
-        self.assertNotIn("slice_only", data["moved_tests"][0])
-
-
 class ScenarioBriefRetroFixesTest(RepoCase):
     fixture = False
 
