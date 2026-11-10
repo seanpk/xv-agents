@@ -703,6 +703,11 @@ class KeptPickDocsTest(unittest.TestCase):
             self.assertIn("Build to find out", text, "/".join(parts))
             self.assertNotRegex(text, r"(?i)\bexploration", "/".join(parts))
 
+    # 9. the README method block is not regenerated; it already says Build to find out
+    def test_the_readme_method_block_already_says_build_to_find_out(self):
+        text = read_home("README.md")
+        self.assertIn("Build to find out", text)
+
 
 if __name__ == "__main__":
     unittest.main()
