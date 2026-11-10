@@ -1176,6 +1176,59 @@ class BuildRefDeletedTest(FromBuildBase):
         self.assertIn("no longer resolves", wall["note"])
 
 
+class BuildXvEditsDroppedTest(FromBuildBase):
+    # kept-pick 3. a build's edits to .xv/ are dropped for `xv slice new --from`, and the log names each
+    RULES_BUILD = "# rules as the build left them\n"
+
+    def log_of(self):
+        text = open(os.path.join(self.wt, ".xv", "slices", "s1.md")).read()
+        return text.split("## Log", 1)[1]
+
+    def test_the_builds_edits_to_xv_are_dropped_and_the_log_names_each_with_the_build_commit(self):
+        self.make_build(fixed=False, files={".xv/rules.md": self.RULES_BUILD, ".xv/notes.md": "new in .xv\n"})
+        base_rules = open(os.path.join(self.repo, ".xv", "rules.md")).read()
+        self.open_slice("--from", BUILD)
+        self.assertEqual(open(os.path.join(self.wt, ".xv", "rules.md")).read(), base_rules,
+                         "the build's edit to .xv/rules.md is in the slice")
+        self.assertFalse(os.path.exists(os.path.join(self.wt, ".xv", "notes.md")), "a file the build added to .xv/ stayed")
+        self.assertTrue(os.path.exists(os.path.join(self.wt, MARKER)), "the build's other files are dropped too")
+        log = self.log_of()
+        for rel in (".xv/rules.md", ".xv/notes.md"):
+            line = next((l for l in log.splitlines() if rel in l), None)
+            self.assertIsNotNone(line, f"the log does not name {rel}")
+            held = [h for h in re.findall(r"\b[0-9a-f]{7,40}\b", line)
+                    if sh(["git", "show", f"{h}:{rel}"], self.repo, check=False).returncode == 0
+                    and self.is_ancestor(self.build, h)]
+            self.assertTrue(held, f"the line for {rel} names no build commit that holds its copy: {line}")
+
+    def test_a_file_that_differs_only_because_the_base_moved_on_takes_the_bases_copy_and_is_not_named(self):
+        self.make_build(fixed=False)
+        newer = "# a learning added on main after the build was cut\n"
+        with open(os.path.join(self.repo, ".xv", "rules.md"), "a") as f:
+            f.write(newer)
+        sh(["git", "commit", "-qam", "main moved on"], self.repo)
+        self.open_slice("--from", BUILD)
+        self.assertIn(newer, open(os.path.join(self.wt, ".xv", "rules.md")).read(),
+                      "the file did not take the base's copy")
+        self.assertNotIn(".xv/rules.md", self.log_of())
+
+    def test_a_build_that_leaves_xv_alone_names_no_dropped_file(self):
+        self.make_build(fixed=False)
+        self.open_slice("--from", BUILD)
+        self.assertNotIn(".xv/", "\n".join(l for l in self.log_of().splitlines() if "drop" in l.lower()))
+
+
+class CloseKeepsTheFromRefTest(FromBuildBase):
+    # kept-pick 5. `xv close` never deletes a `--from` ref
+    def test_close_leaves_the_from_ref_though_its_commit_is_in_the_slice_branch(self):
+        self.make_build(fixed=True)
+        self.open_slice("--from", BUILD)
+        self.scenario_step()
+        self.xv("close", "s1", "--why", "as forecast", cwd=self.wt)
+        self.assertTrue(sh(["git", "rev-parse", "--verify", "-q", BUILD], self.repo).stdout.strip(),
+                        "close deleted the --from ref")
+
+
 class SliceSkillTest(unittest.TestCase):
     # 2. the scenario is written from what runs
     def test_the_skill_writes_the_scenario_from_what_runs_when_there_is_a_build(self):
