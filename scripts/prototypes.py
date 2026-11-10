@@ -265,7 +265,10 @@ def keep_build(root, config, slice_id, p):
     if not sha:
         raise XVError(f"prototype {name}'s branch {branch} is gone, so there is no build to keep; "
                       "pick it without --keep")
-    if subprocess.run(["git", "merge-base", "--is-ancestor", sha, "HEAD"], cwd=root).returncode == 0:
+    base_sha = git(["merge-base", "HEAD", sha], root, check=False).strip()
+    if subprocess.run(["git", "merge-base", "--is-ancestor", sha, "HEAD"], cwd=root).returncode == 0 or (
+            base_sha and subprocess.run(["git", "diff", "--quiet", base_sha, sha, "--", ".", f":(exclude){XV_DIR}"],
+                                        cwd=root).returncode == 0):
         raise XVError(f"prototype {name}'s branch {branch} holds nothing the slice branch does not have, so there "
                       "is no build to keep; pick it without --keep")
     m = subprocess.run(["git", "merge", "--no-ff", "--no-commit", sha], cwd=root, capture_output=True, text=True)

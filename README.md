@@ -325,7 +325,7 @@ The standing orders are code, not prose. When the steps run through `xv step`, t
 | The cleaner edited the standards file | the person who set the work going |
 | `shape_change: yes` or `pitch_contradiction: yes` in the packet (`shape_change: accepted`, for a shape a decision record on this slice already accepted, does not stop) | two people |
 | A budget raised past the team's limit, or a shape change wider than forecast | two people |
-| Prototypes ready to pick from | two people |
+| Prototypes ready to pick from; the pick is thrown away or kept as the build | two people |
 | The suite is green and nothing stopped | the person who set the work going: the merge is theirs |
 | The packet from production | the chief engineer; it does not wait |
 

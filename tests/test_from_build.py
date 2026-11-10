@@ -1244,7 +1244,7 @@ class SliceSkillTest(unittest.TestCase):
     def offer(self):
         text = read("skills", "xv-slice", "SKILL.md")
         for para in text.split("\n\n"):
-            if re.search(r"(?i)exploration", para) and re.search(r"(?i)prototype", para):
+            if re.search(r"(?i)build to find out", para) and re.search(r"(?i)prototype", para):
                 return para
         raise AssertionError("no paragraph of the xv-slice skill offers a prototype slice and an exploration")
 
@@ -1266,8 +1266,8 @@ class SliceSkillTest(unittest.TestCase):
 
     def test_the_watch_may_make_the_offer_at_a_stop_after_the_scenario_step(self):
         text = read("skills", "watch", "SKILL.md")
-        self.assertRegex(text, r"(?is)exploration.{0,600}after the scenario step|after the scenario step.{0,600}exploration")
-        self.assertRegex(text, r"(?is)exploration.{0,600}before the maker|before the maker.{0,600}exploration")
+        self.assertRegex(text, r"(?is)build to find out.{0,600}after the scenario step|after the scenario step.{0,600}build to find out")
+        self.assertRegex(text, r"(?is)build to find out.{0,600}before the maker|before the maker.{0,600}build to find out")
 
 
 RED_TEXT = ("import unittest\nfrom datetime import date\nfrom pantry.store import Store\n\n\n"

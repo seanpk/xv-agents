@@ -166,6 +166,10 @@ Sean Kennedy sits with them.
   A variant with an `error` cannot be picked, and the refusal says its setup or run failed.
   A new `--axis` keeps none.
   A variant that ran out cannot be picked.
+  `xv prototype pick --keep` merges the pick's branch onto the slice branch as the build, and the record says `build: {kind: kept_pick, ref, variant, commit}`; the other two are removed.
+  The build's edits to `.xv/` are dropped and named in the log, except the pick's own prototypes folder.
+  `xv prototype start` refuses once `kind` is not `prototype`.
+  `xv close` deletes a kept pick's branch, never a `--from` ref.
   After the maker, a scenario step checks the red in a temporary detached worktree at `pre_maker_commit`, saved before the maker's first run, with the red files copied from HEAD and `worktrees.setup` run first; in a slice from a build, it runs in the scratch checkout at the base instead.
   In a slice from a build, the scenario agent runs in a temporary detached worktree that starts at the tip of `refs/xv/<id>/red` when the base is an ancestor of that tip, and at the base otherwise.
   Unless the build is shared, the agent's record copy has `build: none`, `branch` set to the base, and no commit that is not an ancestor of the base.

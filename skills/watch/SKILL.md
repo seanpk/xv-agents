@@ -73,7 +73,7 @@ When `next` is `prototype`, run `xv prototype start <id>`. It builds three versi
 
 A slice opened with `xv slice new --from <ref>`, or a prototype slice whose pick was kept, starts at a build that already exists. The scenario step runs the scenario agent in a checkout at `base`, without the build, unless the slice was opened, or the pick kept, with `--share-build`. The red must fail there; then it runs on the build. A red test that fails on the build goes to the maker as a miss, with no stop; a red that passes on it sends the slice to the cleaner with no maker. If the red does not apply to the build, the slice stops with `red_conflicts_with_build`.
 
-At a stop after the scenario step, before the maker runs, you may offer an exploration: the person builds with an agent, outside XV, to find out what they want, and opens a new slice with `--from <ref>` when the scenario can be written from what runs. Offer it when the person doubts the scenario; do not press it.
+At a stop after the scenario step, before the maker runs, you may offer to Build to find out: the person builds with an agent, outside XV, to find out what they want, and opens a new slice with `--from <ref>` when the scenario can be written from what runs. Offer it when the person doubts the scenario; do not press it.
 
 ## A pairing
 
