@@ -95,7 +95,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "1065f2e530d7288c92543deafa6c649e0777a4b8",
+ "commit": "62b4fb6203255b39cdd738246a013461be563c2c",
  "files": {
   "tests/data/cannot-run/cargo-load.txt": "d3e835e2490c11e3f1b7c1a00ef224a143e7badb854bddd76372f2c3a55b5dd6",
   "tests/data/cannot-run/cargo-none.txt": "7553d787f97f86d518d5fa9ec516c5226bb880a466df2f96684c69bf4595cd46",
