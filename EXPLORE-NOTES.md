@@ -22,6 +22,8 @@ An exploration build for #117 (the kept-pick half) and #121, made outside XV's s
 
 ### #121: errored variant spend, and a vanished worktree
 
+*2026-11-09: #121 shipped on main in #176. This branch was rebased onto main (5017bdb) without its #121 commit; the section below is history.*
+
 - `agentcli.run` builds its result before it writes the run log. If the log write fails, it raises `agentcli.RanError`, an `XVError` that carries `result`.
 - `prototypes.run_one` keeps the result of an agent that ran: from `RanError.result`, or from a holder that `build_one` fills right after the run. An errored entry then carries `spend` and `session`. The spend loop records a `prototype-<v>` row for an errored variant that has spend, so it counts against that variant's budget. A second start then gives it only what is left. A run that takes it past its budget sends it to `ran_out` as usual.
 - `agentcli.run` checks that `cwd` exists. If it is missing, before the run or when `FileNotFoundError` is raised, it says "the working folder is gone: <path>" instead of "agent CLI not found". `prototypes.build_one` makes the same check first. In the real vanish case the earlier failure was a bare `[Errno 2] No such file or directory: '<wt>'` from git, raised before the agent CLI.
@@ -94,7 +96,7 @@ Other lines that will need to change (not edited here):
 
 ## New open questions
 
-- A `.xv/` file the build changed and the base changed too (both moved) is named as dropped and takes the base's copy. The log says the build's copy is in the commit, but not that the base also changed it. Enough?
+- A `.xv/` file the build changed and the base changed too (both moved) is named as dropped and takes the base's copy. The log says the build's copy is in the commit, but not that the base also changed it. Enough? **Sean, 2026-11-09: enough as it is.**
 - The kept pick restores `.xv/` files by diffing the slice branch with the pick (merge in progress), so a file the slice branch changed and the prototype did not is restored to the same copy, a no-op. Nothing to decide, but the picture should say it compares with the merge-base only for the names.
 
 ## Tests added
