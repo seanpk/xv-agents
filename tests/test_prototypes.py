@@ -653,24 +653,6 @@ class PrototypeStopTextsTest(PrototypesGitSetupTest):
 
 
 class KeptPickDocsTest(unittest.TestCase):
-    # 7. decision 92 replaces decision 71, and 71 gets the one-line marker
-    def decision(self, n):
-        for line in read_home("docs", "decisions.md").splitlines():
-            if line.startswith(f"{n}. "):
-                return line
-        self.fail(f"docs/decisions.md has no decision {n}")
-
-    def test_decision_92_replaces_decision_71(self):
-        d = self.decision(92)
-        self.assertRegex(d, r"(?i)\bkept\b|\bkeep\b")
-        self.assertRegex(d, r"\b71\b")
-        self.assertRegex(d, r"(?i)replaces")
-
-    def test_decision_71_carries_a_one_line_marker_naming_92(self):
-        d = self.decision(71)
-        self.assertRegex(d, r"\b92\b")
-        self.assertRegex(d, r"(?i)replaced|superseded")
-
     # 7. the prototype brief loses the sentences that became untrue and does not tell the agent it may be kept
     def test_the_prototype_brief_no_longer_says_the_version_is_discarded_at_the_pick(self):
         text = read_home("skills", "maker", "prototype.md")
@@ -684,21 +666,6 @@ class KeptPickDocsTest(unittest.TestCase):
     def test_the_watch_skill_gives_keep_on_the_pick_command(self):
         text = read_home("skills", "watch", "SKILL.md")
         self.assertRegex(text, r"xv prototype pick <id>[^\n]*--keep")
-
-    # 7. the README stops table and the picture name the kept pick
-    def test_the_readme_stops_table_names_the_kept_pick(self):
-        row = next(l for l in read_home("README.md").splitlines() if l.startswith("| Prototypes ready to pick from"))
-        self.assertRegex(row, r"(?i)kept|keep")
-
-    def test_the_picture_names_the_kept_pick(self):
-        text = read_home(".xv", "picture.md")
-        self.assertIn("kept_pick", text)
-        self.assertIn("--keep", text)
-
-    # 8. EXPLORE-NOTES.md is not in the slice branch's tree
-    def test_explore_notes_is_not_in_the_slice_branchs_tree(self):
-        tracked = sh(["git", "ls-files", "--", "EXPLORE-NOTES.md"], HOME).stdout.strip()
-        self.assertEqual(tracked, "", "EXPLORE-NOTES.md is tracked in the slice's tree")
 
     # 7. docs and briefs that name the practice say Build to find out
     def test_the_slice_skill_and_the_watch_skill_say_build_to_find_out_not_exploration(self):

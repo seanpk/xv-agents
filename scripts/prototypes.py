@@ -277,7 +277,7 @@ def keep_build(root, config, slice_id, p):
     if not merging:
         raise XVError(f"prototype {name} does not merge onto the slice branch: "
                       f"{(m.stdout + m.stderr).strip()[-600:]}")
-    dropped = drop_layer_edits(root, git(["merge-base", "HEAD", sha], root).strip(), sha,
+    dropped = drop_layer_edits(root, base_sha, sha,
                                keep=(f"{XV_DIR}/prototypes/{slice_id}/{name}/",))
     left = git(["diff", "--name-only", "--diff-filter=U"], root).split()
     if left:
