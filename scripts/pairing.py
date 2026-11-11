@@ -71,7 +71,7 @@ def at_send_back(data):
     return last if last.get("report_n") is not None and last["report_n"] == len(reports) - 1 else None
 
 
-def commit_record(root, data, paths, message):
+def commit_record(root, paths, message):
     """Commit the record (and the packet) on the slice branch; a trial's ignored .xv/ commits nothing."""
     paths = [f for f in paths if subprocess.run(["git", "check-ignore", "-q", f], cwd=root).returncode != 0]
     if not paths:
@@ -144,7 +144,7 @@ def cmd_start(a):
         body = record.log_line(body, "watch", f"pairing {n}: no transcript was found for the pair session, so its "
                                               "spend cannot be read when the pairing ends")
     record.save(path, data, body)
-    commit_record(root, data, [os.path.relpath(path, root)], f"xv({a.id}): pairing {n} opened by {a.by} with {agent}")
+    commit_record(root, [os.path.relpath(path, root)], f"xv({a.id}): pairing {n} opened by {a.by} with {agent}")
     emit({"slice": a.id, "pairing": n, "prefix": entry["prefix"], "session": session, "answered": stop["order"],
           "note": f"xv step and xv run refuse on {a.id} until `xv pairing end {a.id} --next <step>`"}, True)
 
