@@ -86,6 +86,22 @@ New module `scripts/pairing.py`, routed in `bin/xv` as `xv pairing`.
 17. **`status` is `pairing` while a pairing is open.** Alternative: keep `working` and read the open pairing from `pairings`.
 18. **`--next maker` after a pairing at a maker stop counts as a send-back to the maker,** so `maker_sendbacks` counts it at close. Alternative: never mark a pairing's resume as a send-back.
 
+## Answered by Sean (2026-11-11)
+
+Sean took the watch's recommendation on all nine ("all yours"). Each matches what is built, so no code changed.
+
+1. Open the pairing when no transcript is found, and note it. A missing tool does not block a pairing.
+2. Cut the spend window by timestamps. Line counts break when a session is compacted.
+3. A stop for two people is answered first, by two people. A solo repo answers it with one, as built.
+4. Commits without the prefix are listed, not refused.
+5. A test the pairing only added to an old file is not a move, as with a build's added tests (#172).
+6. The guardian's prompt names the tests that are not blind.
+7. `xv slice rebase` and `xv record report` also refuse during a pairing.
+8. The pairing's spend row has its own step, `pairing` (as built), so the guide shows what pairing cost.
+9. Only the pairing window of the watch's session counts. The rest is #175.
+
+The drafted decision is numbered 93, not 92: decision 92 is the kept pick's (#117).
+
 ## Questions for Sean
 
 1. Should `xv pairing start` refuse when it cannot find a transcript to read the spend from, rather than open and note it?
@@ -156,7 +172,7 @@ In "Names", add:
 ```
 ## Pairing
 
-92. **In a pairing, and only there, the watch does an agent's work.** At an open stop or a send-back, the person who set the work going may pair with the watch's own session: `xv pairing start` answers the stop as a pairing, and `xv step` and `xv run` refuse until `xv pairing end`. Pairing works because the person and the watch both have the slice's context; handing work to a fresh agent is what had not worked (Sean, 2026-11-11). It is for when handoffs to agents have not worked, or when what is left is too small for a pass through the loop. The watch still may not merge, approve, accept a move or a picture change, set a budget, or answer a stop for the person. A test written or changed in a pairing is not blind, so the record and the packet say so and the guardian runs fresh after: a pairing ends at the maker, the cleaner or the guardian, never at close, and at the scenario agent only after an amendment. A move recorded in a pairing is in the person's name. The pair session's spend for the time the pairing was open counts in the slice's actual and its budget; when it cannot be read, the log and the packet say so. Only the person who set the work going pairs; stand-ins and handoff come later.
+93. **In a pairing, and only there, the watch does an agent's work.** At an open stop or a send-back, the person who set the work going may pair with the watch's own session: `xv pairing start` answers the stop as a pairing, and `xv step` and `xv run` refuse until `xv pairing end`. Pairing works because the person and the watch both have the slice's context; handing work to a fresh agent is what had not worked (Sean, 2026-11-11). It is for when handoffs to agents have not worked, or when what is left is too small for a pass through the loop. The watch still may not merge, approve, accept a move or a picture change, set a budget, or answer a stop for the person. A test written or changed in a pairing is not blind, so the record and the packet say so and the guardian runs fresh after: a pairing ends at the maker, the cleaner or the guardian, never at close, and at the scenario agent only after an amendment. A move recorded in a pairing is in the person's name. The pair session's spend for the time the pairing was open counts in the slice's actual and its budget; when it cannot be read, the log and the packet say so. Only the person who set the work going pairs; stand-ins and handoff come later.
 ```
 
 ### The CHANGELOG line (`CHANGELOG.md`, under Unreleased)
