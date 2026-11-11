@@ -727,6 +727,7 @@ def cmd_slice_rebase(a):
     main = main_root(root)
     onto = resolve_base(main, a.onto or worktrees_config(load_config(main)).get("base"))
     data = record.load(root, a.id)[1]
+    record.refuse_in_pairing(data, "`xv slice rebase`")
     head = git(["rev-parse", "HEAD"], root).strip()
     old_base = data.get("base") or git(["merge-base", onto, head], root).strip()
     state = {"orig_head": head, "onto": onto, "old_base": old_base, "old": commits_between(root, f"{old_base}..{head}"),
@@ -781,6 +782,7 @@ def step(agent, slice_id, review_again=False):
     root = slice_root(path)
     config = load_config(root)
     data, body = record.load(root, slice_id)[1:]
+    record.refuse_in_pairing(data, f"`xv step {agent}`")
     if agent == "close":
         return close(slice_id), {"slice": slice_id, "after": "close", "stop": None}
     if agent not in STEPS:
@@ -1388,6 +1390,7 @@ def cmd_run(a):
     path = record_path(repo_root(), a.id)
     while True:
         data, _ = record.load(slice_root(path), a.id)[1:]
+        record.refuse_in_pairing(data, "`xv run`")
         nxt = data.get("next")
         if nxt in (None, "none") or data.get("status") == "closed":
             print(json.dumps({"slice": a.id, "status": data.get("status"), "stop": None}))
@@ -1415,6 +1418,7 @@ def close(slice_id, why=None, shape=None):
     root = slice_root(record_path(repo_root(), slice_id))
     config = load_config(root)
     path, data, body = record.load(root, slice_id)
+    record.refuse_in_pairing(data, "`xv close`")
     open_stops = [s for s in data["stops"] if s.get("answer") is None and s["order"] != "ready_to_merge"]
     if open_stops:
         raise XVError(f"an open stop needs an answer first: {open_stops[-1]['question']}")

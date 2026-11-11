@@ -11,7 +11,7 @@ Each value is a bare word or one line of JSON.
 | Field | Written by | What it holds |
 | --- | --- | --- |
 | `id`, `title`, `kind` | `xv slice new` | `kind` is `feature`, `defect` or `prototype` |
-| `status` | the watch | `open`, `working`, `stopped`, `ready`, `closed`, `abandoned` |
+| `status` | the watch | `open`, `working`, `stopped`, `ready`, `pairing`, `closed`, `abandoned` |
 | `set_by` | `xv slice new` | the person who set the work going; they answer the stops |
 | `created`, `branch`, `base` | `xv slice new` | `base` is the commit the slice started from; every diff is against it |
 | `next` | the watch | the step the slice resumes at: `forecaster`, `scenario`, `maker`, `cleaner`, `guardian`, `close`, `prototype`, `none` |
@@ -29,6 +29,7 @@ Each value is a bare word or one line of JSON.
 | `spend` | the watch | one item per step: `{"step", "harness", "model", "model_id", "tokens_in", "tokens_out", "cache_read", "cache_write", "tokens", "usd", "turns", "wall_s", "session", "log"}` |
 | `stops` | the watch | one item per stop: `{"at", "step", "order", "seat", "question", "answered_by", "answer"}`; an answer adds `settled` and, on an `accept_moves` stop, `accepted_wall` and `refused_wall` |
 | `decisions` | `xv record answer` | `{"date", "who", "decision", "record"}`, when two people decided, and also for `ready_to_merge`; `who` is a list of names (an old record may hold one string, which readers accept) |
+| `pairings` | `xv pairing start` and `end` | one item per pairing: `{"n", "by", "agent", "session", "why", "started_at", "start_head", "order", "opened_at", "prefix"}`, and when it ends `{"ended_at", "end_head", "next", "commits", "unprefixed", "not_blind", "spend", "spend_note"}`; `spend` is also a row in `spend` with `step: pairing`, or null with `spend_note` saying why it was not read. A move recorded while a pairing is open carries `pairing` and the person's name |
 | `prototypes` | `xv prototype` | one item per prototype: `{"name", "branch", "axis", "recording"}` |
 | `checks` | the watch | what the checks after each step found, and each worker's report; the standing orders read this |
 

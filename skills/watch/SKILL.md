@@ -75,6 +75,28 @@ A slice opened with `xv slice new --from <ref>` starts at a build that already e
 
 At a stop after the scenario step, before the maker runs, you may offer an exploration: the person builds with an agent, outside XV, to find out what they want, and opens a new slice with `--from <ref>` when the scenario can be written from what runs. Offer it when the person doubts the scenario; do not press it.
 
+## A pairing
+
+When handoffs to agents have not worked, or what is left is too small for a pass through the loop, the person who set the work going may pair with you. You and the person both have the slice's context; a fresh agent does not. At an open stop or a send-back, offer it when it fits; do not press it.
+
+```
+xv pairing start <id> --by <name> --why "<why>"
+```
+
+It answers the open stop as a pairing and writes a `pairings` entry: who, the session you run in, why, the start time and the head commit. It refuses anyone but the person who set the work going, a slice with no open stop or send-back, and a stop for two people unless the repo runs solo. It finds your session from `CLAUDE_CODE_SESSION_ID`; on another harness, pass `--session <id or transcript>` and `--agent <name>`.
+
+While the pairing is open, `xv step`, `xv run`, `xv close` and `xv slice rebase` refuse on the slice. In a pairing, and only there, you do work: at the person's direction you write and change tests and code, across the scenario, maker and cleaner work. Start each commit with `pairing (<name> with <agent>):`, as `xv pairing start` prints it. Record each change to an old test with `xv record move`; in a pairing the move is in the person's name. The rest of the may-not list still holds: you do not merge, approve, accept a move or a picture change, set a budget, or answer a stop for the person.
+
+A test you write or change in a pairing is not blind. The scenario agent's red stays blind; yours is named in the record and the packet, and the guardian, a context that did not pair, checks it.
+
+When the person says the pairing is done, commit the work and end it:
+
+```
+xv pairing end <id> --next maker|cleaner|guardian
+```
+
+`--next scenario` needs an amendment made since the pairing opened (`xv slice amend`), and `close` is refused: the guardian runs fresh after a pairing. The end refuses work that is not committed, and an old test changed or removed in the pairing with no move recorded in it, and names each file. It writes the end time, the head commit, the resume step, and your session's spend while the pairing was open, read from your transcript; the spend counts in the slice's actual and in the budget check. When the spend cannot be read, the log and the packet say so. The packet gets one line per pairing under `## Pairings`. Then go on with the step `--next` names.
+
 ## The standing orders
 
 They are scripts (`xv orders <id>`), not this text. You do not interpret them, relax them, or edit them. A change to a standing order is a change to what you are, and it takes two people and a line in the shared repo's `CHANGELOG.md`.
@@ -110,13 +132,13 @@ They are scripts (`xv orders <id>`), not this text. You do not interpret them, r
 - Set or raise a budget. The engineer sets it; past the team's limit, two people do.
 - Accept a moved test, a picture change, or a standard. Those are a person's.
 - Edit a standing order, a brief, or a check, or skip one.
-- Word an edit itself. The one edit it makes is a directed edit: a person approved every word of it, it is one of the four kinds, and `xv record answer --pick` makes it.
-- Do an agent's work itself: write the red, make it work, clean it, or review it.
+- Word an edit itself outside a pairing. There, the one edit it makes is a directed edit: a person approved every word of it, it is one of the four kinds, and `xv record answer --pick` makes it.
+- Do an agent's work itself outside a pairing: write the red, make it work, clean it, or review it. In a pairing, and only there, it writes and changes tests and code at the person's direction; it never reviews its own work, and the guardian checks it.
 - Answer a stop on a person's behalf, or read silence as an answer.
 
 ## Writes to the slice record
 
-Through `xv step` and `xv record`: each step's report, the actual spend, each stop raised and the seat it went to, each answer and who gave it, and the decision record when two people decided.
+Through `xv step`, `xv record` and `xv pairing`: each step's report, each pairing, the actual spend, each stop raised and the seat it went to, each answer and who gave it, and the decision record when two people decided.
 
 ## Stop and report when
 

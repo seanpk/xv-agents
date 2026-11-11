@@ -114,7 +114,7 @@ The method is written up at [xtremevibing.com](https://xtremevibing.com/): [the 
 
 | Agent | Its job | It may not |
 | --- | --- | --- |
-| **watch** | Runs one slice: calls each agent in turn in a fresh context, keeps the slice record, wakes a person on a standing order | Merge, rank, settle a shape, edit the pitch, raise a budget, edit its own standing orders |
+| **watch** | Runs one slice: calls each agent in turn in a fresh context, keeps the slice record, wakes a person on a standing order | Merge, rank, settle a shape, edit the pitch, raise a budget, edit its own standing orders; do an agent's work outside a pairing |
 | **forecaster** | Forecasts tokens, turns and dollars per harness and model from the team's estimation guide; one line on the gap at close | Set or raise a budget; edit the guide |
 | **scenario** | Turns the scenario, or a defect's recording, into a test that fails before the fix | Touch source; be the maker |
 | **maker** | Makes the new scenario and every old test green; moves an old test only when the scenario forces it, with a record | Weaken a test; renovate; keep going past the budget |
@@ -331,6 +331,8 @@ The standing orders are code, not prose. When the steps run through `xv step`, t
 
 A person answers with `xv record answer <id> --by <name> --answer "<their words>" --next <step> --resume`; `--settled` is required when `--next` sends the work back to the step that stopped or earlier, or the pick is `other`; three stops need none, because their work has not started: `setup_failed` saved at step `setup`, a prototype stop other than `prototypes_ready` (that pick keeps it), and a `budget_spent` stop raised before its step ran, answered with `--next` that step (not the one raised after the maker left the suite red). A stop for two people takes two names, and the script refuses one. The answer goes in the record verbatim; when two people decided, a decision record is written to `.xv/decisions/` with who took part.
 
+At an open stop or a send-back, the person who set the work going may pair with the watch's own session instead: `xv pairing start <id> --by <name> --why "<why>"`. Pairing is for when handoffs to agents have not worked, or when what is left is too small for a pass through the loop; the person and the watch both have the slice's context, and a fresh agent does not. The command answers the stop as a pairing and writes a `pairings` entry in the record: who, the session, why, the start time and the head commit. While the pairing is open, `xv step`, `xv run`, `xv close` and `xv slice rebase` refuse on the slice, and the watch's session writes and changes tests and code at the person's direction, each commit starting with `pairing (<name> with <agent>):`. It still may not merge, approve, accept a move or a picture change, set a budget, or answer a stop for the person. A move recorded in a pairing is in the person's name. A test written or changed in a pairing is not blind: the record and the packet say so, and the guardian runs fresh after. `xv pairing end <id> --next maker|cleaner|guardian` closes it; `--next scenario` needs an amendment made since the pairing opened, and `close` is refused. It refuses while an old test changed or removed in the pairing has no recorded move, and names each file. The packet gets one line per pairing under `## Pairings`.
+
 A one-person team sets `seats.two_people: solo` in `.xv/config.yml`. The two-person stops still fire and still wait. One person answers them, the question asks them to write down what they weighed, and the decision record says one person decided. `xv check` lists the setting as a declared relaxation and does not fail on it.
 
 A team can name a command in `reach:` to be told of a stop (a chat message, a page); without one, the watch says it in the session or `xv run` exits with it.
@@ -342,6 +344,8 @@ The guardian writes `.xv/slices/<id>.packet.md`: five sections for its five chec
 ### The budget and the spend
 
 The forecaster reads `.xv/estimation.md`, a list of closed slices keyed by harness and model, and forecasts tokens, turns and dollars for each key that has rows. It does not read the source; the guide is its evidence, and where a key has no rows it says so and leaves the number null. The person sets the budget from the forecast, and every step is capped by what is left of it. At close, the forecaster writes one line on the gap, and the watch appends one row to the guide with a script. `xv record guide-verify` fails a build where the guide was edited rather than appended.
+
+A pairing's spend counts in the slice's actual and in the budget check: `xv pairing end` reads the pair session's Claude Code transcript for the time the pairing was open. When it cannot read it, the log and the packet say so.
 
 ### Headless and in CI
 
