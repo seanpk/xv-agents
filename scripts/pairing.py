@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""A pairing: at an open stop or a send-back, the person who set the work going works on the slice with the
-watch's own session, from the scenario to the cleaner, and then hands it back to the loop.
+"""A pairing: the person who set the work going works on a slice with the watch's own session.
+
+It opens at an open stop or a send-back, runs from the scenario to the cleaner as the person directs, and hands the
+slice back to the loop at a step.
 
 The watch's session is the person's pair. At the person's direction it writes and changes tests and code. While the
 pairing is open, `xv step`, `xv run`, `xv close` and `xv slice rebase` refuse on the slice. A test written or changed
@@ -207,7 +209,8 @@ def cmd_end(a):
     row, why_not = pairing_spend(p, ended)
     p.update(ended_at=ended, end_head=head, next=a.next, commits=[h for h, _ in work],
              unprefixed=[h for h, s in work if not s.startswith(p["prefix"])],
-             not_blind=sorted(f for f in touched if (f in red or match_any(f, paths)) and not f.startswith(".xv/")),
+             not_blind=sorted(f for f in touched if (f in red or match_any(f, paths)) and not f.startswith(".xv/")
+                              and os.path.isfile(os.path.join(root, f))),
              spend=row, spend_note=why_not)
     if row:
         data["spend"].append(row)
