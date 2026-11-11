@@ -143,8 +143,9 @@ Sean Kennedy sits with them.
   Each slice has a git branch `xv/<id>` and a worktree under `.xv/worktrees/`.
   The branch starts from `--base`, else `worktrees.base`, else `origin/HEAD`, else HEAD.
   With `xv slice new --from <ref>` the branch starts at the build, and `base` stays the merge target.
-  The record holds `build` (`none`, or `{kind: exploration, ref, commit}`) and `build_shared` (`yes` or `no`).
-  `--share-build` needs `--from`.
+  `xv slice new --from` sets each `.xv/` file the build changed back to the base's copy, and the slice log names each one with the build commit (`xvlib.drop_layer_edits`).
+  The record holds `build` (`none`, `{kind: exploration, ref, commit}` from `xv slice new --from`, or `{kind: kept_pick, ref, variant, commit}` from `xv prototype pick --keep`) and `build_shared` (`yes` or `no`).
+  `--share-build` needs `--from` on `xv slice new`, and `--keep` on `xv prototype pick`.
   A slice from a build also has a git ref, `refs/xv/<id>/red`, which holds its red at the base, and `xv close` deletes it.
   The record keeps the build's commit in `build.commit`, so the slice still finds the build when its ref is deleted.
   In session mode, `xv record report <id> scenario -` runs `scripts/run.py land-scenario` in a subprocess, which lands the red, runs it at the base and on the build, takes the wall baseline at the base, and drops the checkout.
@@ -172,7 +173,7 @@ Sean Kennedy sits with them.
   `xv close` deletes a kept pick's branch, never a `--from` ref.
   After the maker, a scenario step checks the red in a temporary detached worktree at `pre_maker_commit`, saved before the maker's first run, with the red files copied from HEAD and `worktrees.setup` run first; in a slice from a build, it runs in the scratch checkout at the base instead.
   In a slice from a build, the scenario agent runs in a temporary detached worktree that starts at the tip of `refs/xv/<id>/red` when the base is an ancestor of that tip, and at the base otherwise.
-  Unless the build is shared, the agent's record copy has `build: none`, `branch` set to the base, and no commit that is not an ancestor of the base.
+  Unless the build is shared, the agent's record copy has `build: none`, `branch` set to the base, no `prototypes` and no `prototype_sessions`, and no commit that is not an ancestor of the base.
   The red runs there, and the wall baseline is hashed there.
   Its commit moves the ref, and it is cherry-picked onto the slice branch; a conflict stops with `red_conflicts_with_build` for the originator.
   The red then runs on the build, and the maker's prompt names the tests that fail.
