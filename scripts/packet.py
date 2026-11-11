@@ -206,7 +206,7 @@ def pairing_line(p):
     if p.get("not_blind"):
         line += " Not blind (written or changed in the pairing): " + ", ".join(p["not_blind"]) + "."
     if p.get("unprefixed"):
-        line += " Commits without the pairing prefix: " + ", ".join(c[:10] for c in p["unprefixed"]) + "."
+        line += " Commits without the pairing prefix: " + ", ".join(c[:10] + c[40:] for c in p["unprefixed"]) + "."
     return line
 
 

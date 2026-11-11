@@ -176,6 +176,22 @@ def from_claude_session(path, model=None, since=None, until=None):
                 wall, os.path.splitext(os.path.basename(path))[0])
 
 
+READERS = ["claude-result", "grok-result", "codex-result", "claude-session", "opencode"]
+AGENT_OF = {"claude-result": "Claude", "claude-session": "Claude", "grok-result": "Grok", "codex-result": "Codex",
+            "opencode": "opencode"}
+
+
+def window_row(reader, source, since, until):
+    """The turns of a session between two times, as one spend row, through its reader. Raises XVError, saying why,
+    when the reader cannot cut a time window or the session is not found. Returns (row, the transcript read)."""
+    if reader != "claude-session":
+        raise XVError(f"the {reader} reader cannot cut a time window")
+    path = source if os.path.isfile(source) else claude_transcript(source)
+    if not path:
+        raise XVError(f"no transcript for the session {source} was found")
+    return from_claude_session(path, None, since=since, until=until), path
+
+
 def from_opencode(session_id, model=None, exported=None):
     if exported is None:
         p = run(["opencode", "session", "export", session_id], check=False)
@@ -260,7 +276,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(prog="xv spend", description=__doc__.split("\n")[0])
     sub = p.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("read")
-    r.add_argument("reader", choices=["claude-result", "grok-result", "codex-result", "claude-session", "opencode"])
+    r.add_argument("reader", choices=READERS)
     r.add_argument("source")
     r.add_argument("--model")
     b = sub.add_parser("budget")

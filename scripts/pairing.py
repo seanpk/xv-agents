@@ -27,7 +27,6 @@ import wall  # noqa: E402
 from xvlib import XVError, die, emit, git, load_config, match_any, now, record_path, repo_root, slice_root, solo  # noqa: E402
 
 RESUME = ("maker", "cleaner", "guardian", "scenario")
-AGENT_NAMES = {"claude": "Claude", "codex": "Codex", "grok": "Grok", "opencode": "opencode"}
 AMENDED = "\n### Amended "
 
 
@@ -37,18 +36,29 @@ def prefix(p):
 
 
 def find_session(given):
-    """The session the person pairs with: `--session` (a transcript path or a session id), else the Claude Code
-    session this command runs in (`CLAUDE_CODE_SESSION_ID`). None when neither names one."""
+    """The session the person pairs with: `--session <reader>:<session id or file>`, where the reader is one of the
+    readers `xv spend read` takes. None when none is named."""
+    reader, _, source = (given or "").partition(":")
+    if reader in spendlib.READERS and source and reader != "claude-session":
+        # a reader that is not the Claude Code transcript: kept by its reader's name
+        return {"harness": reader, "id": source, "transcript": None}
+    if reader == "claude-session" and source:
+        given = source
+    # a transcript file or a session id (default: the Claude Code session this runs in)
     if given and os.path.isfile(given):
         path = os.path.abspath(given)
-        return {"harness": "claude" if path.endswith(".jsonl") else None,
-                "id": os.path.splitext(os.path.basename(path))[0], "transcript": path}
+        return {"harness": "claude", "id": os.path.splitext(os.path.basename(path))[0], "transcript": path}
     sid = given or os.environ.get("CLAUDE_CODE_SESSION_ID")
     if not sid:
         return None
     transcript = spendlib.claude_transcript(sid)
-    harness = "claude" if transcript or not given else None
-    return {"harness": harness, "id": sid, "transcript": transcript}
+    return {"harness": "claude" if transcript or not given else None, "id": sid, "transcript": transcript}
+
+
+def reader_of(session):
+    """The `xv spend read` reader a session is read through; None when its harness names none."""
+    harness = (session or {}).get("harness")
+    return "claude-session" if harness == "claude" else harness
 
 
 def at_send_back(data):
@@ -101,7 +111,7 @@ def cmd_start(a):
         raise XVError(f"the open stop ({stop['order']}) is for two people: answer it with `xv record answer` first; "
                       "a pairing answers a stop for the person who set the work going")
     session = find_session(a.session)
-    agent = a.agent or AGENT_NAMES.get((session or {}).get("harness"), "the watch")
+    agent = a.agent or spendlib.AGENT_OF.get(reader_of(session), "the watch")
     n = len(data["pairings"]) + 1
     at = now()
     entry = {"n": n, "by": a.by, "agent": agent, "session": session, "why": a.why.strip(), "started_at": at,
@@ -127,7 +137,10 @@ def cmd_start(a):
     body = record.log_line(body, "watch", f"pairing {n} opened at {entry['opened_at']} {stop['order']}: {a.by} with "
                                           f"{agent} ({which}), because: {entry['why']}. Commits start with "
                                           f"\"{entry['prefix']}\"; xv step and xv run refuse until it ends")
-    if not session or not session.get("transcript"):
+    if session and session["harness"] and reader_of(session) != "claude-session":
+        body = record.log_line(body, "watch", f"pairing {n}: the {session['harness']} reader cannot cut a time window, "
+                                              "so the pair session's spend cannot be read when the pairing ends")
+    elif not session or not session.get("transcript"):
         body = record.log_line(body, "watch", f"pairing {n}: no transcript was found for the pair session, so its "
                                               "spend cannot be read when the pairing ends")
     record.save(path, data, body)
@@ -151,19 +164,13 @@ def pairing_spend(p, ended):
     session = p.get("session") or {}
     if not session.get("id"):
         return None, "no session was named when the pairing opened"
-    if session.get("harness") != "claude":
-        return None, f"no reader for the session {session['id']}: only a Claude Code transcript is read"
-    transcript = session.get("transcript")
-    if not transcript or not os.path.isfile(transcript):
-        transcript = spendlib.claude_transcript(session["id"])
-    if not transcript:
-        return None, f"no transcript for the Claude Code session {session['id']} was found"
     try:
         # the record's times are whole seconds: the window runs to the end of the second the pairing ended in
         until = (spendlib.parse_time(ended) + timedelta(seconds=1)).isoformat()
-        row = spendlib.from_claude_session(transcript, None, since=p["started_at"], until=until)
-    except (OSError, ValueError) as e:
-        return None, f"the transcript {transcript} could not be read: {e}"
+        row, transcript = spendlib.window_row(reader_of(session), session.get("transcript") or session["id"],
+                                              p["started_at"], until)
+    except (XVError, OSError, ValueError) as e:
+        return None, str(e)
     if not row.get("turns"):
         return None, f"the transcript {transcript} has no turns between {p['started_at']} and {ended}"
     start, end = spendlib.parse_time(p["started_at"]), spendlib.parse_time(ended)
@@ -208,7 +215,7 @@ def cmd_end(a):
     touched = git(["diff", "--name-only", "--no-renames", p["start_head"], head], root).split()
     row, why_not = pairing_spend(p, ended)
     p.update(ended_at=ended, end_head=head, next=a.next, commits=[h for h, _ in work],
-             unprefixed=[h for h, s in work if not s.startswith(p["prefix"])],
+             unprefixed=[f"{h} {s}" for h, s in work if not s.startswith(f"pairing ({p['by']} with ")],
              not_blind=sorted(f for f in touched if (f in red or match_any(f, paths)) and not f.startswith(".xv/")
                               and os.path.isfile(os.path.join(root, f))),
              spend=row, spend_note=why_not)
@@ -233,7 +240,7 @@ def cmd_end(a):
                                               "in a fresh context")
     if p["unprefixed"]:
         body = record.log_line(body, "watch", f"pairing {p['n']}: commits without \"{p['prefix']}\": "
-                                              + ", ".join(h[:10] for h in p["unprefixed"]))
+                                              + ", ".join(f[:10] + f[40:] for f in p["unprefixed"]))
     if why_not:
         body = record.log_line(body, "watch", f"pairing {p['n']}: the pair session's spend could not be read "
                                               f"({why_not}); it is not in the slice's actual")
@@ -241,8 +248,8 @@ def cmd_end(a):
     if data.get("packet") and os.path.isfile(os.path.join(root, data["packet"])):
         packetlib.note_pairings(os.path.join(root, data["packet"]), data)
         committed.append(data["packet"])
+    # left uncommitted: end_head is the head the pairing ended at, and a commit of the record would move it
     record.save(path, data, body)
-    commit_record(root, data, committed, f"xv({a.id}): pairing {p['n']} ended, resumes at {a.next}")
     state = spendlib.budget_state(data)
     out = {"slice": a.id, "pairing": p["n"], "next": a.next, "commits": p["commits"], "not_blind": p["not_blind"],
            "spend": row, "spend_note": why_not, "budget": state}

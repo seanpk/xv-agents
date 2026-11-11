@@ -323,7 +323,7 @@ class EndTest(PairingCase):
         self.write("pantry/extra.py", "X = 1\n")
         sha = self.commit("a constant")
         self.end()
-        self.assertEqual(self.show()["pairings"][0]["unprefixed"], [sha])
+        self.assertEqual(self.show()["pairings"][0]["unprefixed"], [f"{sha} a constant"])
         self.assertIn("commits without", self.body())
 
     def test_end_refuses_with_no_open_pairing(self):
