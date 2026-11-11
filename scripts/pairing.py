@@ -48,7 +48,7 @@ def find_session(given):
     if given and os.path.isfile(given):
         path = os.path.abspath(given)
         return {"harness": "claude", "id": os.path.splitext(os.path.basename(path))[0], "transcript": path}
-    sid = given or os.environ.get("CLAUDE_CODE_SESSION_ID")
+    sid = given
     if not sid:
         return None
     transcript = spendlib.claude_transcript(sid)
@@ -267,7 +267,7 @@ def main(argv=None):
     s.add_argument("--by", required=True, help="the person who set the work going")
     s.add_argument("--why", required=True)
     s.add_argument("--session", help="the pair session: a transcript path or a session id "
-                                     "(default: this Claude Code session, CLAUDE_CODE_SESSION_ID)")
+                                     "as <reader>:<id or file> (default: none; the spend cannot be read)")
     s.add_argument("--agent", help="the pair's name in each commit's prefix (default: from the session's harness)")
     s.set_defaults(fn=cmd_start)
     s = sub.add_parser("end", help="close the pairing and say where the slice resumes")

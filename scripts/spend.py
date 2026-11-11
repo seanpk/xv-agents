@@ -120,10 +120,10 @@ def parse_time(ts):
 
 def claude_transcript(session_id, config_dir=None):
     """The transcript of a Claude Code session: `<config dir>/projects/*/<id>.jsonl`, where the config dir is
-    `CLAUDE_CONFIG_DIR`, else `~/.claude`. None when there is none."""
+    `~/.claude`. None when there is none."""
     if not session_id:
         return None
-    base = config_dir or os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+    base = config_dir or os.path.expanduser("~/.claude")
     found = sorted(glob.glob(os.path.join(base, "projects", "*", f"{glob.escape(session_id)}.jsonl")))
     return found[0] if found else None
 

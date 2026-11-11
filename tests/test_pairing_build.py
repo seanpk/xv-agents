@@ -67,7 +67,8 @@ class PairingCase(RepoCase):
         self.ok("record", "stop", "s1", "--order", order, "--seat", seat, "--question", "What now?", "--step", step)
 
     def start(self, why="the maker's handoff did not work twice", *extra):
-        return self.ok("pairing", "start", "s1", "--by", "pat", "--why", why, *extra)
+        return self.ok("pairing", "start", "s1", "--by", "pat", "--why", why,
+                       "--session", f"claude-session:{self.transcript}", *extra)
 
     def end(self, nxt="guardian"):
         return self.ok("pairing", "end", "s1", "--next", nxt)
