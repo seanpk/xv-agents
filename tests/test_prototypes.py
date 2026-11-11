@@ -547,6 +547,21 @@ class KeptPickTest(PrototypesTest):
         p = self.pick("--keep", check=False)
         self.assert_refused_and_nothing_changed(p)
 
+    # 10. a --keep pick checks --scenario-file before it changes anything
+    def test_a_kept_pick_with_a_missing_scenario_file_is_refused_and_changes_nothing(self):
+        self.build_in("b", {self.BUILD_FILE: "KEPT = True\n"})
+        self.snapshot()
+        before_worktrees = self.worktrees()
+        gone = os.path.join(self.tmp, "no-such-scenario.md")
+        self.assertFalse(os.path.exists(gone))
+        p = self.xv("prototype", "pick", "p1", "--variant", "b", "--by", "pat,sam",
+                    "--scenario-file", gone, "--keep", cwd=self.wt, check=False)
+        self.assert_refused_and_nothing_changed(p)
+        self.assertEqual(sorted(self.branches()), ["xv/p1-proto-a", "xv/p1-proto-b", "xv/p1-proto-c"])
+        self.assertEqual(self.worktrees(), before_worktrees, "a refusal removed a prototype's worktree")
+        self.assertFalse(os.path.exists(os.path.join(self.wt, self.BUILD_FILE)), "the pick was merged")
+        self.assertIn(self.record().get("build"), (None, "none"))
+
     # 3. a build's edits to .xv/ are dropped, and the log names each with the build commit that holds its copy
     def test_a_kept_pick_drops_its_edits_to_xv_and_the_log_names_each_with_the_build_commit(self):
         rules_before = open(os.path.join(self.wt, ".xv", "rules.md")).read()
