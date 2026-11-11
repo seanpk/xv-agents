@@ -304,6 +304,9 @@ def pick(slice_id, variant, by, with_user=None, scenario_file=None, keep=False, 
         raise XVError("--share-build needs --keep: it shares a kept build, and no build is kept")
     if variant != "none" and not scenario_file:
         raise XVError("restate the pick as the scenario the maker turns red and then green: --scenario-file <file>")
+    if variant != "none" and not os.path.isfile(scenario_file):
+        # checked before anything changes: a kept pick merges and removes the prototypes before it reads the file
+        raise XVError(f"--scenario-file {scenario_file}: no such file; nothing was picked")
     names = {p["name"] for p in data.get("prototypes") or []}
     if variant != "none" and variant not in names:
         raise XVError(f"no prototype {variant!r}; one of {sorted(names)} or none")
