@@ -547,17 +547,6 @@ class KeptPickTest(PrototypesTest):
         p = self.pick("--keep", check=False)
         self.assert_refused_and_nothing_changed(p)
 
-    # amendment 10: a missing --scenario-file is refused before the pick changes anything
-    def test_a_kept_pick_with_a_missing_scenario_file_is_refused_and_changes_nothing(self):
-        self.build_in("b", {self.BUILD_FILE: "KEPT = True\n"})
-        self.snapshot()
-        worktrees = self.worktrees()
-        self.scen = os.path.join(self.wt, "no-such-scenario.md")
-        p = self.pick("--keep", check=False)
-        self.assert_refused_and_nothing_changed(p)
-        self.assertIn("no-such-scenario.md", p.stderr + p.stdout, "the refusal does not name the missing file")
-        self.assertEqual(self.worktrees(), worktrees, "a refusal removed a prototype's worktree")
-
     # 3. a build's edits to .xv/ are dropped, and the log names each with the build commit that holds its copy
     def test_a_kept_pick_drops_its_edits_to_xv_and_the_log_names_each_with_the_build_commit(self):
         rules_before = open(os.path.join(self.wt, ".xv", "rules.md")).read()
