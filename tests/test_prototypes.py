@@ -637,7 +637,11 @@ class PrototypeStopTextsTest(PrototypesGitSetupTest):
     def test_prototype_budget_spent_names_a_variant_that_did_not_finish_with_its_error(self):
         os.environ["FAKE_GIT_REFUSE"] = "b"
         self.xv("record", "set", "p1", "prototype_budgets",
-                json.dumps({"a": {"tokens": 1}, "b": {"usd": 1}, "c": {"usd": 1}}), "--by", "pat", cwd=self.wt)
+                json.dumps({"a": {"usd": 1}, "b": {"usd": 1}, "c": {"usd": 1}}), "--by", "pat", cwd=self.wt)
+        # the sh test harness reports no spend, so a's budget is spent by a recorded prior row
+        row = {"step": "prototype-a", "usd": 1, "tokens": 10, "tokens_in": 10, "tokens_out": 0,
+               "cache_read": 0, "cache_write": 0}
+        self.xv("record", "add", "p1", "spend", json.dumps(row), cwd=self.wt)
         self.xv("prototype", "start", "p1", cwd=self.wt, check=False)
         stop = self.last_stop()
         self.assertEqual(stop["order"], "prototype_budget_spent")
