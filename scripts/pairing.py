@@ -9,7 +9,7 @@ pairing is open, `xv step`, `xv run`, `xv close` and `xv slice rebase` refuse on
 in a pairing is not blind: the record and the packet say so, and the guardian runs fresh after.
 
 Usage:
-  xv pairing start <id> --by <name> --why "<why>" [--session <id or transcript>] [--agent <name>]
+  xv pairing start <id> --by <name> --why "<why>" [--session <reader>:<id or file>] [--agent <name>]
   xv pairing end <id> --next maker|cleaner|guardian|scenario
 """
 
