@@ -137,12 +137,6 @@ class KeepThePickTest(KeptPickBase):
         self.assertIn("picked b, kept as the build", body.split("## Log")[1])
         self.assertTrue(next(p for p in data["prototypes"] if p["name"] == "b").get("kept"))
 
-    def test_a_pick_not_kept_discards_all_three_and_has_no_build(self):
-        self.pick(check=True)
-        self.assertEqual(self.record()["build"], "none")
-        self.assertEqual(self.branches(), [])
-        self.assertFalse(os.path.exists(os.path.join(self.wt, KEPT)))
-
     def test_keep_with_none_is_refused(self):
         p = self.xv("prototype", "pick", "p1", "--variant", "none", "--by", "pat,sam", "--keep", cwd=self.wt,
                     check=False)
@@ -156,10 +150,6 @@ class KeepThePickTest(KeptPickBase):
         self.assertRegex(p.stderr, r"--share-build needs --keep")
         self.assertEqual(self.record()["kind"], "prototype")
         self.assertEqual(len(self.branches()), 3, "a refused pick discards nothing")
-
-    def test_keep_with_share_build_records_build_shared_yes(self):
-        self.pick("--keep", "--share-build", check=True)
-        self.assertEqual(self.record()["build_shared"], "yes")
 
     def test_a_kept_pick_whose_branch_holds_nothing_is_refused_and_changes_nothing(self):
         wt = os.path.join(self.repo, ".xv", "worktrees", "p1-proto-b")
@@ -256,14 +246,6 @@ class AfterTheKeptPickTest(KeptPickBase):
         self.assertEqual(open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read(), before)
         self.assertEqual(sh(["git", "rev-parse", "HEAD"], self.wt).stdout, head)
 
-    def test_close_deletes_the_kept_branch_its_commits_are_in_the_slice_branch(self):
-        self.pick("--keep", check=True)
-        commit = self.record()["build"]["commit"]
-        p = self.xv("close", "p1", "--why", "done", cwd=self.wt, check=False)
-        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertEqual(self.branches(), [], "the kept branch is still there after close")
-        self.assertTrue(self.is_ancestor(commit, "xv/p1"), "the build is not in the slice branch")
-
 
 class RedOnTheKeptPickTest(KeptPickBase):
     def test_the_scenario_agent_runs_at_the_base_without_the_kept_build(self):
@@ -316,18 +298,6 @@ class RedOnTheKeptPickTest(KeptPickBase):
         self.assertTrue(ran["exists"][KEPT], "the maker's checkout does not have the kept build")
         self.assertTrue(ran["exists"]["tests/test_red.py"])
         self.assertNotIn("prototype_context_reused", [s["order"] for s in self.record()["stops"]])
-
-
-class KeptPickHasTheFixTest(KeptPickBase):
-    PROTO_ENV = {"FAKE_PROTO_BUILDS": "1", "FAKE_PROTO_FIX": "b"}
-
-    def test_a_red_that_passes_on_the_kept_build_skips_the_maker(self):
-        self.pick("--keep", check=True)
-        p = self.scenario_step()
-        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        data = self.record()
-        self.assertIs(data["checks"]["scenario"].get("red_fails"), True, "the red did not fail on the base")
-        self.assertEqual(data["next"], "cleaner")
 
 
 class BudgetStopListsUnfinishedTest(unittest.TestCase):

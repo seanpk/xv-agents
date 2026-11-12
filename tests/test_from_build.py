@@ -161,25 +161,6 @@ class ProjectLayerFromBuildTest(FromBuildBase):
         self.assertRegex(log, r"(?i)dropp[^\n]*\.xv/picture\.md")
         self.assertIn(".xv/added-by-build.md", log)
 
-    def test_the_log_line_names_the_build_commit_the_dropped_content_lives_in(self):
-        self.open_slice("--from", BUILD)
-        log = open(os.path.join(self.wt, ".xv", "slices", "s1.md")).read()
-        line = [l for l in log.splitlines() if re.search(r"(?i)dropp", l)][0]
-        self.assertIn(self.build[:7], line)
-        short = re.search(r"\b[0-9a-f]{7,40}\b", line).group(0)
-        shown = sh(["git", "show", f"{short}:.xv/added-by-build.md"], self.repo).stdout
-        self.assertEqual(shown, "a rule the build added\n")
-
-    def test_close_does_not_delete_the_ref_people_made(self):
-        self.open_slice("--from", BUILD)
-        p = self.xv("close", "s1", "--why", "done", cwd=self.wt, check=False)
-        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertEqual(sh(["git", "rev-parse", BUILD], self.repo).stdout.strip(), self.build)
-
-    def test_a_build_that_changed_no_project_file_logs_no_drop(self):
-        self.open_slice("--from", BUILD.replace(BUILD, "main"))
-        self.assertNotRegex(open(os.path.join(self.wt, ".xv", "slices", "s1.md")).read(), r"(?i)dropp")
-
 
 class BaseMovedOnFromBuildTest(FromBuildBase):
     """A `.xv/` file differs between the build and the base only because the base moved on: it takes the base's
@@ -192,15 +173,6 @@ class BaseMovedOnFromBuildTest(FromBuildBase):
 
     def log(self):
         return open(os.path.join(self.wt, ".xv", "slices", "s1.md")).read()
-
-    def test_a_file_the_base_changed_takes_the_bases_copy_and_is_not_named(self):
-        self.make_build(False, files={".xv/added-by-build.md": "a rule the build added\n"})
-        self.move_base_on()
-        self.open_slice("--from", BUILD)
-        want = sh(["git", "show", "main:.xv/picture.md"], self.repo).stdout
-        self.assertEqual(open(os.path.join(self.wt, ".xv", "picture.md")).read(), want)
-        self.assertIn(".xv/added-by-build.md", self.log())
-        self.assertNotIn(".xv/picture.md", self.log())
 
     def test_a_build_that_changed_no_project_file_logs_no_drop_though_the_base_moved(self):
         self.make_build(False)

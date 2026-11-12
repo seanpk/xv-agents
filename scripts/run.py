@@ -234,7 +234,9 @@ def cmd_slice_new(a):
             raise XVError(f"--from {a.from_ref}: no such branch or commit")
     os.makedirs(os.path.dirname(wt), exist_ok=True)
     git(["worktree", "add", "-q", "-b", branch, wt, start], root)
-    dropped = drop_layer_edits(wt, git(["merge-base", base, start], root).strip(), start, restore=base) if a.from_ref is not None else []
+    dropped = []
+    if a.from_ref is not None:
+        dropped = drop_layer_edits(wt, git(["merge-base", base, start], root).strip(), start, restore=base)
     trial = is_trial(root)
     if trial:
         copy_layer(root, wt)
