@@ -39,26 +39,20 @@ def find_session(given):
     """The session the person pairs with: `--session <reader>:<session id or file>`, where the reader is one of the
     readers `xv spend read` takes. None when none is named."""
     reader, _, source = (given or "").partition(":")
-    if reader in spendlib.READERS and source and reader != "claude-session":
-        # a reader that is not the Claude Code transcript: kept by its reader's name
-        return {"harness": reader, "id": source, "transcript": None}
-    if reader == "claude-session" and source:
-        given = source
-    # a transcript file or a session id (default: the Claude Code session this runs in)
-    if given and os.path.isfile(given):
-        path = os.path.abspath(given)
-        return {"harness": "claude", "id": os.path.splitext(os.path.basename(path))[0], "transcript": path}
-    sid = given
-    if not sid:
+    if reader not in spendlib.READERS or not source:
         return None
-    transcript = spendlib.claude_transcript(sid)
-    return {"harness": "claude" if transcript or not given else None, "id": sid, "transcript": transcript}
+    if reader != "claude-session":
+        # only a session reader cuts a time window: the others are kept by their reader's name
+        return {"harness": reader, "id": source, "transcript": None}
+    if os.path.isfile(source):
+        path = os.path.abspath(source)
+        return {"harness": reader, "id": os.path.splitext(os.path.basename(path))[0], "transcript": path}
+    return {"harness": reader, "id": source, "transcript": spendlib.claude_transcript(source)}
 
 
 def reader_of(session):
-    """The `xv spend read` reader a session is read through; None when its harness names none."""
-    harness = (session or {}).get("harness")
-    return "claude-session" if harness == "claude" else harness
+    """The `xv spend read` reader a session is read through; None when none was named."""
+    return (session or {}).get("harness")
 
 
 def at_send_back(data):

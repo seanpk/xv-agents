@@ -112,7 +112,7 @@ class StartTest(PairingCase):
         self.assertEqual(stop["pairing"], 1)
         [p] = data["pairings"]
         self.assertEqual((p["n"], p["by"], p["agent"], p["why"]), (1, "pat", "Claude", "the maker's handoff did not work twice"))
-        self.assertEqual(p["session"], {"harness": "claude", "id": SID, "transcript": self.transcript})
+        self.assertEqual(p["session"], {"harness": "claude-session", "id": SID, "transcript": self.transcript})
         self.assertEqual(p["start_head"], head)
         self.assertTrue(p["started_at"])
         self.assertNotIn("ended_at", p)
@@ -175,7 +175,7 @@ class StartTest(PairingCase):
     def test_a_session_given_by_its_transcript_is_used(self):
         self.stop()
         env = {k: v for k, v in self.env.items() if k != "CLAUDE_CODE_SESSION_ID"}
-        self.ok("pairing", "start", "s1", "--by", "pat", "--why", "w", "--session", self.transcript, env=env)
+        self.ok("pairing", "start", "s1", "--by", "pat", "--why", "w", "--session", "claude-session:" + self.transcript, env=env)
         self.assertEqual(self.show()["pairings"][0]["session"]["id"], SID)
 
     def test_with_no_session_the_pairing_opens_and_the_log_says_its_spend_cannot_be_read(self):
