@@ -40,7 +40,7 @@ class PairingCase(RepoCase):
         os.makedirs(os.path.dirname(self.transcript))
         with open(self.transcript, "w") as f:
             f.write(turn("before", "2020-01-01T00:00:00.000Z", tokens_in=999999) + "\n")
-        self.env = {**os.environ, "CLAUDE_CONFIG_DIR": self.config_dir, "CLAUDE_CODE_SESSION_ID": SID}
+        self.env = dict(os.environ)
 
     def run_xv(self, *args, env=None):
         return subprocess.run([sys.executable, XV, *args], cwd=self.wt, capture_output=True, text=True,
@@ -174,18 +174,22 @@ class StartTest(PairingCase):
 
     def test_a_session_given_by_its_transcript_is_used(self):
         self.stop()
-        env = {k: v for k, v in self.env.items() if k != "CLAUDE_CODE_SESSION_ID"}
-        self.ok("pairing", "start", "s1", "--by", "pat", "--why", "w", "--session", "claude-session:" + self.transcript, env=env)
+        self.ok("pairing", "start", "s1", "--by", "pat", "--why", "w", "--session", "claude-session:" + self.transcript)
         self.assertEqual(self.show()["pairings"][0]["session"]["id"], SID)
 
     def test_with_no_session_the_pairing_opens_and_the_log_says_its_spend_cannot_be_read(self):
         self.stop()
-        env = {k: v for k, v in self.env.items() if k != "CLAUDE_CODE_SESSION_ID"}
-        self.ok("pairing", "start", "s1", "--by", "pat", "--why", "w", "--agent", "Codex", env=env)
+        self.ok("pairing", "start", "s1", "--by", "pat", "--why", "w", "--agent", "Codex")
         p = self.show()["pairings"][0]
         self.assertIsNone(p["session"])
         self.assertEqual(p["prefix"], "pairing (pat with Codex):")
         self.assertIn("spend cannot be read", self.body())
+
+    def test_a_malformed_session_opens_the_pairing_and_the_log_names_it(self):
+        self.stop()
+        self.ok("pairing", "start", "s1", "--by", "pat", "--why", "w", "--session", self.transcript)
+        self.assertIsNone(self.show()["pairings"][0]["session"])
+        self.assertIn(f"--session {self.transcript} is not <reader>:<session id or file>", self.body())
 
 
 class WhileOpenTest(PairingCase):

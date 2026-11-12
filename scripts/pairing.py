@@ -5,8 +5,8 @@ It opens at an open stop or a send-back, runs from the scenario to the cleaner a
 slice back to the loop at a step.
 
 The watch's session is the person's pair. At the person's direction it writes and changes tests and code. While the
-pairing is open, `xv step`, `xv run`, `xv close` and `xv slice rebase` refuse on the slice. A test written or changed
-in a pairing is not blind: the record and the packet say so, and the guardian runs fresh after.
+pairing is open, `xv step`, `xv run`, `xv close`, `xv slice rebase` and `xv record report` refuse on the slice. A test
+written or changed in a pairing is not blind: the record and the packet say so, and the guardian runs fresh after.
 
 Usage:
   xv pairing start <id> --by <name> --why "<why>" [--session <reader>:<id or file>] [--agent <name>]
@@ -131,7 +131,11 @@ def cmd_start(a):
     body = record.log_line(body, "watch", f"pairing {n} opened at {entry['opened_at']} {stop['order']}: {a.by} with "
                                           f"{agent} ({which}), because: {entry['why']}. Commits start with "
                                           f"\"{entry['prefix']}\"; xv step and xv run refuse until it ends")
-    if session and session["harness"] and reader_of(session) != "claude-session":
+    if a.session and not session:
+        body = record.log_line(body, "watch", f"pairing {n}: --session {a.session} is not <reader>:<session id or file> "
+                                              "with a reader `xv spend read` takes, so the pair session's spend cannot "
+                                              "be read when the pairing ends")
+    elif session and session["harness"] and reader_of(session) != "claude-session":
         body = record.log_line(body, "watch", f"pairing {n}: the {session['harness']} reader cannot cut a time window, "
                                               "so the pair session's spend cannot be read when the pairing ends")
     elif not session or not session.get("transcript"):
