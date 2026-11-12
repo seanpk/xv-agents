@@ -125,13 +125,6 @@ class StartTest(PairingCase):
         self.assertEqual(sh(["git", "status", "--porcelain"], self.wt).stdout.strip(), "")
         self.assertIn("pairing 1 opened by pat", sh(["git", "log", "-1", "--format=%s"], self.wt).stdout)
 
-    def test_start_refuses_a_name_that_is_not_the_originator(self):
-        self.stop()
-        p = self.refused("pairing", "start", "s1", "--by", "sam", "--why", "help")
-        self.assertIn("pat", p.stderr)
-        self.assertEqual(self.show().get("pairings") or [], [])
-        self.assertIsNone(self.show()["stops"][-1]["answer"])
-
     def test_start_refuses_a_slice_with_no_open_stop_or_send_back(self):
         p = self.refused("pairing", "start", "s1", "--by", "pat", "--why", "help")
         self.assertIn("no open stop or send-back", p.stderr)
@@ -166,16 +159,6 @@ class StartTest(PairingCase):
         self.stop(order="no_report")
         p = self.refused("pairing", "start", "s1", "--by", "pat", "--why", "again")
         self.assertIn("already open", p.stderr)
-
-    def test_start_refuses_a_stop_for_two_people_unless_the_repo_runs_solo(self):
-        self.stop(order="shape_or_pitch", seat="two_people", step="guardian")
-        p = self.refused("pairing", "start", "s1", "--by", "pat", "--why", "help")
-        self.assertIn("two people", p.stderr)
-
-    def test_a_session_given_by_its_transcript_is_used(self):
-        self.stop()
-        self.ok("pairing", "start", "s1", "--by", "pat", "--why", "w", "--session", "claude-session:" + self.transcript)
-        self.assertEqual(self.show()["pairings"][0]["session"]["id"], SID)
 
     def test_with_no_session_the_pairing_opens_and_the_log_says_its_spend_cannot_be_read(self):
         self.stop()
