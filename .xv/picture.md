@@ -265,8 +265,8 @@ Sean Kennedy sits with them.
 - `settled` is what an answer made true, written by the watch as the person's scribe; the person's words stay in `answer`.
   An offer is the numbered options the watch puts on an open stop (`xv record offer`), each with the `settled` text it would record (2026-10-29, #80).
   An option may carry one directed edit (#132).
-- An exploration is a build made with an agent outside XV.
-  A slice opens from it with `--from`.
+- A build of the person's own is a way to Build to find out: a build made with an agent outside XV.
+  A slice opens from it with `--from`, and the record calls it `kind: exploration`.
 
 ## Where the code and the docs disagree
 Settled with Sean on 2026-10-24.
