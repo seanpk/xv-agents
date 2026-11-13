@@ -61,7 +61,7 @@ class ScenarioBriefTest(unittest.TestCase):
     def test_the_brief_asks_for_covers_and_not_covered_in_the_report(self):
         with open(os.path.join(HOME, "skills", "scenario", "SKILL.md"), encoding="utf-8") as f:
             text = f.read()
-        self.assertIn("`covers`", text)
+        self.assertIn("`covered`", text)
         self.assertIn("`not_covered`", text)
 
     def test_the_brief_report_example_shows_the_list_form_of_a_covers_test(self):

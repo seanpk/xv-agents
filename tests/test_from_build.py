@@ -907,7 +907,7 @@ class SessionScenarioReportTest(FromBuildBase):
     REPORT = {"agent": "scenario", "status": "red", "summary": "red",
               "red": {"files": ["tests/test_red.py"], "command": "python3 -m unittest tests.test_red",
                       "failure": "1 != 2", "watch_first_green": None},
-              "covers": [{"item": "milk today", "test": "test_milk_today"}], "not_covered": []}
+              "covered": [{"item": "milk today", "test": "test_milk_today"}], "not_covered": []}
 
     def setUp(self):
         super().setUp()
@@ -1257,7 +1257,7 @@ class SessionBase(FromBuildBase):
         report = {"agent": "scenario", "status": "red", "summary": "red",
                   "red": {"files": ["tests/test_red.py"], "command": command, "failure": "Lists differ",
                           "watch_first_green": None},
-                  "covers": [{"item": "milk today", "test": "test_milk_today"}], "not_covered": []}
+                  "covered": [{"item": "milk today", "test": "test_milk_today"}], "not_covered": []}
         report.update(extra)
         text = "```xv-report\n" + json.dumps(report) + "\n```\n"
         return self.xv_stdin(text)
@@ -1479,7 +1479,7 @@ class SessionScenarioNoBuildJoinedTest(RepoCase):
     def report(self, command):
         r = {"agent": "scenario", "status": "red", "summary": "red",
              "red": {"files": ["tests/test_red.py"], "command": command, "failure": "x", "watch_first_green": None},
-             "covers": [], "not_covered": []}
+             "covered": [], "not_covered": []}
         path = os.path.join(self.tmp, "report.txt")
         with open(path, "w") as f:
             f.write("```xv-report\n" + json.dumps(r) + "\n```\n")

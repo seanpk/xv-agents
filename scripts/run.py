@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import agentcli  # noqa: E402
 import orders  # noqa: E402
 import prompt as promptlib  # noqa: E402
-from names import COVERS_SEPARATOR, covers_name_found, joined_unsafely  # noqa: E402,F401
+from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely  # noqa: E402,F401
 import record  # noqa: E402
 import spend as spendlib  # noqa: E402
 from suite import failing_tests, in_own_red, own_red_names, run_suite, shell, tests_timeout  # noqa: E402
@@ -1114,10 +1114,12 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
                                            "the record has no base, or the wall module did not load.")
         checks["red_gaps"] = scenario_red_gaps(root, data, red)
         # coverage stays across a send-back; a pass that went on to the maker ended the run, so it starts again
-        report = with_kept_covers(report, (data.get("checks", {}).get("scenario") or {}).get("covers_kept")
-                                  if data.get("next") != "maker" else None)
-        checks["covers_kept"] = [c for c in report.get("covers") or []
-                                 if isinstance(c, dict) and c.get("item") and covers_names(c.get("test"))]
+        earlier = data.get("checks", {}).get("scenario") or {}
+        # a record written before the rename keeps its points under `covers_kept`
+        report = with_kept_covered(report, (earlier.get("covered_kept") or earlier.get("covers_kept"))
+                                   if data.get("next") != "maker" else None)
+        checks["covered_kept"] = [c for c in report.get("covered") or []
+                                  if isinstance(c, dict) and c.get("item") and covered_names(c.get("test"))]
         checks["unreadable"] = unreadable_input(root, data, report)
         answered = " ".join(s.get("question") or "" for s in data.get("stops") or []
                             if s.get("order") == "red_misses_scenario" and s.get("answer") and not s.get("sent_back"))
@@ -1185,23 +1187,23 @@ def norm(text):
     return " ".join(re.sub(r"[`*_]", "", str(text)).lower().split())
 
 
-def with_kept_covers(report, kept):
+def with_kept_covered(report, kept):
     """The coverage from the earlier passes stays: add each kept item the report does not name again."""
-    covers = report.get("covers")
-    if not kept or not isinstance(covers, list):
+    covered = report.get("covered")
+    if not kept or not isinstance(covered, list):
         return report
-    named = {norm(c.get("item")) for c in covers if isinstance(c, dict) and c.get("item")}
-    return dict(report, covers=covers + [c for c in kept if norm(c["item"]) not in named])
+    named = {norm(c.get("item")) for c in covered if isinstance(c, dict) and c.get("item")}
+    return dict(report, covered=covered + [c for c in kept if norm(c["item"]) not in named])
 
 
 def missed_points(root, data, report):
-    """Numbered lines of the scenario and its amendments that no `covers` or `not_covered` item names."""
+    """Numbered lines of the scenario and its amendments that no `covered` or `not_covered` item names."""
     body = record.load(root, data["id"])[2]
     at = body.find("## Scenario")
     if at < 0:
         return []
     end = body.find("\n## May ignore")
-    items = [norm(i.get("item")) for key in ("covers", "not_covered")
+    items = [norm(i.get("item")) for key in ("covered", "not_covered")
              for i in report.get(key) or [] if isinstance(i, dict) and i.get("item")]
     numbers = {m.group(1) for i in items if (m := re.match(r"(\d+)\.?(?:\s|$)", i))}
     missed = []
@@ -1223,26 +1225,26 @@ def unreadable_input(root, data, report):
     out = []
     if "## Scenario" not in record.load(root, data["id"])[2]:
         out.append("The record has no `## Scenario` heading, so the check cannot read the scenario.")
-    covers, not_covered = report.get("covers"), report.get("not_covered")
+    covered, not_covered = report.get("covered"), report.get("not_covered")
     if not isinstance(not_covered, list) or not all(isinstance(n, dict) for n in not_covered):
         out.append("The report's `not_covered` is missing or is not a list of items.")
-    if not isinstance(covers, list) or not covers or not all(
-            isinstance(c, dict) and c.get("item") and covers_names(c.get("test")) for c in covers):
-        out.append("The report's `covers` is missing, empty, or has an item that names no test.")
+    if not isinstance(covered, list) or not covered or not all(
+            isinstance(c, dict) and c.get("item") and covered_names(c.get("test")) for c in covered):
+        out.append("The report's `covered` is missing, empty, or has an item that names no test.")
     else:
         files = red_file_texts(root, data.get("red") or {})
-        removed = [COVERS_SEPARATOR.split(m["assertion"].split(";")[0])[-1].strip() for m in data.get("moved_tests") or []
+        removed = [COVERED_SEPARATOR.split(m["assertion"].split(";")[0])[-1].strip() for m in data.get("moved_tests") or []
                    if isinstance(m, dict) and m.get("by") == "cleaner" and m.get("slice_only")
                    and isinstance(m.get("assertion"), str)]
-        for c in covers:
-            for name in covers_names(c["test"]):
-                if not covers_name_found(name, files) and COVERS_SEPARATOR.split(name)[-1].strip() not in removed:
+        for c in covered:
+            for name in covered_names(c["test"]):
+                if not covered_name_found(name, files) and COVERED_SEPARATOR.split(name)[-1].strip() not in removed:
                     out.append(f"The report says `{name}` covers {c['item']}, and no red file has that test.")
     return out
 
 
-def covers_names(test):
-    """The names a covers item's test holds: one name, a list, or a string joined with , or ;."""
+def covered_names(test):
+    """The names a covered item's test holds: one name, a list, or a string joined with , or ;."""
     parts = test if isinstance(test, list) else re.split(r"[,;]", test) if isinstance(test, str) else []
     names = [p.strip() if isinstance(p, str) else "" for p in parts]
     return names if names and all(names) else []

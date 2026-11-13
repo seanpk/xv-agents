@@ -300,7 +300,7 @@ One file per slice, `.xv/slices/<id>.md`, on its own branch `xv/<id>` in a workt
 
 After the scenario agent's red, `xv wall baseline` hashes every file matching the test paths in `.xv/config.yml`. After the maker and the cleaner, `xv wall check` compares. A test file that changed or disappeared with no matching entry in the record's `moved_tests` fails the check and stops the slice for the person who set the work going. The wall does not forbid a move; it forbids a silent one. The same check runs as a pre-commit hook on slice branches (`xv wall install-hook`) and in CI against the pull request's base. It reads files and the record, so it needs nothing from the harness. The eval results that are committed are from before the wall existed; the runs with it go in with the final results.
 
-The guardian recommends which new tests join the wall or leave it, and a person answers with `xv record answer --accept-wall` or `--refuse-wall`. Both take the test with its file, `file::test`, or the other forms the covers check takes.
+The guardian recommends which new tests join the wall or leave it, and a person answers with `xv record answer --accept-wall` or `--refuse-wall`. Both take the test with its file, `file::test`, or the other forms the coverage check takes.
 
 ### The stops
 
