@@ -219,6 +219,11 @@ def build(agent, slice_id=None, root=None, close=False, init=False, extra=None, 
         bpath = os.path.join(root, ".xv", "slices", f"{data['id']}.boundary.md")
         if os.path.exists(bpath):
             extra.insert(1, f"Boundary picture: `.xv/slices/{data['id']}.boundary.md`.")
+        paired = sorted({f for p in data.get("pairings") or [] if isinstance(p, dict) for f in p.get("not_blind") or []})
+        if paired:
+            extra.append("These tests were written or changed in a pairing, by the session that also wrote the code, "
+                         "so they are not blind: " + ", ".join(paired) + ". Check each as you check the code, "
+                         "an assertion that restates the code or checks itself included.")
         rows = new_guide_rows(root, data["id"])
         if rows:
             extra.append("New rows in `.xv/estimation.md` since the base, appended by the forecaster without "

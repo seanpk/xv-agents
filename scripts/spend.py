@@ -108,8 +108,30 @@ def from_codex_result(text, model=None):
     return item("codex", model or "default", None, tin, tout, cr, 0, None, turns, None, thread)
 
 
-def from_claude_session(path, model=None):
-    """Sum a session transcript and any subagent transcripts beside it."""
+def parse_time(ts):
+    """An ISO time from a transcript or the record ("Z" or "+00:00"), as an aware datetime; None when unreadable."""
+    from datetime import datetime, timezone
+    try:
+        t = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return t if t.tzinfo else t.replace(tzinfo=timezone.utc)
+
+
+def claude_transcript(session_id, config_dir=None):
+    """The transcript of a Claude Code session: `<config dir>/projects/*/<id>.jsonl`, where the config dir is
+    `~/.claude`. None when there is none."""
+    if not session_id:
+        return None
+    base = config_dir or os.path.expanduser("~/.claude")
+    found = sorted(glob.glob(os.path.join(base, "projects", "*", f"{glob.escape(session_id)}.jsonl")))
+    return found[0] if found else None
+
+
+def from_claude_session(path, model=None, since=None, until=None):
+    """Sum a session transcript and any subagent transcripts beside it. With `since` and `until` (ISO times),
+    only the turns logged between them, both ends included, count."""
+    lo, hi = parse_time(since) if since else None, parse_time(until) if until else None
     files = [path]
     sub = os.path.join(os.path.splitext(path)[0], "subagents")
     files += sorted(glob.glob(os.path.join(sub, "*.jsonl")))
@@ -123,6 +145,10 @@ def from_claude_session(path, model=None):
                 except json.JSONDecodeError:
                     continue
                 ts = ev.get("timestamp")
+                if lo or hi:
+                    t = parse_time(ts) if ts else None
+                    if t is None or (lo and t < lo) or (hi and t > hi):
+                        continue
                 if ts:
                     first, last = first or ts, ts
                 msg = ev.get("message") or {}
@@ -148,6 +174,22 @@ def from_claude_session(path, model=None):
     # A transcript carries tokens, not dollars. usd stays null rather than a guess.
     return item("claude", model or model_id or "default", model_id, *totals, None, turns,
                 wall, os.path.splitext(os.path.basename(path))[0])
+
+
+READERS = ["claude-result", "grok-result", "codex-result", "claude-session", "opencode"]
+AGENT_OF = {"claude-result": "Claude", "claude-session": "Claude", "grok-result": "Grok", "codex-result": "Codex",
+            "opencode": "opencode"}
+
+
+def window_row(reader, source, since, until):
+    """The turns of a session between two times, as one spend row, through its reader. Raises XVError, saying why,
+    when the reader cannot cut a time window or the session is not found. Returns (row, the transcript read)."""
+    if reader != "claude-session":
+        raise XVError(f"the {reader} reader cannot cut a time window")
+    path = source if os.path.isfile(source) else claude_transcript(source)
+    if not path:
+        raise XVError(f"no transcript for the session {source} was found")
+    return from_claude_session(path, None, since=since, until=until), path
 
 
 def from_opencode(session_id, model=None, exported=None):
@@ -234,7 +276,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(prog="xv spend", description=__doc__.split("\n")[0])
     sub = p.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("read")
-    r.add_argument("reader", choices=["claude-result", "grok-result", "codex-result", "claude-session", "opencode"])
+    r.add_argument("reader", choices=READERS)
     r.add_argument("source")
     r.add_argument("--model")
     b = sub.add_parser("budget")

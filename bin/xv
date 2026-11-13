@@ -25,6 +25,7 @@
   xv promote ...                share a learning, adopt one, promote one seen twice
   xv listen ...                 the packet from production: gather, run the listener, refuse a ranking
   xv prototype ...              three prototypes on one named axis
+  xv pairing start|end <id> ... the person who set the work going pairs with the watch's session
   xv adapt ...                  generate harness files from the skills (optional)
 
 Python 3 standard library only.
@@ -43,6 +44,7 @@ COMMANDS = {
     "promote": "promote.py", "listen": "listen.py", "prototype": "prototypes.py",
     "adapt": "adapt.py", "prompt": "prompt.py", "recording": "recording.py",
     "playwright": "playwright_agents.py", "packet": "packet.py", "decisions": "decisions.py",
+    "pairing": "pairing.py",
     "init": "run.py", "slice": "run.py", "run": "run.py", "step": "run.py", "close": "run.py",
     "guard": "run.py", "install": "install.py",
 }

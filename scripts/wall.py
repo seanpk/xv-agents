@@ -139,8 +139,39 @@ def check(root, slice_id, config=None):
         since = data["build"].get("commit")
         d["unrecorded"] = [f for f in d["unrecorded"] if f in d["deleted"] or removed_lines(root, data["base"], f, None)
                            or (since and removed_lines(root, since, f, None))]
+    pairings = pairings_since(root, d["baseline"], data)
+    if pairings:
+        # `xv pairing end` refuses a pairing's removed or changed line with no move: what is left is added tests
+        d["unrecorded"] = [f for f in d["unrecorded"] if not changed_only_in_pairings(root, d["baseline"], pairings, f)]
     d["ok"] = not d["unrecorded"]
     return d
+
+
+def pairings_since(root, baseline, data):
+    """The slice's pairings that started at or after the wall baseline, in order."""
+    out = []
+    for p in data.get("pairings") or []:
+        if isinstance(p, dict) and p.get("start_head") and subprocess.run(
+                ["git", "merge-base", "--is-ancestor", baseline, p["start_head"]], cwd=root,
+                capture_output=True).returncode == 0:
+            out.append(p)
+    return out
+
+
+def changed_only_in_pairings(root, baseline, pairings, rel):
+    """True when every change to `rel` since the baseline was made inside a pairing, and an open pairing has so far
+    only added lines to it. A closed pairing's removed lines were checked against its moves when it ended."""
+    spans, start = [], baseline
+    for p in pairings:
+        spans.append((start, p["start_head"]))
+        start = p.get("end_head")  # none while the pairing is open
+    if start:
+        spans.append((start, None))
+    for a, b in spans:
+        if subprocess.run(["git", "diff", "--quiet", a, *([b] if b else []), "--", rel], cwd=root).returncode != 0:
+            return False
+    still_open = not pairings[-1].get("end_head")
+    return not (still_open and removed_lines(root, pairings[-1]["start_head"], rel, None))
 
 
 def check_or_note(root, slice_id, config=None):
@@ -212,6 +243,10 @@ def check_against_base(root, base, config=None):
             res["unrecorded_since_baseline"] = c["unrecorded"]
             out["unrecorded"] += c["unrecorded"]
         covered |= {f for f in red if f not in in_base or not removed_lines(root, base, f)} | recorded
+        # a test a pairing added to an old file is not a move; a line it changed or removed has one, or the pairing
+        # did not end
+        covered |= {f for pr in data.get("pairings") or [] if isinstance(pr, dict) and pr.get("ended_at")
+                    for f in pr.get("not_blind") or [] if not removed_lines(root, base, f)}
         out["slices"].append(res)
     if records:
         out["unrecorded"] += [f for f in tests_moved if f not in covered]

@@ -30,8 +30,9 @@ Sean Kennedy sits with them.
   Cursor reads the same skill format and has not been run (README).
   `xv init` gives Claude Code agent lines a starter Bash allow list; other harnesses' lines are left as written.
   `xv prompt` shows each Claude Code agent its own line's Bash rules as the commands it may run, with cautions: chain only listed forms, no extra flags in front, no pipe to an unlisted program.
-- 26 modules, all flat Python files: `scripts/*.py` (23) and `evals/{run,grade,report}.py`.
-  `.xv/boundary-all.md` shows 69 edges between them.
+- 27 modules, all flat Python files: `scripts/*.py` (24) and `evals/{run,grade,report}.py`.
+  `.xv/boundary-all.md` shows 74 edges between them.
+  `pairing` reaches `packet`, `record`, `spend`, `wall` and `xvlib`.
   `record` and `run` reach `suite`.
   `record` reaches `moves` and `wall`; `run` reaches `moves` through `record`; `moves` reaches `wall` and `xvlib`.
   `run` reaches most of the others: `agentcli`, `boundary`, `orders`, `packet`, `prompt`, `prototypes`, `record`, `retro`, `spend`, `wall` and `xvlib`.
@@ -136,6 +137,9 @@ Sean Kennedy sits with them.
 - No database.
   State is files: `.xv/slices/<id>.md` (front matter plus log), `.xv/decisions/`, `estimation.md`, `learnings.md`, `config.yml`.
   The slice record also holds `amended_at_report`, the report count at the last amendment.
+  The slice record also holds `pairings`, one entry per pairing, which only `xv pairing start` and `xv pairing end` write.
+  While a pairing is open, `xv step`, `xv run`, `xv close`, `xv slice rebase` and `xv record report` refuse on the slice.
+  A pairing's spend row has `step: pairing` and counts in the budget.
   Each slice has a git branch `xv/<id>` and a worktree under `.xv/worktrees/`.
   The branch starts from `--base`, else `worktrees.base`, else `origin/HEAD`, else HEAD.
   With `xv slice new --from <ref>` the branch starts at the build, and `base` stays the merge target.
@@ -189,7 +193,7 @@ Sean Kennedy sits with them.
   An answered `unrecorded_move` stop records each file's content (`blobs`), and the same content does not stop again.
   The maker and the cleaner record a move in their own names (`--by maker`, `--by cleaner`).
   The scenario agent records none: it says what it moved in its report, and the stop puts it before the person.
-  A person's name reaches the record only through an answer at a stop (#93).
+  A person's name reaches the record only through an answer at a stop (#93), or through a move recorded while their pairing is open.
   A directed test edit records a move with `by` set to the person, through that answer (#132).
   Any step that stops, other than at `ready_to_merge`, or ends with no report keeps `next` on itself.
   So a `--resume` answer must name `--next`, and it must carry `settled` when `--next` is the stop's saved step or an earlier one, or when the pick is `other`, except for stops raised before their work started: `setup_failed` saved at step `setup`, a prototype stop other than `prototypes_ready` and `prototype_budget_spent`, and the `budget_spent` stop that `xv step` marks `pre_step`, answered with `--next` that step (#82, #84).
@@ -222,6 +226,8 @@ Sean Kennedy sits with them.
   Both senses are used.
   `shape_change` is `yes`, `no` or `accepted`; `pitch_contradiction` is `yes` or `no` (#85).
   `scenario_miss` is `yes` or `no` and optional; a missing one reads as `no` (#96).
+- A pairing is the person who set the work going working on a slice with the watch's own session, from an open stop or a send-back to a resume step.
+  A test written or changed in a pairing is not blind.
 - The shape conversation opens on a shape change, and before and after a burst.
   A stall (`repeated_failure`, `diff_growing`) is not a shape conversation; it puts four choices to the person who set the work going: continue, reshape the slice, raise the budget, or bring in a second person (#86).
 - The maker and the scenario agent read the picture and pull its binding decisions; they do not edit it, with one exception: the maker may edit `.xv/picture.md` only when the scenario report names it in `may_not_files`.

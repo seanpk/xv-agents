@@ -167,13 +167,64 @@ def note_crowded_picture_lines(path, root):
 
 def packet_checks(path, data, root=None):
     """The packet checks `xv step` and `xv record packet` share: the lint, then the record's count of expected moves,
-    then a note for picture lines that hold more than one sentence.
+    then a note for picture lines that hold more than one sentence, then one line per pairing.
     Returns what goes into the guardian's checks."""
     lint_result = fix(path)
     problems = lint_result["problems"] + expected_moves_problems(path, data)
     if root:
         note_crowded_picture_lines(path, root)
+    note_pairings(path, data)
     return {"packet_problems": problems, "dropped_findings": len(lint_result["dropped"])}
+
+
+PAIRINGS = "## Pairings"
+
+
+def spend_words(p):
+    """A pairing's spend in words: the tokens the budget counts, or why it was not read."""
+    row = p.get("spend")
+    if not isinstance(row, dict):
+        if not p.get("ended_at"):
+            return "not read yet: the pairing is open"
+        return f"not read ({p.get('spend_note') or 'no reason given'}); it is not in the slice's actual"
+    usd = "usd not reported" if row.get("usd") is None else f"usd {row['usd']}"
+    return (f"{row.get('tokens', 0)} tokens (in {row.get('tokens_in', 0)}, out {row.get('tokens_out', 0)}, "
+            f"cache write {row.get('cache_write', 0)}; cache read {row.get('cache_read', 0)} not counted), "
+            f"{row.get('turns') or 0} turns, {usd}")
+
+
+def pairing_line(p):
+    """One packet line for one pairing: who, with which session, why, the commits, the resume step and the spend."""
+    session = p.get("session") or {}
+    which = f"{session.get('harness') or 'unknown harness'} session {session.get('id')}" if session.get("id") \
+        else "a session that was not named"
+    commits = ", ".join(c[:10] for c in p.get("commits") or []) or "none"
+    line = f"- Pairing {p.get('n')}: {p.get('by')} with {p.get('agent')} ({which}), because: {p.get('why')}."
+    if not p.get("ended_at"):
+        return line + f" Open since {p.get('started_at')}."
+    line += f" Commits: {commits}. Resumed at {p.get('next')}. Spend: {spend_words(p)}."
+    if p.get("not_blind"):
+        line += " Not blind (written or changed in the pairing): " + ", ".join(p["not_blind"]) + "."
+    if p.get("unprefixed"):
+        line += " Commits without the pairing prefix: " + ", ".join(c[:10] + c[40:] for c in p["unprefixed"]) + "."
+    return line
+
+
+def note_pairings(path, data):
+    """Write the packet's `## Pairings` section from the record, one line per pairing; a second run replaces it.
+    No pairing, no section."""
+    pairings = [p for p in data.get("pairings") or [] if isinstance(p, dict)]
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    section = re.compile(r"(?m)\n*^## Pairings\n\n(?:- Pairing [^\n]*(?:\n|\Z))*")
+    if not pairings and not section.search(text):
+        return
+    kept = section.sub("\n\n", text).rstrip("\n") + "\n"
+    if pairings:
+        kept = kept.rstrip("\n") + f"\n\n{PAIRINGS}\n\n" + "\n".join(pairing_line(p) for p in pairings) + "\n"
+    if kept != text:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(kept)
 
 
 def expected_moves_problems(packet, data):

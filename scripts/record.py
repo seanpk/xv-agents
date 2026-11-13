@@ -37,7 +37,7 @@ FIELDS = [
     ("spend", []), ("stops", []), ("decisions", []), ("prototypes", []), ("overrides", []), ("checks", {}),
 ]
 LIST_FIELDS = {"moved_tests", "slice_only", "wall_recommendations", "spend", "stops", "decisions", "prototypes", "overrides"}
-STATUSES = {"open", "working", "stopped", "ready", "closed", "abandoned"}
+STATUSES = {"open", "working", "stopped", "ready", "pairing", "closed", "abandoned"}
 STEPS = ["forecaster", "scenario", "maker", "cleaner", "guardian", "close", "none"]
 SEATS = {"originator", "two_people", "chief_engineer"}
 CAUSES = {"decision", "environment", "tool", "agent", "watch"}
@@ -81,6 +81,23 @@ def save(path, data, body):
 def log_line(body, who, text):
     text = " ".join(str(text).split())
     return body.rstrip("\n") + f"\n- {now()} {who}: {text}\n"
+
+
+# ---------------------------------------------------------------- pairings
+
+def open_pairing(data):
+    """The pairing that is open on this slice, or None. `xv pairing start` opens one and `xv pairing end` closes it."""
+    return next((p for p in reversed(data.get("pairings") or []) if isinstance(p, dict) and not p.get("ended_at")),
+                None)
+
+
+def refuse_in_pairing(data, what):
+    """While a pairing is open, the watch's session is the person's pair: no agent step runs on the slice."""
+    p = open_pairing(data)
+    if p:
+        raise XVError(f"{what} is refused: pairing {p['n']} is open on {data.get('id')} ({p.get('by')} with "
+                      f"{p.get('agent')}, since {p.get('started_at')}: {p.get('why')}). End it first with "
+                      f"`xv pairing end {data.get('id')} --next maker|cleaner|guardian`")
 
 
 # ---------------------------------------------------------------- commands
@@ -161,6 +178,8 @@ def parse_value(text):
 def cmd_set(a):
     path, data, body = load(repo_root(), a.id)
     value = parse_value(a.value)
+    if a.field == "pairings":
+        raise XVError("pairings are written by `xv pairing start` and `xv pairing end` only")
     if a.field in LIST_FIELDS:
         raise XVError(f"{a.field} is a list; use `xv record add` so nothing is overwritten")
     if a.field == "status" and value not in STATUSES:
@@ -191,7 +210,8 @@ def check_budget_change(data, value, by):
 def cmd_add(a):
     path, data, body = load(repo_root(), a.id)
     if a.field not in LIST_FIELDS:
-        raise XVError(f"add works on {sorted(LIST_FIELDS)}")
+        raise XVError(f"add works on {sorted(LIST_FIELDS)}" + ("; pairings are written by `xv pairing` only"
+                                                                if a.field == "pairings" else ""))
     item = parse_value(a.value)
     if not isinstance(item, dict):
         raise XVError("an item is a JSON object")
@@ -230,7 +250,17 @@ def cmd_move(a):
     for name in ("file", "assertion", "why"):
         if not getattr(a, name):
             raise XVError(f"a moved test names its {name}")
-    entry = {"file": a.file, "assertion": a.assertion, "why": a.why, "by": a.by or "maker", "at": now()}
+    by = a.by or "maker"
+    pairing = open_pairing(data)
+    if pairing:
+        # a move recorded in a pairing is the person's: they directed the change
+        if a.by and a.by != pairing["by"]:
+            raise XVError(f"pairing {pairing['n']} is open: a move recorded now is {pairing['by']}'s, "
+                          f"not {a.by}'s (pass --by {pairing['by']!r}, or leave --by out)")
+        by = pairing["by"]
+    entry = {"file": a.file, "assertion": a.assertion, "why": a.why, "by": by, "at": now()}
+    if pairing:
+        entry["pairing"] = pairing["n"]
     listed = any(s.get("file") == a.file and s.get("test") and names_test(a.assertion, s["test"], start=True)
                  for s in data.get("slice_only") or [] if isinstance(s, dict))
     if a.slice_only and listed:
@@ -240,7 +270,8 @@ def cmd_move(a):
         same.update({k: v for k, v in entry.items() if k == "slice_only"})
     else:
         data["moved_tests"].append(entry)
-    body = log_line(body, a.by or "maker", f"moved a test in {a.file}: {a.why}")
+    body = log_line(body, by, f"moved a test in {a.file}: {a.why}"
+                    + (f" (in pairing {pairing['n']})" if pairing else ""))
     if a.to and a.deleted:
         raise XVError("a moved test goes --to a path or is --deleted, not both")
     red = data.get("red")
@@ -260,7 +291,7 @@ def cmd_move(a):
                 swap = {a.file: a.to, module_of(a.file): module_of(a.to), bare_of(a.file): bare_of(a.to)}
                 cmd = " ".join(swap.get(t, t) for t in cmd.split(" "))
         red["files"], red["command"] = files, cmd
-        body = log_line(body, a.by or "maker",
+        body = log_line(body, by,
                         f"red.files no longer names {a.file}" + (f", now {a.to}" if a.to else "")
                         + ("; red.command is now null: no red file is left" if cmd is None else
                            "; red.command updated to match" if cmd != old_cmd else ""))
@@ -814,6 +845,7 @@ def expected_moves(root, data, config):
 
 def cmd_report(a):
     path, data, body = load(repo_root(), a.id)
+    refuse_in_pairing(data, f"a {a.agent} report")
     text = sys.stdin.read() if a.file == "-" else open(a.file).read()
     red_before = data.get("red")
     body, report = apply_report(data, body, a.agent, text)
