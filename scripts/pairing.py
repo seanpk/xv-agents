@@ -55,8 +55,8 @@ def reader_of(session):
     return (session or {}).get("harness")
 
 
-def at_send_back(data):
-    """The watch's own send-back the slice is at: the last stop is the watch's, and no step has reported since."""
+def at_sendback(data):
+    """The watch's own sendback the slice is at: the last stop is the watch's, and no step has reported since."""
     stops = data.get("stops") or []
     if not stops or stops[-1].get("seat") != "watch":
         return None
@@ -98,7 +98,7 @@ def cmd_start(a):
     if not (a.why or "").strip():
         raise XVError("--why says why the person pairs: the handoff that did not work, or what is too small for a pass")
     open_stops = [s for s in data["stops"] if s.get("answer") is None]
-    stop = open_stops[-1] if open_stops else at_send_back(data)
+    stop = open_stops[-1] if open_stops else at_sendback(data)
     if stop is None:
         raise XVError(f"{a.id} has no open stop or send-back: a pairing opens at one")
     if stop.get("answer") is None and stop["seat"] == "two_people" and not solo(load_config(root)):
