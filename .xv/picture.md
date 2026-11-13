@@ -222,12 +222,12 @@ Sean Kennedy sits with them.
   "Packet" is the guardian's output (the listener's is "the packet from production").
   `expected_moves` in a packet's front matter is the record's count of expected moves.
 - "The wall" is the test hash check.
-- A pairing is the person who set the work going working on a slice with the watch's own session, from an open stop or a send-back to a resume step.
-  A test written or changed in a pairing is not blind.
   "The shape" means the system's structure, but also "shape change" in a packet.
   Both senses are used.
   `shape_change` is `yes`, `no` or `accepted`; `pitch_contradiction` is `yes` or `no` (#85).
   `scenario_miss` is `yes` or `no` and optional; a missing one reads as `no` (#96).
+- A pairing is the person who set the work going working on a slice with the watch's own session, from an open stop or a send-back to a resume step.
+  A test written or changed in a pairing is not blind.
 - The shape conversation opens on a shape change, and before and after a burst.
   A stall (`repeated_failure`, `diff_growing`) is not a shape conversation; it puts four choices to the person who set the work going: continue, reshape the slice, raise the budget, or bring in a second person (#86).
 - The maker and the scenario agent read the picture and pull its binding decisions; they do not edit it, with one exception: the maker may edit `.xv/picture.md` only when the scenario report names it in `may_not_files`.
