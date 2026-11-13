@@ -37,3 +37,9 @@ Each entry is a heading and these lines:
 - from: 2026-11-04-refactor-kind, slice_only_marks at 05:30:23 (six brief tests, all unmarked) and 06:53:20 (CHANGELOG test, accepted); 2026-11-05-wave1-fixes, slice_only_marks at 04:45:00 (brief test unmarked, CHANGELOG test accepted); counts: slice-only removal of the CHANGELOG test fired 1 time on each of the three recorded rules, 0 overrides
 - miss: `slice_only_marks` fired on 4 slices. In every answer in these records Sean made the same choice, and the cause lines say "decision". The scenario agent still marked brief tests slice-only each time, so each slice stopped and asked a question whose answer was already known.
 - seen: [seanpk/xv-agents@2026-11-05]
+
+### The red command runs from `tests/`: `cd tests && python3 -m unittest <module>`; the whole suite is `python3 tests/run.py`
+- added: 2026-11-12 by Sean Kennedy
+- from: 2026-11-09-kept-pick, `red_cannot_run` at 2026-11-11T20:03:07 ("Failed to import test module: test_prototypes, test_from_build"); 2026-11-11-pairing-b, `red_cannot_run` at 2026-11-11T20:07:55 ("Failed to import test module: test_pairing"); the retro-fixes red command is already `cd tests && python3 -m unittest ...`
+- miss: The scenario agent wrote a red command that ran from the repo root, so it failed on import before any test ran. Each slice stopped and a person said "G1" or "1". The scenario agent's next pass ran from `tests/`. The test modules import each other by bare name, which is a fact the agents cannot infer.
+- seen: [seanpk/xv-agents@2026-11-12]

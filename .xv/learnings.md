@@ -18,6 +18,30 @@ An entry with three or more sightings that still splits people is marked `(watch
 
 ## Open
 
+### 2026-11-12: Renaming a test file a build added trips the wall hook as an unrecorded move
+- added: 2026-11-12 by Sean Kennedy
+- from: 2026-11-11-pairing-b, the rename of the build's tests/test_pairing.py to tests/test_pairing_build.py, refused by the wall hook until the move was recorded at 2026-11-11T20:15:59
+- miss: A file the build added is not on the wall at the base, but its rename still needed `xv record move --to` before the commit went in. One sighting, with a workaround; added by the watch at Sean's direction.
+- rule: Renaming a test file a build added trips the wall hook as an unrecorded move
+- seen: [seanpk/xv-agents@2026-11-12]
+
+
+### 2026-11-12: A slice rebase replays an old red point in the slice's history, and the maker stops on it
+- added: 2026-11-12 by Sean Kennedy
+- from: 2026-11-09-kept-pick, `rebase_stuck` at 2026-11-13T01:59:58 (the maker, resolving a conflict at the old "make it work" commit, stopped on the budget-spent test that a later commit, still to be replayed, rewrites); Sean answered 1, continue, at 02:01:34, and the rebase ended green
+- miss: The rebase stops at a commit where the slice was red in its own history, and the maker asks again a question a person already answered on 2026-11-11. One sighting; added by the watch at Sean's direction.
+- rule: A slice rebase replays an old red point in the slice's history, and the maker stops on it
+- seen: [seanpk/xv-agents@2026-11-12]
+
+
+### 2026-11-12: A scenario point or a red test that contradicts an old test or the harness is found only when the maker stops
+- added: 2026-11-12 by Sean Kennedy
+- from: 2026-11-09-retro-fixes, `maker_stopped` at 16:39:46 (point 3 reversed `SliceOnlyGateTest`, five tests the scenario report did not name); 2026-11-11-pairing-b, `maker_stopped` at 2026-11-11T23:02:33 (the red expects no transcript while the build defaults to the ambient session id); 2026-11-09-kept-pick, `maker_stopped` at 2026-11-10T03:00:11 (a red that cannot pass on the sh harness)
+- miss: Three slices stopped at the maker, a step after the red was written, because a red test could not pass beside what already existed. `maker_stopped` fired on 4 slices. Each cost a person's answer and a round of scenario and maker work. No check can see it before the maker runs the old suite against the new red. Evidence only; no rule yet.
+- rule: A scenario point or a red test that contradicts an old test or the harness is found only when the maker stops
+- seen: [seanpk/xv-agents@2026-11-12]
+
+
 ### 2026-11-09: A new assertion's expected value is read from an independent source, not from what it checks
 - added: 2026-11-09 by Sean Kennedy
 - from: 2026-11-09-defects-tools, `maker_stopped` at 13:43:14 (the expected value was a commit taken before the slice's base); guardian pass 1 summary at 14:36:19 ("one unrecorded sortie test edit whose new assertion is self-referential"); `moved_tests` entry at 14:55:02
