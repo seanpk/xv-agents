@@ -9,7 +9,7 @@ from xvlib import DEFAULT_CONFIG
 
 
 def rec(**kw):
-    data = {"id": "s1", "set_by": "pat", "budget": {"usd": 2}, "moved_tests": [], "spend": [],
+    data = {"id": "s1", "originator": "pat", "budget": {"usd": 2}, "moved_tests": [], "spend": [],
             "stops": [], "checks": {"reports": []}}
     data.update(kw)
     return data
@@ -78,26 +78,26 @@ class OrdersTest(unittest.TestCase):
         d = with_report(rec(shape_change="no", pitch_contradiction="no",
                             moved_tests=[{"file": "tests/a.py"}]), "guardian")
         d["checks"]["guardian"] = {}
-        self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
+        self.assertEqual(self.stop(d, "guardian")["order"], "moves_to_accept")
 
-    def test_slice_only_moves_alone_do_not_stop_for_accept_moves(self):
+    def test_slice_only_moves_alone_do_not_stop_for_moves_to_accept(self):
         d = with_report(rec(shape_change="no", pitch_contradiction="no",
                             moved_tests=[{"file": "tests/a.py", "slice_only": True}]), "guardian")
         d["checks"]["guardian"] = {}
         self.assertEqual(self.stop(d, "guardian")["order"], "ready_to_merge")
 
-    def test_a_slice_only_move_beside_a_plain_move_still_fires_accept_moves(self):
+    def test_a_slice_only_move_beside_a_plain_move_still_fires_moves_to_accept(self):
         d = with_report(rec(shape_change="no", pitch_contradiction="no",
                             moved_tests=[{"file": "tests/a.py", "slice_only": True},
                                          {"file": "tests/b.py"}]), "guardian")
         d["checks"]["guardian"] = {}
-        self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
+        self.assertEqual(self.stop(d, "guardian")["order"], "moves_to_accept")
 
     def test_slice_only_moves_do_not_hide_a_picture_change(self):
         d = with_report(rec(shape_change="no", pitch_contradiction="no",
                             moved_tests=[{"file": "tests/a.py", "slice_only": True}]), "guardian")
         d["checks"]["guardian"] = {"picture_change": "yes"}
-        self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
+        self.assertEqual(self.stop(d, "guardian")["order"], "moves_to_accept")
 
     def test_a_refactor_slice_with_a_red_suite_at_the_start_stops_the_originator(self):
         d = with_report(rec(kind="refactor"), "scenario", "done")
@@ -116,18 +116,18 @@ class OrdersTest(unittest.TestCase):
         fired = [f["order"] for f in orders.verdict(d, "scenario", DEFAULT_CONFIG)["fired"]]
         self.assertNotIn("suite_not_green_at_start", fired)
 
-    def test_expected_moves_alone_do_not_stop_for_accept_moves(self):
+    def test_expected_moves_alone_do_not_stop_for_moves_to_accept(self):
         d = with_report(rec(shape_change="no", pitch_contradiction="no",
                             moved_tests=[{"file": "tests/a.py", "expected": True}]), "guardian")
         d["checks"]["guardian"] = {}
         self.assertEqual(self.stop(d, "guardian")["order"], "ready_to_merge")
 
-    def test_an_expected_move_beside_a_plain_move_still_fires_accept_moves(self):
+    def test_an_expected_move_beside_a_plain_move_still_fires_moves_to_accept(self):
         d = with_report(rec(shape_change="no", pitch_contradiction="no",
                             moved_tests=[{"file": "tests/a.py", "expected": True},
                                          {"file": "tests/b.py"}]), "guardian")
         d["checks"]["guardian"] = {}
-        self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
+        self.assertEqual(self.stop(d, "guardian")["order"], "moves_to_accept")
 
     def test_a_packet_problem_with_expected_moves_stops_the_originator(self):
         for kind in ("feature", "refactor"):
@@ -155,7 +155,7 @@ class OrdersTest(unittest.TestCase):
 
     def test_a_feature_asks_the_person_to_watch_the_first_green(self):
         d = with_report(rec(kind="feature", shape_change="no", pitch_contradiction="no",
-                            red={"watch_first_green": "Use the last loaf; bread leaves the list."}), "guardian")
+                            red={"watch_before_merge": "Use the last loaf; bread leaves the list."}), "guardian")
         d["checks"]["guardian"] = {}
         self.assertIn("watch the first green run: Use the last loaf", self.stop(d, "guardian")["question"])
 
@@ -236,7 +236,7 @@ class OrdersTest(unittest.TestCase):
         d = with_report(rec(shape_change="no", pitch_contradiction="no", slice_only=[b],
                             moved_tests=[{"file": a["file"], "assertion": a["test"]}]), "guardian")
         d["checks"]["guardian"] = {}
-        self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
+        self.assertEqual(self.stop(d, "guardian")["order"], "moves_to_accept")
 
     def guardian_with(self, recs):
         d = with_report(rec(shape_change="no", pitch_contradiction="no", wall_recommendations=recs), "guardian")
@@ -247,7 +247,7 @@ class OrdersTest(unittest.TestCase):
         recs = [{"file": "tests/test_a.py", "test": "test_new_thing", "recommend": "stay off the wall",
                  "why": "not marked slice-only, covered by the packet", "accepted": False}]
         s = self.stop(self.guardian_with(recs), "guardian")
-        self.assertEqual((s["order"], s["seat"]), ("accept_moves", "originator"))
+        self.assertEqual((s["order"], s["seat"]), ("moves_to_accept", "originator"))
 
     def test_accepted_wall_recommendations_do_not_stop_again(self):
         recs = [{"file": "tests/test_a.py", "test": "test_new_thing", "recommend": "remove",
@@ -277,30 +277,30 @@ class OrdersTest(unittest.TestCase):
             self.assertIn("slice-only", table, path)
 
     def miss_record(self, **kw):
-        d = with_report(rec(shape_change="no", pitch_contradiction="no", scenario_miss="yes", **kw), "guardian")
+        d = with_report(rec(shape_change="no", pitch_contradiction="no", change_misses_scenario="yes", **kw), "guardian")
         d["checks"]["guardian"] = {"picture_change": "yes"}
         return d
 
     def fired(self, data, after="guardian"):
         return [f["order"] for f in orders.verdict(data, after, DEFAULT_CONFIG)["fired"]]
 
-    def test_a_scenario_miss_does_not_stop_and_fires_no_accept_moves_or_ready_to_merge(self):
+    def test_a_change_misses_scenario_does_not_stop_and_fires_no_moves_to_accept_or_ready_to_merge(self):
         d = self.miss_record(moved_tests=[{"file": "tests/a.py"}],
                              wall_recommendations=[{"file": "tests/a.py", "test": "t", "recommend": "remove"}])
         self.assertIsNone(self.stop(d, "guardian"))
-        self.assertFalse({"accept_moves", "ready_to_merge"} & set(self.fired(d)))
+        self.assertFalse({"moves_to_accept", "ready_to_merge"} & set(self.fired(d)))
 
     def test_moved_tests_are_put_to_the_person_when_the_slice_comes_back_with_no_miss(self):
         d = self.miss_record(moved_tests=[{"file": "tests/a.py"}])
-        d["scenario_miss"] = "no"
-        self.assertEqual(self.stop(d, "guardian")["order"], "accept_moves")
+        d["change_misses_scenario"] = "no"
+        self.assertEqual(self.stop(d, "guardian")["order"], "moves_to_accept")
 
-    def test_a_scenario_miss_beside_a_shape_change_still_stops_for_two_people(self):
+    def test_a_change_misses_scenario_beside_a_shape_change_still_stops_for_two_people(self):
         d = self.miss_record()
         d["shape_change"] = "yes"
         self.assertEqual(self.stop(d, "guardian")["order"], "shape_or_pitch")
 
-    def test_a_scenario_miss_with_the_budget_spent_stops_for_the_originator(self):
+    def test_a_change_misses_scenario_with_the_budget_spent_stops_for_the_originator(self):
         d = self.miss_record(spend=[{"step": "maker", "usd": 2.5, "tokens": 10}])
         s = self.stop(d, "guardian")
         self.assertEqual((s["order"], s["seat"]), ("budget_spent", "originator"))
@@ -366,87 +366,87 @@ class OrdersTest(unittest.TestCase):
         d = with_report(rec(shape_change="no", pitch_contradiction="no"), "guardian")
         d["checks"]["guardian"] = {"picture_change": "yes"}
         s = self.stop(d, "guardian")
-        self.assertEqual(s["order"], "accept_moves")
+        self.assertEqual(s["order"], "moves_to_accept")
         self.assertIn("The guardian proposes a change to the picture", s["question"])
         self.assertNotIn("the picture changed", s["question"].lower())
 
 
 class SendBackFromOrdersTest(unittest.TestCase):
     """The send-back is decided by orders.evaluate from the record alone: a fired entry that is not
-    blocking and carries send_back = {"to": "maker"|"scenario", "misses": [refs]}."""
+    blocking and carries sendback = {"to": "maker"|"scenario", "misses": [refs]}."""
 
     def miss(self, ref="2", to="maker", amend=False, text="the red does not cover it"):
         return {"ref": ref, "to": to, "amend": amend, "text": text}
 
     def guardian(self, misses, **kw):
-        d = with_report(rec(shape_change="no", pitch_contradiction="no", scenario_miss="yes", **kw), "guardian")
+        d = with_report(rec(shape_change="no", pitch_contradiction="no", change_misses_scenario="yes", **kw), "guardian")
         d["checks"]["guardian"] = {"misses": misses}
         return d
 
     def after_scenario(self, points, **kw):
         d = with_report(rec(**kw), "scenario", "red")
-        d["checks"]["scenario"] = {"red_fails": True, "missed_points": points}
+        d["checks"]["scenario"] = {"red_fails": True, "missed_outcomes": points}
         return d
 
     def verdict(self, data, after):
         return orders.verdict(data, after, DEFAULT_CONFIG)
 
-    def send_backs(self, v):
-        return [f for f in v["fired"] if f.get("send_back")]
+    def sendbacks(self, v):
+        return [f for f in v["fired"] if f.get("sendback")]
 
     def test_orders_sends_a_guardian_miss_back_to_the_maker_without_a_stop(self):
         v = self.verdict(self.guardian([self.miss("2")]), "guardian")
         self.assertIsNone(v["stop"])
-        back = self.send_backs(v)
-        self.assertEqual([(f["order"], f["blocking"], f["send_back"]) for f in back],
-                         [("scenario_miss", False, {"to": "maker", "misses": ["2"]})])
+        back = self.sendbacks(v)
+        self.assertEqual([(f["order"], f["blocking"], f["sendback"]) for f in back],
+                         [("change_misses_scenario", False, {"to": "maker", "misses": ["2"]})])
 
     def test_orders_sends_a_miss_the_red_does_not_cover_to_the_scenario_agent(self):
         v = self.verdict(self.guardian([self.miss("2"), self.miss("10", to="scenario")]), "guardian")
         self.assertIsNone(v["stop"])
-        self.assertEqual([f["send_back"] for f in self.send_backs(v)],
+        self.assertEqual([f["sendback"] for f in self.sendbacks(v)],
                          [{"to": "scenario", "misses": ["10", "2"]}])
 
     def test_orders_stops_for_a_miss_marked_amend_yes_and_sends_nothing_back(self):
         v = self.verdict(self.guardian([self.miss("2", amend=True)]), "guardian")
-        self.assertEqual((v["stop"]["order"], v["stop"]["seat"]), ("scenario_miss", "originator"))
-        self.assertEqual(self.send_backs(v), [])
+        self.assertEqual((v["stop"]["order"], v["stop"]["seat"]), ("change_misses_scenario", "originator"))
+        self.assertEqual(self.sendbacks(v), [])
 
     def test_orders_stops_when_the_same_point_comes_back_worded_differently(self):
-        prior = {"order": "scenario_miss", "seat": "watch", "keys": ["2"], "answer": "sent back to the maker"}
+        prior = {"order": "change_misses_scenario", "seat": "watch", "keys": ["2"], "answer": "sent back to the maker"}
         v = self.verdict(self.guardian([self.miss("2", text="said another way entirely")], stops=[prior]), "guardian")
-        self.assertEqual((v["stop"]["order"], v["stop"]["seat"]), ("scenario_miss", "originator"))
-        self.assertEqual(self.send_backs(v), [])
+        self.assertEqual((v["stop"]["order"], v["stop"]["seat"]), ("change_misses_scenario", "originator"))
+        self.assertEqual(self.sendbacks(v), [])
 
-    def test_orders_sends_back_a_new_point_after_an_earlier_send_back_for_another(self):
-        prior = {"order": "scenario_miss", "seat": "watch", "keys": ["3"], "answer": "sent back to the maker"}
+    def test_orders_sends_back_a_new_point_after_an_earlier_sendback_for_another(self):
+        prior = {"order": "change_misses_scenario", "seat": "watch", "keys": ["3"], "answer": "sent back to the maker"}
         v = self.verdict(self.guardian([self.miss("2")], stops=[prior]), "guardian")
         self.assertIsNone(v["stop"])
-        self.assertEqual(len(self.send_backs(v)), 1)
+        self.assertEqual(len(self.sendbacks(v)), 1)
 
     def test_orders_sends_nothing_back_beside_a_shape_change(self):
         d = self.guardian([self.miss("2")])
         d["shape_change"] = "yes"
         v = self.verdict(d, "guardian")
         self.assertEqual(v["stop"]["order"], "shape_or_pitch")
-        self.assertEqual(self.send_backs(v), [])
+        self.assertEqual(self.sendbacks(v), [])
 
     def test_orders_sends_nothing_back_when_the_budget_is_spent(self):
         v = self.verdict(self.guardian([self.miss("2")], spend=[{"step": "maker", "usd": 2.5, "tokens": 10}]), "guardian")
         self.assertEqual(v["stop"]["order"], "budget_spent")
-        self.assertEqual(self.send_backs(v), [])
+        self.assertEqual(self.sendbacks(v), [])
 
     def test_orders_sends_uncovered_scenario_points_back_to_the_scenario_agent(self):
         v = self.verdict(self.after_scenario(["3", "5"]), "scenario")
         self.assertIsNone(v["stop"])
-        self.assertEqual([(f["order"], f["blocking"], f["send_back"]) for f in self.send_backs(v)],
-                         [("red_misses_point", False, {"to": "scenario", "misses": ["3", "5"]})])
+        self.assertEqual([(f["order"], f["blocking"], f["sendback"]) for f in self.sendbacks(v)],
+                         [("report_misses_outcome", False, {"to": "scenario", "misses": ["3", "5"]})])
 
     def test_orders_stops_when_the_same_uncovered_point_comes_back_a_third_time(self):
-        prior = {"order": "red_misses_point", "seat": "watch", "keys": ["3"], "answer": "sent back to the scenario"}
+        prior = {"order": "report_misses_outcome", "seat": "watch", "keys": ["3"], "answer": "sent back to the scenario"}
         v = self.verdict(self.after_scenario(["3"], stops=[prior, dict(prior)]), "scenario")
-        self.assertEqual((v["stop"]["order"], v["stop"]["seat"]), ("red_misses_point", "originator"))
-        self.assertEqual(self.send_backs(v), [])
+        self.assertEqual((v["stop"]["order"], v["stop"]["seat"]), ("report_misses_outcome", "originator"))
+        self.assertEqual(self.sendbacks(v), [])
 
 
 class GuardianFiveChecksTest(unittest.TestCase):
@@ -480,28 +480,28 @@ class OneHomeTest(unittest.TestCase):
         d["checks"]["guardian"] = {}
         return d
 
-    def test_a_repeat_flag_left_in_the_checks_is_not_read_as_a_repeat_of_a_scenario_miss(self):
-        d = self.guardian(scenario_miss="yes")
+    def test_a_repeat_flag_left_in_the_checks_is_not_read_as_a_repeat_of_a_change_misses_scenario(self):
+        d = self.guardian(change_misses_scenario="yes")
         d["checks"]["guardian"] = {"misses": [{"ref": "2", "text": "milk is left out", "to": "maker", "amend": False}],
                                    "miss_repeat": ["2"]}
         self.assertIsNone(orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"])
 
     def test_a_repeat_flag_left_in_the_checks_is_not_read_as_a_repeat_of_a_missed_point(self):
         d = with_report(rec(), "scenario", "red")
-        d["checks"]["scenario"] = {"missed_points": ["3"], "missed_repeat": True}
+        d["checks"]["scenario"] = {"missed_outcomes": ["3"], "missed_repeat": True}
         self.assertIsNone(orders.verdict(d, "scenario", DEFAULT_CONFIG)["stop"])
 
-    def test_a_send_back_before_the_guardian_report_makes_the_same_miss_a_repeat(self):
-        prior = {"order": "scenario_miss", "seat": "watch", "keys": ["2"], "at": "2026-01-01T00:00:00+00:00",
+    def test_a_sendback_before_the_guardian_report_makes_the_same_miss_a_repeat(self):
+        prior = {"order": "change_misses_scenario", "seat": "watch", "keys": ["2"], "at": "2026-01-01T00:00:00+00:00",
                  "answer": "sent back to the maker"}
-        d = self.guardian(scenario_miss="yes", stops=[prior])
+        d = self.guardian(change_misses_scenario="yes", stops=[prior])
         d["checks"]["reports"][-1]["at"] = "2026-01-02T00:00:00+00:00"
         d["checks"]["guardian"] = {"misses": [{"ref": "2", "text": "milk is left out", "to": "maker", "amend": False}]}
         s = orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"]
-        self.assertEqual((s["order"], s["seat"]), ("scenario_miss", "originator"))
+        self.assertEqual((s["order"], s["seat"]), ("change_misses_scenario", "originator"))
 
     def test_a_shape_the_person_accepted_does_not_stop_as_wider_than_the_forecast(self):
-        d = self.guardian(forecast={"shape": "none"})
+        d = self.guardian(forecast={"shape_breadth": "none"})
         d["shape_change"] = "accepted"
         d["checks"]["guardian"] = {"shape_breadth": "wide"}
         self.assertNotEqual((orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"] or {}).get("order"),
@@ -510,29 +510,29 @@ class OneHomeTest(unittest.TestCase):
     def test_a_shape_wider_stop_the_person_already_answered_does_not_stop_again(self):
         answered = {"order": "shape_wider_than_forecast", "seat": "two_people", "answered_by": ["pat", "sam"],
                     "answer": "go on", "at": "2026-01-01T00:00:00+00:00"}
-        d = self.guardian(forecast={"shape": "none"}, stops=[answered])
+        d = self.guardian(forecast={"shape_breadth": "none"}, stops=[answered])
         d["checks"]["guardian"] = {"shape_breadth": "wide"}
         self.assertNotEqual((orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"] or {}).get("order"),
                             "shape_wider_than_forecast")
 
     def test_a_shape_wider_than_the_forecast_still_stops_when_nobody_accepted_it(self):
-        d = self.guardian(forecast={"shape": "none"})
+        d = self.guardian(forecast={"shape_breadth": "none"})
         d["checks"]["guardian"] = {"shape_breadth": "wide"}
         self.assertEqual(orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"]["order"], "shape_wider_than_forecast")
 
     def test_a_shape_wider_answer_that_sent_the_work_back_does_not_accept_the_shape(self):
         sent = {"order": "shape_wider_than_forecast", "seat": "two_people", "answered_by": ["pat", "sam"],
-                "answer": "narrow it", "sent_back": True, "at": "2026-01-01T00:00:00+00:00"}
-        d = self.guardian(forecast={"shape": "none"}, stops=[sent])
+                "answer": "narrow it", "sendback": True, "at": "2026-01-01T00:00:00+00:00"}
+        d = self.guardian(forecast={"shape_breadth": "none"}, stops=[sent])
         d["checks"]["guardian"] = {"shape_breadth": "wide"}
         self.assertEqual(orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"]["order"], "shape_wider_than_forecast")
 
-    def test_accept_moves_counts_moves_not_record_entries(self):
+    def test_moves_to_accept_counts_moves_not_record_entries(self):
         same = {"file": "tests/a.py", "assertion": "was: 1; now: 2", "why": "forced"}
         d = self.guardian(moved_tests=[dict(same, by="maker", at="2026-01-01T00:00:00+00:00"),
                                        dict(same, by="cleaner", at="2026-01-01T00:05:00+00:00")])
         s = orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"]
-        self.assertEqual(s["order"], "accept_moves")
+        self.assertEqual(s["order"], "moves_to_accept")
         self.assertIn("1 old test(s) moved", s["question"])
 
 

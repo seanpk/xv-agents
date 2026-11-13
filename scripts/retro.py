@@ -26,7 +26,7 @@ from spend import slice_spend, totals  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, emit, git, load_config, main_root, read_doc,  # noqa: E402
                    repo_root, today)
 
-QUIET_ORDERS = {"ready_to_merge", "accept_moves", "budget_not_set"}
+QUIET_ORDERS = {"ready_to_merge", "moves_to_accept", "budget_not_set"}
 MIN_FIRES = 5
 
 
@@ -66,7 +66,7 @@ def due(root):
         budget = dict(d.get("budget") or {})
         budget.update((budget.get("raised_from") or {}))  # a raise does not undo the overrun
         whole = totals(d.get("spend") or [])
-        fc = sum(k.get("tokens") or 0 for k in (d.get("forecast") or {}).get("keys", []))
+        fc = sum(k.get("tokens") or 0 for k in (d.get("forecast") or {}).get("rows", []))
         if (budget.get("usd") and spent["usd_known"] and spent["usd"] > budget["usd"]) or \
                 (budget.get("tokens") and spent["tokens"] > budget["tokens"]) or \
                 (budget.get("turns") and spent["turns"] > budget["turns"]):
@@ -315,8 +315,8 @@ def accept_standard(root, slice_id, n, by):
             cands += rep.get("candidate_standards") or []
     if not 1 <= n <= len(cands):
         raise XVError(f"the cleaner proposed {len(cands)} standard(s) on {slice_id}; there is no {n}")
-    if by != data.get("set_by"):
-        print(f"note: {slice_id} was set going by {data.get('set_by')}; {by} is accepting in their place",
+    if by != data.get("originator"):
+        print(f"note: {slice_id} was set going by {data.get('originator')};{by} is accepting in their place",
               file=sys.stderr)
     sroot = slice_root(path)
     packet = os.path.join(sroot, XV_DIR, "retro", f"{today()}-{slice_id}-cleaner.md")

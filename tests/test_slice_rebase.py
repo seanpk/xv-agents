@@ -390,7 +390,7 @@ class SliceRebaseTest(RepoCase):
         self.on_slice("tests/test_own_red.py", self.FAILING_RED, "the slice's red")
         self.set_field("red", {"files": ["tests/test_own_red.py"],
                                "command": "cd tests && python3 -m unittest test_own_red",
-                               "failure": "1 != 2", "watch_first_green": None})
+                               "failure": "1 != 2", "watch_before_merge": None})
         self.set_field("suite", suite)
 
     def test_an_open_slice_with_its_own_red_still_failing_rebases_clean(self):
@@ -472,7 +472,7 @@ class SliceRebaseTest(RepoCase):
             "\n\nif __name__", "\n    def test_slice_added_red(self):\n        self.assertEqual(1, 2)\n\n\nif __name__")
         self.on_slice("tests/test_store.py", text, "the slice adds a red test to an old file")
         self.set_field("red", {"files": ["tests/test_store.py"], "command": "cd tests && python3 -m unittest test_store",
-                               "failure": "1 != 2", "watch_first_green": None})
+                               "failure": "1 != 2", "watch_before_merge": None})
         self.set_field("suite", "red")
 
     def test_a_test_the_slice_added_to_an_old_red_file_is_excused_before_the_maker(self):
@@ -493,7 +493,7 @@ class SliceRebaseTest(RepoCase):
         self.on_slice("tests/test_run.py", "import unittest\n\n\nclass Own(unittest.TestCase):\n"
                       "    def test_run(self):\n        self.assertEqual(1, 2)\n", "the slice's red")
         self.set_field("red", {"files": ["tests/test_run.py"], "command": "cd tests && python3 -m unittest test_run",
-                               "failure": "1 != 2", "watch_first_green": None})
+                               "failure": "1 != 2", "watch_before_merge": None})
         self.set_field("suite", "red")
         self.on_main("tests/test_other.py", "import unittest\n\n\nclass Other(unittest.TestCase):\n"
                      "    def test_run_loop_x(self):\n        self.assertEqual(1, 2)\n")

@@ -122,7 +122,7 @@ elif title.startswith("# The scenario agent"):
     if os.environ.get("FAKE_SCENARIO_EDITS_OLD_OUTSIDE_RED"):
         t = open("tests/test_store.py").read().replace('["yogurt"]', '["yogurt"] or []')
         open("tests/test_store.py", "w").write(t)
-    extra = {"covered": [{"item": "milk today", "test": "test_milk_today"}], "not_covered": []}
+    extra = {"covered": [{"outcome": "milk today", "test": "test_milk_today"}], "not_covered": []}
     if os.environ.get("FAKE_NOT_COVERED"):
         extra["not_covered"] = json.loads(os.environ["FAKE_NOT_COVERED"])
     extra.update(json.loads(os.environ.get("FAKE_REPORT_EXTRA") or "{}"))
@@ -130,7 +130,7 @@ elif title.startswith("# The scenario agent"):
         extra.pop(key, None)
     report(agent="scenario", status="red", summary="red",
            red={"files": red_files, "command": os.environ.get("FAKE_RED_COMMAND") or "python3 -m unittest tests.test_red",
-                "failure": "Lists differ", "watch_first_green": None}, **extra)
+                "failure": "Lists differ", "watch_before_merge": None}, **extra)
 elif title.startswith("# The maker") and "prototype" not in title:
     path = "pantry/store.py"
     text = open(path).read().replace("today < i.expires_on <= last", "today <= i.expires_on <= last")

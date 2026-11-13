@@ -141,8 +141,8 @@ class RefactorKindCase(RepoCase):
         p = self.maker_after_scenario({"FAKE_MAKER_RENAME_MOVE": "1", "FAKE_MAKER_CHEATS": "1"})
         self.assertEqual(self.stop_order(p), "unrecorded_move")
 
-    # 7 and 10. no accept_moves stop for an expected move
-    def test_expected_moves_reach_the_merge_stop_without_accept_moves(self):
+    # 7 and 10. no moves_to_accept stop for an expected move
+    def test_expected_moves_reach_the_merge_stop_without_moves_to_accept(self):
         self.open_slice("--expect-moves", "imports")
         with mock.patch.dict(os.environ, {"FAKE_MAKER_IMPORT_MOVE": "1", "FAKE_PACKET_EXPECTED_MOVES": "1"}):
             p = self.xv("run", "s1", cwd=self.wt, check=False)
@@ -152,7 +152,7 @@ class RefactorKindCase(RepoCase):
         self.open_slice("--expect-moves", "imports")
         with mock.patch.dict(os.environ, {"FAKE_MAKER_IMPORT_MOVE": "1", "FAKE_MAKER_MOVES": "1"}):
             p = self.xv("run", "s1", cwd=self.wt, check=False)
-        self.assertEqual(self.stop_order(p), "accept_moves", p.stdout)
+        self.assertEqual(self.stop_order(p), "moves_to_accept", p.stdout)
 
     # 11. the packet's expected_moves count
     def packet_problems(self, expected, flags=("--expect-moves", "imports")):
@@ -274,7 +274,7 @@ class CleanerMoveCase(FollowUpBase):
 
     def test_the_same_import_change_by_the_cleaner_still_stops_when_imports_are_not_expected(self):
         self.open_slice()
-        self.assertEqual(self.run_slice({}).get("order"), "accept_moves")
+        self.assertEqual(self.run_slice({}).get("order"), "moves_to_accept")
 
 
 class RerunScenarioCase(FollowUpBase):
@@ -333,5 +333,5 @@ class AddedTestFileMoveCase(FollowUpBase):
 
 # What a person should watch on the first green run: open a refactor slice with
 # `--expect-moves imports`, let the maker add an import to an old test, and see the
-# slice reach the merge stop with no accept_moves question; then change one assertion
+# slice reach the merge stop with no moves_to_accept question; then change one assertion
 # and see the stop come back.

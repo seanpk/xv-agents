@@ -906,8 +906,8 @@ class SessionScenarioReportTest(FromBuildBase):
                 "        self.assertEqual(1, 2)\n")
     REPORT = {"agent": "scenario", "status": "red", "summary": "red",
               "red": {"files": ["tests/test_red.py"], "command": "python3 -m unittest tests.test_red",
-                      "failure": "1 != 2", "watch_first_green": None},
-              "covered": [{"item": "milk today", "test": "test_milk_today"}], "not_covered": []}
+                      "failure": "1 != 2", "watch_before_merge": None},
+              "covered": [{"outcome":"milk today", "test": "test_milk_today"}], "not_covered": []}
 
     def setUp(self):
         super().setUp()
@@ -957,9 +957,9 @@ class SessionScenarioReportTest(FromBuildBase):
         p = self.write_the_red_and_report(checkout, report=self.JOINED)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertFalse((self.record().get("red") or {}).get("command"))
-        self.assertIn("unittest tests.test_red; true", self.record()["checks"]["scenario"]["red_joined"])
+        self.assertIn("unittest tests.test_red; true", self.record()["checks"]["scenario"]["red_joined_unsafely"])
         o = self.xv("orders", "s1", "--after", "scenario", cwd=self.wt, check=False)
-        self.assertIn("scenario_stopped", o.stdout + o.stderr)
+        self.assertIn("red_command_joined", o.stdout + o.stderr)
 
     def test_a_red_joined_unsafely_restores_the_earlier_red(self):
         checkout = self.checkout_named(self.scenario_step())
@@ -968,7 +968,7 @@ class SessionScenarioReportTest(FromBuildBase):
         checkout = self.checkout_named(self.step("scenario"))
         self.write_the_red_and_report(checkout, report=self.JOINED)
         self.assertEqual(self.record()["red"]["command"], earlier)
-        self.assertTrue(self.record()["checks"]["scenario"]["red_joined"])
+        self.assertTrue(self.record()["checks"]["scenario"]["red_joined_unsafely"])
 
     def test_the_report_runs_the_red_on_the_base_and_on_the_build_and_records_the_checks(self):
         checkout = self.checkout_named(self.scenario_step())
@@ -1256,8 +1256,8 @@ class SessionBase(FromBuildBase):
                 f.write(RED_TEXT)
         report = {"agent": "scenario", "status": "red", "summary": "red",
                   "red": {"files": ["tests/test_red.py"], "command": command, "failure": "Lists differ",
-                          "watch_first_green": None},
-                  "covered": [{"item": "milk today", "test": "test_milk_today"}], "not_covered": []}
+                          "watch_before_merge": None},
+                  "covered": [{"outcome":"milk today", "test": "test_milk_today"}], "not_covered": []}
         report.update(extra)
         text = "```xv-report\n" + json.dumps(report) + "\n```\n"
         return self.xv_stdin(text)
@@ -1309,7 +1309,7 @@ class SessionLandsTheRedTest(SessionBase):
         self.assertIsNone(out["stop"], out)
 
     def test_orders_after_the_report_give_the_same_stop_as_the_cli_path_for_a_point_left_uncovered(self):
-        self.send(self.checkout(), not_covered=[{"item": "milk tomorrow", "why": "no seam"}])
+        self.send(self.checkout(), not_covered=[{"outcome":"milk tomorrow", "why": "no seam"}])
         self.assertIn("red_misses_scenario", self.fired(),
                       "the saved scenario checks did not reach `xv orders --after scenario`")
 
@@ -1338,7 +1338,7 @@ class SessionJoinedRedTest(SessionBase):
             with self.subTest(command=command):
                 self.send(where_for(), command=command)
                 self.assertEqual(self.record()["red"]["command"], RED_COMMAND, "a joined red command was kept")
-                self.assertIn("scenario_stopped", self.fired())
+                self.assertIn("red_command_joined", self.fired())
 
     def test_with_a_build_the_earlier_red_stays_and_scenario_stopped_fires(self):
         first = self.checkout()
@@ -1356,7 +1356,7 @@ class SessionJoinedRedNoBuildTest(SessionBase):
             with self.subTest(command=command):
                 self.send(self.wt, command=command, write=False)
                 self.assertEqual(self.record()["red"]["command"], RED_COMMAND, "a joined red command was kept")
-                self.assertIn("scenario_stopped", self.fired())
+                self.assertIn("red_command_joined", self.fired())
 
 
 class RedRefOnConflictTest(FromBuildBase):
@@ -1478,7 +1478,7 @@ class SessionScenarioNoBuildJoinedTest(RepoCase):
 
     def report(self, command):
         r = {"agent": "scenario", "status": "red", "summary": "red",
-             "red": {"files": ["tests/test_red.py"], "command": command, "failure": "x", "watch_first_green": None},
+             "red": {"files": ["tests/test_red.py"], "command": command, "failure": "x", "watch_before_merge": None},
              "covered": [], "not_covered": []}
         path = os.path.join(self.tmp, "report.txt")
         with open(path, "w") as f:
@@ -1497,11 +1497,11 @@ class SessionScenarioNoBuildJoinedTest(RepoCase):
         self.xv("record", "report", "s1", "scenario", self.report("python3 -m unittest a; true"), cwd=self.wt)
         data = self.record()
         self.assertFalse((data.get("red") or {}).get("command"))
-        self.assertIn("unittest a; true", data["checks"]["scenario"]["red_joined"])
+        self.assertIn("unittest a; true", data["checks"]["scenario"]["red_joined_unsafely"])
         o = self.xv("orders", "s1", "--after", "scenario", cwd=self.wt, check=False)
-        self.assertIn("scenario_stopped", o.stdout + o.stderr)
+        self.assertIn("red_command_joined", o.stdout + o.stderr)
 
     def test_a_red_joined_with_and_and_is_kept_and_sets_no_red_joined(self):
         self.xv("record", "report", "s1", "scenario", self.report("python3 -m unittest a && python3 -m unittest b"), cwd=self.wt)
         data = self.record()
-        self.assertFalse(((data.get("checks") or {}).get("scenario") or {}).get("red_joined"))
+        self.assertFalse(((data.get("checks") or {}).get("scenario") or {}).get("red_joined_unsafely"))

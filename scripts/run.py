@@ -309,7 +309,7 @@ def cmd_slice_amend(a):
     body = body[:at].rstrip("\n") + note + body[at:]
     data["red"] = None
     data["next"] = "scenario"
-    data["amended_at_report"] = len((data.get("checks") or {}).get("reports") or [])
+    data["reports_before_amend"] = len((data.get("checks") or {}).get("reports") or [])
     body = record.log_line(body, a.by, "amended the scenario")
     record.save(path, data, body)
 
@@ -769,7 +769,7 @@ def step_init(agent):
     print(json.dumps({"agent": agent, "report": report, "spend": spendlib.from_run(result)}, indent=2))
 
 
-MERGE_STAGE = ("ready_to_merge", "accept_moves")
+MERGE_STAGE = ("ready_to_merge", "moves_to_accept")
 
 
 def is_record_path(f):
@@ -867,7 +867,7 @@ def step(agent, slice_id, review_again=False):
     checks = post_step(agent, root, data, config, head_before, pre, report or {}, landed)
     data["checks"][agent] = checks
     data["status"] = "working"
-    data["next"] = "scenario" if checks.get("red_joined") else STEPS[STEPS.index(agent) + 1]
+    data["next"] = "scenario" if checks.get("red_joined_unsafely") else STEPS[STEPS.index(agent) + 1]
     record.save(path, data, body)
 
     v = orders.verdict(data, agent, config)
@@ -1077,7 +1077,7 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         named = set()
         if agent == "maker":
             # only the picture can be licensed; the other protected files stay a person's
-            named = {e["file"] for e in data.get("may_not_files") or []
+            named = {e["file"] for e in data.get("may_not_files_needed") or []
                      if isinstance(e, dict) and e.get("file") == f"{XV_DIR}/picture.md" and e.get("why")}
         checks["protected_changed"] = [f for f in protected if f in changed and f not in named]
     if agent == "scenario":
@@ -1088,7 +1088,7 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         reported = (report.get("red") or {}).get("command")
         if reported and joined_unsafely(reported):
             checks["red_fails"] = None
-            checks["red_joined"] = reported
+            checks["red_joined_unsafely"] = reported
         elif red.get("command"):
             # a slice from a build: the red ran on the base, in the agent's checkout; now it runs on the build
             code, out = landed["base_run"] if landed else red_run(root, data, red, config)
@@ -1115,17 +1115,17 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         checks["red_gaps"] = scenario_red_gaps(root, data, red)
         # coverage stays across a send-back; a pass that went on to the maker ended the run, so it starts again
         earlier = data.get("checks", {}).get("scenario") or {}
-        # a record written before the rename keeps its points under `covers_kept`
+        # a record written before the rename keeps its outcomes under `covers_kept`
         report = with_kept_covered(report, (earlier.get("covered_kept") or earlier.get("covers_kept"))
                                    if data.get("next") != "maker" else None)
         checks["covered_kept"] = [c for c in report.get("covered") or []
-                                  if isinstance(c, dict) and c.get("item") and covered_names(c.get("test"))]
+                                  if isinstance(c, dict) and c.get("outcome") and covered_names(c.get("test"))]
         checks["unreadable"] = unreadable_input(root, data, report)
         answered = " ".join(s.get("question") or "" for s in data.get("stops") or []
-                            if s.get("order") == "red_misses_scenario" and s.get("answer") and not s.get("sent_back"))
+                            if s.get("order") == "red_misses_scenario" and s.get("answer") and not s.get("sendback"))
         checks["not_covered"] = [n for n in (report.get("not_covered") or []) if isinstance(n, dict)
-                                 and f"did not cover {n.get('item')}:" not in answered]
-        checks["missed_points"] = missed_points(root, data, report)
+                                 and f"did not cover {n.get('outcome')}:" not in answered]
+        checks["missed_outcomes"] = missed_outcomes(root, data, report)
         if landed:  # the wall hashes the test files at the base, not at the build
             wb, wall_text = landed["wall"]
             import wall
@@ -1180,7 +1180,7 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
     return checks
 
 
-POINT = re.compile(r"^\s*(\d+)\.\s+(\S.*)$", re.M)
+OUTCOME = re.compile(r"^\s*(\d+)\.\s+(\S.*)$", re.M)
 
 
 def norm(text):
@@ -1188,31 +1188,31 @@ def norm(text):
 
 
 def with_kept_covered(report, kept):
-    """The coverage from the earlier passes stays: add each kept item the report does not name again."""
+    """The coverage from the earlier passes stays: add each kept outcome the report does not name again."""
     covered = report.get("covered")
     if not kept or not isinstance(covered, list):
         return report
-    named = {norm(c.get("item")) for c in covered if isinstance(c, dict) and c.get("item")}
-    return dict(report, covered=covered + [c for c in kept if norm(c["item"]) not in named])
+    named = {norm(c.get("outcome")) for c in covered if isinstance(c, dict) and c.get("outcome")}
+    return dict(report, covered=covered + [c for c in kept if norm(c["outcome"]) not in named])
 
 
-def missed_points(root, data, report):
-    """Numbered lines of the scenario and its amendments that no `covered` or `not_covered` item names."""
+def missed_outcomes(root, data, report):
+    """Numbered lines of the scenario and its amendments that no `covered` or `not_covered` outcome names."""
     body = record.load(root, data["id"])[2]
     at = body.find("## Scenario")
     if at < 0:
         return []
     end = body.find("\n## May ignore")
-    items = [norm(i.get("item")) for key in ("covered", "not_covered")
-             for i in report.get(key) or [] if isinstance(i, dict) and i.get("item")]
+    items = [norm(i.get("outcome")) for key in ("covered", "not_covered")
+             for i in report.get(key) or [] if isinstance(i, dict) and i.get("outcome")]
     numbers = {m.group(1) for i in items if (m := re.match(r"(\d+)\.?(?:\s|$)", i))}
     missed = []
     region = body[at:end if end > at else len(body)]
     amended = region.find("### Amended")
-    for m in POINT.finditer(region):
+    for m in OUTCOME.finditer(region):
         num, text = m.groups()
         if data.get("kind") == "refactor" and not 0 <= amended <= m.start():
-            continue  # a refactor slice's own points have no red; only an amendment's points need one
+            continue  # a refactor slice's own outcomes have no red; only an amendment's outcomes need one
         t = norm(text)
         by_number = num in numbers and not 0 <= amended <= m.start()
         if not by_number and not any(t in i or (len(i) >= 4 and i in t) or t[:40] in i for i in items):
@@ -1227,10 +1227,10 @@ def unreadable_input(root, data, report):
         out.append("The record has no `## Scenario` heading, so the check cannot read the scenario.")
     covered, not_covered = report.get("covered"), report.get("not_covered")
     if not isinstance(not_covered, list) or not all(isinstance(n, dict) for n in not_covered):
-        out.append("The report's `not_covered` is missing or is not a list of items.")
+        out.append("The report's `not_covered` is missing or is not a list of outcomes.")
     if not isinstance(covered, list) or not covered or not all(
-            isinstance(c, dict) and c.get("item") and covered_names(c.get("test")) for c in covered):
-        out.append("The report's `covered` is missing, empty, or has an item that names no test.")
+            isinstance(c, dict) and c.get("outcome") and covered_names(c.get("test")) for c in covered):
+        out.append("The report's `covered` is missing, empty, or has an outcome that names no test.")
     else:
         files = red_file_texts(root, data.get("red") or {})
         removed = [COVERED_SEPARATOR.split(m["assertion"].split(";")[0])[-1].strip() for m in data.get("moved_tests") or []
@@ -1239,7 +1239,7 @@ def unreadable_input(root, data, report):
         for c in covered:
             for name in covered_names(c["test"]):
                 if not covered_name_found(name, files) and COVERED_SEPARATOR.split(name)[-1].strip() not in removed:
-                    out.append(f"The report says `{name}` covers {c['item']}, and no red file has that test.")
+                    out.append(f"The report says `{name}` covers {c['outcome']}, and no red file has that test.")
     return out
 
 
@@ -1262,7 +1262,7 @@ def scenario_red_gaps(root, data, red):
                          exists=lambda words: xv_help_at_base(root, data.get("base"), words) is not None,
                          has_flag=lambda words, flag: xv_flag_at_base(root, data.get("base"), words, flag))
     accepted = " ".join(s.get("question") or "" for s in data.get("stops") or []
-                        if s.get("order") == "red_misses_scenario" and s.get("answer") and not s.get("sent_back"))
+                        if s.get("order") == "red_misses_scenario" and s.get("answer") and not s.get("sendback"))
     return [g for g in gaps if f"`{g}`" not in accepted]
 
 
@@ -1459,7 +1459,7 @@ def close(slice_id, why=None, shape=None):
     maker_runs = sum(1 for row in data["spend"] if row.get("step") == "maker")
     stop_sendbacks = sum(1 for stop in data["stops"]
                          if stop.get("answer") == "sent back to the maker"
-                         or stop.get("sent_back_to") == "maker")
+                         or stop.get("sendback_to") == "maker")
     data["maker_sendbacks"] = max(maker_runs - 1, stop_sendbacks, 0)
     body = record.log_line(body, "watch", "closed" + ("" if p.returncode == 0 else f"; guide: {p.stderr.strip()}"))
     record.save(path, data, body)
@@ -1538,8 +1538,8 @@ def cmd_guard(a):
         for field in packetlib.ALLOWED:
             data[field] = pdata.get(field) if pdata.get(field) in packetlib.YES_NO else "yes"
         data["checks"]["guardian"] = {"picture_change": pdata.get("picture_change")}
-        if pdata.get("moved_tests"):
-            data["moved_tests"] = [{"file": "see the packet"}] * int(pdata.get("moved_tests") or 0)
+        if pdata.get("moved_tests_count"):
+            data["moved_tests"] = [{"file": "see the packet"}] * int(pdata.get("moved_tests_count") or 0)
         if a.out:
             shutil.copy(full, a.out)
     else:

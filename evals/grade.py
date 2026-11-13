@@ -114,7 +114,7 @@ def red_at_user_surface(ctx):
 
 
 def watch_first_green_noted(ctx):
-    note = (record(ctx).get("red") or {}).get("watch_first_green")
+    note = (record(ctx).get("red") or {}).get("watch_before_merge")
     return bool(note), f"note: {str(note)[:100]}" if note else "no note for the first green"
 
 
@@ -339,13 +339,13 @@ def stop_ready_for_person(ctx):
     """The run ended where the person takes over: the merge, or accepting moved tests."""
     v = ctx.get("verdict") or {}
     stop = v.get("stop") or {}
-    ok = stop.get("order") in ("ready_to_merge", "accept_moves")
+    ok = stop.get("order") in ("ready_to_merge", "moves_to_accept")
     return ok, f"stop: {stop.get('order')} for {stop.get('seat')}"
 
 
 def stop_accept_moves(ctx):
     stop = (ctx.get("verdict") or {}).get("stop") or {}
-    return stop.get("order") == "accept_moves", f"stop: {stop.get('order')} for {stop.get('seat')}"
+    return stop.get("order") == "moves_to_accept", f"stop: {stop.get('order')} for {stop.get('seat')}"
 
 
 def boundary_in_packet(ctx):
@@ -440,9 +440,9 @@ def forecast_uses_same_key(ctx):
         ok = bool(re.search(r"no (history|data|rows|entries|past|prior)|not in the (log|guide)|no matching", t))
         return ok, "says there is no history for this key" if ok else "gives a number for a key with no history"
     fc = record(ctx).get("forecast") or {}
-    mine = [k for k in fc.get("keys", []) if (k.get("harness"), k.get("model")) == want]
+    mine = [k for k in fc.get("rows", []) if (k.get("harness"), k.get("model")) == want]
     if not mine:
-        return False, f"no forecast for {want}; keys: {[(k.get('harness'), k.get('model')) for k in fc.get('keys', [])]}"
+        return False, f"no forecast for {want}; rows: {[(k.get('harness'), k.get('model')) for k in fc.get('rows', [])]}"
     k = mine[0]
     if not has_history:
         return k.get("tokens") is None, f"no history for {want}; tokens: {k.get('tokens')}"
@@ -455,7 +455,7 @@ def forecast_has_shape(ctx):
     if ctx["arm"] == "baseline":
         ok = bool(re.search(r"(?i)\bshape|breadth|scope of change|narrow|wide\b", final_text(ctx)))
         return ok, "names the expected shape change" if ok else "no shape forecast"
-    shape = (record(ctx).get("forecast") or {}).get("shape")
+    shape = (record(ctx).get("forecast") or {}).get("shape_breadth")
     return shape in ("none", "narrow", "wide"), f"shape: {shape}"
 
 
