@@ -143,8 +143,9 @@ Sean Kennedy sits with them.
   Each slice has a git branch `xv/<id>` and a worktree under `.xv/worktrees/`.
   The branch starts from `--base`, else `worktrees.base`, else `origin/HEAD`, else HEAD.
   With `xv slice new --from <ref>` the branch starts at the build, and `base` stays the merge target.
-  The record holds `build` (`none`, or `{kind: exploration, ref, commit}`) and `build_shared` (`yes` or `no`).
-  `--share-build` needs `--from`.
+  `xv slice new --from` sets each `.xv/` file the build changed back to the base's copy, and the slice log names each one with the build commit (`xvlib.drop_layer_edits`).
+  The record holds `build` (`none`, `{kind: exploration, ref, commit}` from `xv slice new --from`, or `{kind: kept_pick, ref, variant, commit}` from `xv prototype pick --keep`) and `build_shared` (`yes` or `no`).
+  `--share-build` needs `--from` on `xv slice new`, and `--keep` on `xv prototype pick`.
   A slice from a build also has a git ref, `refs/xv/<id>/red`, which holds its red at the base, and `xv close` deletes it.
   The record keeps the build's commit in `build.commit`, so the slice still finds the build when its ref is deleted.
   In session mode, `xv record report <id> scenario -` runs `scripts/run.py land-scenario` in a subprocess, which lands the red, runs it at the base and on the build, takes the wall baseline at the base, and drops the checkout.
@@ -155,6 +156,8 @@ Sean Kennedy sits with them.
   A prototype slice's record holds `prototype_budgets`, one budget for each of a, b and c, in the shape of `budget` and free to differ; a variant's spend counts only against its own budget.
   A variant has run out when its spend, before the start or after its own run, reaches its budget.
   The others still run, and then `prototype_budget_spent` stops for the originator, naming each variant that ran out and its spend.
+  `prototype_budget_spent` and `prototypes_ready` also name each variant that did not finish, with its error.
+  `prototypes_ready` says the pick may be thrown away or kept as the build.
   The originator answers a budget raise alone; a pick, `none` included, is for two people unless the repo runs solo.
   A variant has finished when it has a recording and did not run out.
   A second `xv prototype start` reruns every variant that has not finished, from HEAD, on what is left of its budget, and keeps the finished ones.
@@ -166,9 +169,14 @@ Sean Kennedy sits with them.
   A variant with an `error` cannot be picked, and the refusal says its setup or run failed.
   A new `--axis` keeps none.
   A variant that ran out cannot be picked.
+  `xv prototype pick --keep` merges the pick's branch onto the slice branch as the build, and the record says `build: {kind: kept_pick, ref, variant, commit}`; the other two are removed.
+  The pick refuses a missing `--scenario-file` before it changes anything, so a refused `--keep` leaves the slice branch, the record and all three prototypes as they were.
+  The build's edits to `.xv/` are dropped and named in the log, except the pick's own prototypes folder.
+  `xv prototype start` refuses once `kind` is not `prototype`.
+  `xv close` deletes a kept pick's branch, never a `--from` ref.
   After the maker, a scenario step checks the red in a temporary detached worktree at `pre_maker_commit`, saved before the maker's first run, with the red files copied from HEAD and `worktrees.setup` run first; in a slice from a build, it runs in the scratch checkout at the base instead.
   In a slice from a build, the scenario agent runs in a temporary detached worktree that starts at the tip of `refs/xv/<id>/red` when the base is an ancestor of that tip, and at the base otherwise.
-  Unless the build is shared, the agent's record copy has `build: none`, `branch` set to the base, and no commit that is not an ancestor of the base.
+  Unless the build is shared, the agent's record copy has `build: none`, `branch` set to the base, no `prototypes` and no `prototype_sessions`, and no commit that is not an ancestor of the base.
   The red runs there, and the wall baseline is hashed there.
   Its commit moves the ref, and it is cherry-picked onto the slice branch; a conflict stops with `red_conflicts_with_build` for the originator.
   The red then runs on the build, and the maker's prompt names the tests that fail.
@@ -257,8 +265,8 @@ Sean Kennedy sits with them.
 - `settled` is what an answer made true, written by the watch as the person's scribe; the person's words stay in `answer`.
   An offer is the numbered options the watch puts on an open stop (`xv record offer`), each with the `settled` text it would record (2026-10-29, #80).
   An option may carry one directed edit (#132).
-- An exploration is a build made with an agent outside XV.
-  A slice opens from it with `--from`.
+- A build of the person's own is a way to Build to find out: a build made with an agent outside XV.
+  A slice opens from it with `--from`, and the record calls it `kind: exploration`.
 
 ## Where the code and the docs disagree
 Settled with Sean on 2026-10-24.

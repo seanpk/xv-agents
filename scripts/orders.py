@@ -111,6 +111,17 @@ def budget_before(data):
                 "Continue with a new budget, reshape, or set it aside.")
 
 
+def unfinished(data):
+    """Each prototype variant that did not finish, with its error, for the stop after `xv prototype start`."""
+    failed = [p for p in data.get("prototypes") or [] if p.get("error")]
+    if not failed:
+        return ""
+    start = f"`xv prototype start {data['id']}`"
+    return "".join(f" Variant {p['name']} did not finish: {str(p['error']).strip().rstrip('.')}." for p in failed) + \
+        (f" It cannot be picked; a second {start} runs it again." if len(failed) == 1 else
+         f" They cannot be picked; a second {start} runs them again.")
+
+
 def evaluate(data, after, config):
     """All orders that fire after `after`. Pure: reads the record and the config."""
     out = []
@@ -376,13 +387,15 @@ def evaluate(data, after, config):
                         f"answer this stop, and then run `xv prototype start {data['id']}` again, which runs only the "
                         f"variants that have not finished and keeps the rest; or {pick}. The person who set the work "
                         "going answers a budget raise alone; a pick, including none, is for two people unless the "
-                        "repo runs solo. A variant that ran out cannot be picked."))
+                        "repo runs solo. A variant that ran out cannot be picked." + unfinished(data)))
 
     if after == "prototype" and checks.get("prototypes_ready") is not None and not ran_out:
         n = checks["prototypes_ready"]
         out.append(fire("prototypes_ready", "two_people",
                         f"{n} prototype(s) are ready to pick from, or none. Two people pick, with a user "
-                        "when one can be reached."))
+                        "when one can be reached. The pick is thrown away, or kept as the build this slice starts "
+                        f"from (`xv prototype pick {data['id']} --variant <v> --keep ...`); the people choose."
+                        + unfinished(data)))
 
     if not any(f["blocking"] for f in out):
         if after == "scenario" and checks.get("missed_points"):

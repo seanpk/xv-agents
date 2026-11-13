@@ -197,6 +197,18 @@ if title.startswith("# The maker, with a prototype brief"):
     os.makedirs(where, exist_ok=True)
     with open(os.path.join(where, "recording.md"), "w") as f:
         f.write(f"POST /items/milk/use -> 200, variant {variant}: {position}\n")
+    if os.environ.get("FAKE_PROTO_BUILDS"):  # each variant leaves code of its own, as a running build would
+        with open(f"pantry/proto_{variant}.py", "w") as f:
+            f.write(f"VARIANT = {variant!r}\n")
+    if os.environ.get("FAKE_PROTO_FIX") == variant:  # this variant also fixes what the red will test
+        path = "pantry/store.py"
+        text = open(path).read().replace("today < i.expires_on <= last", "today <= i.expires_on <= last")
+        open(path, "w").write(text)
+    if os.environ.get("FAKE_PROTO_EDITS_LAYER") == variant:  # it bends the project layer too
+        with open(".xv/picture.md", "a") as f:
+            f.write(f"\nA line prototype {variant} wrote into the picture.\n")
+    if os.environ.get("FAKE_PROTO_COMMITS") == variant:  # it commits its own work
+        os.system(f"git add -A && git commit -q --no-verify -m 'prototype {variant}, its own commit'")
     report(agent="prototype", status="done", variant=variant, axis_position=position,
            refuses=f"refuses nothing ({variant})", costs="one more call", recording=f"{where}/recording.md",
            run="python3 -m pantry.api")

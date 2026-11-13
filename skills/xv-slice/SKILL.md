@@ -23,7 +23,7 @@ One question at a time:
 
 When the person gives `--from <ref>`, or says a build is running, write the scenario with them from what runs: the steps a user takes on the build and what they see, in the person's words. Do not ask about a build otherwise; a slice with no build opens as it does now.
 
-When the scenario will not settle (the answers are not clear, the talk goes round without settling, or the person starts to wonder what they want), offer two ways to build to find out: a prototype slice, as in question 4, or an exploration. An exploration opens no slice. Tell the person to build with an agent, outside XV, and to open the slice with `xv slice new --from <ref>` when the scenario can be written from what runs. Offer it; the person chooses.
+When the scenario will not settle (the answers are not clear, the talk goes round without settling, or the person starts to wonder what they want), offer two ways to Build to find out: a prototype slice, as in question 4, or a build of the person's own. That build opens no slice. Tell the person to build with an agent, outside XV, and to open the slice with `xv slice new --from <ref>` when the scenario can be written from what runs. Offer it; the person chooses.
 
 Read the scenario back in the person's words, in the message to the person: the full scenario and its "may ignore" lines, not only a path to a file. Tidy grammar only. If it is ambiguous about what must be true, ask; do not pick.
 
