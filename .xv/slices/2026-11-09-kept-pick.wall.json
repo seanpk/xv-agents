@@ -69,6 +69,8 @@
   "tests/test_one_name.py": 3,
   "tests/test_orders.py": 109,
   "tests/test_packet.py": 39,
+  "tests/test_pairing.py": 85,
+  "tests/test_pairing_build.py": 93,
   "tests/test_picture_lines.py": 13,
   "tests/test_promote.py": 34,
   "tests/test_promote_draft.py": 8,
@@ -95,7 +97,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "b1e3e8d9520ab26fca043532d34a956c4701995d",
+ "commit": "8802fcbf3da2b049cf92536b47fcb37ca482425c",
  "files": {
   "tests/data/cannot-run/cargo-load.txt": "d3e835e2490c11e3f1b7c1a00ef224a143e7badb854bddd76372f2c3a55b5dd6",
   "tests/data/cannot-run/cargo-none.txt": "7553d787f97f86d518d5fa9ec516c5226bb880a466df2f96684c69bf4595cd46",
@@ -166,6 +168,8 @@
   "tests/test_one_name.py": "0ecfdabb465c0bd9fe8b10f8cfa9e580c67003fb8060c4c05c53426403e2320e",
   "tests/test_orders.py": "e8300a0e5aace5e4ceb2f1f664a2d4a2e14a68792b942ee3219b4af388a4dc04",
   "tests/test_packet.py": "a652d8256668b77c12cfaf3d6ad4815b16d818cd09f3b62e03b492b6f5d75f0e",
+  "tests/test_pairing.py": "a30d75837324e6471ed4fd01d51a0010fe38bc0012e9cc95595deb28eeb9e73c",
+  "tests/test_pairing_build.py": "62ad3bfa4092cbb4445a6d4d2b33be1e3d1d66fef9e264d420e8aff65fac0ab3",
   "tests/test_picture_lines.py": "e196fdddc033bd22fb44f5415222523ff1918ee0d85abcd1bd1f41bbfbdb84e0",
   "tests/test_promote.py": "e4b71c7d56aec8cbe9e6c6105c343f0d340ee666aa96007203d7f9d47ac12568",
   "tests/test_promote_draft.py": "564226e253e4b8a0308407fcd8eade9a132af0c500276234d6e56303c39f226d",
