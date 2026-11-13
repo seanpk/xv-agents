@@ -156,6 +156,8 @@ Sean Kennedy sits with them.
   A prototype slice's record holds `prototype_budgets`, one budget for each of a, b and c, in the shape of `budget` and free to differ; a variant's spend counts only against its own budget.
   A variant has run out when its spend, before the start or after its own run, reaches its budget.
   The others still run, and then `prototype_budget_spent` stops for the originator, naming each variant that ran out and its spend.
+  `prototype_budget_spent` and `prototypes_ready` also name each variant that did not finish, with its error.
+  `prototypes_ready` says the pick may be thrown away or kept as the build.
   The originator answers a budget raise alone; a pick, `none` included, is for two people unless the repo runs solo.
   A variant has finished when it has a recording and did not run out.
   A second `xv prototype start` reruns every variant that has not finished, from HEAD, on what is left of its budget, and keeps the finished ones.
@@ -168,6 +170,7 @@ Sean Kennedy sits with them.
   A new `--axis` keeps none.
   A variant that ran out cannot be picked.
   `xv prototype pick --keep` merges the pick's branch onto the slice branch as the build, and the record says `build: {kind: kept_pick, ref, variant, commit}`; the other two are removed.
+  The pick refuses a missing `--scenario-file` before it changes anything, so a refused `--keep` leaves the slice branch, the record and all three prototypes as they were.
   The build's edits to `.xv/` are dropped and named in the log, except the pick's own prototypes folder.
   `xv prototype start` refuses once `kind` is not `prototype`.
   `xv close` deletes a kept pick's branch, never a `--from` ref.
