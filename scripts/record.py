@@ -17,7 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import moves  # noqa: E402
-from names import COVERS_SEPARATOR, covers_name_found, joined_unsafely  # noqa: E402
+from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely  # noqa: E402
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
 import wall  # noqa: E402
@@ -472,12 +472,12 @@ def cmd_offer(a):
 
 def wall_matches(recs, spec, root=None):
     """The recommendations a --accept-wall or --refuse-wall value names: a bare test name, or the same forms the
-    covers check takes (`file::test`, `Class#test`, `module.Class.test`, a path prefix, ` > `). Class and module
-    parts are looked for in the recommendation's file, as the covers check does."""
+    coverage check takes (`file::test`, `Class#test`, `module.Class.test`, a path prefix, ` > `). Class and module
+    parts are looked for in the recommendation's file, as the coverage check does."""
     named = [r for r in recs if r.get("test") == spec]
     if named:
         return named
-    last = lambda name: COVERS_SEPARATOR.split(name or "")[-1].strip()
+    last = lambda name: COVERED_SEPARATOR.split(name or "")[-1].strip()
     for r in recs:
         if last(r.get("test")) != last(spec):
             continue
@@ -485,7 +485,7 @@ def wall_matches(recs, spec, root=None):
         if root and r.get("file") and os.path.isfile(os.path.join(root, r["file"])):
             with open(os.path.join(root, r["file"]), encoding="utf-8", errors="replace") as f:
                 text = f.read()
-        if covers_name_found(spec, {r.get("file") or "": text}):
+        if covered_name_found(spec, {r.get("file") or "": text}):
             named.append(r)
     return named
 

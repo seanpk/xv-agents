@@ -202,7 +202,7 @@ def evaluate(data, after, config):
         run = miss_run(data, "red_misses_point", after)
         if any(run.get(p, 0) >= 2 for p in points):
             out.append(fire("red_misses_point", "originator",
-                            "The same scenario points are still in neither covers nor not_covered after two send-backs: "
+                            "The same scenario points are still in neither covered nor not_covered after two send-backs: "
                             + "; ".join(points) + ". " + STALL_CHOICES))
         if checks.get("red_fails") is False:
             out.append(fire("scenario_not_red", "originator",
@@ -401,9 +401,9 @@ def evaluate(data, after, config):
         if after == "scenario" and checks.get("missed_points"):
             points = sorted({str(p) for p in checks["missed_points"]})
             out.append(fire("red_misses_point", "watch",
-                            "These points are in neither covers nor not_covered; put each in `covers` or `not_covered` "
+                            "These points are in neither covered nor not_covered; put each in `covered` or `not_covered` "
                             "as the item shown: " + "; ".join(points) + ". Every point of the scenario and its "
-                            "amendments goes in `covers` or `not_covered` on each pass, not only the points of the "
+                            "amendments goes in `covered` or `not_covered` on each pass, not only the points of the "
                             "newest amendment.",
                             blocking=False, send_back={"to": "scenario", "misses": points}))
         elif after == "guardian" and data.get("scenario_miss") == "yes" and checks.get("misses"):

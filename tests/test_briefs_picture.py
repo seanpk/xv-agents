@@ -34,7 +34,7 @@ class PictureInTheBriefsTest(unittest.TestCase):
 
     def test_the_scenario_brief_says_each_numbered_point_must_be_in_covers_or_not_covered(self):
         text = brief("skills", "scenario", "SKILL.md")
-        self.assertRegex(text, r"(?is)each numbered point[^\n]*amendment[^\n]*covers[^\n]*not_covered")
+        self.assertRegex(text, r"(?is)each numbered point[^\n]*amendment[^\n]*`covered`[^\n]*`not_covered`")
 
     def test_the_watch_may_edit_the_picture_when_a_person_directs_it(self):
         text = brief("skills", "watch", "SKILL.md")

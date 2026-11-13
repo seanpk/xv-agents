@@ -39,12 +39,12 @@ Sean Kennedy sits with them.
   `orders` reaches `spend` and `xvlib`.
   `record` and `evals/report` reach `spend`.
   `record` reaches `orders`, `packet`, `moves` and `wall`.
-  `names` holds `covers_name_found`, `COVERS_SEPARATOR` and `joined_unsafely`, which `record` and `run` both import.
+  `names` holds `covered_name_found`, `COVERED_SEPARATOR` and `joined_unsafely`, which `record` and `run` both import.
 - `bin/xv` is the only entry point.
   It maps each command name to one script and runs it.
   `init`, `slice`, `run`, `step`, `close` and `guard` all land in `run.py`, the largest script.
   `slice` also runs `xv slice rebase` (`--onto`, `--continue`, `--abort`).
-- Roughly: `xvlib` is the shared base (config, git, record paths, and the shared test-name matcher `names_test`; `covers` names use `names.covers_name_found`).
+- Roughly: `xvlib` is the shared base (config, git, record paths, and the shared test-name matcher `names_test`; `covered` names use `names.covered_name_found`).
   `record` owns the slice record, and the build rules: `has_build`, `build_commit` and `wall_for_build`.
   `suite` runs `tests.command` for `run` and `record`.
   `suite` also holds `failing_tests`, `own_red_names` and `in_own_red`, which `run` and `record` both import.
@@ -109,7 +109,7 @@ Sean Kennedy sits with them.
   An agent's report cannot set `accepted` on its own mark.
   The guardian's `wall_recommendations` go to the same person in `accept_moves`.
   Only a person's `--accept-wall <test>` accepts one, and only `--refuse-wall <test>` takes back one accepted earlier; an accepted `mark slice-only` recommendation is listed in `slice_only`, and refusing it later takes it out, matched on file and test; a new recommendation not named is refused, and an agent's report sets neither.
-  Both flags take the test with its file, in the forms the covers check takes (`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`); a bare name that two files share is refused, and the refusal names each `file::test`.
+  Both flags take the test with its file, in the forms the coverage check takes (`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`); a bare name that two files share is refused, and the refusal names each `file::test`.
   Giving either flag on another kind of stop, or both on one test, is refused.
   Each answered `accept_moves` stop keeps `accepted_wall` and `refused_wall`.
   `decisions` reads every slice record through `retro.records()` and counts answered stops per order: picks equal to the recommendation, `new_info: none`, and causes.
@@ -185,15 +185,16 @@ Sean Kennedy sits with them.
   A red command joined at the top level by anything but `&&` (`;`, `||`, `|`, `&` or a new line, outside quotes) is not run and not kept as the slice's red; the scenario step stops for the originator (`scenario_stopped`), and `next` stays `scenario`, so the scenario agent rewrites it with `&&`.
   `xv record report` applies the same rule in session mode, with or without a build (`record.cmd_report`).
   A red that fails before any test runs (exit 126 or 127, a runner's own words that a file could not load or no tests were found, or a general error name with no real failing test) stops the scenario step for the originator (`red_cannot_run`), and `next` stays `scenario`.
-  After the scenario step, `red_misses_scenario` stops for the originator before the maker when the report lists a `not_covered` item, when `red_gaps` lists anything, or when the check cannot read its input: no `## Scenario` heading, `covers` or `not_covered` missing or not a list, `covers` empty, or with an item whose `test` is not one name, a list of non-empty strings, or a string joined with `,` or `;`, or a `covers` name that matches no whole word in any red file.
+  After the scenario step, `red_misses_scenario` stops for the originator before the maker when the report lists a `not_covered` item, when `red_gaps` lists anything, or when the check cannot read its input: no `## Scenario` heading, `covered` or `not_covered` missing or not a list, `covered` empty, or with an item whose `test` is not one name, a list of non-empty strings, or a string joined with `,` or `;`, or a `covered` name that matches no whole word in any red file.
   A `not_covered` item named in an earlier answered `red_misses_scenario` stop does not stop again, unless that answer sent the slice back (`sent_back`).
-  On a later scenario pass, the coverage kept from earlier passes (`checks.scenario.covers_kept`) is added to the report's `covers` before the check, except when the record's `next` is `maker` (a pass that went on to the maker ends the run), so an empty `covers` does not stop when something was kept; each kept name is checked again against the red files.
-  A `covers` name whose last part is a slice-only test that the cleaner removed by a recorded move does not stop; only the move's assertion before a `;` is read.
-  A `covers` name may start with a red file's path or module and is split by `::`, `.`, `#`, `/` or ` > `; it matches when each part after the path is a whole word in that red file, in order (`names.covers_name_found`); a name whose test part is empty stops, and the stop names the name that does not match.
-  A numbered point of the scenario or an amendment that is in neither `covers` nor `not_covered` sends the slice back to the scenario agent (`xv step` and `xv run` compute this).
+  On a later scenario pass, the coverage kept from earlier passes (`checks.scenario.covered_kept`) is added to the report's `covered` before the check, except when the record's `next` is `maker` (a pass that went on to the maker ends the run), so an empty `covered` does not stop when something was kept; each kept name is checked again against the red files.
+  A record written before the rename keeps its kept points under `covers_kept`, and the check reads them when `covered_kept` is empty or missing (`scripts/run.py:1119`).
+  A `covered` name whose last part is a slice-only test that the cleaner removed by a recorded move does not stop; only the move's assertion before a `;` is read.
+  A `covered` name may start with a red file's path or module and is split by `::`, `.`, `#`, `/` or ` > `; it matches when each part after the path is a whole word in that red file, in order (`names.covered_name_found`); a name whose test part is empty stops, and the stop names the name that does not match.
+  A numbered point of the scenario or an amendment that is in neither `covered` nor `not_covered` sends the slice back to the scenario agent (`xv step` and `xv run` compute this).
   The match ignores backticks, `*` and `_` in both the point and the item (`run.norm`).
   The send-back lists each missed point as `<number>. <text>`, an item the check accepts, and says every point goes in on each pass.
-  A `covers` item that is a number, or starts with one, covers the scenario's own point with that number.
+  A `covered` item that is a number, or starts with one, covers the scenario's own point with that number.
   It never covers an amendment's point (`run.missed_points`).
   After the scenario step, `unrecorded_move` stops for the originator before the maker when any test file that existed at the base, under `tests.paths` or in the red, lost or changed a line other than a blank, comment or import, unless a recorded move names the file.
   In a slice from a build, a test file the build only added lines to is not unrecorded; a line the build changed or removed at the base still stops.
@@ -218,7 +219,7 @@ Sean Kennedy sits with them.
   Leftover conflict markers stop as `rebase_stuck` before staging.
   A refactor slice's scenario step runs no agent until the scenario is amended.
   It runs the suite, and `suite_not_green_at_start` stops for the originator unless the suite is green.
-  After an amend, the scenario agent writes a red as on a feature slice, and only the amendment's points need `covers` or `not_covered`.
+  After an amend, the scenario agent writes a red as on a feature slice, and only the amendment's points need `covered` or `not_covered`.
 - Surfaces: the `xv` CLI, `skills/*/SKILL.md`, three GitHub Actions examples in `ci/github/`, and `.github/workflows/` (tests, weekly drift check).
 - `evals/` holds a small "pantry" fixture app, scenarios, and recorded runs on three harnesses.
 

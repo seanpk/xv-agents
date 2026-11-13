@@ -7,10 +7,10 @@ import os
 import re
 
 
-COVERS_SEPARATOR = re.compile(r"::|\s>\s|[.#/]")
+COVERED_SEPARATOR = re.compile(r"::|\s>\s|[.#/]")
 
 
-def covers_name_found(name, files):
+def covered_name_found(name, files):
     """A name that may start with a red file's path or module and is split by `::`, `.`, `#`, `/` or ` > `;
     each part after the path must be a whole name in that file, in order."""
     rest, best = name, None
@@ -18,12 +18,12 @@ def covers_name_found(name, files):
         slashed, dotted = f.split("/"), os.path.splitext(f)[0].replace("/", ".").split(".")
         forms = ["/".join(slashed[i:]) for i in range(len(slashed))] + [".".join(dotted[i:]) for i in range(len(dotted))]
         for form in forms:
-            m = re.match(re.escape(form) + "(?:" + COVERS_SEPARATOR.pattern + "|$)", name)
+            m = re.match(re.escape(form) + "(?:" + COVERED_SEPARATOR.pattern + "|$)", name)
             if m and (best is None or len(form) > best[1]):
                 best = (f, len(form), m.end())
     if best:
         files, rest = {best[0]: files[best[0]]}, name[best[2]:]
-    parts = [p.strip() for p in COVERS_SEPARATOR.split(rest)]
+    parts = [p.strip() for p in COVERED_SEPARATOR.split(rest)]
     if not all(parts):
         return False
     for t in files.values():
