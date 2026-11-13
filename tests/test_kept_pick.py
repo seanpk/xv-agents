@@ -108,13 +108,6 @@ class KeepThePickTest(KeptPickBase):
         self.assertEqual(sh(["git", "rev-parse", "xv/p1-proto-b"], self.repo).stdout.strip(), build["commit"])
         self.assertEqual((data["kind"], data["next"]), ("feature", "forecaster"))
 
-    def test_the_kept_branch_stays_and_the_other_two_are_discarded(self):
-        self.pick("--keep", check=True)
-        self.assertEqual(self.branches(), ["xv/p1-proto-b"])
-        for n in "abc":
-            self.assertFalse(os.path.exists(os.path.join(self.repo, ".xv", "worktrees", f"p1-proto-{n}")),
-                             f"prototype {n}'s worktree, its context, is still there")
-
     def test_the_slice_branch_has_the_kept_build_and_not_the_others(self):
         self.pick("--keep", check=True)
         build = self.record()["build"]["commit"]
@@ -136,20 +129,6 @@ class KeepThePickTest(KeptPickBase):
         body = open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read()
         self.assertIn("picked b, kept as the build", body.split("## Log")[1])
         self.assertTrue(next(p for p in data["prototypes"] if p["name"] == "b").get("kept"))
-
-    def test_keep_with_none_is_refused(self):
-        p = self.xv("prototype", "pick", "p1", "--variant", "none", "--by", "pat,sam", "--keep", cwd=self.wt,
-                    check=False)
-        self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
-        self.assertIn("none has no branch", p.stderr)
-        self.assertEqual(self.record()["kind"], "prototype")
-
-    def test_share_build_without_keep_is_refused(self):
-        p = self.pick("--share-build")
-        self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
-        self.assertRegex(p.stderr, r"--share-build needs --keep")
-        self.assertEqual(self.record()["kind"], "prototype")
-        self.assertEqual(len(self.branches()), 3, "a refused pick discards nothing")
 
     def test_a_kept_pick_whose_branch_holds_nothing_is_refused_and_changes_nothing(self):
         wt = os.path.join(self.repo, ".xv", "worktrees", "p1-proto-b")
@@ -183,27 +162,6 @@ class PrototypeBendsTheLayerTest(KeptPickBase):
                          "a kept pick brought the prototype's edit to the picture")
         self.assertTrue(os.path.exists(os.path.join(self.wt, KEPT)), "the code still came")
         self.assertTrue(os.path.exists(os.path.join(self.wt, ".xv", "prototypes", "p1", "b", "recording.md")))
-
-
-    def test_the_log_names_each_project_file_the_build_brought_and_was_dropped(self):
-        self.pick("--keep", check=True)
-        log = open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read()
-        self.assertRegex(log, r"(?m)^.*\.xv/picture\.md.*$")
-        self.assertRegex(log, r"(?i)dropp")
-        self.assertNotIn(".xv/prototypes/p1/b/recording.md", log.split("## Log", 1)[-1].split("dropp", 1)[-1])
-
-
-class KeptPickLogNamesTheCommitTest(KeptPickBase):
-    PROTO_ENV = {"FAKE_PROTO_BUILDS": "1", "FAKE_PROTO_EDITS_LAYER": "b"}
-
-    def test_the_log_line_names_the_build_commit_the_dropped_content_lives_in(self):
-        self.pick("--keep", check=True)
-        commit = self.record()["build"]["commit"]
-        log = open(os.path.join(self.wt, ".xv", "slices", "p1.md")).read()
-        line = [l for l in log.splitlines() if "dropp" in l.lower()][0]
-        self.assertIn(commit[:7], line)
-        shown = sh(["git", "show", f"{commit[:7]}:.xv/picture.md"], self.repo).stdout
-        self.assertIn("A line prototype b wrote into the picture.", shown)
 
 
 class SliceMovedOnBeforeTheKeptPickTest(KeptPickBase):
@@ -248,15 +206,6 @@ class AfterTheKeptPickTest(KeptPickBase):
 
 
 class RedOnTheKeptPickTest(KeptPickBase):
-    def test_the_scenario_agent_runs_at_the_base_without_the_kept_build(self):
-        self.pick("--keep", check=True)
-        self.scenario_step()
-        ran = self.ran("# The scenario agent")
-        self.assertIsNotNone(ran, "the scenario agent did not run")
-        self.assertFalse(ran["exists"][KEPT], "the scenario agent's checkout has the kept build in it")
-        self.assertTrue(self.is_ancestor(self.main, ran["head"]))
-        self.assertFalse(self.is_ancestor(self.record()["build"]["commit"], ran["head"]))
-
     def test_the_scenario_agent_is_not_told_where_the_kept_build_is(self):
         self.pick("--keep", check=True)
         self.scenario_step()

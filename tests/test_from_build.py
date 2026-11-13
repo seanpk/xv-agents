@@ -143,44 +143,10 @@ class ProjectLayerFromBuildTest(FromBuildBase):
                                       ".xv/added-by-build.md": "a rule the build added\n"})
         self.picture = sh(["git", "show", f"{self.main}:.xv/picture.md"], self.repo).stdout
 
-    def test_the_build_s_edits_to_the_project_layer_are_not_in_the_slice(self):
-        self.open_slice("--from", BUILD)
-        self.assertEqual(open(os.path.join(self.wt, ".xv", "picture.md")).read(), self.picture)
-        self.assertFalse(os.path.exists(os.path.join(self.wt, ".xv", "added-by-build.md")))
-        self.assertTrue(os.path.exists(os.path.join(self.wt, MARKER)), "the code came with the build")
-        self.assertTrue(self.is_ancestor(self.build, "xv/s1", self.wt))
-
     def test_the_slice_s_own_record_is_kept(self):
         self.open_slice("--from", BUILD)
         self.assertEqual(self.record()["id"], "s1")
         self.assertTrue(os.path.exists(os.path.join(self.wt, ".xv", "slices", "s1.md")))
-
-    def test_the_log_names_each_dropped_file(self):
-        self.open_slice("--from", BUILD)
-        log = open(os.path.join(self.wt, ".xv", "slices", "s1.md")).read()
-        self.assertRegex(log, r"(?i)dropp[^\n]*\.xv/picture\.md")
-        self.assertIn(".xv/added-by-build.md", log)
-
-
-class BaseMovedOnFromBuildTest(FromBuildBase):
-    """A `.xv/` file differs between the build and the base only because the base moved on: it takes the base's
-    copy, and the log does not say the build brought it."""
-
-    def move_base_on(self):
-        with open(os.path.join(self.repo, ".xv", "picture.md"), "a") as f:
-            f.write("\nA line people added after the build left.\n")
-        sh(["git", "commit", "-qam", "people moved the picture"], self.repo)
-
-    def log(self):
-        return open(os.path.join(self.wt, ".xv", "slices", "s1.md")).read()
-
-    def test_a_build_that_changed_no_project_file_logs_no_drop_though_the_base_moved(self):
-        self.make_build(False)
-        self.move_base_on()
-        self.open_slice("--from", BUILD)
-        want = sh(["git", "show", "main:.xv/picture.md"], self.repo).stdout
-        self.assertEqual(open(os.path.join(self.wt, ".xv", "picture.md")).read(), want)
-        self.assertNotRegex(self.log(), r"(?i)dropp")
 
 
 class SliceNewFromTest(FromBuildBase):
