@@ -182,7 +182,7 @@ Sean Kennedy sits with them.
   The red then runs on the build, and the maker's prompt names the tests that fail.
   A session scenario step makes that checkout and names it.
   The next `xv step scenario` or `xv close` drops a checkout that no report landed.
-  A red command joined at the top level by anything but `&&` (`;`, `||`, `|`, `&` or a new line, outside quotes) is not run and not kept as the slice's red; the scenario step stops for the originator (`scenario_stopped`), and `next` stays `scenario`, so the scenario agent rewrites it with `&&`.
+  A red command joined at the top level by anything but `&&` (`;`, `||`, `|`, `&` or a new line, outside quotes) is not run and not kept as the slice's red; the scenario step stops for the originator (`red_command_joined`), and `next` stays `scenario`, so the scenario agent rewrites it with `&&`.
   `xv record report` applies the same rule in session mode, with or without a build (`record.cmd_report`).
   A red that fails before any test runs (exit 126 or 127, a runner's own words that a file could not load or no tests were found, or a general error name with no real failing test) stops the scenario step for the originator (`red_cannot_run`), and `next` stays `scenario`.
   After the scenario step, `red_misses_scenario` stops for the originator before the maker when the report lists a `not_covered` outcome, when `red_gaps` lists anything, or when the check cannot read its input: no `## Scenario` heading, `covered` or `not_covered` missing or not a list, `covered` empty, or with an item whose `test` is not one name, a list of non-empty strings, or a string joined with `,` or `;`, or a `covered` name that matches no whole word in any red file.
