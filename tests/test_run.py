@@ -366,19 +366,19 @@ class WatchLoopTest(WatchLoopSetup):
 
     def test_a_report_with_no_covers_stops_before_the_maker(self):
         p = self.scenario_with_env(FAKE_REPORT_DROP="covered")
-        self.assert_stopped_before_the_maker(p, "covered")
+        self.assert_stopped_before_the_maker(p, "`covered`")
 
     def test_a_covers_that_is_not_a_list_stops_before_the_maker(self):
         p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covered": "everything"}')
-        self.assert_stopped_before_the_maker(p, "covered")
+        self.assert_stopped_before_the_maker(p, "`covered`")
 
     def test_a_covers_item_that_names_no_test_stops_before_the_maker(self):
         p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covered": [{"item": "milk today"}]}')
-        self.assert_stopped_before_the_maker(p, "covered")
+        self.assert_stopped_before_the_maker(p, "`covered`")
 
     def test_an_empty_covers_stops_before_the_maker(self):
         p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covered": []}')
-        self.assert_stopped_before_the_maker(p, "covered")
+        self.assert_stopped_before_the_maker(p, "`covered`")
 
     def test_a_covers_item_whose_test_is_in_no_red_file_stops_before_the_maker(self):
         p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covered": [{"item": "milk today", "test": "test_a_ghost"}]}')
@@ -420,7 +420,7 @@ class WatchLoopTest(WatchLoopSetup):
         self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "test_milk")
 
     def test_an_empty_covers_list_stops_before_the_maker(self):
-        self.assert_stopped_before_the_maker(self.covers_test([]), "covered")
+        self.assert_stopped_before_the_maker(self.covers_test([]), "`covered`")
 
     def test_a_covers_test_that_joins_names_with_a_comma_goes_on_to_the_maker(self):
         p = self.covers_test("test_milk_today, test_cheese", FAKE_RED_TEXT="def test_cheese(self): pass")
@@ -453,15 +453,15 @@ class WatchLoopTest(WatchLoopSetup):
 
     def test_a_covers_list_with_a_number_among_the_names_stops_before_the_maker(self):
         extra = json.dumps({"covered": [{"item": "milk today", "test": ["test_milk_today", 7]}]})
-        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "covered")
+        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "`covered`")
 
     def test_a_covers_list_with_an_empty_string_among_the_names_stops_before_the_maker(self):
         extra = json.dumps({"covered": [{"item": "milk today", "test": ["test_milk_today", ""]}]})
-        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "covered")
+        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "`covered`")
 
     def test_a_covers_list_with_a_null_among_the_names_stops_before_the_maker(self):
         extra = json.dumps({"covered": [{"item": "milk today", "test": ["test_milk_today", None]}]})
-        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "covered")
+        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "`covered`")
 
     def test_a_covers_name_with_a_red_module_in_front_goes_on_to_the_maker(self):
         self.assert_goes_on(self.covers_test("tests.test_red.Red.test_milk_today"))
@@ -1405,6 +1405,19 @@ class ScenarioChecksTest(WatchLoopSetup):
         self.amend(point)
         self.first = {"FAKE_REPORT_EXTRA": json.dumps({"covered": [{"item": point, "test": "test_milk_today"}]})}
         self.send_back_to_the_scenario()
+        self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA='{"covered": []}'))
+
+    def test_a_point_kept_under_covers_kept_in_a_record_from_before_the_rename_stays_covered(self):
+        point = "1. A household sees milk running out soon."
+        self.amend(point)
+        self.first = {"FAKE_REPORT_EXTRA": json.dumps({"covered": [{"item": point, "test": "test_milk_today"}]})}
+        self.send_back_to_the_scenario()
+        path = os.path.join(self.wt, ".xv", "slices", "s1.md")
+        with open(path) as f:
+            text = f.read()
+        self.assertIn('"covered_kept"', text)
+        with open(path, "w") as f:
+            f.write(text.replace('"covered_kept"', '"covers_kept"'))
         self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA='{"covered": []}'))
 
     def test_a_kept_name_whose_test_is_gone_stops_on_the_pass_after_a_send_back(self):
