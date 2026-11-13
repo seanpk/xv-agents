@@ -2,7 +2,7 @@ import unittest
 
 from helpers import HOME  # noqa: F401
 import orders
-from xvlib import DEFAULT_CONFIG, split_front_matter
+from xvlib import split_front_matter
 
 
 OLD = """---
@@ -47,10 +47,9 @@ class OldNamesAreStillReadTest(unittest.TestCase):
         self.assertEqual(scenario["covered_kept"][0]["outcome"], "x")
 
     def test_an_old_record_still_counts_a_repeated_miss(self):
-        d = dict(self.data, stops=[{"order": "report_misses_outcome", "seat": "watch", "keys": ["1"]}],
+        d = dict(self.data, stops=[s for s in self.data["stops"] if s.get("seat") == "watch"],
                  checks={"reports": [], "scenario": {}})
         self.assertEqual(orders.miss_run(d, "report_misses_outcome", "scenario"), {"1": 1})
-        self.assertEqual(DEFAULT_CONFIG is not None, True)
 
 
 if __name__ == "__main__":

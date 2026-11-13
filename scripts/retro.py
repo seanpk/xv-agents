@@ -316,7 +316,7 @@ def accept_standard(root, slice_id, n, by):
     if not 1 <= n <= len(cands):
         raise XVError(f"the cleaner proposed {len(cands)} standard(s) on {slice_id}; there is no {n}")
     if by != data.get("originator"):
-        print(f"note: {slice_id} was set going by {data.get('originator')};{by} is accepting in their place",
+        print(f"note: {slice_id} was set going by {data.get('originator')}; {by} is accepting in their place",
               file=sys.stderr)
     sroot = slice_root(path)
     packet = os.path.join(sroot, XV_DIR, "retro", f"{today()}-{slice_id}-cleaner.md")
