@@ -78,7 +78,65 @@ def dump_scalar(value):
 
 # ---------------------------------------------------------------- front matter
 
+# What a record or packet written before the names changed called its fields and stops.
+OLD_FIELDS = {"set_by": "originator", "scenario_miss": "change_misses_scenario",
+              "old_tests_forced": "old_tests_to_move", "may_not_files": "may_not_files_needed",
+              "amended_at_report": "reports_before_amend"}
+OLD_STOP_FIELDS = {"send_back": "sendback", "sent_back": "sendback", "sent_back_to": "sendback_to"}
+OLD_ORDERS = {"red_misses_point": "report_misses_outcome", "scenario_miss": "change_misses_scenario",
+              "accept_moves": "moves_to_accept", "read_only_broken": "read_only_changed"}
+OLD_FORECAST = {"keys": "rows", "shape": "shape_breadth", "breadth": "shape_note"}
+OLD_CHECKS = {"missed_points": "missed_outcomes", "red_joined": "red_joined_unsafely"}
+
+
+def _renamed(d, names):
+    """A copy of dict `d` with each old key moved to its new name, unless the new name is already there."""
+    if not isinstance(d, dict):
+        return d
+    return {(names[k] if k in names and names[k] not in d else k): v for k, v in d.items()}
+
+
+def _outcome_items(rows):
+    return [_renamed(r, {"item": "outcome"}) for r in rows] if isinstance(rows, list) else rows
+
+
+def _renamed_stop(stop):
+    stop = _renamed(stop, OLD_STOP_FIELDS)
+    if isinstance(stop, dict) and stop.get("order") in OLD_ORDERS:
+        stop = {**stop, "order": OLD_ORDERS[stop["order"]]}
+    return stop
+
+
+def upgrade_names(data):
+    """Read a record or packet written before the rename as if it used the new names. Pure; returns a new dict."""
+    data = _renamed(data, OLD_FIELDS)
+    if isinstance(data.get("moved_tests"), int) and not isinstance(data.get("moved_tests"), bool):
+        data = {("moved_tests_count" if k == "moved_tests" else k): v for k, v in data.items()}
+    if isinstance(data.get("forecast"), dict):
+        data["forecast"] = _renamed(data["forecast"], OLD_FORECAST)
+    if isinstance(data.get("red"), dict):
+        data["red"] = _renamed(data["red"], {"watch_first_green": "watch_before_merge"})
+    if isinstance(data.get("stops"), list):
+        data["stops"] = [_renamed_stop(s) for s in data["stops"]]
+    if isinstance(data.get("checks"), dict):
+        checks = {}
+        for step, c in data["checks"].items():
+            if isinstance(c, dict):
+                c = _renamed(c, OLD_CHECKS)
+                for key in ("covered", "not_covered", "covered_kept", "covers_kept"):
+                    if key in c:
+                        c[key] = _outcome_items(c[key])
+            checks[step] = c
+        data["checks"] = checks
+    return data
+
+
 def split_front_matter(text):
+    data, body = _split_front_matter(text)
+    return upgrade_names(data), body
+
+
+def _split_front_matter(text):
     if not text.startswith("---\n"):
         return {}, text
     end = text.find("\n---\n", 4)

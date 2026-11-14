@@ -119,9 +119,9 @@ def pointers(agent, root, config, data=None, extra=None):
             lines.append(f"The slice starts from the build at `{data['build']['ref']}`. These red tests fail on it, "
                          f"each a miss against the scenario: {names}. Start from the build; do not rebuild it.")
         if agent == "maker":
-            for e in data.get("old_tests_forced") or []:
+            for e in data.get("old_tests_to_move") or []:
                 lines.append(f"Named old test the red forces to change: {e['file']}, {e['test']}: {e['why']}.")
-            for e in data.get("may_not_files") or []:
+            for e in data.get("may_not_files_needed") or []:
                 if e["file"] != ".xv/picture.md":
                     continue
                 lines.append(f"Named file you may change: {e['file']}: {e['why']}.")
