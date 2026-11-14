@@ -21,6 +21,14 @@ checks: {"scenario": {"missed_points": ["1. a"], "red_joined": "a; b", "covered_
 body
 """
 
+OLD_MORE = """---
+id: s2
+stops: [{"order": "read_only_broken", "seat": "originator"}, {"order": "scenario_miss", "seat": "watch"}, {"order": "maker_stopped", "seat": "originator", "send_back": true}]
+checks: {"scenario": {"not_covered": [{"item": "2. b", "why": "w"}], "covers_kept": [{"item": "3. c", "test": "t"}]}}
+---
+body
+"""
+
 
 class OldNamesAreStillReadTest(unittest.TestCase):
     def setUp(self):
@@ -45,6 +53,16 @@ class OldNamesAreStillReadTest(unittest.TestCase):
         scenario = self.data["checks"]["scenario"]
         self.assertEqual((scenario["missed_outcomes"], scenario["red_joined_unsafely"]), (["1. a"], "a; b"))
         self.assertEqual(scenario["covered_kept"][0]["outcome"], "x")
+
+    def test_the_other_old_stops_and_check_lists_read_under_the_new_names(self):
+        d, _ = split_front_matter(OLD_MORE)
+        orders_read = [s["order"] for s in d["stops"]]
+        self.assertEqual(orders_read, ["read_only_changed", "change_misses_scenario", "maker_stopped"])
+        self.assertEqual(d["stops"][2]["sendback"], True)
+        self.assertNotIn("send_back", d["stops"][2])
+        scenario = d["checks"]["scenario"]
+        self.assertEqual(scenario["not_covered"][0]["outcome"], "2. b")
+        self.assertEqual(scenario["covers_kept"][0]["outcome"], "3. c")
 
     def test_an_old_record_still_counts_a_repeated_miss(self):
         d = dict(self.data, stops=[s for s in self.data["stops"] if s.get("seat") == "watch"],
