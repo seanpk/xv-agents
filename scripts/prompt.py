@@ -12,11 +12,10 @@ import argparse
 import os
 import re
 import shutil
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from xvlib import (XVError, die, load_config, read_doc, record_path,  # noqa: E402
+from xvlib import (XVError, die, git, load_config, read_doc, record_path,  # noqa: E402
                    repo_root, slice_root, split_front_matter)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -209,16 +208,11 @@ def repass_section(root, data):
     full = os.path.join(root, packet) if packet else None
     if not full or not os.path.isfile(full):
         return ""
-    git = lambda args: subprocess.run(["git", *args], cwd=root, capture_output=True, text=True).stdout
     head = (((data.get("checks") or {}).get("guardian") or {}).get("packet_head")
-            or git(["log", "-1", "--format=%H", "--", packet]).strip())
+            or git(["log", "-1", "--format=%H", "--", packet], root, check=False).strip())
     if not head:
         return ""
-    ran = subprocess.run(["git", "diff", f"{head}..HEAD", "--", ".", ":(exclude).xv"],
-                         cwd=root, capture_output=True, text=True)
-    if ran.returncode != 0:
-        raise XVError(f"the re-pass diff since {head[:12]} could not run: {ran.stderr.strip()}")
-    diff = ran.stdout
+    diff = git(["diff", f"{head}..HEAD", "--", ".", ":(exclude).xv"], root)
     with open(full, encoding="utf-8", errors="replace") as f:
         earlier = f.read().strip()
     return ("\n## This is a re-pass\n\nYou wrote the packet below on an earlier pass. Review only what changed since "
