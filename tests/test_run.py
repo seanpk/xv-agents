@@ -604,21 +604,20 @@ class WatchLoopTest(WatchLoopSetup):
 
     P3 = "3. A household sees the pantry list in order."
 
-    def test_a_number_does_not_cover_a_point_an_amendment_adds(self):
+    def test_a_number_now_covers_a_point_an_amendment_adds(self):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
         self.amend(self.P3)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.scenario_covering(covered=["1", "2", "3"])
+        p = self.scenario_covering(covered=["1", "2", "3"])  # #182: a number now covers an amendment's outcome too
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
-        self.assertEqual(self.record()["next"], "scenario")
-        self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and self.P3 in l])
+        self.assertEqual(self.record()["next"], "maker")
 
-    def test_a_number_and_text_item_does_not_cover_an_amendments_point_either(self):
+    def test_a_number_and_text_item_now_covers_an_amendments_point_too(self):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
         self.amend(self.P3)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario_covering(covered=["1", "2", "3. Pantry list order"])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.scenario_covering(covered=["1", "2", "3. Pantry list order"])  # #182: the number covers it
+        self.assertEqual(self.record()["next"], "maker")
 
     def test_an_amendments_point_is_still_covered_by_its_own_words(self):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
@@ -634,6 +633,14 @@ class WatchLoopTest(WatchLoopSetup):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.scenario_covering(covered=["1", "2"])
         self.assertEqual(self.record()["next"], "scenario")
+
+    def test_a_repeated_number_covers_only_the_first_outcome_with_that_number(self):
+        self.in_the_scenario(self.P1)
+        self.amend("1. A household sees a restock hint.")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario_covering(covered=["1"])
+        self.assertEqual(self.record()["next"], "scenario")
+        self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and "A household sees a restock hint." in l])
 
     def test_a_covers_item_that_is_a_points_number_covers_it(self):
         p = self.covered_by_number(f"{self.P1}\n{self.P2}", ["1", "2"])
@@ -655,6 +662,29 @@ class WatchLoopTest(WatchLoopSetup):
         self.covered_by_number(f"{self.P1}\n{ten}", ["1"])
         self.assertEqual(self.record()["next"], "scenario")
         self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and ten in l])
+
+    def test_an_amendments_outcome_named_by_number_in_not_covered_still_stops_for_the_person(self):
+        self.in_the_scenario(f"{self.P1}\n{self.P2}")
+        self.amend(self.P3)
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        p = self.scenario_covering(covered=["1", "2"], not_covered=["3"])
+        self.assert_stopped_before_the_maker(p, "no seam to start the app")
+
+    def test_an_amendments_outcome_the_report_leaves_out_still_goes_back(self):
+        self.in_the_scenario(f"{self.P1}\n{self.P2}")
+        self.amend(self.P3)
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario_covering(covered=["1", "2"])
+        self.assertEqual(self.record()["next"], "scenario")
+        self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and self.P3 in l])
+
+    def test_the_number_one_does_not_cover_an_amendments_outcome_ten(self):
+        ten = "10. A household sees the pantry list in order."
+        self.in_the_scenario(self.P1)
+        self.amend(ten)
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario_covering(covered=["1"])
+        self.assertEqual(self.record()["next"], "scenario")
 
     def test_a_number_item_in_not_covered_still_stops_for_the_person(self):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
@@ -737,11 +767,11 @@ class WatchLoopTest(WatchLoopSetup):
         p = self.scenario_covering(covered=["1. A `household` sees **milk** in the _restock_ list."])
         self.assertEqual(self.record()["next"], "maker", p.stdout + p.stderr)
 
-    def test_an_item_that_changes_a_word_still_does_not_cover_the_point(self):
+    def test_an_item_that_starts_with_the_amendments_number_covers_it_whatever_words_follow(self):
         self.amend(self.PM)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.scenario_covering(covered=["1. The doc kind accepts a file under .xv/ and any file named SKILL.md."])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "maker")
 
     def test_the_send_back_hands_over_the_point_as_an_item_the_check_accepts(self):
         self.amend(f"{self.PM}\n{self.P2}")

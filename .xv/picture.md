@@ -178,7 +178,10 @@ Sean Kennedy sits with them.
   In a slice from a build, the scenario agent runs in a temporary detached worktree that starts at the tip of `refs/xv/<id>/red` when the base is an ancestor of that tip, and at the base otherwise.
   Unless the build is shared, the agent's record copy has `build: none`, `branch` set to the base, no `prototypes` and no `prototype_sessions`, and no commit that is not an ancestor of the base.
   The red runs there, and the wall baseline is hashed there.
-  Its commit moves the ref, and it is cherry-picked onto the slice branch; a conflict stops with `red_conflicts_with_build` for the originator.
+  Its commit moves the ref.
+  Every commit on the ref that the slice branch lacks is then cherry-picked onto the slice branch, even on a pass that makes no new commit, so a red that an earlier pass could not land lands once its conflict is cleared.
+  A commit counts as already on the branch when its author time, subject and changed files match one there (`run.land_scratch`).
+  A conflict stops with `red_conflicts_with_build` for the originator.
   The red then runs on the build, and the maker's prompt names the tests that fail.
   A session scenario step makes that checkout and names it.
   The next `xv step scenario` or `xv close` drops a checkout that no report landed.
@@ -186,6 +189,7 @@ Sean Kennedy sits with them.
   `xv record report` applies the same rule in session mode, with or without a build (`record.cmd_report`).
   A red that fails before any test runs (exit 126 or 127, a runner's own words that a file could not load or no tests were found, or a general error name with no real failing test) stops the scenario step for the originator (`red_cannot_run`), and `next` stays `scenario`.
   After the scenario step, `red_misses_scenario` stops for the originator before the maker when the report lists a `not_covered` outcome, when `red_gaps` lists anything, or when the check cannot read its input: no `## Scenario` heading, `covered` or `not_covered` missing or not a list, `covered` empty, or with an item whose `test` is not one name, a list of non-empty strings, or a string joined with `,` or `;`, or a `covered` name that matches no whole word in any red file.
+  In a slice from a build, the coverage check and the flags check read each red file from the red ref, and read every file that any red on the ref changed (`run.red_file_texts`).
   A `not_covered` outcome named in an earlier answered `red_misses_scenario` stop does not stop again, unless that answer sent the slice back (`sendback`).
   On a later scenario pass, the coverage kept from earlier passes (`checks.scenario.covered_kept`) is added to the report's `covered` before the check, except when the record's `next` is `maker` (a pass that went on to the maker ends the run), so an empty `covered` does not stop when something was kept; each kept name is checked again against the red files.
   A record written before the rename keeps its kept outcomes under `covers_kept`, and the check reads them when `covered_kept` is empty or missing (`scripts/run.py:1119`).
@@ -194,8 +198,8 @@ Sean Kennedy sits with them.
   A numbered outcome of the scenario or an amendment that is in neither `covered` nor `not_covered` sends the slice back to the scenario agent (`xv step` and `xv run` compute this).
   The match ignores backticks, `*` and `_` in both the scenario's outcome and the report's (`run.norm`).
   The send-back lists each missed outcome as `<number>. <text>`, a form the check accepts, and says every outcome goes in on each pass.
-  A `covered` outcome that is a number, or starts with one, covers the scenario's own outcome with that number.
-  It never covers an amendment's outcome (`run.missed_outcomes`).
+  A `covered` outcome that is a number, or starts with one, covers the outcome of the scenario or of an amendment with that number, whatever words follow.
+  When two outcomes share a number, the number covers only the first one; a later one needs its own words (`run.missed_outcomes`).
   After the scenario step, `unrecorded_move` stops for the originator before the maker when any test file that existed at the base, under `tests.paths` or in the red, lost or changed a line other than a blank, comment or import, unless a recorded move names the file.
   In a slice from a build, a test file the build only added lines to is not unrecorded; a line the build changed or removed at the base still stops.
   A line the build added that the maker or the cleaner later changes or removes stops too, measured from the build's commit (`wall.check`).

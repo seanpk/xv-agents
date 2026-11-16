@@ -1013,10 +1013,34 @@ def land_scratch(root, scratch, data, config, report):
             git(["commit", "-q", "--no-verify", "-m", f"xv({sid}): red"], scratch)
             sha = git(["rev-parse", "HEAD"], scratch).strip()
             git(["update-ref", red_ref(data), sha], root)
-            p = subprocess.run(["git", "cherry-pick", sha], cwd=root, capture_output=True, text=True)
-            if p.returncode != 0:
-                landed["conflict"] = (p.stdout + p.stderr).strip()[-800:]
-                subprocess.run(["git", "cherry-pick", "--abort"], cwd=root, capture_output=True)
+        # every commit on the red ref the slice branch lacks, so a red an earlier pass left lands now
+        held = red_held(root, data, data["base"])
+        if held:
+            def commits(span):  # a cherry-pick keeps the author time and the message, and not the hash or the patch id
+                out = subprocess.run(["git", "log", "--reverse", "--format=%H%x09%at%x09%s", span], cwd=root,
+                                     capture_output=True, text=True).stdout.splitlines()
+                rows = []
+                for line in out:
+                    h, at, subject = line.split("\t", 2)
+                    files = subprocess.run(["git", "diff-tree", "--no-commit-id", "--name-only", "-r", h], cwd=root,
+                                           capture_output=True, text=True).stdout
+                    rows.append((h, (at, subject, files)))
+                return rows
+            on_branch = {}
+            for _, key in commits(f"{data['base']}..HEAD"):
+                on_branch[key] = on_branch.get(key, 0) + 1
+            to_pick = []
+            for h, key in commits(f"{data['base']}..{held}"):  # oldest first, so equal keys pair off in order
+                if on_branch.get(key):
+                    on_branch[key] -= 1
+                else:
+                    to_pick.append(h)
+            for pick in to_pick:
+                p = subprocess.run(["git", "cherry-pick", pick], cwd=root, capture_output=True, text=True)
+                if p.returncode != 0:
+                    landed["conflict"] = (p.stdout + p.stderr).strip()[-800:]
+                    subprocess.run(["git", "cherry-pick", "--abort"], cwd=root, capture_output=True)
+                    break
     finally:
         drop_scratch(root, scratch)
     return landed
@@ -1209,12 +1233,14 @@ def missed_outcomes(root, data, report):
     missed = []
     region = body[at:end if end > at else len(body)]
     amended = region.find("### Amended")
+    taken = set()  # numbers an earlier outcome used: a repeated number names none of the later ones
     for m in OUTCOME.finditer(region):
         num, text = m.groups()
         if data.get("kind") == "refactor" and not 0 <= amended <= m.start():
             continue  # a refactor slice's own outcomes have no red; only an amendment's outcomes need one
         t = norm(text)
-        by_number = num in numbers and not 0 <= amended <= m.start()
+        by_number = num in numbers and num not in taken
+        taken.add(num)
         if not by_number and not any(t in i or (len(i) >= 4 and i in t) or t[:40] in i for i in items):
             missed.append(f"{num}. {text.strip()}")
     return missed
@@ -1232,7 +1258,7 @@ def unreadable_input(root, data, report):
             isinstance(c, dict) and c.get("outcome") and covered_names(c.get("test")) for c in covered):
         out.append("The report's `covered` is missing, empty, or has an outcome that names no test.")
     else:
-        files = red_file_texts(root, data.get("red") or {})
+        files = red_file_texts(root, data.get("red") or {}, data)
         removed = [COVERED_SEPARATOR.split(m["assertion"].split(";")[0])[-1].strip() for m in data.get("moved_tests") or []
                    if isinstance(m, dict) and m.get("by") == "cleaner" and m.get("slice_only")
                    and isinstance(m.get("assertion"), str)]
@@ -1258,7 +1284,7 @@ def scenario_red_gaps(root, data, red):
     end = body.find("\n## May ignore")
     if at < 0:
         return []
-    gaps = wall.red_gaps(body[at:end if end > at else len(body)], list(red_file_texts(root, red).values()),
+    gaps = wall.red_gaps(body[at:end if end > at else len(body)], list(red_file_texts(root, red, data).values()),
                          exists=lambda words: xv_help_at_base(root, data.get("base"), words) is not None,
                          has_flag=lambda words, flag: xv_flag_at_base(root, data.get("base"), words, flag))
     accepted = " ".join(s.get("question") or "" for s in data.get("stops") or []
@@ -1304,9 +1330,22 @@ def xv_flag_at_base(root, base, words, flag):
     return bool(help_text and re.search(r"(?<![\w-])" + re.escape(flag) + r"(?![\w-])", help_text))
 
 
-def red_file_texts(root, red):
+def red_file_texts(root, red, data=None):
+    """Each red file's text. With the record, a file the red ref has is read from the ref,
+    and so is every file any red the slice has had changed."""
     texts = {}
-    for f in red.get("files") or []:
+    held = red_held(root, data, data["base"]) if data and data.get("base") else None
+    names = list(red.get("files") or [])
+    if held:
+        out = subprocess.run(["git", "diff", "--name-only", data["base"], held], cwd=root,
+                             capture_output=True, text=True).stdout.split("\n")
+        names += [n for n in out if n and n not in names]
+    for f in names:
+        if held:
+            p = subprocess.run(["git", "show", f"{held}:{f}"], cwd=root, capture_output=True)
+            if p.returncode == 0:
+                texts[f] = p.stdout.decode("utf-8", "replace")
+                continue
         try:
             with open(os.path.join(root, f), encoding="utf-8", errors="replace") as fh:
                 texts[f] = fh.read()

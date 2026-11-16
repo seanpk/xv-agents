@@ -1505,3 +1505,130 @@ class SessionScenarioNoBuildJoinedTest(RepoCase):
         self.xv("record", "report", "s1", "scenario", self.report("python3 -m unittest a && python3 -m unittest b"), cwd=self.wt)
         data = self.record()
         self.assertFalse(((data.get("checks") or {}).get("scenario") or {}).get("red_joined_unsafely"))
+
+
+class LateRedLandsTest(FromBuildBase):
+    """#182 outcome 1: a red whose cherry-pick aborted on an earlier pass lands on a later pass, new commit or not."""
+    CLASH = {"tests/test_red.py": "# the build's own test file\nBUILD_TEST = True\n"}
+
+    def aborted_first_pass(self):
+        """A first pass whose red conflicts with the build, so its cherry-pick aborts and the red stays on its ref."""
+        self.make_build(fixed=False, files=self.CLASH)
+        self.open_slice("--from", BUILD)
+        p = self.scenario_step()
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+
+    def answer(self):
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "run it again", "--next", "scenario",
+                "--settled", "the red stays on its ref; the next pass starts from it", cwd=self.wt)
+
+    def clear_the_clash(self):
+        """The slice branch drops the build's own test file, so the earlier red now applies."""
+        sh(["git", "rm", "-q", "tests/test_red.py"], self.wt)
+        sh(["git", "commit", "-q", "--no-verify", "-m", "drop the build's test file"], self.wt)
+
+    def test_a_pass_that_makes_no_new_commit_lands_the_red_the_aborted_pass_left(self):
+        self.aborted_first_pass()
+        self.clear_the_clash()
+        self.answer()
+        self.step("scenario")
+        self.assertNotIn("red_conflicts_with_build", [s["order"] for s in self.open_stops()])
+        landed = os.path.join(self.wt, "tests", "test_red.py")
+        self.assertTrue(os.path.exists(landed), "the red on the ref did not land on the slice branch")
+        self.assertIn("def test_milk_today", open(landed).read())
+        self.assertTrue(os.path.exists(os.path.join(self.wt, MARKER)), "the slice branch lost the build")
+
+    def test_a_pass_that_makes_a_new_commit_lands_the_earlier_commit_too(self):
+        self.aborted_first_pass()
+        self.clear_the_clash()
+        self.answer()
+        self.step("scenario", FAKE_RED_TEXT="SECOND-PASS")
+        self.assertNotIn("red_conflicts_with_build", [s["order"] for s in self.open_stops()])
+        path = os.path.join(self.wt, "tests", "test_red.py")
+        landed = open(path).read() if os.path.exists(path) else ""
+        self.assertIn("def test_milk_today", landed, "the earlier pass's red did not land")
+        self.assertIn("SECOND-PASS", landed, "the new pass's red did not land")
+
+    def test_a_conflict_still_stops_on_a_pass_that_makes_no_new_commit(self):
+        self.aborted_first_pass()
+        self.answer()  # the build's test file is still there
+        p = self.step("scenario")
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertIn("red_conflicts_with_build", [s["order"] for s in self.open_stops()])
+        self.assertEqual(sh(["git", "status", "--porcelain", "--untracked-files=no"], self.wt).stdout.strip(), "",
+                         "the slice worktree is left mid cherry-pick")
+
+
+class LandedRedStaysOnceTest(FromBuildBase):
+    """#182 outcome 1: a red commit already on the slice branch is not landed again."""
+
+    def setUp(self):
+        super().setUp()
+        self.make_build(fixed=False)
+        self.open_slice("--from", BUILD)
+        p = self.scenario_step()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.amend()
+
+    def red_commits(self):
+        """The commits on the slice branch that touch the red file."""
+        return sh(["git", "log", "--format=%h", "--", "tests/test_red.py"], self.wt).stdout.split()
+
+    def test_a_pass_with_no_new_commit_lands_nothing_twice(self):
+        self.assertEqual(len(self.red_commits()), 1)
+        self.step("scenario")
+        self.assertEqual(len(self.red_commits()), 1)
+
+    def test_a_pass_with_a_new_commit_lands_only_the_new_commit(self):
+        self.assertEqual(len(self.red_commits()), 1)
+        self.step("scenario", FAKE_RED_TEXT="SECOND-PASS")
+        self.assertEqual(len(self.red_commits()), 2)
+
+
+class ChecksReadTheRedRefTest(FromBuildBase):
+    """#182 outcome 2: the coverage check and the flags checks read each red file as the red ref has it."""
+    CLASH = {"tests/test_red.py": "# the build's own test file\nBUILD_TEST = True\n"}
+
+    def conflicted(self, **more):
+        self.make_build(fixed=False, files=self.CLASH)
+        self.open_slice("--from", BUILD)
+        self.amend("The household runs `xv record show --frobnicate` and sees the milk.")
+        p = self.scenario_step(**more)
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        return self.record()["checks"]["scenario"]
+
+    def test_the_coverage_check_finds_the_test_in_the_red_not_the_builds_file_at_that_path(self):
+        checks = self.conflicted()
+        self.assertEqual(checks["unreadable"], [], "the coverage check read the build's file at the red's path")
+
+    def test_the_flags_check_finds_the_flag_in_the_red_not_the_builds_file_at_that_path(self):
+        checks = self.conflicted(FAKE_RED_TEXT="xv record show --frobnicate")
+        self.assertEqual(checks["red_gaps"], [], "the flags check read the build's file at the red's path")
+
+
+class CoverageAcrossRedsTest(FromBuildBase):
+    """#182 outcome 3: the coverage check finds a test in any red the slice has had."""
+
+    def setUp(self):
+        super().setUp()
+        self.make_build(fixed=False)
+        self.open_slice("--from", BUILD)
+        p = self.scenario_step()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.amend()
+
+    def test_a_test_in_an_earlier_pass_red_file_is_found(self):
+        # this pass reports only tests/test_store.py as its red; `test_milk_today` is in the first pass's red
+        self.step("scenario", FAKE_RED_FILES=json.dumps(["tests/test_store.py"]))
+        self.assertEqual(self.record()["checks"]["scenario"]["unreadable"], [])
+
+    def test_a_test_in_no_red_the_slice_has_had_is_still_not_found(self):
+        extra = json.dumps({"covered": [{"outcome": "milk today", "test": "test_in_no_red_at_all"}]})
+        self.step("scenario", FAKE_RED_FILES=json.dumps(["tests/test_store.py"]), FAKE_REPORT_EXTRA=extra)
+        unreadable = self.record()["checks"]["scenario"]["unreadable"]
+        self.assertTrue([u for u in unreadable if "test_in_no_red_at_all" in u], unreadable)
+
+
+# What a person should watch on the first green: a slice opened with `--from` whose first scenario pass hit a
+# conflict; clear the conflict, run the scenario step again, and see the red land on the slice branch with no new
+# commit from the agent.
