@@ -604,7 +604,7 @@ class WatchLoopTest(WatchLoopSetup):
 
     P3 = "3. A household sees the pantry list in order."
 
-    def test_a_number_does_not_cover_a_point_an_amendment_adds(self):
+    def test_a_number_now_covers_a_point_an_amendment_adds(self):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
         self.amend(self.P3)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
@@ -612,7 +612,7 @@ class WatchLoopTest(WatchLoopSetup):
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
-    def test_a_number_and_text_item_does_not_cover_an_amendments_point_either(self):
+    def test_a_number_and_text_item_now_covers_an_amendments_point_too(self):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
         self.amend(self.P3)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
