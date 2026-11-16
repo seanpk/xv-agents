@@ -759,11 +759,11 @@ class WatchLoopTest(WatchLoopSetup):
         p = self.scenario_covering(covered=["1. A `household` sees **milk** in the _restock_ list."])
         self.assertEqual(self.record()["next"], "maker", p.stdout + p.stderr)
 
-    def test_an_item_that_changes_a_word_still_does_not_cover_the_point(self):
+    def test_an_item_that_starts_with_the_amendments_number_covers_it_whatever_words_follow(self):
         self.amend(self.PM)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.scenario_covering(covered=["1. The doc kind accepts a file under .xv/ and any file named SKILL.md."])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "maker")
 
     def test_the_send_back_hands_over_the_point_as_an_item_the_check_accepts(self):
         self.amend(f"{self.PM}\n{self.P2}")
