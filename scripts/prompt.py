@@ -214,7 +214,11 @@ def repass_section(root, data):
             or git(["log", "-1", "--format=%H", "--", packet]).strip())
     if not head:
         return ""
-    diff = git(["diff", f"{head}..HEAD", "--", ".", ":(exclude).xv"])
+    ran = subprocess.run(["git", "diff", f"{head}..HEAD", "--", ".", ":(exclude).xv"],
+                         cwd=root, capture_output=True, text=True)
+    if ran.returncode != 0:
+        raise XVError(f"the re-pass diff since {head[:12]} could not run: {ran.stderr.strip()}")
+    diff = ran.stdout
     with open(full, encoding="utf-8", errors="replace") as f:
         earlier = f.read().strip()
     return ("\n## This is a re-pass\n\nYou wrote the packet below on an earlier pass. Review only what changed since "
