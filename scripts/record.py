@@ -29,7 +29,7 @@ from xvlib import (XV_DIR, XVError, die, emit, git, load_config, match_any, name
 FIELDS = [
     # name, default
     ("id", None), ("title", ""), ("kind", "feature"), ("status", "open"),
-    ("set_by", ""), ("created", None), ("branch", ""), ("base", None), ("next", "forecaster"),
+    ("originator", ""), ("created", None), ("branch", ""), ("base", None), ("next", "forecaster"),
     ("build", "none"), ("build_shared", "no"),
     ("forecast", None), ("budget", None), ("red", None), ("wall_baseline", None),
     ("moved_tests", []), ("slice_only", []), ("wall_recommendations", []), ("suite", None), ("cleaner_commit", None),
@@ -136,7 +136,7 @@ def cmd_new(a):
     if not scenario:
         raise XVError("a slice needs its scenario in words (--scenario or --scenario-file)")
     data = {name: json.loads(json.dumps(d)) for name, d in FIELDS}
-    data.update(id=a.id, title=a.title or a.id, kind=a.kind, set_by=a.by,
+    data.update(id=a.id, title=a.title or a.id, kind=a.kind, originator=a.by,
                 created=today(), branch=a.branch or f"xv/{a.id}")
     if a.kind == "prototype":
         data["next"] = "prototype"
@@ -202,7 +202,7 @@ def check_budget_change(data, value, by):
     old = data.get("budget") or {}
     if not isinstance(value, dict):
         raise XVError("budget is a JSON object, e.g. {\"tokens\": 400000, \"usd\": 3}")
-    value["set_by"] = by
+    value["set_by"] = by  # who set the budget: not the originator of the slice
     if old and any(value.get(k, 0) > old.get(k, 0) for k in ("tokens", "usd", "turns") if old.get(k)):
         value["raised_from"] = {k: old.get(k) for k in ("tokens", "usd", "turns") if k in old}
 
@@ -491,12 +491,12 @@ def wall_matches(recs, spec, root=None):
 
 
 def answer_wall(data, stop, a, root=None):
-    """--accept-wall and --refuse-wall answer an accept_moves stop's wall recommendations, and only that."""
+    """--accept-wall and --refuse-wall answer a moves_to_accept stop's wall recommendations, and only that."""
     wall_flags = (("--accept-wall", a.accept_wall), ("--refuse-wall", a.refuse_wall))
-    if stop["order"] != "accept_moves":
+    if stop["order"] != "moves_to_accept":
         for flag, names in wall_flags:
             if names:
-                raise XVError(f"{flag} only answers an accept_moves stop, not {stop['order']}")
+                raise XVError(f"{flag} only answers a moves_to_accept stop, not {stop['order']}")
         return
     recs = data.get("wall_recommendations") or []
     picked = {}  # flag -> the recommendations (by position) its values name
@@ -581,8 +581,8 @@ def cmd_answer(a):
                       "say what is now true, so the next agent can act without the chat")
     stop["answered_by"], stop["answer"], stop["answered_at"] = who, a.answer, now()
     if sends_back:
-        stop["sent_back"] = True
-        stop["sent_back_to"] = a.next
+        stop["sendback"] = True
+        stop["sendback_to"] = a.next
     for key, value in (("pick", pick), ("settled", settled), ("new_info", a.new_info),
                        ("cause", a.cause), ("why", a.why)):
         if value is not None:
@@ -763,7 +763,7 @@ def apply_report(data, body, agent, text):
         else:
             data["red"] = report["red"]
     if agent == "scenario":
-        for key, need in (("old_tests_forced", ("file", "test", "why")), ("may_not_files", ("file", "why"))):
+        for key, need in (("old_tests_to_move", ("file", "test", "why")), ("may_not_files_needed", ("file", "why"))):
             listed = report.get(key) if isinstance(report.get(key), list) else []
             data[key] = [e for e in listed
                          if isinstance(e, dict) and all(isinstance(e.get(k), str) and e[k] for k in need)]
@@ -851,11 +851,11 @@ def cmd_report(a):
     body, report = apply_report(data, body, a.agent, text)
     reported = ((report or {}).get("red") or {}).get("command") if a.agent == "scenario" else None
     if reported and joined_unsafely(reported):
-        data["red"] = red_before  # as `xv step` does: a refused red is not kept, and red_joined is set
+        data["red"] = red_before  # as `xv step` does: a refused red is not kept, and red_joined_unsafely is set
         if not has_build(data):  # no landing on a slice not from a build, so it is set here
             scenario = data.setdefault("checks", {}).setdefault("scenario", {})
             scenario["red_fails"] = None
-            scenario["red_joined"] = reported
+            scenario["red_joined_unsafely"] = reported
     save(path, data, body)
     if a.agent == "scenario" and has_build(data):
         # a session-mode scenario step left a checkout at the base: land the red written there, as `xv step` does
@@ -888,7 +888,7 @@ def accepted_by_listed_decision(root, data, pdata):
     return ddata.get("order") == "shape_or_pitch"
 
 
-def send_back(data, body, agent, order, keys, summary, target):
+def record_sendback(data, body, agent, order, keys, summary, target):
     """The watch's own send-back, kept like an answered stop so that `xv prompt` and `xv decisions` read it."""
     at = now()
     question = f"The {agent} step missed the scenario: {summary}"
@@ -933,8 +933,8 @@ def guardian_facts(root, data, checks, packet_file):
             data[field] = v
         else:
             data[field] = v if v in packetlib.YES_NO else "yes"
-    found = packetlib.misses(pbody) if pdata.get("scenario_miss") == "yes" else []
-    data["scenario_miss"] = "yes" if found else "no"
+    found = packetlib.misses(pbody) if pdata.get("change_misses_scenario") == "yes" else []
+    data["change_misses_scenario"] = "yes" if found else "no"
     report = orders.last_report(data, "guardian") or {}
     checks["misses"] = found
     checks["miss_amend"] = any(m["amend"] for m in found)
@@ -960,9 +960,9 @@ def apply_verdict(data, body, agent, v):
         data["status"] = "ready" if st["order"] == "ready_to_merge" else "stopped"
     else:
         for f in v["fired"]:
-            if f.get("send_back"):
-                body = send_back(data, body, agent, f["order"], f["send_back"]["misses"],
-                                 f["question"], f["send_back"]["to"])
+            if f.get("sendback"):
+                body = record_sendback(data, body, agent, f["order"], f["sendback"]["misses"],
+                                       f["question"], f["sendback"]["to"])
     if v.get("next"):
         data["next"] = v["next"]
     return body
@@ -971,7 +971,7 @@ def apply_verdict(data, body, agent, v):
 def cmd_export(a):
     """The record as a pull request body, for teams whose record home is the PR."""
     path, data, body = load(repo_root(), a.id)
-    out = [f"## {data['title']}", "", f"Slice `{data['id']}`, set going by {data['set_by']}.", ""]
+    out = [f"## {data['title']}", "", f"Slice `{data['id']}`, set going by {data['originator']}.", ""]
     m = re.search(r"## Scenario\n\n(.*?)\n\n## ", body, re.S)
     if m:
         out += ["### Scenario", "", m.group(1).strip(), ""]
@@ -1036,7 +1036,7 @@ def cmd_guide_append(a):
     if not a.why:
         raise XVError("one line on why the gap is what it is (--why)")
     forecast = data.get("forecast") or {}
-    by_key = {(f.get("harness"), f.get("model")): f for f in forecast.get("keys", [])}
+    by_key = {(f.get("harness"), f.get("model")): f for f in forecast.get("rows", [])}
     rows = []
     for (harness, model), act in sorted(actual_by_key(data["spend"]).items()):
         f = by_key.get((harness, model), {})
@@ -1044,7 +1044,7 @@ def cmd_guide_append(a):
         gap = f"{(act['tokens'] - ftok) / ftok:+.0%}" if ftok else "no forecast"
         cells = [data["id"], today(), harness, model, ftok if ftok is not None else "",
                  act["tokens"], gap, f.get("usd", ""), f"{act['usd']:.2f}", f"{act['wall_s']:.0f}",
-                 forecast.get("shape", ""), a.shape or "", a.why]
+                 forecast.get("shape_breadth", ""), a.shape or "", a.why]
         rows.append("| " + " | ".join(str(c).replace("|", "/") for c in cells) + " |")
     with open(gpath, "w") as fh:
         fh.write(text.rstrip("\n") + "\n" + "\n".join(rows) + "\n")

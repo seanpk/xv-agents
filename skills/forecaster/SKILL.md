@@ -48,9 +48,9 @@ End your final message with one report block. Before the work:
 
 ```xv-report
 {"agent": "forecaster", "status": "done", "summary": "<one line>",
- "forecast": {"keys": [{"harness": "claude", "model": "sonnet", "tokens": 400000, "turns": 40, "usd": 2.5, "basis": ["<slice id>", "<slice id>"]},
+ "forecast": {"rows": [{"harness": "claude", "model": "sonnet", "tokens": 400000, "turns": 40, "usd": 2.5, "basis": ["<slice id>", "<slice id>"]},
                        {"harness": "opencode", "model": "gpt-oss:20b", "tokens": null, "turns": null, "usd": null, "basis": [], "note": "no history for opencode/gpt-oss:20b"}],
-              "wall_s": 900, "shape": "narrow", "breadth": "<one line>"}}
+              "wall_s": 900, "shape_breadth": "narrow", "shape_note": "<one line>"}}
 ```
 
 When closing:

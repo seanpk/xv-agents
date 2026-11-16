@@ -33,7 +33,7 @@ CITATION = re.compile(
 NOT_A_FINDING = re.compile(r"^\s*(?:[-*]|\d+\.)\s*(?:none\b|no\b|nothing\b|not\b|looked at|checked\b|n/a\b)", re.I)
 ITEM = re.compile(r"^\s*(?:[-*]|\d+\.)\s+\S")
 MISSES = re.compile(r"^##\s*scenario misses\b", re.I)
-MISS_REF = re.compile(r"^\s*[-*]\s+((?:point\s+|decision\s+|amendment\s+)?\d+(?:\s*,\s*item\s+\d+)?)\b", re.I)
+MISS_REF = re.compile(r"^\s*[-*]\s+((?:outcome\s+|point\s+|decision\s+|amendment\s+)?\d+(?:\s*,\s*(?:outcome|item)\s+\d+)?)\b", re.I)
 EVIDENCE = re.compile(r"\bevidence\s*:", re.I)
 
 
@@ -50,8 +50,8 @@ def lint(text):
             problems.append(f"front matter {field} must be {' or '.join(allowed)}, found {data.get(field)!r}")
     if data.get("door") not in ("one-way", "two-way"):
         problems.append(f"front matter door must be one-way or two-way, found {data.get('door')!r}")
-    if data.get("scenario_miss") not in (None, "yes", "no"):
-        problems.append(f"front matter scenario_miss must be yes or no, found {data.get('scenario_miss')!r}")
+    if data.get("change_misses_scenario") not in (None, "yes", "no"):
+        problems.append(f"front matter change_misses_scenario must be yes or no, found {data.get('change_misses_scenario')!r}")
     kept, dropped = [], []
     in_check, in_misses, in_code = False, False, False
     for line in body.splitlines():
@@ -71,8 +71,8 @@ def lint(text):
             continue
         kept.append(line)
     body = "\n".join(kept)
-    if data.get("scenario_miss") == "yes" and not misses(body):
-        data["scenario_miss"] = "no"
+    if data.get("change_misses_scenario") == "yes" and not misses(body):
+        data["change_misses_scenario"] = "no"
     return data, body, problems, dropped
 
 
@@ -85,7 +85,7 @@ def misses(body):
         m = MISS_REF.match(line) if in_misses else None
         if m and EVIDENCE.search(line):
             to = re.search(r"\bto\s*:\s*(maker|scenario)\b", line, re.I)
-            out.append({"ref": re.sub(r"^point\s+", "", m.group(1).strip().lower()), "text": line.strip().lstrip("-* ").strip(),
+            out.append({"ref": re.sub(r"^(?:outcome|point)\s+", "", m.group(1).strip().lower()), "text": line.strip().lstrip("-* ").strip(),
                         "to": to.group(1).lower() if to else "maker",
                         "amend": bool(re.search(r"\bamend\s*:\s*yes\b", line, re.I))})
     return out
@@ -95,7 +95,7 @@ def fix(path):
     with open(path) as f:
         text = f.read()
     data, body, problems, dropped = lint(text)
-    changed = split_front_matter(text)[0].get("scenario_miss") != data.get("scenario_miss")
+    changed = split_front_matter(text)[0].get("change_misses_scenario") != data.get("change_misses_scenario")
     if dropped:
         body = body.rstrip("\n") + "\n\n## Dropped by the evidence rule\n\nThese findings cite no line, rule or hunk, so they do not count.\n\n" \
             + "\n".join(f"- {d.lstrip('-* ').strip()}" for d in dropped) + "\n"

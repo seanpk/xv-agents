@@ -3,10 +3,10 @@ slice: <slice id>
 shape_change: no            # yes, no, or accepted (then accepted_by names the decision record)
 accepted_by: <.xv/decisions/file.md, only with shape_change: accepted>
 pitch_contradiction: no
-scenario_miss: no           # yes when a scenario line or a binding decision is missed; list it under Scenario misses
+change_misses_scenario: no  # yes when a scenario line or a binding decision is missed; list it under Scenario misses
 picture_change: no
 shape_breadth: none
-moved_tests: 0
+moved_tests_count: 0
 expected_moves: 0           # the number of moves the record marks expected; list them on one line under Moved tests
 door: two-way
 blast_radius: <one word>
@@ -57,7 +57,7 @@ Slice-only tests removed: <the tests, on one line, or none>. Kept: <each kept sl
 
 ## Scenario misses
 
-<Only with `scenario_miss: yes`. One line for each scenario line or binding decision the change misses: `- <point, such as 2 or amendment 1, item 3, or decision 4>: <what is missed> (evidence: <a test, a run, or a diff hunk>; to: maker|scenario)`. `to` is your call on whether the red covers the line. Add `amend: yes` when meeting the miss would change the scenario. Or leave the section out.>
+<Only with `change_misses_scenario: yes`. One line for each scenario line or binding decision the change misses: `- <outcome, such as 2 or amendment 1, outcome 3, or decision 4>: <what is missed> (evidence: <a test, a run, or a diff hunk>; to: maker|scenario)`. `to` is your call on whether the red covers the line. Add `amend: yes` when meeting the miss would change the scenario. Or leave the section out.>
 
 ## Door
 

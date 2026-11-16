@@ -26,15 +26,15 @@ STALL_CHOICES = ("This is a stall on this slice, and the agent may not renovate.
                  "reshape the slice, raise the budget, or bring in a second person.")
 
 
-def fire(order, seat, question, blocking=True, send_back=None):
+def fire(order, seat, question, blocking=True, sendback=None):
     f = {"order": order, "seat": seat, "question": question, "blocking": blocking}
-    if send_back:
-        f["send_back"] = send_back
+    if sendback:
+        f["sendback"] = sendback
     return f
 
 
-def sent_back(data, order, after):
-    """Keys of what the watch sent back for this order before the report now being read: the points, or the miss refs."""
+def sendback_keys(data, order, after):
+    """Keys of what the watch sent back for this order before the report now being read: the outcomes, or the miss refs."""
     report = last_report(data, after) or {}
     here = report_index(data, after)
 
@@ -56,7 +56,7 @@ def miss_run(data, order, after):
     # a person's answer is the last stop they answered, by its place in the list
     answered = max([i for i, s in enumerate(stops) if s.get("answered_by") and s.get("answered_by") != ["watch"]],
                    default=-1)
-    amended = data.get("amended_at_report") or 0
+    amended = data.get("reports_before_amend") or 0
     mine = [st for i, st in enumerate(stops) if st.get("order") == order and st.get("seat") == "watch"
             and (st.get("report_n") is None or (st["report_n"] >= amended and (here is None or st["report_n"] < here)))
             and i > answered]
@@ -127,7 +127,7 @@ def evaluate(data, after, config):
     out = []
     checks = (data.get("checks") or {}).get(after) or {}
     report = last_report(data, after)
-    owner = data.get("set_by") or "the person who set the work going"
+    owner = data.get("originator") or "the person who set the work going"
 
     if after in ("forecaster", "scenario", "maker", "cleaner", "guardian") and \
             (report is None or report.get("status") == "no-report"):
@@ -144,7 +144,7 @@ def evaluate(data, after, config):
         out.append(fire(f"{after}_stopped", seat, q))
 
     if after in ("forecaster", "guardian") and checks.get("wrote"):
-        out.append(fire("read_only_broken", "originator",
+        out.append(fire("read_only_changed", "originator",
                         f"The {after} is read-only and changed: {', '.join(checks['wrote'])}. "
                         "Revert it before going on."))
 
@@ -163,9 +163,9 @@ def evaluate(data, after, config):
             out.append(fire("scenario_touched_source", "originator",
                             "The scenario agent changed files outside the test paths: "
                             + ", ".join(checks["outside_tests"])))
-        if checks.get("red_joined"):
-            out.append(fire("scenario_stopped", "originator",
-                            f"The red command `{checks['red_joined']}` joins its runners with something other than `&&`, "
+        if checks.get("red_joined_unsafely"):
+            out.append(fire("red_command_joined", "originator",
+                            f"The red command `{checks['red_joined_unsafely']}` joins its runners with something other than `&&`, "
                             "so only the last one's exit code counts. The scenario agent will rewrite it, joining the runners with `&&`."))
         if checks.get("red_cannot_run"):
             out.append(fire("red_cannot_run", "originator",
@@ -197,13 +197,13 @@ def evaluate(data, after, config):
                             + ". Add a test that reaches each, or amend the scenario."))
         for n in checks.get("not_covered") or []:
             out.append(fire("red_misses_scenario", "originator",
-                            f"The scenario agent did not cover {n.get('item')}: {n.get('why')}"))
-        points = [str(p) for p in checks.get("missed_points") or []]
-        run = miss_run(data, "red_misses_point", after)
-        if any(run.get(p, 0) >= 2 for p in points):
-            out.append(fire("red_misses_point", "originator",
-                            "The same scenario points are still in neither covered nor not_covered after two send-backs: "
-                            + "; ".join(points) + ". " + STALL_CHOICES))
+                            f"The scenario agent did not cover {n.get('outcome')}: {n.get('why')}"))
+        outcomes = [str(p) for p in checks.get("missed_outcomes") or []]
+        run = miss_run(data, "report_misses_outcome", after)
+        if any(run.get(p, 0) >= 2 for p in outcomes):
+            out.append(fire("report_misses_outcome", "originator",
+                            "The same scenario outcomes are still in neither covered nor not_covered after two send-backs: "
+                            + "; ".join(outcomes) + ". " + STALL_CHOICES))
         if checks.get("red_fails") is False:
             out.append(fire("scenario_not_red", "originator",
                             "The scenario passes on the code as it is. The behaviour may exist already, "
@@ -313,11 +313,11 @@ def evaluate(data, after, config):
             what = [n for n in ("shape_change", "pitch_contradiction") if data.get(n) == "yes"]
             out.append(fire("shape_or_pitch", "two_people",
                             f"The guardian's packet says {' and '.join(what)}. Two people decide from the packet."))
-        fc = (data.get("forecast") or {}).get("shape")
+        fc = (data.get("forecast") or {}).get("shape_breadth")
         actual = (data.get("checks") or {}).get("guardian", {}).get("shape_breadth")
         # a shape stays accepted at the breadth it was accepted at; a stop from before the breadth was kept covers any
         accepted_shape = data.get("shape_change") == "accepted" or any(
-            s.get("order") == "shape_wider_than_forecast" and s.get("answer") and not s.get("sent_back")
+            s.get("order") == "shape_wider_than_forecast" and s.get("answer") and not s.get("sendback")
             and BREADTH.get(s.get("breadth"), BREADTH["wide"]) >= BREADTH.get(actual, 0)
             for s in data.get("stops") or [])
         if not accepted_shape and fc in BREADTH and actual in BREADTH and BREADTH[actual] > BREADTH[fc]:
@@ -328,21 +328,21 @@ def evaluate(data, after, config):
                  if not m.get("slice_only") and not m.get("expected")}
         picture = checks.get("picture_change") == "yes"
         recs = [r for r in data.get("wall_recommendations") or [] if not r.get("accepted") and not r.get("refused")]
-        miss = data.get("scenario_miss") == "yes"
+        miss = data.get("change_misses_scenario") == "yes"
         if miss:
             state = budget_state(data)
             if state["spent_out"]:
                 out.append(fire("budget_spent", "originator",
-                                f"The budget is spent ({', '.join(state['over'])}) and the packet says scenario_miss: yes. "
+                                f"The budget is spent ({', '.join(state['over'])}) and the packet says change_misses_scenario: yes. "
                                 "Continue with a new budget, reshape, or set it aside."))
             found = checks.get("misses") or []
-            repeat = sorted({m["ref"] for m in found} & sent_back(data, "scenario_miss", after))
+            repeat = sorted({m["ref"] for m in found} & sendback_keys(data, "change_misses_scenario", after))
             if checks.get("miss_amend") or any(m.get("amend") for m in found):
-                out.append(fire("scenario_miss", "originator",
+                out.append(fire("change_misses_scenario", "originator",
                                 "The packet lists a scenario miss marked amend: yes: meeting it would change the scenario, "
                                 "which goes through `xv slice amend` and is yours."))
             elif repeat:
-                out.append(fire("scenario_miss", "originator",
+                out.append(fire("change_misses_scenario", "originator",
                                 "The same scenario miss came back after a send-back: "
                                 + "; ".join(repeat) + ". " + STALL_CHOICES))
         if not out and not miss and (moved or picture or recs):
@@ -353,16 +353,16 @@ def evaluate(data, after, config):
                 parts.append(f"{len(recs)} wall recommendation(s) from the guardian")
             if picture:
                 parts.append("the guardian proposes a change to the picture")
-            out.append(fire("accept_moves", "originator",
+            out.append(fire("moves_to_accept", "originator",
                             f"{' and '.join(parts).capitalize()}; the shape did not. Accept them from the packet, "
                             "talk it through with someone, or send it back. The merge is yours."))
         if not out and not miss:
             out.append(fire("ready_to_merge", "originator",
                             "The suite is green and nothing stopped. The merge is yours."))
-        watch = (data.get("red") or {}).get("watch_first_green")
+        watch = (data.get("red") or {}).get("watch_before_merge")
         if data.get("kind") == "feature" and watch:
             for f in out:
-                if f["order"] in ("ready_to_merge", "accept_moves"):
+                if f["order"] in ("ready_to_merge", "moves_to_accept"):
                     f["question"] += (f" Before you merge, watch the first green run: {watch} If you see a case "
                                       "nobody wrote down, add it to the scenario and send the slice back to the "
                                       "scenario agent (--next scenario).")
@@ -398,18 +398,18 @@ def evaluate(data, after, config):
                         + unfinished(data)))
 
     if not any(f["blocking"] for f in out):
-        if after == "scenario" and checks.get("missed_points"):
-            points = sorted({str(p) for p in checks["missed_points"]})
-            out.append(fire("red_misses_point", "watch",
-                            "These points are in neither covered nor not_covered; put each in `covered` or `not_covered` "
-                            "as the item shown: " + "; ".join(points) + ". Every point of the scenario and its "
-                            "amendments goes in `covered` or `not_covered` on each pass, not only the points of the "
+        if after == "scenario" and checks.get("missed_outcomes"):
+            outcomes = sorted({str(p) for p in checks["missed_outcomes"]})
+            out.append(fire("report_misses_outcome", "watch",
+                            "These outcomes are in neither covered nor not_covered; put each in `covered` or `not_covered` "
+                            "as the outcome shown: " + "; ".join(outcomes) + ". Every outcome of the scenario and its "
+                            "amendments goes in `covered` or `not_covered` on each pass, not only the outcomes of the "
                             "newest amendment.",
-                            blocking=False, send_back={"to": "scenario", "misses": points}))
-        elif after == "guardian" and data.get("scenario_miss") == "yes" and checks.get("misses"):
+                            blocking=False, sendback={"to": "scenario", "misses": outcomes}))
+        elif after == "guardian" and data.get("change_misses_scenario") == "yes" and checks.get("misses"):
             found = checks["misses"]
-            out.append(fire("scenario_miss", "watch", "; ".join(m["text"] for m in found), blocking=False,
-                            send_back={"to": "scenario" if any(m["to"] == "scenario" for m in found) else "maker",
+            out.append(fire("change_misses_scenario", "watch", "; ".join(m["text"] for m in found), blocking=False,
+                            sendback={"to": "scenario" if any(m["to"] == "scenario" for m in found) else "maker",
                                        "misses": sorted({m["ref"] for m in found})}))
 
     return out
@@ -418,12 +418,12 @@ def evaluate(data, after, config):
 def next_step(data, after, stop, fired):
     """Where `next` goes after this step, or None when it stays where the step left it."""
     if stop:
-        if ((data.get("checks") or {}).get(after) or {}).get("red_joined"):
+        if ((data.get("checks") or {}).get(after) or {}).get("red_joined_unsafely"):
             return "scenario"
         return None if stop["order"] == "ready_to_merge" else after
-    back = [f for f in fired if f.get("send_back")]
+    back = [f for f in fired if f.get("sendback")]
     if back:
-        return back[-1]["send_back"]["to"]
+        return back[-1]["sendback"]["to"]
     checks = (data.get("checks") or {}).get(after) or {}
     if after == "scenario" and checks.get("red_fails") is True and (checks.get("red_on_build") or {}).get("passes"):
         return "cleaner"  # the build already passes the red: nothing for the maker to make

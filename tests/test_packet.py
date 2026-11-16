@@ -54,27 +54,27 @@ class PacketTest(unittest.TestCase):
         _, _, problems, _ = packet.lint(GOOD.replace("pitch_contradiction: no", "pitch_contradiction: accepted"))
         self.assertTrue(any("pitch_contradiction" in p for p in problems))
 
-    def test_scenario_miss_must_be_yes_or_no(self):
-        with_field = GOOD.replace("door: two-way\n---", "door: two-way\nscenario_miss: no\n---", 1)
+    def test_change_misses_scenario_must_be_yes_or_no(self):
+        with_field = GOOD.replace("door: two-way\n---", "door: two-way\nchange_misses_scenario: no\n---", 1)
         _, _, problems, _ = packet.lint(with_field)
         self.assertEqual(problems, [])
-        _, _, problems, _ = packet.lint(with_field.replace("scenario_miss: no", "scenario_miss: maybe"))
-        self.assertTrue(any("scenario_miss" in p for p in problems))
+        _, _, problems, _ = packet.lint(with_field.replace("change_misses_scenario: no", "change_misses_scenario: maybe"))
+        self.assertTrue(any("change_misses_scenario" in p for p in problems))
         # optional: a packet without the field is not a lint problem
         _, _, problems, _ = packet.lint(GOOD)
-        self.assertFalse(any("scenario_miss" in p for p in problems))
+        self.assertFalse(any("change_misses_scenario" in p for p in problems))
 
     def test_the_packet_template_shows_the_fields_and_a_misses_section(self):
         text = open(os.path.join(HOME, "skills", "guardian", "packet.md")).read()
         front = text.split("---")[1]
-        self.assertRegex(front, r"(?m)^scenario_miss: ")
+        self.assertRegex(front, r"(?m)^change_misses_scenario: ")
         self.assertRegex(front, r"(?m)^shape_change: .*accepted")
         self.assertIn("accepted_by", front)
         self.assertRegex(text, r"(?im)^## .*miss")
 
-    def test_the_guardian_brief_names_scenario_miss_and_what_a_miss_cites(self):
+    def test_the_guardian_brief_names_change_misses_scenario_and_what_a_miss_cites(self):
         text = open(os.path.join(HOME, "skills", "guardian", "SKILL.md")).read()
-        self.assertIn("scenario_miss", text)
+        self.assertIn("change_misses_scenario", text)
         self.assertRegex(text, r"(?i)binding decision")
 
     def test_a_miss_is_keyed_by_its_point_not_by_its_wording(self):
@@ -86,7 +86,7 @@ class PacketTest(unittest.TestCase):
         self.assertEqual(ref("Decision 10 is broken: the order sits in run.py"),
                          ref("decision 10: another wording"))
 
-    MISSES = GOOD.replace("door: two-way\n---", "door: two-way\nscenario_miss: yes\n---", 1) + """
+    MISSES = GOOD.replace("door: two-way\n---", "door: two-way\nchange_misses_scenario: yes\n---", 1) + """
 ## Scenario misses
 
 - 2: the list leaves out milk that runs out today (evidence: tests/test_store.py:7; to: maker)
@@ -113,14 +113,14 @@ class PacketTest(unittest.TestCase):
         for line in ("The list feels thin", "3: the stop is missing"):
             self.assertNotIn(line, kept)
             self.assertIn(line, dropped)
-        self.assertIn("scenario_miss: yes", out.split("---")[1])
+        self.assertIn("change_misses_scenario: yes", out.split("---")[1])
 
-    def test_with_no_miss_left_scenario_miss_reads_as_no(self):
+    def test_with_no_miss_left_change_misses_scenario_reads_as_no(self):
         only_bad = self.MISSES.split("- 2:")[0] + (
             "- The list feels thin (evidence: tests/test_store.py:9; to: maker)\n")
         out = self.fixed(only_bad)
-        self.assertIn("scenario_miss: no", out.split("---")[1])
-        self.assertNotIn("scenario_miss: yes", out)
+        self.assertIn("change_misses_scenario: no", out.split("---")[1])
+        self.assertNotIn("change_misses_scenario: yes", out)
 
 
 class PacketFieldDocsTest(unittest.TestCase):

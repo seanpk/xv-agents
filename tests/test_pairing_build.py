@@ -138,7 +138,7 @@ class StartTest(PairingCase):
     def test_start_opens_at_a_send_back(self):
         path, data, body = record.load(self.wt, "s1")
         data["checks"] = {"reports": [{"agent": "guardian", "status": "done", "summary": "s", "at": "t"}]}
-        body = record.send_back(data, body, "guardian", "scenario_miss", ["2"], "point 2 is missed", "maker")
+        body = record.record_sendback(data, body, "guardian", "change_misses_scenario", ["2"], "point 2 is missed", "maker")
         record.save(path, data, body)
         self.start("too small for another pass")
         data = self.show()
@@ -148,7 +148,7 @@ class StartTest(PairingCase):
     def test_start_refuses_a_send_back_a_step_has_reported_after(self):
         path, data, body = record.load(self.wt, "s1")
         data["checks"] = {"reports": [{"agent": "guardian", "status": "done", "summary": "s", "at": "t"}]}
-        body = record.send_back(data, body, "guardian", "scenario_miss", ["2"], "point 2 is missed", "maker")
+        body = record.record_sendback(data, body, "guardian", "change_misses_scenario", ["2"], "point 2 is missed", "maker")
         data["checks"]["reports"].append({"agent": "maker", "status": "done", "summary": "s", "at": "t2"})
         record.save(path, data, body)
         self.refused("pairing", "start", "s1", "--by", "pat", "--why", "help")
@@ -246,7 +246,7 @@ class EndTest(PairingCase):
     def test_end_at_an_earlier_step_marks_the_stop_sent_back(self):
         self.end("maker")
         stop = self.show()["stops"][-1]
-        self.assertEqual((stop.get("sent_back"), stop.get("sent_back_to")), (True, "maker"))
+        self.assertEqual((stop.get("sendback"), stop.get("sendback_to")), (True, "maker"))
 
     def test_end_at_close_is_refused(self):
         p = self.refused("pairing", "end", "s1", "--next", "close")

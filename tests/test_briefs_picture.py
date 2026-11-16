@@ -34,7 +34,7 @@ class PictureInTheBriefsTest(unittest.TestCase):
 
     def test_the_scenario_brief_says_each_numbered_point_must_be_in_covers_or_not_covered(self):
         text = brief("skills", "scenario", "SKILL.md")
-        self.assertRegex(text, r"(?is)each numbered point[^\n]*amendment[^\n]*`covered`[^\n]*`not_covered`")
+        self.assertRegex(text, r"(?is)each numbered outcome[^\n]*amendment[^\n]*`covered`[^\n]*`not_covered`")
 
     def test_the_watch_may_edit_the_picture_when_a_person_directs_it(self):
         text = brief("skills", "watch", "SKILL.md")
@@ -204,8 +204,8 @@ class ScenarioCatchesTest(unittest.TestCase):
 
     def test_the_scenario_brief_says_a_number_in_covers_names_only_the_scenarios_own_point(self):
         text = brief("skills", "scenario", "SKILL.md")
-        self.assertRegex(text, r"(?is)\bnumber\b[^\n]*only[^\n]*scenario's own point")
-        self.assertRegex(text, r"(?is)amendment's point[^\n]*own words")
+        self.assertRegex(text, r"(?is)\bnumber\b[^\n]*only[^\n]*scenario's own outcome")
+        self.assertRegex(text, r"(?is)amendment's outcome[^\n]*own words")
 
 
 class RetroDocsNameNumberedFilesTest(unittest.TestCase):

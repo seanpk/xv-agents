@@ -5,7 +5,7 @@ A refactor slice opens with `--expect-moves imports`, `renames`, or both, and wi
 `--rename Old=New` for each name it renames. After the maker and the cleaner,
 `xv run` calls this to compare every test file that changed since the wall
 baseline. A move that fits an expected kind is recorded, marked `expected`, and
-needs no `accept_moves` stop. The agent does not decide whether a move is
+needs no `moves_to_accept` stop. The agent does not decide whether a move is
 expected; any other move still stops.
 
   imports  the same path; only import or require lines and whitespace change.

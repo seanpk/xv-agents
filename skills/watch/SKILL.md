@@ -57,7 +57,7 @@ xv record answer <id> --by <name>[,<name>] --answer "<their words>" --pick <n|ot
 
 `--resume` refuses an answer with no `--next`: `next` stays on the step that stopped, so every answer says where the slice goes.
 
-At `accept_moves`, `--accept-wall` and `--refuse-wall` take the test with its file (`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`); a bare name that two files share is refused, and the refusal names each `file::test`.
+At `moves_to_accept`, `--accept-wall` and `--refuse-wall` take the test with its file (`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`); a bare name that two files share is refused, and the refusal names each `file::test`.
 
 You write `settled`, `new_info` and `cause` as the person's scribe; the record says so. `--settled` is required when `--next` sends the work back, to the step that stopped or an earlier one, or when the pick is `other`; an answer whose `--next` moves the slice forward needs none. Three stops need none whatever `--next` is, because their work has not started: `setup_failed` saved at step `setup` (not one raised after the scenario step), a prototype stop other than `prototypes_ready` (that pick keeps `settled`), and a `budget_spent` stop raised before its step ran, answered with `--next` that step (not the one raised after the maker left the suite red). Do not write a "Settled at" paragraph into the scenario. A decision that changes what the slice must do goes through `xv slice amend`, and `settled` names the amendment; every other decision lives only in `settled`. Each amendment you draft names four things: the exact name a test will look for; where it is checked; when it applies, and the case it does not cover; and any may-not line or binding decision it loosens. `xv prompt` gives the next agent `settled`, not the raw words.
 
@@ -111,13 +111,13 @@ They are scripts (`xv orders <id>`), not this text. You do not interpret them, r
 | A worker ended with no report | the person who set the work going |
 | In a slice from a build, the scenario agent's red does not apply to the build | the person who set the work going |
 | The scenario agent marked tests slice-only | the person who set the work going: accept the marks, or unmark a test so it joins the wall |
-| The guardian recommended which new tests join the wall or leave it | the person who set the work going, in `accept_moves` |
+| The guardian recommended which new tests join the wall or leave it | the person who set the work going, in `moves_to_accept` |
 | The budget is not set, or a prototype slice has no `prototype_budgets` | the person who set the work going |
 | `shape_change: yes` or `pitch_contradiction: yes` in the packet (`shape_change: accepted` does not stop) | two people |
 | A budget raised past the team's limit, or a shape change wider than forecast | two people |
 | Prototypes ready to pick from | two people |
-| The packet says `scenario_miss: yes` (a scenario line or a binding decision missed), and no shape or pitch stop fires | no one: the watch sends the slice back to the maker, or to the scenario agent when the red does not cover the line, and records the send-back with the misses. The same miss on the next pass, a miss marked `amend: yes`, or a spent budget stops for the person who set the work going |
-| After the scenario step, a numbered point of the scenario or an amendment is in neither `covered` nor `not_covered` | no one: the watch sends the slice back to the scenario agent and records it; the same point on the next pass stops for the person who set the work going |
+| The packet says `change_misses_scenario: yes` (a scenario line or a binding decision missed), and no shape or pitch stop fires | no one: the watch sends the slice back to the maker, or to the scenario agent when the red does not cover the line, and records the send-back with the misses. The same miss on the next pass, a miss marked `amend: yes`, or a spent budget stops for the person who set the work going |
+| After the scenario step, a numbered outcome of the scenario or an amendment is in neither `covered` nor `not_covered` | no one: the watch sends the slice back to the scenario agent and records it; the same outcome on the next pass stops for the person who set the work going |
 | The suite is green and nothing stopped | the person who set the work going: the merge is theirs |
 | The packet from production | the chief engineer; it does not wait |
 

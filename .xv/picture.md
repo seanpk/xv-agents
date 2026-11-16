@@ -59,8 +59,8 @@ Sean Kennedy sits with them.
   `prompt.build` takes `part` (the rebase part of the maker's brief) and `saved` (the record from before the rebase).
   `wall.baseline` takes `keep` and `skip`, and `wall.hashes_at` hashes files at a ref.
   `shape_or_pitch` fires on `yes`, not on `accepted`; `accepted` holds only when `accepted_by` names a decision in the slice's `decisions` list with `order: shape_or_pitch` (`xv run`, `xv record packet`), and `xv guard` always reads it as `yes`.
-  `shape_wider_than_forecast` does not fire when `shape_change` is `accepted`, or when a stop of that order was answered without sending work back, at a breadth no narrower than the current one; the stop records `breadth`, and a stop with no `breadth` covers any (the answer marks a send-back `sent_back`).
-  `accept_moves` counts moves by file and assertion, except moves marked `expected` (`scripts/orders.py`).
+  `shape_wider_than_forecast` does not fire when `shape_change` is `accepted`, or when a stop of that order was answered without sending work back, at a breadth no narrower than the current one; the stop records `breadth`, and a stop with no `breadth` covers any (the answer marks a send-back `sendback`).
+  `moves_to_accept` counts moves by file and assertion, except moves marked `expected` (`scripts/orders.py`).
   After the maker and the cleaner, `moves` compares each test file that changed since the wall baseline, or that the record already holds as expected, with the slice's base and a test file the slice added with its newest `red` commit, against `expect_moves` and `renames`.
   It records a fit as a move marked `expected`, which replaces a hand-recorded entry for the same file.
   After the guardian, `expected_moves_wrong` stops for the originator when the packet's `expected_moves` does not match the record.
@@ -70,17 +70,17 @@ Sean Kennedy sits with them.
   `packet.packet_checks` is the one place where `xv step` and `xv record packet` run the packet lint and the `expected_moves` count.
   It also writes a note, not a stop, naming each `.xv/picture.md` line that holds more than one sentence (`packet.crowded_picture_lines`); a second run replaces the note.
   An old note is stripped only where it starts a line (`packet.note_crowded_picture_lines`).
-  When no stop blocks, `orders` also returns a send-back with seat `watch`, naming where the slice goes and the misses: `scenario_miss` after the guardian, `red_misses_point` after the scenario step.
+  When no stop blocks, `orders` also returns a send-back with seat `watch`, naming where the slice goes and the misses: `change_misses_scenario` after the guardian, `report_misses_outcome` after the scenario step.
   `orders.verdict` also returns `next`.
   After the scenario step, `next` is `cleaner` when the red failed on the base and passes on the build.
   One function, `record.apply_verdict`, writes the stop or the send-backs, and `next`, on `xv step`, `xv run`, `xv record packet`, and `xv record answer` after a directed edit; it adds no second open stop of the same order.
   After a directed edit, `orders.verdict` does not fire the order the answer closed or any order bundled with it, `ready_to_merge` included, and the answer's `--next` stands.
   At the scenario step, a directed edit counts the suite green when every failing test is one of the slice's own red tests.
   `record.guardian_facts` turns the packet into the record's fields on every path.
-  For `scenario_miss`, a miss is a repeat when an earlier pass sent back the same key, and the repeat stops for the originator.
-  For `red_misses_point`, `orders.miss_run` counts the send-backs of the same point in an unbroken run of scenario reports.
+  For `change_misses_scenario`, a miss is a repeat when an earlier pass sent back the same key, and the repeat stops for the originator.
+  For `report_misses_outcome`, `orders.miss_run` counts the send-backs of the same outcome in an unbroken run of scenario reports.
   The third miss in a row stops for the originator.
-  A pass that covered the point, an amendment (`amended_at_report`, written by `xv slice amend`), or a person's answer ends the run.
+  A pass that covered the outcome, an amendment (`reports_before_amend`, written by `xv slice amend`), or a person's answer ends the run.
   `xv prototype` still applies its own stop (#117).
   `wall` holds the test hash check and `red_gaps`, which lists each flag and `xv` command written in backticks in the scenario that no red file has (a command's words together, in order), except an `xv` command that is a subcommand at the slice's base (run checks this with the base's own `bin/xv <words> --help`, from `git archive`), nor a flag that the command it follows already has at the base (in its `--help` text), and a gap named in an answered `red_misses_scenario` stop that was not sent back.
   The base is read with `tarfile`.
@@ -99,7 +99,7 @@ Sean Kennedy sits with them.
   `packet` also holds the allowed field values (`ALLOWED`, `YES_NO`).
   `listen`, `retro`, `promote` and `prototypes` are the side loops.
   `run.close` writes `modules_touched`, from `boundary.change` against the slice's base, and `maker_sendbacks`.
-  A person's answer that sends work back keeps `sent_back_to: <step>`.
+  A person's answer that sends work back keeps `sendback_to: <step>`.
   `retro.reworked` finds the modules that at least `limits.rework_slices` closed, sent-back slices touched; `due` and the retro prompt both use it on slices created since the last retro.
   `retro.accept` only prints the `xv slice new --kind refactor` command for a candidate of kind `refactor`.
   After the scenario step, `slice_only_marks` lists slice-only marks for the person who set the work going; they accept the marks or run `xv record unmark`.
@@ -107,14 +107,14 @@ Sean Kennedy sits with them.
   An accepted mark is kept when the scenario runs again and is not asked about again.
   A mark whose `checks` names a file listed in `tests.slice_only_files` (default `CHANGELOG.md`) is accepted by the watch with a log line and is not asked about.
   An agent's report cannot set `accepted` on its own mark.
-  The guardian's `wall_recommendations` go to the same person in `accept_moves`.
+  The guardian's `wall_recommendations` go to the same person in `moves_to_accept`.
   Only a person's `--accept-wall <test>` accepts one, and only `--refuse-wall <test>` takes back one accepted earlier; an accepted `mark slice-only` recommendation is listed in `slice_only`, and refusing it later takes it out, matched on file and test; a new recommendation not named is refused, and an agent's report sets neither.
   Both flags take the test with its file, in the forms the coverage check takes (`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`); a bare name that two files share is refused, and the refusal names each `file::test`.
   Giving either flag on another kind of stop, or both on one test, is refused.
-  Each answered `accept_moves` stop keeps `accepted_wall` and `refused_wall`.
+  Each answered `moves_to_accept` stop keeps `accepted_wall` and `refused_wall`.
   `decisions` reads every slice record through `retro.records()` and counts answered stops per order: picks equal to the recommendation, `new_info: none`, and causes.
-  `record.apply_report` keeps a scenario report's `old_tests_forced` and `may_not_files`, and a report without them clears them.
-  `prompt` shows them to the maker only, and only the picture from `may_not_files`.
+  `record.apply_report` keeps a scenario report's `old_tests_to_move` and `may_not_files_needed`, and a report without them clears them.
+  `prompt` shows them to the maker only, and only the picture from `may_not_files_needed`.
   `recording` and `playwright_agents` serve the scenario agent.
   `install` and `adapt` handle distribution.
 - Outbound calls: `evals/grade`, `boundary`, `check`, `listen`, `recording`.
@@ -136,7 +136,7 @@ Sean Kennedy sits with them.
   No `.py` file under `tests/` or `scripts/` defines a top-level class or function name twice, or one method name twice in a class, and `tests/test_one_name.py` `OneNameOneDefinitionTest` guards this.
 - No database.
   State is files: `.xv/slices/<id>.md` (front matter plus log), `.xv/decisions/`, `estimation.md`, `learnings.md`, `config.yml`.
-  The slice record also holds `amended_at_report`, the report count at the last amendment.
+  The slice record also holds `reports_before_amend`, the report count at the last amendment.
   The slice record also holds `pairings`, one entry per pairing, which only `xv pairing start` and `xv pairing end` write.
   While a pairing is open, `xv step`, `xv run`, `xv close`, `xv slice rebase` and `xv record report` refuse on the slice.
   A pairing's spend row has `step: pairing` and counts in the budget.
@@ -182,20 +182,20 @@ Sean Kennedy sits with them.
   The red then runs on the build, and the maker's prompt names the tests that fail.
   A session scenario step makes that checkout and names it.
   The next `xv step scenario` or `xv close` drops a checkout that no report landed.
-  A red command joined at the top level by anything but `&&` (`;`, `||`, `|`, `&` or a new line, outside quotes) is not run and not kept as the slice's red; the scenario step stops for the originator (`scenario_stopped`), and `next` stays `scenario`, so the scenario agent rewrites it with `&&`.
+  A red command joined at the top level by anything but `&&` (`;`, `||`, `|`, `&` or a new line, outside quotes) is not run and not kept as the slice's red; the scenario step stops for the originator (`red_command_joined`), and `next` stays `scenario`, so the scenario agent rewrites it with `&&`.
   `xv record report` applies the same rule in session mode, with or without a build (`record.cmd_report`).
   A red that fails before any test runs (exit 126 or 127, a runner's own words that a file could not load or no tests were found, or a general error name with no real failing test) stops the scenario step for the originator (`red_cannot_run`), and `next` stays `scenario`.
-  After the scenario step, `red_misses_scenario` stops for the originator before the maker when the report lists a `not_covered` item, when `red_gaps` lists anything, or when the check cannot read its input: no `## Scenario` heading, `covered` or `not_covered` missing or not a list, `covered` empty, or with an item whose `test` is not one name, a list of non-empty strings, or a string joined with `,` or `;`, or a `covered` name that matches no whole word in any red file.
-  A `not_covered` item named in an earlier answered `red_misses_scenario` stop does not stop again, unless that answer sent the slice back (`sent_back`).
+  After the scenario step, `red_misses_scenario` stops for the originator before the maker when the report lists a `not_covered` outcome, when `red_gaps` lists anything, or when the check cannot read its input: no `## Scenario` heading, `covered` or `not_covered` missing or not a list, `covered` empty, or with an item whose `test` is not one name, a list of non-empty strings, or a string joined with `,` or `;`, or a `covered` name that matches no whole word in any red file.
+  A `not_covered` outcome named in an earlier answered `red_misses_scenario` stop does not stop again, unless that answer sent the slice back (`sendback`).
   On a later scenario pass, the coverage kept from earlier passes (`checks.scenario.covered_kept`) is added to the report's `covered` before the check, except when the record's `next` is `maker` (a pass that went on to the maker ends the run), so an empty `covered` does not stop when something was kept; each kept name is checked again against the red files.
-  A record written before the rename keeps its kept points under `covers_kept`, and the check reads them when `covered_kept` is empty or missing (`scripts/run.py:1119`).
+  A record written before the rename keeps its kept outcomes under `covers_kept`, and the check reads them when `covered_kept` is empty or missing (`scripts/run.py:1119`).
   A `covered` name whose last part is a slice-only test that the cleaner removed by a recorded move does not stop; only the move's assertion before a `;` is read.
   A `covered` name may start with a red file's path or module and is split by `::`, `.`, `#`, `/` or ` > `; it matches when each part after the path is a whole word in that red file, in order (`names.covered_name_found`); a name whose test part is empty stops, and the stop names the name that does not match.
-  A numbered point of the scenario or an amendment that is in neither `covered` nor `not_covered` sends the slice back to the scenario agent (`xv step` and `xv run` compute this).
-  The match ignores backticks, `*` and `_` in both the point and the item (`run.norm`).
-  The send-back lists each missed point as `<number>. <text>`, an item the check accepts, and says every point goes in on each pass.
-  A `covered` item that is a number, or starts with one, covers the scenario's own point with that number.
-  It never covers an amendment's point (`run.missed_points`).
+  A numbered outcome of the scenario or an amendment that is in neither `covered` nor `not_covered` sends the slice back to the scenario agent (`xv step` and `xv run` compute this).
+  The match ignores backticks, `*` and `_` in both the scenario's outcome and the report's (`run.norm`).
+  The send-back lists each missed outcome as `<number>. <text>`, a form the check accepts, and says every outcome goes in on each pass.
+  A `covered` outcome that is a number, or starts with one, covers the scenario's own outcome with that number.
+  It never covers an amendment's outcome (`run.missed_outcomes`).
   After the scenario step, `unrecorded_move` stops for the originator before the maker when any test file that existed at the base, under `tests.paths` or in the red, lost or changed a line other than a blank, comment or import, unless a recorded move names the file.
   In a slice from a build, a test file the build only added lines to is not unrecorded; a line the build changed or removed at the base still stops.
   A line the build added that the maker or the cleaner later changes or removes stops too, measured from the build's commit (`wall.check`).
@@ -219,13 +219,13 @@ Sean Kennedy sits with them.
   Leftover conflict markers stop as `rebase_stuck` before staging.
   A refactor slice's scenario step runs no agent until the scenario is amended.
   It runs the suite, and `suite_not_green_at_start` stops for the originator unless the suite is green.
-  After an amend, the scenario agent writes a red as on a feature slice, and only the amendment's points need `covered` or `not_covered`.
+  After an amend, the scenario agent writes a red as on a feature slice, and only the amendment's outcomes need `covered` or `not_covered`.
 - Surfaces: the `xv` CLI, `skills/*/SKILL.md`, three GitHub Actions examples in `ci/github/`, and `.github/workflows/` (tests, weekly drift check).
 - `evals/` holds a small "pantry" fixture app, scenarios, and recorded runs on three harnesses.
 
 ## Names
-- "Originator", "the person who set the work going" and `set_by` appear to mean the same seat.
-  Someone other than `set_by` may answer an `originator` stop, so a teammate can pick up the work; `answered_by` records who (#62).
+- "Originator" and "the person who set the work going" mean the same seat; the record names that person in `originator` (`set_by` before #185; a budget's `set_by` still names who set the budget).
+  Someone other than the `originator` may answer an `originator` stop, so a teammate can pick up the work; `answered_by` records who (#62).
 - "Slice" is the unit of change.
   "Record" is the slice file.
   "Packet" is the guardian's output (the listener's is "the packet from production").
@@ -234,12 +234,13 @@ Sean Kennedy sits with them.
   "The shape" means the system's structure, but also "shape change" in a packet.
   Both senses are used.
   `shape_change` is `yes`, `no` or `accepted`; `pitch_contradiction` is `yes` or `no` (#85).
-  `scenario_miss` is `yes` or `no` and optional; a missing one reads as `no` (#96).
+  `change_misses_scenario` is `yes` or `no` and optional; a missing one reads as `no` (#96, renamed in #185).
+- A record or packet written before #185 is read under the new names (`xvlib.upgrade_names`, called by `split_front_matter`); saving it writes the new names.
 - A pairing is the person who set the work going working on a slice with the watch's own session, from an open stop or a send-back to a resume step.
   A test written or changed in a pairing is not blind.
 - The shape conversation opens on a shape change, and before and after a burst.
   A stall (`repeated_failure`, `diff_growing`) is not a shape conversation; it puts four choices to the person who set the work going: continue, reshape the slice, raise the budget, or bring in a second person (#86).
-- The maker and the scenario agent read the picture and pull its binding decisions; they do not edit it, with one exception: the maker may edit `.xv/picture.md` only when the scenario report names it in `may_not_files`.
+- The maker and the scenario agent read the picture and pull its binding decisions; they do not edit it, with one exception: the maker may edit `.xv/picture.md` only when the scenario report names it in `may_not_files_needed`.
   No other protected file is exempt (`run.post_step`).
   The guardian lists the edit.
   The rebase maker may not edit a test file or `.xv/picture.md`: on a conflict replay such an edit stops with `rebase_conflict`, and on a replay with no conflict it stops with `rebase_conflict` too.
@@ -257,7 +258,7 @@ Sean Kennedy sits with them.
   The README states this.
 - "Seat": `originator`, `two_people`, `chief_engineer`.
   `watch` is the seat on a send-back the watch made itself; no person fills it.
-- `maker_sendbacks` is the larger of two counts: the maker's spend rows minus one, and the stops answered "sent back to the maker" or with `sent_back_to: maker`.
+- `maker_sendbacks` is the larger of two counts: the maker's spend rows minus one, and the stops answered "sent back to the maker" or with `sendback_to: maker`.
   A maker run inside `xv slice rebase` counts too (Sean, 2026-11-05).
 - "Tokens" in a budget, forecast, guide row or retro means input + output + cache write, with no cache reads, since 2026-10-26 (#28).
   Guide rows from before then counted cache reads and are not rewritten.

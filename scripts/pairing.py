@@ -55,8 +55,8 @@ def reader_of(session):
     return (session or {}).get("harness")
 
 
-def at_send_back(data):
-    """The watch's own send-back the slice is at: the last stop is the watch's, and no step has reported since."""
+def at_sendback(data):
+    """The watch's own sendback the slice is at: the last stop is the watch's, and no step has reported since."""
     stops = data.get("stops") or []
     if not stops or stops[-1].get("seat") != "watch":
         return None
@@ -93,12 +93,12 @@ def cmd_start(a):
     if p:
         raise XVError(f"pairing {p['n']} is already open on {a.id} ({p['by']} with {p['agent']}); "
                       f"end it with `xv pairing end {a.id} --next ...` first")
-    if a.by != data.get("set_by"):
-        raise XVError(f"only the person who set the work going pairs on {a.id}: {data.get('set_by')}, not {a.by}")
+    if a.by != data.get("originator"):
+        raise XVError(f"only the person who set the work going pairs on {a.id}: {data.get('originator')}, not {a.by}")
     if not (a.why or "").strip():
         raise XVError("--why says why the person pairs: the handoff that did not work, or what is too small for a pass")
     open_stops = [s for s in data["stops"] if s.get("answer") is None]
-    stop = open_stops[-1] if open_stops else at_send_back(data)
+    stop = open_stops[-1] if open_stops else at_sendback(data)
     if stop is None:
         raise XVError(f"{a.id} has no open stop or send-back: a pairing opens at one")
     if stop.get("answer") is None and stop["seat"] == "two_people" and not solo(load_config(root)):
@@ -228,7 +228,7 @@ def cmd_end(a):
         stopped_at = stop.get("step") or p.get("step")
         steps = record.STEPS
         if not (stopped_at in steps and steps.index(a.next) > steps.index(stopped_at)):
-            stop["sent_back"], stop["sent_back_to"] = True, a.next
+            stop["sendback"], stop["sendback_to"] = True, a.next
     data["next"], data["status"] = a.next, "working"
     body = record.log_line(body, "watch", f"pairing {p['n']} ended: {p['by']} with {p['agent']}; "
                                           f"{len(work)} commit(s); resumes at {a.next}; spend: {packetlib.spend_words(p)}")
@@ -253,7 +253,7 @@ def cmd_end(a):
            "spend": row, "spend_note": why_not, "budget": state}
     if state["spent_out"]:
         out["note"] = (f"the budget is spent ({', '.join(state['over'])}); the next step stops for "
-                       f"{data.get('set_by')} before it runs")
+                       f"{data.get('originator')} before it runs")
     emit(out, True)
 
 
