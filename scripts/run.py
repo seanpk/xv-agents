@@ -830,7 +830,18 @@ def step(agent, slice_id, review_again=False):
     if scratch and data.get("build_shared") == "yes":
         extra = [f"The build is at `{data['build']['ref']}`, a reference only: the red tests what the scenario says, "
                  "and does not assume the code will look like the build."]
-    text = promptlib.build(agent, slice_id, root=scratch or root, extra=extra)
+    try:
+        text = promptlib.build(agent, slice_id, root=scratch or root, extra=extra)
+    except promptlib.RepassDiffFailed as e:
+        st = {"at": now(), "step": agent, "order": "repass_diff_failed", "seat": "originator",
+              "question": f"the guardian's re-pass diff could not run, so no prompt was given: {e}",
+              "answered_by": [], "answer": None, "also": [], "pre_step": True}
+        data["stops"].append(st)
+        data["status"] = "stopped"
+        body = record.log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
+        record.save(path, data, body)
+        reach(config, st["seat"], st["question"], os.path.relpath(path, root))
+        return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": st, "fired": []}
     argv = agentcli.argv_for(config, agent, repass=bool(data.get("packet")))
     spent = spendlib.slice_spend(data)
     argv = agentcli.with_caps(argv, data.get("budget"), spent["usd"], spent["turns"])
