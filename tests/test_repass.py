@@ -87,8 +87,23 @@ class RepassPromptTest(RepassCase):
         self.assertIn(AFTER, prompt)
         self.assertNotIn(BEFORE, prompt)
 
+    def test_a_repass_whose_diff_cannot_run_stops_instead_of_showing_an_empty_diff(self):
+        # decision 12: a check whose input is broken stops for a person; it never passes
+        self.first_pass()
+        self.commit("pantry/later.py", AFTER + "\n", "xv(s1): make it work again")
+        rec = os.path.join(self.wt, ".xv", "slices", "s1.md")
+        with open(rec, encoding="utf-8") as f:
+            text = f.read()
+        real = sh(["git", "rev-parse", "HEAD~1"], self.wt).stdout.strip()  # HEAD when the packet was recorded
+        self.assertIn(f'"packet_head": "{real}"', text)  # the record holds the packet's head, so the swap bites
+        with open(rec, "w", encoding="utf-8") as f:
+            f.write(text.replace(real, "deadbeef" * 5))
+        p = self.xv("prompt", "guardian", "s1", cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0, "the prompt came out although the diff could not run")
+        self.assertNotIn("The diff after that commit follows", p.stdout)
 
-MARK = """import os, sys
+
+MARK ="""import os, sys
 with open(os.environ["MARK_LOG"], "a") as f:
     f.write(sys.argv[1] + "\\n")
 print("done, no report")
