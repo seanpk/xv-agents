@@ -225,6 +225,20 @@ class ForecasterBriefTest(RepassCase):
         example = text[text.index('"forecast":'):]
         self.assertIn('"rounds"', example.split("```")[0])
 
+    def test_a_forecast_report_with_rounds_and_a_reason_keeps_both_in_the_records_forecast(self):
+        fc = {"keys": [{"harness": "sh", "model": "default", "tokens": 1000, "basis": []}],
+              "wall_s": 10, "shape": "none", "breadth": "one comparison",
+              "rounds": 3, "rounds_reason": "a pairing is likely after the red"}
+        out = ("done\n```xv-report\n" + json.dumps(
+            {"agent": "forecaster", "status": "done", "summary": "forecast", "forecast": fc}) + "\n```\n")
+        path = os.path.join(self.tmp, "forecaster-out.txt")
+        with open(path, "w") as f:
+            f.write(json.dumps({"result": out}))
+        self.xv("record", "report", "s1", "forecaster", path, cwd=self.wt)
+        kept = self.record()["forecast"]
+        self.assertEqual(kept.get("rounds"), 3)
+        self.assertEqual(kept.get("rounds_reason"), "a pairing is likely after the red")
+
     # -- 5
     def test_the_close_section_names_a_pairing_and_a_send_back_as_causes_of_the_gap(self):
         text = skill("forecaster")
