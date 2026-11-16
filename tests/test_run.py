@@ -634,6 +634,14 @@ class WatchLoopTest(WatchLoopSetup):
         self.scenario_covering(covered=["1", "2"])
         self.assertEqual(self.record()["next"], "scenario")
 
+    def test_a_repeated_number_covers_only_the_first_outcome_with_that_number(self):
+        self.in_the_scenario(self.P1)
+        self.amend("1. A household sees a restock hint.")
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.scenario_covering(covered=["1"])
+        self.assertEqual(self.record()["next"], "scenario")
+        self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and "A household sees a restock hint." in l])
+
     def test_a_covers_item_that_is_a_points_number_covers_it(self):
         p = self.covered_by_number(f"{self.P1}\n{self.P2}", ["1", "2"])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
