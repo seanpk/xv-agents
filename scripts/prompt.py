@@ -12,6 +12,7 @@ import argparse
 import os
 import re
 import shutil
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -204,7 +205,6 @@ def refactor_section(agent, data):
 
 def repass_section(root, data):
     """A guardian re-pass: its earlier packet and the diff made after that packet's commit. A first pass has neither."""
-    import subprocess
     packet = (data or {}).get("packet")
     full = os.path.join(root, packet) if packet else None
     if not full or not os.path.isfile(full):
