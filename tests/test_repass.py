@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import unittest
 
 from helpers import HOME, RepoCase, sh
@@ -85,6 +86,77 @@ class RepassPromptTest(RepassCase):
         self.assertIn(PACKET_TEXT, prompt)
         self.assertIn(AFTER, prompt)
         self.assertNotIn(BEFORE, prompt)
+
+
+MARK = """import os, sys
+with open(os.environ["MARK_LOG"], "a") as f:
+    f.write(sys.argv[1] + "\\n")
+print("done, no report")
+"""
+
+
+class RepassCommandTest(RepassCase):
+    # -- 2, as amended by 8: `agents.guardian_repass` is a whole command list, for the re-pass only
+    def setUp(self):
+        super().setUp()
+        self.script = os.path.join(self.tmp, "mark.py")
+        with open(self.script, "w") as f:
+            f.write(MARK)
+        self.log = os.path.join(self.tmp, "marks.log")
+        os.environ["MARK_LOG"] = self.log
+        self.addCleanup(os.environ.pop, "MARK_LOG", None)
+
+    def agents(self, **tags):
+        """Name the agents in the worktree's config: each tag is what the stand-in logs when it runs."""
+        lines = "".join(f'  {k}: ["{sys.executable}", "{self.script}", "{v}", "{{prompt}}"]\n'
+                        for k, v in tags.items())
+        cfg = os.path.join(self.wt, ".xv", "config.yml")
+        text = open(cfg).read()
+        start, end = text.index("agents:"), text.index("seats:")
+        with open(cfg, "w") as f:
+            f.write(text[:start] + "agents:\n" + lines + text[end:])
+        sh(["git", "commit", "-qam", "xv(s1): agents"], self.wt)
+
+    def ran(self):
+        if not os.path.exists(self.log):
+            return []
+        with open(self.log) as f:
+            return f.read().split()
+
+    def step(self):
+        p = self.xv("step", "guardian", "s1", cwd=self.wt, check=False)
+        self.out = (p.stdout + p.stderr)[-600:]
+
+    def repass(self):
+        """The first pass ends in a stop (no report); the person answers it and sends the slice back to the maker."""
+        self.first_pass()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1 ok", "--next", "maker",
+                "--settled", "the line is as the maker wrote it", cwd=self.wt)
+        self.commit("pantry/later.py", AFTER + "\n", "xv(s1): make it work again")
+
+    def test_a_repass_runs_the_guardian_repass_command_when_it_is_set(self):
+        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.repass()
+        self.step()
+        self.assertEqual(self.ran(), ["second"], self.out)
+
+    def test_a_first_pass_never_runs_the_guardian_repass_command(self):
+        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.commit("pantry/earlier.py", BEFORE + "\n", "xv(s1): make it work")
+        self.step()
+        self.assertEqual(self.ran(), ["first"], self.out)
+
+    def test_a_repass_without_the_key_runs_the_guardian_command(self):
+        self.agents(default="default", guardian="first")
+        self.repass()
+        self.step()
+        self.assertEqual(self.ran(), ["first"], self.out)
+
+    def test_a_repass_without_the_key_or_a_guardian_runs_the_default_command(self):
+        self.agents(default="default")
+        self.repass()
+        self.step()
+        self.assertEqual(self.ran(), ["default"], self.out)
 
 
 class AcceptedWallRecommendationTest(RepassCase):
