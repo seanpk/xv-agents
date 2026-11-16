@@ -77,6 +77,10 @@ Sean Kennedy sits with them.
   After a directed edit, `orders.verdict` does not fire the order the answer closed or any order bundled with it, `ready_to_merge` included, and the answer's `--next` stands.
   At the scenario step, a directed edit counts the suite green when every failing test is one of the slice's own red tests.
   `record.guardian_facts` turns the packet into the record's fields on every path.
+  `record.guardian_facts` also keeps `checks.guardian.packet_head`, the HEAD when `xv record packet` ran.
+  When the record already names a packet, the guardian's prompt carries that packet and `git diff <packet_head>..HEAD` without `.xv/`.
+  When that diff cannot run, `xv prompt guardian` and `xv step guardian` exit 2 and no prompt is given.
+  On that re-pass, `xv step guardian` runs `agents.guardian_repass` when it is set, else `agents.guardian`, else `agents.default`.
   For `change_misses_scenario`, a miss is a repeat when an earlier pass sent back the same key, and the repeat stops for the originator.
   For `report_misses_outcome`, `orders.miss_run` counts the send-backs of the same outcome in an unbroken run of scenario reports.
   The third miss in a row stops for the originator.
@@ -108,6 +112,7 @@ Sean Kennedy sits with them.
   A mark whose `checks` names a file listed in `tests.slice_only_files` (default `CHANGELOG.md`) is accepted by the watch with a log line and is not asked about.
   An agent's report cannot set `accepted` on its own mark.
   The guardian's `wall_recommendations` go to the same person in `moves_to_accept`.
+  A recommendation a person accepted stays on the record when the next guardian pass leaves it out.
   Only a person's `--accept-wall <test>` accepts one, and only `--refuse-wall <test>` takes back one accepted earlier; an accepted `mark slice-only` recommendation is listed in `slice_only`, and refusing it later takes it out, matched on file and test; a new recommendation not named is refused, and an agent's report sets neither.
   Both flags take the test with its file, in the forms the coverage check takes (`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`); a bare name that two files share is refused, and the refusal names each `file::test`.
   Giving either flag on another kind of stop, or both on one test, is refused.
@@ -122,6 +127,7 @@ Sean Kennedy sits with them.
 - `defaults/` is the starter `.xv/` that `xv init` copies into every adopting repo.
   A change there reaches every new adopter.
   `xv init` also writes a starter Claude Code `--allowedTools` list onto the default, forecaster and guardian lines, built from the test command it chose, so the written `config.yml` differs from `defaults/config.yml`.
+  A `guardian_repass` line a team adds by hand gets no starter `--allowedTools` list.
   Changing the test command later does not change the list, and `xv prompt` then shows the agent that stale list as its allowed commands.
   `xv init` runs the guessed test command once to check it (`test_run` in its output).
   `xv init --no-try` skips that and prints `test_run_skipped` instead.
