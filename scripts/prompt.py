@@ -202,10 +202,6 @@ def refactor_section(agent, data):
     return "\n".join(lines) + "\n"
 
 
-class RepassDiffFailed(XVError):
-    """The diff a guardian re-pass reads could not run."""
-
-
 def repass_section(root, data):
     """A guardian re-pass: its earlier packet and the diff made after that packet's commit. A first pass has neither."""
     packet = (data or {}).get("packet")
@@ -216,10 +212,7 @@ def repass_section(root, data):
             or git(["log", "-1", "--format=%H", "--", packet], root, check=False).strip())
     if not head:
         return ""
-    try:
-        diff = git(["diff", f"{head}..HEAD", "--", ".", ":(exclude).xv"], root)
-    except XVError as e:
-        raise RepassDiffFailed(str(e))
+    diff = git(["diff", f"{head}..HEAD", "--", ".", ":(exclude).xv"], root)
     with open(full, encoding="utf-8", errors="replace") as f:
         earlier = f.read().strip()
     return ("\n## This is a re-pass\n\nYou wrote the packet below on an earlier pass. Review only what changed since "
