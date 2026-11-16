@@ -132,7 +132,7 @@ def pointers(agent, root, config, data=None, extra=None):
         lines.append(f"- Test paths (the wall): {', '.join(tests['paths'])}.")
     if agent == "forecaster":
         keys = [f"{a} on {'/'.join(agent_key(config, a))}"
-                for a in ("scenario", "maker", "cleaner", "guardian")]
+                for a in ("forecaster", "scenario", "maker", "cleaner", "guardian")]
         lines.append(f"- Agents on this slice: {'; '.join(keys)}.")
     xv = "xv" if shutil.which("xv") else os.path.join(XV_HOME, "bin", "xv")
     lines.append(f"- The `xv` command: `{xv}`.")
@@ -202,6 +202,27 @@ def refactor_section(agent, data):
     return "\n".join(lines) + "\n"
 
 
+def repass_section(root, data):
+    """A guardian re-pass: its earlier packet and the diff made after that packet's commit. A first pass has neither."""
+    import subprocess
+    packet = (data or {}).get("packet")
+    full = os.path.join(root, packet) if packet else None
+    if not full or not os.path.isfile(full):
+        return ""
+    git = lambda args: subprocess.run(["git", *args], cwd=root, capture_output=True, text=True).stdout
+    head = (((data.get("checks") or {}).get("guardian") or {}).get("packet_head")
+            or git(["log", "-1", "--format=%H", "--", packet]).strip())
+    if not head:
+        return ""
+    diff = git(["diff", f"{head}..HEAD", "--", ".", ":(exclude).xv"])
+    with open(full, encoding="utf-8", errors="replace") as f:
+        earlier = f.read().strip()
+    return ("\n## This is a re-pass\n\nYou wrote the packet below on an earlier pass. Review only what changed since "
+            f"it, at commit {head[:12]}, and keep the five checks. The diff after that commit follows.\n\n"
+            f"### Your earlier packet\n\n{earlier}\n\n### The diff since that packet's commit\n\n"
+            f"```diff\n{diff.rstrip()}\n```\n")
+
+
 def build(agent, slice_id=None, root=None, close=False, init=False, extra=None, part=None, saved=None):
     root = root or repo_root()
     config = load_config(root)
@@ -237,6 +258,7 @@ def build(agent, slice_id=None, root=None, close=False, init=False, extra=None, 
     if agent == "maker" and (data or {}).get("kind") != "refactor":
         text = "\n".join(l for l in text.splitlines() if not l.startswith(REFACTOR_POINT))
     return (text + ("\n\n" + part.strip() if part else "") + "\n" + refactor_section(agent, data) + answer_section(data, body)
+            + (repass_section(root, data) if agent == "guardian" else "")
             + commands_section(config, agent)
             + pointers(agent, root, config, data, extra) + "\n")
 

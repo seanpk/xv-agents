@@ -831,7 +831,7 @@ def step(agent, slice_id, review_again=False):
         extra = [f"The build is at `{data['build']['ref']}`, a reference only: the red tests what the scenario says, "
                  "and does not assume the code will look like the build."]
     text = promptlib.build(agent, slice_id, root=scratch or root, extra=extra)
-    argv = agentcli.argv_for(config, agent)
+    argv = agentcli.argv_for(config, agent, repass=bool(data.get("packet")))
     spent = spendlib.slice_spend(data)
     argv = agentcli.with_caps(argv, data.get("budget"), spent["usd"], spent["turns"])
     n = len(data.get("spend") or []) + 1
