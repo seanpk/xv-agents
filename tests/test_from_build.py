@@ -1629,16 +1629,6 @@ class CoverageAcrossRedsTest(FromBuildBase):
         self.assertTrue([u for u in unreadable if "test_in_no_red_at_all" in u], unreadable)
 
 
-class ChangelogLineTest(unittest.TestCase):
-    # slice only: a line in CHANGELOG.md, once
-    def test_unreleased_has_a_line_for_182(self):
-        text = read("CHANGELOG.md")
-        unreleased = text.split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        self.assertIn("#182", unreleased)
-        self.assertIn("xtremevibing.com", unreleased.split("#182", 1)[1].split("\n- ", 1)[0],
-                      "the line does not say whether it moves a position on xtremevibing.com")
-
-
 # What a person should watch on the first green: a slice opened with `--from` whose first scenario pass hit a
 # conflict; clear the conflict, run the scenario step again, and see the red land on the slice branch with no new
 # commit from the agent.

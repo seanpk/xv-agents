@@ -1026,16 +1026,16 @@ def land_scratch(root, scratch, data, config, report):
                                            capture_output=True, text=True).stdout
                     rows.append((h, (at, subject, files)))
                 return rows
-            have = {}
+            on_branch = {}
             for _, key in commits(f"{data['base']}..HEAD"):
-                have[key] = have.get(key, 0) + 1
-            todo = []
+                on_branch[key] = on_branch.get(key, 0) + 1
+            to_pick = []
             for h, key in commits(f"{data['base']}..{held}"):  # oldest first, so equal keys pair off in order
-                if have.get(key):
-                    have[key] -= 1
+                if on_branch.get(key):
+                    on_branch[key] -= 1
                 else:
-                    todo.append(h)
-            for pick in todo:
+                    to_pick.append(h)
+            for pick in to_pick:
                 p = subprocess.run(["git", "cherry-pick", pick], cwd=root, capture_output=True, text=True)
                 if p.returncode != 0:
                     landed["conflict"] = (p.stdout + p.stderr).strip()[-800:]
