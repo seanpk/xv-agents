@@ -103,7 +103,7 @@ class RepassPromptTest(RepassCase):
         self.assertNotIn("The diff after that commit follows", p.stdout)
 
 
-MARK ="""import os, sys
+MARK = """import os, sys
 with open(os.environ["MARK_LOG"], "a") as f:
     f.write(sys.argv[1] + "\\n")
 print("done, no report")
@@ -172,6 +172,127 @@ class RepassCommandTest(RepassCase):
         self.repass()
         self.step()
         self.assertEqual(self.ran(), ["default"], self.out)
+
+
+LOGGING = """import os, sys
+kind = "repass" if "## This is a re-pass" in sys.argv[2] else "first"
+with open(os.environ["MARK_LOG"], "a") as f:
+    f.write(sys.argv[1] + ":" + kind + "\\n")
+print("done, no report")
+"""
+
+
+class RepassAmendmentsTest(RepassCase):
+    # -- 9, 10, 11: the re-pass command goes with the re-pass prompt; a failed re-pass diff is a recorded stop
+    def setUp(self):
+        super().setUp()
+        self.script = os.path.join(self.tmp, "mark.py")
+        with open(self.script, "w") as f:
+            f.write(LOGGING)
+        self.log = os.path.join(self.tmp, "marks.log")
+        os.environ["MARK_LOG"] = self.log
+        self.addCleanup(os.environ.pop, "MARK_LOG", None)
+
+    def agents(self, **tags):
+        lines = "".join(f'  {k}: ["{sys.executable}", "{self.script}", "{v}", "{{prompt}}"]\n'
+                        for k, v in tags.items())
+        cfg = os.path.join(self.wt, ".xv", "config.yml")
+        text = open(cfg).read()
+        start, end = text.index("agents:"), text.index("seats:")
+        with open(cfg, "w") as f:
+            f.write(text[:start] + "agents:\n" + lines + text[end:])
+        sh(["git", "commit", "-qam", "xv(s1): agents"], self.wt)
+
+    def ran(self):
+        if not os.path.exists(self.log):
+            return []
+        with open(self.log) as f:
+            return f.read().split()
+
+    def run_xv(self, *args):
+        p = self.xv(*args, cwd=self.wt, check=False)
+        self.out = (p.stdout + p.stderr)[-600:]
+        return p
+
+    def repass(self):
+        self.first_pass()
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1 ok", "--next", "maker",
+                "--settled", "the line is as the maker wrote it", cwd=self.wt)
+        self.commit("pantry/later.py", AFTER + "\n", "xv(s1): make it work again")
+
+    def drop_the_packet_file(self):
+        sh(["git", "rm", "-q", ".xv/slices/s1.packet.md"], self.wt)
+        sh(["git", "commit", "-qm", "xv(s1): drop the packet"], self.wt)
+
+    def break_the_diff(self):
+        rec = os.path.join(self.wt, ".xv", "slices", "s1.md")
+        with open(rec, encoding="utf-8") as f:
+            text = f.read()
+        real = sh(["git", "rev-parse", "HEAD~1"], self.wt).stdout.strip()
+        self.assertIn(real, text)
+        with open(rec, "w", encoding="utf-8") as f:
+            f.write(text.replace(real, "deadbeef" * 5))
+        sh(["git", "commit", "-qam", "xv(s1): record"], self.wt)
+
+    # 9
+    def test_xv_guard_runs_a_first_pass_with_the_guardian_command_though_the_record_names_a_packet(self):
+        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.repass()
+        self.run_xv("guard", "--base", "main")
+        self.assertEqual(self.ran(), ["first:first"], self.out)
+
+    def test_xv_guard_falls_back_to_the_default_command_never_the_repass_one(self):
+        self.agents(default="default", guardian_repass="second")
+        self.repass()
+        self.run_xv("guard", "--base", "main")
+        self.assertEqual(self.ran(), ["default:first"], self.out)
+
+    def test_xv_step_guardian_still_runs_the_repass_command_with_the_repass_prompt(self):
+        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.repass()
+        self.run_xv("step", "guardian", "s1")
+        self.assertEqual(self.ran(), ["second:repass"], self.out)
+
+    # 10
+    def test_a_missing_packet_file_makes_the_step_a_first_pass_with_the_guardian_command(self):
+        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.repass()
+        self.drop_the_packet_file()
+        self.run_xv("step", "guardian", "s1")
+        self.assertEqual(self.ran(), ["first:first"], self.out)
+
+    def test_a_missing_packet_file_with_no_guardian_command_runs_the_default_as_a_first_pass(self):
+        self.agents(default="default", guardian_repass="second")
+        self.repass()
+        self.drop_the_packet_file()
+        self.run_xv("step", "guardian", "s1")
+        self.assertEqual(self.ran(), ["default:first"], self.out)
+
+    # 11
+    def test_a_repass_diff_that_cannot_run_writes_a_repass_diff_failed_stop_for_the_originator(self):
+        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.repass()
+        self.break_the_diff()
+        self.run_xv("step", "guardian", "s1")
+        stops = [s for s in self.record()["stops"] if s["order"] == "repass_diff_failed"]
+        self.assertEqual(len(stops), 1, self.out)
+        self.assertEqual(stops[0]["seat"], "originator")
+
+    def test_a_repass_diff_that_cannot_run_runs_no_agent_and_exits_10(self):
+        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.repass()
+        self.break_the_diff()
+        p = self.run_xv("step", "guardian", "s1")
+        self.assertEqual(self.ran(), [])
+        self.assertEqual(p.returncode, 10, self.out)
+
+    def test_xv_prompt_guardian_with_a_failed_repass_diff_exits_2_and_writes_no_stop(self):
+        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.repass()
+        self.break_the_diff()
+        p = self.run_xv("prompt", "guardian", "s1")
+        self.assertEqual(p.returncode, 2, self.out)
+        self.assertEqual([s for s in self.record()["stops"] if s["order"] == "repass_diff_failed"], [])
 
 
 class AcceptedWallRecommendationTest(RepassCase):
