@@ -823,6 +823,22 @@ def step(agent, slice_id, review_again=False):
         raise XVError(f"{agent} runs in the session{where}: use `xv prompt {agent} {slice_id}`, then "
                       f"`xv record report {slice_id} {agent} -` and `xv orders {slice_id} --after {agent}`")
 
+    repass = False
+    if agent == "guardian" and not review_again:
+        try:
+            repass = bool(promptlib.repass_section(root, data))
+        except XVError as e:
+            question = (f"The guardian's re-pass diff cannot run, so no agent ran: {e}. Fix the packet head or the "
+                        "branch, then run the guardian again.")
+            st = {"at": now(), "step": agent, "order": "repass_diff_failed", "seat": "originator",
+                  "question": question, "answered_by": [], "answer": None, "also": []}
+            data["stops"].append(st)
+            data["status"] = "stopped"
+            body = record.log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {question}")
+            record.save(path, data, body)
+            reach(config, st["seat"], question, os.path.relpath(path, root))
+            return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": st, "fired": []}
+
     head_before = git(["rev-parse", "HEAD"], root).strip()
     pre = pre_step(agent, root, data, config)
     scratch = scenario_scratch(root, data, config) if agent == "scenario" and record.has_build(data) else None
@@ -830,8 +846,8 @@ def step(agent, slice_id, review_again=False):
     if scratch and data.get("build_shared") == "yes":
         extra = [f"The build is at `{data['build']['ref']}`, a reference only: the red tests what the scenario says, "
                  "and does not assume the code will look like the build."]
-    text = promptlib.build(agent, slice_id, root=scratch or root, extra=extra)
-    argv = agentcli.argv_for(config, agent, repass=bool(data.get("packet")))
+    text = promptlib.build(agent, slice_id, root=scratch or root, extra=extra, repass=repass)
+    argv = agentcli.argv_for(config, agent, repass=repass)
     spent = spendlib.slice_spend(data)
     argv = agentcli.with_caps(argv, data.get("budget"), spent["usd"], spent["turns"])
     n = len(data.get("spend") or []) + 1
