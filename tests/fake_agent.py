@@ -105,6 +105,8 @@ elif title.startswith("# The scenario agent"):
         with open("tests/test_red.py", "a") as f:
             f.write("\n# " + os.environ["FAKE_RED_TEXT"] + "\n")
     red_files = ["tests/test_red.py"]
+    if os.environ.get("FAKE_RED_FILES"):  # the report names these red files instead
+        red_files = json.loads(os.environ["FAKE_RED_FILES"])
     if os.environ.get("FAKE_RED_ADDS_TO_OLD"):
         # a new test written into the existing test file, right after its last assertion
         last = '        self.assertEqual([i.name for i in found], ["yogurt"])\n'
