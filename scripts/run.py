@@ -823,10 +823,10 @@ def step(agent, slice_id, review_again=False):
         raise XVError(f"{agent} runs in the session{where}: use `xv prompt {agent} {slice_id}`, then "
                       f"`xv record report {slice_id} {agent} -` and `xv orders {slice_id} --after {agent}`")
 
-    repass = False
+    repass = ""  # the re-pass section, built once: it picks the prompt and the command
     if agent == "guardian" and not review_again:
         try:
-            repass = bool(promptlib.repass_section(root, data))
+            repass = promptlib.repass_section(root, data)
         except XVError as e:
             question = (f"The guardian's re-pass diff cannot run, so no agent ran: {e}. Fix the packet head or the "
                         "branch, then run the guardian again.")
@@ -847,7 +847,7 @@ def step(agent, slice_id, review_again=False):
         extra = [f"The build is at `{data['build']['ref']}`, a reference only: the red tests what the scenario says, "
                  "and does not assume the code will look like the build."]
     text = promptlib.build(agent, slice_id, root=scratch or root, extra=extra, repass=repass)
-    argv = agentcli.argv_for(config, agent, repass=repass)
+    argv = agentcli.argv_for(config, agent, repass=bool(repass))
     spent = spendlib.slice_spend(data)
     argv = agentcli.with_caps(argv, data.get("budget"), spent["usd"], spent["turns"])
     n = len(data.get("spend") or []) + 1

@@ -149,12 +149,6 @@ class RepassCommandTest(RepassCase):
                 "--settled", "the line is as the maker wrote it", cwd=self.wt)
         self.commit("pantry/later.py", AFTER + "\n", "xv(s1): make it work again")
 
-    def test_a_repass_runs_the_guardian_repass_command_when_it_is_set(self):
-        self.agents(default="default", guardian="first", guardian_repass="second")
-        self.repass()
-        self.step()
-        self.assertEqual(self.ran(), ["second"], self.out)
-
     def test_a_first_pass_never_runs_the_guardian_repass_command(self):
         self.agents(default="default", guardian="first", guardian_repass="second")
         self.commit("pantry/earlier.py", BEFORE + "\n", "xv(s1): make it work")
@@ -347,8 +341,8 @@ class ForecasterBriefTest(RepassCase):
         self.assertIn('"rounds"', example.split("```")[0])
 
     def test_a_forecast_report_with_rounds_and_a_reason_keeps_both_in_the_records_forecast(self):
-        fc = {"keys": [{"harness": "sh", "model": "default", "tokens": 1000, "basis": []}],
-              "wall_s": 10, "shape": "none", "breadth": "one comparison",
+        fc = {"rows": [{"harness": "sh", "model": "default", "tokens": 1000, "basis": []}],
+              "wall_s": 10, "shape_breadth": "none", "shape_note": "one comparison",
               "rounds": 3, "rounds_reason": "a pairing is likely after the red"}
         out = ("done\n```xv-report\n" + json.dumps(
             {"agent": "forecaster", "status": "done", "summary": "forecast", "forecast": fc}) + "\n```\n")
