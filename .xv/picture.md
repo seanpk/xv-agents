@@ -78,9 +78,13 @@ Sean Kennedy sits with them.
   At the scenario step, a directed edit counts the suite green when every failing test is one of the slice's own red tests.
   `record.guardian_facts` turns the packet into the record's fields on every path.
   `record.guardian_facts` also keeps `checks.guardian.packet_head`, the HEAD when `xv record packet` ran.
-  When the record already names a packet, the guardian's prompt carries that packet and `git diff <packet_head>..HEAD` without `.xv/`.
-  When that diff cannot run, `xv prompt guardian` and `xv step guardian` exit 2 and no prompt is given.
-  On that re-pass, `xv step guardian` runs `agents.guardian_repass` when it is set, else `agents.guardian`, else `agents.default`.
+  When the record names a packet whose file is there and whose head is found, the guardian's prompt is a re-pass.
+  A re-pass prompt carries that packet and `git diff <packet_head>..HEAD` without `.xv/`, under `## This is a re-pass`.
+  With the packet file missing or no head found, the prompt is a first pass.
+  When the re-pass diff cannot run, `xv step guardian` runs no agent, writes a `repass_diff_failed` stop for the originator, and exits 10.
+  `xv prompt guardian` writes no record, so on the same failure it exits 2 and gives no prompt.
+  `xv step guardian` runs `agents.guardian_repass` only with a re-pass prompt, and falls back to `agents.guardian`, then `agents.default`.
+  `xv guard` always runs the guardian's first pass, with `agents.guardian`, then `agents.default`, even when the record names a packet.
   For `change_misses_scenario`, a miss is a repeat when an earlier pass sent back the same key, and the repeat stops for the originator.
   For `report_misses_outcome`, `orders.miss_run` counts the send-backs of the same outcome in an unbroken run of scenario reports.
   The third miss in a row stops for the originator.
