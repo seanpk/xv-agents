@@ -2,7 +2,7 @@
 id: 2026-11-18-move-names
 title: The removal check reads only names it can find
 kind: defect
-status: open
+status: stopped
 originator: Sean Kennedy
 created: 2026-11-18
 branch: xv/2026-11-18-move-names
@@ -10,7 +10,7 @@ base: 8e366c9ba6c94b28cbedfad1e5221c22bf914dda
 next: forecaster
 build: none
 build_shared: no
-forecast: null
+forecast: {"rows": [{"harness": "claude", "model": "sonnet", "tokens": 490000, "turns": null, "usd": 2.8, "basis": ["2026-11-18-report-tree", "2026-11-16-red-lands", "2026-10-30-by-name", "2026-10-30-stop-words"]}, {"harness": "claude", "model": "opus", "tokens": 300000, "turns": null, "usd": 3.5, "basis": ["2026-11-16-red-lands", "2026-10-30-by-name", "2026-10-30-stop-words", "2026-10-30-scenario-miss"]}, {"harness": "claude", "model": "haiku", "tokens": 46000, "turns": null, "usd": 0.01, "basis": ["2026-11-13-names", "2026-11-16-red-lands", "2026-11-18-report-tree"]}], "wall_s": 3500, "rounds": 2, "rounds_reason": "The slice adds a new change_misses_scenario stop and a table of exact name inputs, and report-tree was sent back by the guardian over the same :: and # name forms, so a second pass is likely.", "shape_breadth": "narrow", "shape_note": "Expect movement in the move-name parser and removal check, one table test, the cleaner brief and one CHANGELOG line."}
 budget: null
 red: null
 wall_baseline: null
@@ -22,12 +22,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: []
-stops: []
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 6, "tokens_out": 6654, "cache_read": 62069, "cache_write": 44806, "tokens": 51466, "usd": 0.0129, "turns": 4, "wall_s": 30.9, "session": "e780dbfa-7d3c-4309-8b7a-c5391cc12c44", "step": "forecaster", "at": "2026-11-18T21:02:26+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-18-move-names/01-forecaster.out"}]
+stops: [{"at": "2026-11-18T21:02:26+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-18-move-names budget ... --by <name>`).", "answered_by": [], "answer": null, "also": [], "budget_seen": null}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast ~490k sonnet, ~300k opus, ~46k haiku tokens over two rounds; sonnet and opus basis rows are the name-form and stop-heavy defect slices.", "at": "2026-11-18T21:02:26+00:00"}], "forecaster": {"at": "2026-11-18T21:02:26+00:00", "wrote": [], "removal_not_made": []}}
 ---
 # The removal check reads only names it can find
 
@@ -52,3 +52,5 @@ None. A feature starts from words.
 
 ## Log
 - 2026-11-18T21:01:52+00:00 watch: slice opened by Sean Kennedy
+- 2026-11-18T21:02:26+00:00 forecaster: done: Forecast ~490k sonnet, ~300k opus, ~46k haiku tokens over two rounds; sonnet and opus basis rows are the name-form and stop-heavy defect slices.
+- 2026-11-18T21:02:26+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-18-move-names budget ... --by <name>`).
