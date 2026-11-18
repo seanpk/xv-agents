@@ -112,3 +112,4 @@ None. A feature starts from words.
 - 2026-11-18T18:52:00+00:00 guardian: done: The three named prose sentences now stop; a decision 12 miss remains: a prose assertion ending in a plain word that is not the name (or with an in-word #) still passes unchecked
 - 2026-11-18T18:52:00+00:00 watch: stop (moves_to_accept) for originator: 1 old test(s) moved with a record and the guardian proposes a change to the picture; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.
 - 2026-11-18T18:52:39+00:00 watch: offered 3 options for moves_to_accept
+- 2026-11-18T18:59:59+00:00 watch: picture edit directed by Sean Kennedy (e41bcc1): the guardian's 4 edits to .xv/picture.md (lines 29, after 29, after 47, after 63), as worded in the packet
