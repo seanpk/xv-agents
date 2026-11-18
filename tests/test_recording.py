@@ -40,7 +40,12 @@ class RedFromRecordingTest(RepoCase):
                                    f"from pantry.api import serve; import threading; serve(port={port}); "
                                    "threading.Event().wait()"], cwd=self.repo)
         try:
-            time.sleep(0.5)
+            for _ in range(100):  # until the server answers, 10 s at most
+                try:
+                    socket.create_connection(("127.0.0.1", port), timeout=1).close()
+                    break
+                except OSError:
+                    time.sleep(0.1)
             self.xv("recording", "to-test", ".xv/recordings/expiring-today.json", "--lang", "python",
                     "--base-url", f"http://127.0.0.1:{port}", "--out", "tests/test_red.py")
             p = sh([sys.executable, "-m", "unittest", "tests.test_red"], self.repo, check=False)
