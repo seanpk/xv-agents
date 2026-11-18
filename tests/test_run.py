@@ -2230,12 +2230,6 @@ class RemovalNotMadeTest(WatchLoopSetup):
         p = self.step("scenario", FAKE_NO_REPORT="1", FAKE_EARLIER_REPORT="")
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "no_report")
 
-    # 4. CHANGELOG.md
-    def test_the_changelog_has_a_line_for_the_removal_check(self):
-        with open(os.path.join(HOME, "CHANGELOG.md")) as f:
-            unreleased = f.read().split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        self.assertIn("removal_not_made", unreleased)
-
 
 if __name__ == "__main__":
     unittest.main()

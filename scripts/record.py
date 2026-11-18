@@ -748,19 +748,19 @@ def extract_run_report(text):
     texts = []
     for line in text.splitlines():
         try:
-            ev = json.loads(line)
+            event = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if not isinstance(ev, dict):
+        if not isinstance(event, dict):
             continue
-        item, part = ev.get("item"), ev.get("part")
+        item, part = event.get("item"), event.get("part")
         if isinstance(item, dict) and item.get("type") == "agent_message":
             texts.append(item.get("text", ""))
         elif isinstance(part, dict) and part.get("type") == "text":
             texts.append(part.get("text", ""))
-    for t in reversed(texts):
-        if isinstance(t, str) and REPORT_RE.search(t):
-            return extract_report(t)
+    for message in reversed(texts):
+        if isinstance(message, str) and REPORT_RE.search(message):
+            return extract_report(message)
     return None
 
 
