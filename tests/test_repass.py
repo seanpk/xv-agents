@@ -308,6 +308,39 @@ class RepassAmendmentsTest(RepassCase):
         self.assertEqual([s for s in self.record()["stops"] if s["order"] == "repass_diff_failed"], [])
 
 
+class PacketFromMainCheckoutTest(RepassCase):
+    # -- 12
+    def packet_from_main(self):
+        """The first pass's change and packet are committed in the slice's worktree; `xv record packet` runs from the main checkout."""
+        self.commit("pantry/earlier.py", BEFORE + "\n", "xv(s1): make it work")
+        packet = os.path.join(self.wt, ".xv", "slices", "s1.packet.md")
+        with open(packet, "w") as f:
+            f.write(f"---\nshape_change: no\npitch_contradiction: no\n---\n{PACKET_TEXT}\n")
+        sh(["git", "add", "-A"], self.wt)
+        sh(["git", "commit", "-qm", "xv(s1): packet"], self.wt)
+        self.wt_head = sh(["git", "rev-parse", "HEAD"], self.wt).stdout.strip()
+        self.main_head = sh(["git", "rev-parse", "HEAD"], self.repo).stdout.strip()
+        self.assertNotEqual(self.wt_head, self.main_head)
+        self.xv("record", "packet", "s1", packet, cwd=self.repo)
+
+    def test_the_packet_head_is_the_head_of_the_slices_worktree(self):
+        self.packet_from_main()
+        guardian = self.record()["checks"]["guardian"]
+        self.assertEqual(guardian["packet_head"], self.wt_head)
+
+    def test_the_packet_path_is_relative_to_the_slices_worktree(self):
+        self.packet_from_main()
+        self.assertEqual(self.record()["packet"], ".xv/slices/s1.packet.md")
+
+    def test_the_next_prompt_after_a_packet_from_the_main_checkout_is_a_repass(self):
+        self.packet_from_main()
+        self.commit("pantry/later.py", AFTER + "\n", "xv(s1): make it work again")
+        out = self.prompt()
+        self.assertIn(PACKET_TEXT, out)
+        self.assertIn(AFTER, out)
+        self.assertNotIn(BEFORE, out.split("diff after that commit", 1)[-1])
+
+
 class AcceptedWallRecommendationTest(RepassCase):
     REC = {"file": "tests/test_store.py", "test": "test_added_by_the_build",
            "recommend": "mark slice-only", "why": "guards a one-time change", "accepted": True}
