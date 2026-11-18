@@ -14,10 +14,11 @@ blast_radius: watch
 # Packet: What an agent reports is checked against the tree (#183)
 
 No stop for two people: no shape change and no pitch contradiction.
-This re-pass reviews only the changes after the first packet (`c66eabf1ad68..HEAD`).
-Two of the first packet's three misses are met: the session path and the cleaner's `kept` list.
-One miss is left, a narrower form of the decision 12 miss: test names written with `::` or `#` are not split, so the check finds nothing and passes. It sends the slice back.
-The originator also gets four picture edits to accept. This pass makes no wall recommendation.
+This re-pass reviews only the changes after the second packet (`e27be006ebd4..HEAD`).
+That change adds two lines to `record.test_names` and six tests.
+The last packet's miss is met for the forms it named: `Red::test`, `Red#test`, `file::test` and `file::Class::test` are now found.
+One narrower decision 12 miss is left. A `::` or `#` name that the new pattern does not match keeps its whole text. That text is never in the file, so the check passes. It sends the slice back.
+The originator also gets four picture edits to accept. One of them is updated for this change. This pass makes no wall recommendation.
 
 ## The scenario
 
@@ -36,95 +37,95 @@ May ignore: old slice records; a harness whose reader cannot see earlier message
 ## The recording
 
 None: this defect starts from words.
-Replay: `cd tests && python3 -m unittest test_run.RemovalNotMadeTest test_run.ClaudeWholeRunReportTest`. Before the change it failed (`checks.scenario.red_output`: 23 tests, 13 failures). I ran it on HEAD: 23 tests, OK.
-I ran the whole suite on HEAD, `python3 tests/run.py --jobs 4`. The result is under Raw data.
+Replay: `cd tests && python3 -m unittest test_run.RemovalNotMadeTest test_run.ClaudeWholeRunReportTest`.
+The scenario agent recorded this pass's red as failing on `test_a_slice_only_test_named_with_class_and_double_colon_is_found_still_there` (record `red.failure`).
+I ran it on HEAD: 29 tests, OK.
 
 ## The boundary picture
 
 From `.xv/slices/2026-11-18-report-tree.boundary.md`, as given.
-Modules touched: `scripts/orders`, `scripts/record`, `scripts/run`, `scripts/spend`. `scripts/spend` is new since the first packet. No modules, edges, tables, surfaces or outbound calls were added or removed. No shape hints.
+Modules touched: `scripts/orders`, `scripts/record`, `scripts/run`, `scripts/spend`. Nothing was added or removed: no modules, edges, tables, surfaces or outbound calls. No shape hints. This pass changes only `scripts/record.py`, at lines 896-897.
 
 ## What the suite asserts after
 
-What the first packet listed still holds. The re-pass adds:
-- On the session path (`xv record report`, then `xv orders --after <agent>`), a cleaner that left an accepted slice-only test in place stops with `removal_not_made`. A cleaner that removed it, or listed it in `kept` with a `why`, passes. A maker after a slice-only move whose test is still there stops.
-- `Red > test_milk_today` is found while the test is in the file, and passes once it is removed. A JS `it("…")` title in the file stops, and a title that is gone passes.
-- A slice-only entry `Red >`, and a slice-only move whose assertion is `;`, both stop with "could not be read".
-- The cleaner brief's report example has `kept` with `file`, `test` and `why`, and the brief's text names `kept`.
-- With a Claude-shaped wrapper: a report in an earlier transcript message is read. A transcript with no block, and a `session_id` with no transcript, both stop with `no_report`.
-- The no-report test now runs two codex `agent_message` events with no block. It asserts both are in the run log and the step stops with `no_report`.
+What the last packet listed still holds. This pass adds the following:
+- An accepted slice-only test named `Red::test_milk_today`, `Red#test_milk_today`, `tests/test_red.py::Red::test_milk_today` or `tests/test_red.py::test_milk_today` stops the cleaner with `removal_not_made` while the test is in `tests/test_red.py`. The stop names that file and `test_milk_today`.
+- With the `Red::` and `Red#` forms, the cleaner passes once the test is removed.
 
 ## 1. Shape
 
 shape_change: no. shape_breadth: narrow.
 
-- The boundary picture shows no new edge, module, table, surface or outbound call. `scripts/record` already imported `scripts/spend` at the base (`row_tokens`). The new `claude_session_texts, claude_transcript` imports (`scripts/record.py:24`) add no edge.
-- `removals_not_made` moved from `scripts/run.py` to `scripts/record.py:914`, and `run.post_step` now calls `record.removals_not_made` (`scripts/run.py:1220`). That uses the existing `run → record` edge. `record` still does not import `run` (`scripts/record.py:963` keeps its subprocess comment). This is inside the current shape.
-- The forecast's `shape_note` said the change "turns wide only if the reader change reaches more than the claude harness". It now reaches Claude Code (`scripts/record.py:744-752`), codex and opencode. Amendment 7 asked for the Claude part. I call it narrow because nothing in the boundary moved. The originator should know that, read literally, the forecast's condition is met.
-- The cleaner's first-pass shape proposal (sharing the event loop between `extract_report` and `extract_run_report`) was still not made. The second loop is now at `scripts/record.py:762-773`.
+- This pass's diff is `scripts/record.py:896-897`: a `re.fullmatch` and a `re.split` inside `test_names`. It adds no import, edge, module, table or surface. It is inside the current shape.
+- The last packet's note on the forecast still holds. Its `shape_note` said the change "turns wide only if the reader change reaches more than the claude harness". The reader change reaches Claude Code, codex and opencode. I call it narrow because nothing in the boundary moved.
+- The cleaner has a new shape proposal: `test_names` could reuse `names.COVERED_SEPARATOR` (`scripts/names.py:10`) instead of its own pattern. With `xvlib.names_test`, `names.covered_name_found` and now `record.test_names`, the repo has three ways to read a test name (`.xv/picture.md:47`).
 
 ## 2. Pitch
 
 pitch_contradiction: no.
-I read `.xv/pitch.md:7` ("makes it easy … to vibe with discipline") and `.xv/pitch.md:25` ("not for people or projects that will not trust agents to write production code"). Reading a Claude session transcript for the agent's own report serves the first line and does not contradict the second. The pitch says nothing else about this change.
+I read `.xv/pitch.md:7` ("makes it easy … to vibe with discipline") and `.xv/pitch.md:25` ("not for people or projects that will not trust agents to write production code").
+Finding more test-name forms in the removal check serves the first line. The pitch says nothing else about this change.
 
 ## 3. Moved tests
 
 | File | Before | After | Why (the maker's record) | Forced by the scenario? |
 | --- | --- | --- | --- | --- |
-| `tests/fake_agent.py` | at the first packet: `FAKE_NO_REPORT` printed one plain line | with `FAKE_EARLIER_REPORT` also set, it prints two codex `agent_message` events with no block. The default is unchanged (diff `tests/fake_agent.py:16-20`). | the move Sean Kennedy recorded on 2026-11-18T04:04:25 names `FAKE_EARLIER_REPORT` as a mode "off unless set". The re-pass extends that mode under `FAKE_NO_REPORT` and records no new move. | Yes. The originator's answer to `change_misses_scenario` asked to "rewrite that test as a real multi-message run with no xv-report block in any message". This is a helper with no assertions. `xv wall diff` shows no change, because the file is a red file. |
-| `tests/test_run.py` | `RemovalNotMadeTest.test_the_changelog_has_a_line_for_the_removal_check` | removed | "checks one CHANGELOG line, a one-time wording change" (cleaner, `slice_only`). It did not change since the first packet. | Yes, as the first packet said. |
+| `tests/fake_agent.py` | at the first packet, `FAKE_NO_REPORT` printed one plain line | with `FAKE_EARLIER_REPORT` also set, it prints two codex `agent_message` events with no block | the move recorded on 2026-11-18T04:04:25 names `FAKE_EARLIER_REPORT` as a mode "off unless set". It did not change in this pass. | Yes, as the last packet said. |
+| `tests/test_run.py` | `RemovalNotMadeTest.test_the_changelog_has_a_line_for_the_removal_check` | removed | "checks one CHANGELOG line, a one-time wording change" (cleaner, `slice_only`). It did not change in this pass. | Yes, as the first packet said. |
 
 Slice-only tests removed: `tests/test_run.py::RemovalNotMadeTest.test_the_changelog_has_a_line_for_the_removal_check`. Kept: none.
-`xv wall diff 2026-11-18-report-tree` against the new baseline `c585ca6`: changed, deleted and added are all empty. `fewer_assertions` is empty. `may_not_files_needed`: none.
-The change to `skills/cleaner/SKILL.md:39` and `:59` changes a brief. Binding decision 1 asks for two people and a CHANGELOG line (`.xv/picture.md:313`). The CHANGELOG line says "The cleaner's brief asks for the `kept` list" (`CHANGELOG.md:7`). Amendment 5 says the repo runs solo.
+This pass changes no old test. The diff to `tests/test_run.py:2263-2285` only adds six tests.
+I ran `xv wall diff 2026-11-18-report-tree` against the new baseline `58cf9c6`. Changed, deleted, added and `fewer_assertions` are all empty. `tests/test_run.py` is a red file, and its wall count went from 532 to 538 (`.xv/slices/2026-11-18-report-tree.wall.json`). `may_not_files_needed`: none.
 
 ## 4. The picture
 
-The first pass proposed these edits. The originator held them for this pass. Here they are again, updated.
+The originator still holds the last packet's four edits. Edits 1-3 are unchanged; see the last packet, or the list below. Edit 4 is updated for this pass.
 
 1. `.xv/picture.md:29` says "the watch reads its `xv-report` from the last `agent_message` of `codex exec --json`". Replace that clause with:
    `the watch reads its `xv-report` from the last `agent_message` of `codex exec --json`, or, when that message has none, from the last earlier `agent_message` that has one (`record.extract_run_report`)`
-2. `.xv/picture.md:28` names Claude Code as a harness, and the picture says nothing of how its report is read. Proposed line after `.xv/picture.md:29`, indented two spaces:
+2. Proposed line after `.xv/picture.md:29`, indented two spaces:
    `For Claude Code, whose `--output-format json` holds only the last message, `record.extract_run_report` reads the earlier messages from the session transcript that the result's `session_id` names (`spend.claude_transcript`, `spend.claude_session_texts`).`
-3. The shape section has no line for the new order. Proposed lines after `.xv/picture.md:63`, indented two spaces:
+3. Proposed lines after `.xv/picture.md:63`, indented two spaces:
    `After every `xv step`, and after `xv record report` for any agent except a scenario on a slice from a build, `record.removals_not_made` looks in the tree for each removal the record names; `removal_not_made` then stops for the originator, naming what is still there.`
    `After the cleaner, that covers each accepted `slice_only` test, unless the cleaner's report lists it under `kept` with a `why`.`
    `After any step, it covers each move marked `slice_only` or `removal_named` whose test is still in its file, and each move marked `deleted` whose file is still there.`
    `xv record move --slice-only` marks the move `removal_named`, and `--deleted` marks it `deleted`.`
    `A name the check cannot read is listed as "the test name could not be read", and that stops too.`
-4. `.xv/picture.md:47` names `names_test` as "the shared test-name matcher". This change adds a second one. Proposed line after `.xv/picture.md:47`, indented two spaces:
-   `The removal check reads names with `record.test_names` and finds them with `record.test_still_there`, which matches the name as a whole word anywhere in its file.`
+4. `.xv/picture.md:47` names `names_test` as "the shared test-name matcher". This change adds another. Proposed line after `.xv/picture.md:47`, indented two spaces:
+   `The removal check reads names with `record.test_names`, which keeps the part after the last `>`, `::` or `#`, and the last `.` part of a dotted name.`
+   `It finds them with `record.test_still_there`, which matches a name as a whole word anywhere in its file.`
 
 ## 5. The wall
 
 No recommendation this pass.
-The first pass recommended marking `RemovalNotMadeTest.test_a_run_with_no_report_block_in_any_message_still_stops_with_no_report` slice-only. The originator refused it, and the test was rewritten (`tests/test_run.py:2228-2235`). It now builds a run of two `agent_message` events with no block and asserts both are in the log. The existing `tests/test_run.py:923-929` does not cover that case, so the old reason is gone.
-I also looked at the 11 new tests in `tests/test_run.py:2242-2333` and the 3 `ClaudeWholeRunReportTest` tests (`tests/test_run.py:2394-2410`). Each one guards a lasting behaviour that amendments 5-7 name.
+I looked at the six new tests in `tests/test_run.py:2263-2285`. Each one guards a different name form, and each form is one the picture says the repo takes (`.xv/picture.md:123`). None of them restates an older test: before this pass, the red covered only `>`, `.`, a JS title and unreadable names (`tests/test_run.py:2255-2261`, `:2305-2317`).
 
 ## Scenario misses
 
-- Decision 12 and amendment 6: a slice-only test named in the `::` or `#` form passes without being checked. Decision 12 says a check whose input "cannot run stops for a person; it never passes" (`.xv/picture.md:340`). `test_names` cuts at `>` and splits only on `.` (`scripts/record.py:895`, `:899`). It adds a short name only when the text is `[\w.]+`. So `Red::test_milk_today`, `Red#test_milk_today` and `tests/test_red.py::Red::test_milk_today` each give one whole name. That name never appears in the file. `test_still_there` (`scripts/record.py:911`) then returns False, which is read as "removed", and the step passes. These are the test forms the picture says the coverage check and `--accept-wall` take (`.xv/picture.md:123`: "`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`"). The repo already has a splitter for them, `names.COVERED_SEPARATOR` (`scripts/names.py:10`), which `scripts/record.py:484` uses. The scenario agent writes `slice_only` `test` as free text (`skills/scenario/SKILL.md:64`). (evidence: `scripts/record.py:895-911`; the red covers only `.`, `>`, a JS title and the unreadable `Red >` and `;`, `tests/test_run.py:2255-2297`; to: scenario)
+- Decision 12 and amendment 6: a `::` or `#` name that the new pattern does not match still passes without being checked. Decision 12 says a check whose input "cannot run stops for a person; it never passes" (`.xv/picture.md:340`). The fix only splits when the whole name matches `[\w./]*(?:::|#)[\w.]+(?:(?:::|#)[\w.]+)*` (`scripts/record.py:896-897`). Otherwise `test_names` keeps the whole text as the one name. At `:902` the `.` split adds no short name, because the last part is not `\w+`. `test_still_there` (`scripts/record.py:907-913`) does not find the name, and `removals_not_made` reads that as "removed" and passes. I traced two inputs. First, `Red::` or `Red#`, which have no name after the separator. They are the `::` and `#` forms of the unreadable `Red >`, which stops (`tests/test_run.py:2305-2309`); `Red::` passes instead. Second, `tests/milk-red.py::Red::test_milk_today`, the `file::Class::test` form the picture lists (`.xv/picture.md:123`). The `-` in the path is outside `[\w./]`, so the name is not split, and the check passes while the test is still there. Pytest parameter ids (`Red::test_x[1]`) and a prose move assertion that holds a `::` name (`:901`) fall through in the same way. I traced these by reading the code, because the commands I may run allow no probe that does not edit the tree. The cleaner's proposal to split with `names.COVERED_SEPARATOR` would also catch the first input: its last part would be empty, so the name would be listed as unreadable. (evidence: `scripts/record.py:896-913`; the red covers only names that match the pattern, `tests/test_run.py:2263-2285`; to: scenario)
 
-For the person, not a miss: on a slice-only move, `prose=True` also adds the last word of the assertion (`scripts/record.py:899`). The cleaner's brief asks for `--assertion "<the test>"` (`skills/cleaner/SKILL.md:39`). But a prose assertion such as "removed the CHANGELOG test" would add `test`, which is in almost every test file, so the step would stop for nothing. That error stops; it never passes.
+For the person, not a miss: as the last packet said, on a slice-only move `prose=True` also adds the last word of the assertion (`scripts/record.py:901`). A prose assertion such as "removed the CHANGELOG test" adds `test`, which is in almost every test file, so the step stops for nothing. That error stops; it never passes.
 
 ## Door
 
-**Door:** two-way. A revert removes the order, the reader fallback and the brief's `kept` field. The record additions, `deleted` and `removal_named` on a move, are new optional keys that older code ignores. **Blast radius:** watch.
+**Door:** two-way. A revert removes the order, the reader fallback, the brief's `kept` field and this name split. The record additions, `deleted` and `removal_named` on a move, are new optional keys that older code ignores. **Blast radius:** watch.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-11-18-report-tree.md`
-- Diff: `git diff 5c2600c69d4d50853dcd288bd6278c48bd808657..HEAD`; this pass: `git diff c66eabf1ad68..HEAD`
-- Wall: `xv wall diff 2026-11-18-report-tree`
+- Diff: `git diff 5c2600c69d4d50853dcd288bd6278c48bd808657..HEAD`; this pass: `git diff e27be006ebd4..HEAD`
+- Wall: `xv wall diff 2026-11-18-report-tree` (baseline `58cf9c6`)
 - Boundary: `xv boundary --base 5c2600c69d4d50853dcd288bd6278c48bd808657` (`.xv/slices/2026-11-18-report-tree.boundary.md`)
-- Whole suite on HEAD: `python3 tests/run.py --jobs 4`, 1374 tests, OK (exit 0).
+- Red on HEAD: 29 tests, OK. Whole suite on HEAD: `python3 tests/run.py --jobs 4`, 1380 tests, OK.
 
 ## From the cleaner
 
-- This pass: one baseline fix, a duplicate `spend` import (`scripts/record.py:24`). No shape proposals.
-- From the first pass, still open: share the item/part event parsing between `extract_report` and `extract_run_report`.
+- This pass: nothing applied.
+- Shape proposal, still open: share the item/part event parsing between `extract_report` and `extract_run_report` in `scripts/record.py`.
+- Shape proposal, new: have `test_names` reuse `names.COVERED_SEPARATOR` for the `::` and `#` forms instead of its own pattern. The cleaner says "it changes how names are cut, so it is not a cleanup".
 
 ## From the cleaner
 
 - Shape proposal, for people: Share the item/part event parsing between extract_report and extract_run_report in scripts/record.py; it needs a shared reader and a rework of extract_report, so it is left for the packet.
+- Shape proposal, for people: Share the item/part event parsing between extract_report and extract_run_report in scripts/record.py (needs a shared reader and a rework of extract_report).
+- Shape proposal, for people: Have test_names in scripts/record.py reuse names.COVERED_SEPARATOR for the `::`/`#` forms instead of its own regex; it changes how names are cut, so it is not a cleanup.
