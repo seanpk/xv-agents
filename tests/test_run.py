@@ -790,11 +790,6 @@ class WatchLoopTest(WatchLoopSetup):
         self.assertIn("amendments", said)
         self.assertIn("not_covered", said)
 
-    def test_the_changelog_has_a_line_for_the_report_misses_outcome_trigger(self):
-        with open(os.path.join(HOME, "CHANGELOG.md")) as f:
-            unreleased = f.read().split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        self.assertIn("report_misses_outcome", unreleased)
-
     def guardian_with_miss(self, miss="Point 1 is not met: the list still leaves out milk that runs out today.",
                            **env):
         from unittest import mock

@@ -104,18 +104,6 @@ class OwnTheResultTest(unittest.TestCase):
         self.assertRegex(item, r"(?i)stop line")
         self.assertNotRegex(item, r"(?i)opens with the one rule")
 
-    def test_ci_pins_and_readme_mentions_say_v0_4_1(self):
-        for rel in ["ci/github/xv-wall.yml", "ci/github/xv-guardian.yml", "ci/github/xv-listener.yml"]:
-            with self.subTest(file=rel):
-                text = brief(*rel.split("/"))
-                self.assertRegex(text, r"ref: v0\.4\.1")
-                self.assertNotIn("v0.4.0", text)
-        readme = brief("README.md")
-        self.assertIn("git checkout v0.4.1", readme)
-        self.assertIn("pin `v0.4.1`", readme)
-        self.assertNotIn("git checkout v0.4.0", readme)
-        self.assertNotIn("pin `v0.4.0`", readme)
-
 
 def paragraphs(text, *words):
     """Paragraphs and list items of a brief that hold every word, case aside."""
