@@ -82,3 +82,4 @@ None. A feature starts from words.
 - 2026-11-18T21:28:36+00:00 guardian: done: Re-pass: outcome 1's file check is met (no scenario miss); for the person: the check accepts any word in the file as a test name, a pairing that commits before recording a move is refused, the CHANGELOG line omits the refusal, JS titles still refused; five picture edits.
 - 2026-11-18T21:28:36+00:00 watch: stop (moves_to_accept) for originator: 12 old test(s) moved with a record and 1 wall recommendation(s) from the guardian and the guardian proposes a change to the picture; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.
 - 2026-11-18T21:29:09+00:00 watch: offered 3 options for moves_to_accept
+- 2026-11-18T21:35:26+00:00 watch: picture edit directed by Sean Kennedy (6616b90): the guardian's 5 edits to .xv/picture.md (lines 43, 51-52, after 73, after 101, 219), as worded in the packet
