@@ -21,8 +21,7 @@ from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely  # noqa
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
 import wall  # noqa: E402
-import spend  # noqa: E402
-from spend import row_tokens  # noqa: E402
+from spend import claude_session_texts, claude_transcript, row_tokens  # noqa: E402
 from suite import failing_tests, in_own_red, own_red_names, run_suite  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, emit, git, load_config, match_any, names_test, now, read_doc, solo,  # noqa: E402
                    record_path, repo_root, slice_root, today, write_doc)
@@ -749,8 +748,8 @@ def claude_session_messages(text):
     except json.JSONDecodeError:
         return []
     session_id = outer.get("session_id") if isinstance(outer, dict) else None
-    path = spend.claude_transcript(session_id) if isinstance(session_id, str) else None
-    return spend.claude_session_texts(path) if path else []
+    path = claude_transcript(session_id) if isinstance(session_id, str) else None
+    return claude_session_texts(path) if path else []
 
 
 def extract_run_report(text):
