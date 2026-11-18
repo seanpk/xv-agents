@@ -19,7 +19,8 @@ tests:
   # A big suite can meet that with a script that picks suites from the changed
   # files. XV_BASE (the slice's base commit) and XV_SLICE (its id) are set in
   # the command's environment, so `git diff --name-only $XV_BASE` finds them.
-  command: "python3 tests/run.py --jobs 4"
+  # The runner uses every core it may; XV_TEST_JOBS=n in the environment caps that at n.
+  command: "python3 tests/run.py"
   timeout: 900
   # Files whose tests are always slice-only: a mark on a test that checks one of
   # these is accepted with no stop. The scenario agent's report names the file.
