@@ -893,6 +893,8 @@ def test_names(text, prose=False):
     """The names a test may be found by: `Class > name` gives `name`, `Class.name` gives `name`, a title stays
     whole; with `prose`, the last word of a sentence too. Empty when no name can be read."""
     seg = str(text).split(";")[0].split(">")[-1].strip()
+    if re.fullmatch(r"[\w./]*(?:::|#)[\w.]+(?:(?:::|#)[\w.]+)*", seg):
+        seg = re.split(r"::|#", seg)[-1]
     if not seg:
         return []
     names = [seg]
