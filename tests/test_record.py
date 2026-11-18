@@ -1501,6 +1501,42 @@ class SliceOnlyAssertionFormTest(RepoCase):
     def moves(self, wt):
         return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["moved_tests"]
 
+    FILE = "import unittest\n\n\nclass Red(unittest.TestCase):\n    def test_milk_today(self):\n        pass\n"
+
+    def commit_file(self, wt):
+        os.makedirs(os.path.join(wt, "tests"), exist_ok=True)
+        with open(os.path.join(wt, "tests", "test_red.py"), "w") as f:
+            f.write(self.FILE)
+        sh(["git", "add", "-A"], wt)
+        sh(["git", "commit", "-qm", "the test"], wt)
+
+    def test_a_name_that_is_in_no_file_when_the_step_began_is_refused_and_nothing_is_recorded(self):
+        wt = self.new_slice("s1")
+        self.commit_file(wt)
+        for text in ("Red.test_milk_todya", "test_milk_todya", "Red.test_milk_todya (removed)",
+                     "Other.test_milk_today", "tests/test_red.py::Other::test_milk_today"):
+            with self.subTest(assertion=text):
+                p = self.move(wt, text)
+                self.assertNotEqual(p.returncode, 0, text)
+                self.assertIn("test_red.py", p.stderr)
+                self.assertEqual(self.moves(wt), [])
+
+    def test_a_name_in_the_file_at_the_start_is_taken_though_the_step_has_since_removed_it(self):
+        wt = self.new_slice("s1")
+        self.commit_file(wt)
+        with open(os.path.join(wt, "tests", "test_red.py"), "w") as f:
+            f.write("import unittest\n")  # gone from the tree, still in the file at the start
+        for text in ("Red.test_milk_today", "test_milk_today (removed)"):
+            with self.subTest(assertion=text):
+                p = self.move(wt, text)
+                self.assertEqual(p.returncode, 0, p.stderr)
+
+    def test_a_file_that_was_not_there_at_the_start_refuses_the_name(self):
+        wt = self.new_slice("s1")
+        p = self.move(wt, "Red.test_milk_today")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertEqual(self.moves(wt), [])
+
     def test_a_sentence_or_a_broken_name_is_refused_and_nothing_is_recorded(self):
         wt = self.new_slice("s1")
         for text in self.REFUSED:
@@ -1516,6 +1552,7 @@ class SliceOnlyAssertionFormTest(RepoCase):
             with self.subTest(assertion=text):
                 sid = "s-%d" % self.READ.index(text)
                 wt = self.new_slice(sid)
+                self.commit_file(wt)
                 p = self.xv("record", "move", sid, "--file", "tests/test_red.py",
                             "--slice-only", "--assertion", text, "--why", "slice-only; removed", "--by", "cleaner",
                             cwd=wt, check=False)
@@ -1526,6 +1563,7 @@ class SliceOnlyAssertionFormTest(RepoCase):
             with self.subTest(note=note):
                 sid = "n-%d" % self.NOTES.index(note)
                 wt = self.new_slice(sid)
+                self.commit_file(wt)
                 p = self.xv("record", "move", sid, "--file", "tests/test_red.py",
                             "--slice-only", "--assertion", "Red.test_milk_today " + note, "--why",
                             "slice-only; removed", "--by", "cleaner", cwd=wt, check=False)
