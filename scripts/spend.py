@@ -128,6 +128,24 @@ def claude_transcript(session_id, config_dir=None):
     return found[0] if found else None
 
 
+def claude_session_texts(path):
+    """The text of each assistant message in a session transcript, in order (the session's own file, not its
+    subagents')."""
+    texts = []
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            try:
+                ev = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            msg = ev.get("message") if isinstance(ev, dict) else None
+            if not isinstance(msg, dict) or ev.get("type") != "assistant" or not isinstance(msg.get("content"), list):
+                continue
+            texts += [b["text"] for b in msg["content"]
+                      if isinstance(b, dict) and b.get("type") == "text" and isinstance(b.get("text"), str)]
+    return texts
+
+
 def from_claude_session(path, model=None, since=None, until=None):
     """Sum a session transcript and any subagent transcripts beside it. With `since` and `until` (ISO times),
     only the turns logged between them, both ends included, count."""

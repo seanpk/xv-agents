@@ -21,6 +21,7 @@ from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely  # noqa
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
 import wall  # noqa: E402
+import spend  # noqa: E402
 from spend import row_tokens  # noqa: E402
 from suite import failing_tests, in_own_red, own_red_names, run_suite  # noqa: E402
 from xvlib import (XV_DIR, XVError, die, emit, git, load_config, match_any, names_test, now, read_doc, solo,  # noqa: E402
@@ -267,9 +268,11 @@ def cmd_move(a):
         entry["slice_only"] = True
     if a.deleted:
         entry["deleted"] = True
+    if a.slice_only:
+        entry["removal_named"] = True  # the move says a test was removed, whether or not the wall lists it
     same = same_move(data["moved_tests"], entry)
     if same:
-        same.update({k: v for k, v in entry.items() if k in ("slice_only", "deleted")})
+        same.update({k: v for k, v in entry.items() if k in ("slice_only", "deleted", "removal_named")})
     else:
         data["moved_tests"].append(entry)
     body = log_line(body, by, f"moved a test in {a.file}: {a.why}"
@@ -739,6 +742,17 @@ def extract_report(text):
         raise XVError(f"the xv-report block is not JSON: {e}")
 
 
+def claude_session_messages(text):
+    """Claude's result JSON holds the last message only: the run's messages are in its session transcript."""
+    try:
+        outer = json.loads(text)
+    except json.JSONDecodeError:
+        return []
+    session_id = outer.get("session_id") if isinstance(outer, dict) else None
+    path = spend.claude_transcript(session_id) if isinstance(session_id, str) else None
+    return spend.claude_session_texts(path) if path else []
+
+
 def extract_run_report(text):
     """The last report block of the whole run, for a harness that shows every message: codex's agent messages or
     opencode's text parts. The last message is read first (`extract_report`)."""
@@ -758,6 +772,8 @@ def extract_run_report(text):
             texts.append(item.get("text", ""))
         elif isinstance(part, dict) and part.get("type") == "text":
             texts.append(part.get("text", ""))
+    if not texts:
+        texts = claude_session_messages(text)
     for message in reversed(texts):
         if isinstance(message, str) and REPORT_RE.search(message):
             return extract_report(message)
@@ -874,6 +890,61 @@ def expected_moves(root, data, config):
     save(path, data, body)
 
 
+def test_names(text, prose=False):
+    """The names a test may be found by: `Class > name` gives `name`, `Class.name` gives `name`, a title stays
+    whole; with `prose`, the last word of a sentence too. Empty when no name can be read."""
+    seg = str(text).split(";")[0].split(">")[-1].strip()
+    if not seg:
+        return []
+    names = [seg]
+    last = seg.split()[-1].split(".")[-1] if prose else seg.split(".")[-1]
+    if last != seg and re.fullmatch(r"\w+", last) and (prose or re.fullmatch(r"[\w.]+", seg)):
+        names.append(last)
+    return names
+
+
+def test_still_there(root, file, names):
+    path = os.path.join(root, file)
+    if not os.path.isfile(path):
+        return False
+    with open(path, encoding="utf-8", errors="replace") as f:
+        body = f.read()
+    return any(re.search(r"(?<!\w)" + re.escape(n) + r"(?!\w)", body) for n in names)
+
+
+def removals_not_made(root, data, agent, report):
+    """What the record says was removed, or the cleaner owed, and is still in the tree: "file: test", or a file.
+    A test name that cannot be read is listed too: the check never passes on a name it cannot read."""
+    kept = {(k.get("file"), (test_names(k.get("test") or "") or [""])[-1]) for k in (report or {}).get("kept") or []
+            if agent == "cleaner" and isinstance(k, dict) and str(k.get("why") or "").strip()}
+    left = []
+
+    def check(file, text, prose):
+        names = test_names(text, prose)
+        if not names:
+            item = f"{file}: the test name could not be read"
+        elif (file, names[-1]) not in kept and test_still_there(root, file, names):
+            item = f"{file}: {names[-1]}"
+        else:
+            return
+        if item not in left:
+            left.append(item)
+
+    if agent == "cleaner":
+        for m in data.get("slice_only") or []:
+            if isinstance(m, dict) and m.get("accepted") and m.get("file") and m.get("test"):
+                check(m["file"], m["test"], False)
+    for m in data.get("moved_tests") or []:
+        if not isinstance(m, dict) or not m.get("file"):
+            continue
+        if m.get("deleted") and os.path.exists(os.path.join(root, m["file"])):
+            if m["file"] not in left:
+                left.append(m["file"])
+        elif (m.get("slice_only") or m.get("removal_named")) and isinstance(m.get("assertion"), str):
+            check(m["file"], m["assertion"], True)
+    return left
+
+
 def cmd_report(a):
     path, data, body = load(repo_root(), a.id)
     refuse_in_pairing(data, f"a {a.agent} report")
@@ -903,6 +974,11 @@ def cmd_report(a):
         expected_moves(root, data, config)
         data["checks"].setdefault(a.agent, {})["wall"] = wall_for_build(
             root, data, wall.check_or_note(root, data["id"], config))
+        save(path, data, body)
+    if a.agent != "scenario" or not has_build(data):
+        # as `xv step` does after every step: a removal the record names, still in the tree
+        data["checks"].setdefault(a.agent, {})["removal_not_made"] = removals_not_made(
+            slice_root(path), data, a.agent, report)
         save(path, data, body)
     emit(report or {"agent": a.agent, "status": "no-report"}, True)
 

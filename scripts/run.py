@@ -1217,44 +1217,8 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         else:
             data["shape_change"] = data["pitch_contradiction"] = "yes"
             checks["missing_packet"] = True
-    checks["removal_not_made"] = removals_not_made(root, data, agent, report)
+    checks["removal_not_made"] = record.removals_not_made(root, data, agent, report)
     return checks
-
-
-def test_still_there(root, file, name):
-    path = os.path.join(root, file)
-    if not os.path.isfile(path):
-        return False
-    with open(path, encoding="utf-8", errors="replace") as f:
-        return bool(re.search(r"(?:def|func|fn|function)\s+" + re.escape(name) + r"\b", f.read()))
-
-
-def removals_not_made(root, data, agent, report):
-    """What the record says was removed, or the cleaner owed, and is still in the tree: "file: test", or a file."""
-    kept = {(k.get("file"), str(k.get("test") or "").split(".")[-1]) for k in report.get("kept") or []
-            if agent == "cleaner" and isinstance(k, dict) and str(k.get("why") or "").strip()}
-    left = []
-
-    def add(item):
-        if item not in left:
-            left.append(item)
-
-    if agent == "cleaner":
-        for m in data.get("slice_only") or []:
-            if isinstance(m, dict) and m.get("accepted") and m.get("file") and m.get("test"):
-                name = str(m["test"]).split(".")[-1]
-                if (m["file"], name) not in kept and test_still_there(root, m["file"], name):
-                    add(f"{m['file']}: {name}")
-    for m in data.get("moved_tests") or []:
-        if not isinstance(m, dict) or not m.get("file"):
-            continue
-        if m.get("deleted") and os.path.exists(os.path.join(root, m["file"])):
-            add(m["file"])
-        elif m.get("slice_only") and isinstance(m.get("assertion"), str):
-            name = re.split(r"[\s.]+", m["assertion"].split(";")[0].strip())[-1]
-            if (m["file"], name) not in kept and test_still_there(root, m["file"], name):
-                add(f"{m['file']}: {name}")
-    return left
 
 
 OUTCOME = re.compile(r"^\s*(\d+)\.\s+(\S.*)$", re.M)
