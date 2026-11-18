@@ -60,3 +60,15 @@ def joined_unsafely(command):
             return True
         i += 1
     return False
+
+
+MOVE_NAME = re.compile(r"(?:[\w./]+::)?(?:\w+(?:::|\.|#|\s>\s))*(?P<name>\w+)"
+                       r"(?:\s+(?:\([^\n]*\)|\[[^\n]*\]|\{[^\n]*\}|<[^\n]*>))?")
+
+
+def move_test_name(text):
+    """The name of the test a move says was removed, in a form the removal check reads: `name`, `Class.name`,
+    `Class > name`, `Class::name`, `Class#name` or `file::Class::name`, which may be followed by a note in
+    brackets that is not read. None for any other text."""
+    m = MOVE_NAME.fullmatch(str(text).strip())
+    return m.group("name") if m else None

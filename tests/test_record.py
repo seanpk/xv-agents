@@ -1000,14 +1000,14 @@ class WallChoicesTest(RepoCase):
         wt = self.new_slice("s1")
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
         self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion",
-                "test_file_is_ts; removed", "--why", "w", "--slice-only", cwd=wt)
+                "test_file_is_ts (removed)", "--why", "w", "--slice-only", cwd=wt)
         self.assertIs(self.show(wt)["moved_tests"][0].get("slice_only"), True)
 
     def test_a_move_of_another_test_does_not_get_the_flag(self):
         wt = self.new_slice("s1")
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
         self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion",
-                "test_other; removed", "--why", "w", "--slice-only", cwd=wt)
+                "test_other (removed)", "--why", "w", "--slice-only", cwd=wt)
         self.assertFalse(self.show(wt)["moved_tests"][0].get("slice_only"))
 
 

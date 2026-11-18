@@ -17,7 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import moves  # noqa: E402
-from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely  # noqa: E402
+from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely, move_test_name  # noqa: E402
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
 import wall  # noqa: E402
@@ -250,6 +250,10 @@ def cmd_move(a):
     for name in ("file", "assertion", "why"):
         if not getattr(a, name):
             raise XVError(f"a moved test names its {name}")
+    if a.slice_only and move_test_name(a.assertion) is None:
+        raise XVError("a slice-only assertion must be the test's name (`name`, `Class.name`, `Class > name`, "
+                      "`Class::name`, `Class#name` or `file::Class::name`), with an optional note in brackets "
+                      "after it: (...), [...], {...} or <...>")
     by = a.by or "maker"
     pairing = open_pairing(data)
     if pairing:
@@ -889,18 +893,11 @@ def expected_moves(root, data, config):
     save(path, data, body)
 
 
-def test_names(text, prose=False):
+def test_names(text):
     """The names a test may be found by: `Class > name` gives `name`, `Class.name` gives `name`, a title stays
-    whole; with `prose`, the last word of a sentence too. A name with `::` or `#` is cut at the last one (in prose,
-    the word that holds it); what is left must be a plain name. Empty when no name can be read."""
+    whole. A name with `::` or `#` is cut at the last one; what is left must be a plain name. Empty when no name
+    can be read."""
     seg = str(text).split(";")[0].split(">")[-1].strip()
-    if prose:
-        word = next((w for w in seg.split() if re.search(r"::|#", w)), None)
-        if word is None and seg.split() and not re.fullmatch(r"[\w.]*\w", seg.split()[-1]):
-            return []  # a sentence that does not end in a plain name: no name can be read
-        if word is not None and re.match(r"::|#", word):
-            return []  # a separator with nothing before it names no test
-        seg = word or seg
     if re.search(r"::|#", seg):
         seg = re.split(r"::|#", seg)[-1]
         if not re.fullmatch(r"[\w.]*\w", seg):
@@ -908,8 +905,8 @@ def test_names(text, prose=False):
     if not seg:
         return []
     names = [seg]
-    last = seg.split()[-1].split(".")[-1] if prose else seg.split(".")[-1]
-    if last != seg and re.fullmatch(r"\w+", last) and (prose or re.fullmatch(r"[\w.]+", seg)):
+    last = seg.split(".")[-1]
+    if last != seg and re.fullmatch(r"\w+", last) and re.fullmatch(r"[\w.]+", seg):
         names.append(last)
     return names
 
@@ -930,8 +927,7 @@ def removals_not_made(root, data, agent, report):
             if agent == "cleaner" and isinstance(k, dict) and str(k.get("why") or "").strip()}
     left = []
 
-    def check(file, text, prose):
-        names = test_names(text, prose)
+    def check(file, names):
         if not names:
             item = f"{file}: the test name could not be read"
         elif (file, names[-1]) not in kept and test_still_there(root, file, names):
@@ -944,7 +940,7 @@ def removals_not_made(root, data, agent, report):
     if agent == "cleaner":
         for m in data.get("slice_only") or []:
             if isinstance(m, dict) and m.get("accepted") and m.get("file") and m.get("test"):
-                check(m["file"], m["test"], False)
+                check(m["file"], test_names(m["test"]))
     for m in data.get("moved_tests") or []:
         if not isinstance(m, dict) or not m.get("file"):
             continue
@@ -952,7 +948,8 @@ def removals_not_made(root, data, agent, report):
             if m["file"] not in left:
                 left.append(m["file"])
         elif (m.get("slice_only") or m.get("removal_named")) and isinstance(m.get("assertion"), str):
-            check(m["file"], m["assertion"], True)
+            name = move_test_name(m["assertion"])
+            check(m["file"], [name] if name else [])
     return left
 
 
@@ -1053,6 +1050,8 @@ def guardian_facts(root, data, checks, packet_file):
             data[field] = v if v in packetlib.YES_NO else "yes"
     found = packetlib.misses(pbody) if pdata.get("change_misses_scenario") == "yes" else []
     data["change_misses_scenario"] = "yes" if found else "no"
+    # a miss listed under a front matter that says no: the packet disagrees with itself, and a person settles it
+    checks["miss_disagreement"] = packetlib.misses(pbody) if pdata.get("change_misses_scenario") == "no" else []
     report = orders.last_report(data, "guardian") or {}
     checks["misses"] = found
     checks["miss_amend"] = any(m["amend"] for m in found)

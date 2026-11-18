@@ -335,6 +335,11 @@ def evaluate(data, after, config):
         picture = checks.get("picture_change") == "yes"
         recs = [r for r in data.get("wall_recommendations") or [] if not r.get("accepted") and not r.get("refused")]
         miss = data.get("change_misses_scenario") == "yes"
+        if checks.get("miss_disagreement"):
+            out.append(fire("change_misses_scenario", "originator",
+                            "The packet's front matter says change_misses_scenario: no, but its `## Scenario misses` "
+                            "section lists: " + "; ".join(m["text"] for m in checks["miss_disagreement"])
+                            + ". Say which is right: the miss goes back, or the section is wrong."))
         if miss:
             state = budget_state(data)
             if state["spent_out"]:
