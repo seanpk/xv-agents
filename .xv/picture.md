@@ -84,6 +84,7 @@ Sean Kennedy sits with them.
   When the re-pass diff cannot run, `xv step guardian` runs no agent, writes a `repass_diff_failed` stop for the originator, and exits 10.
   `xv prompt guardian` writes no record, so on the same failure it exits 2 and gives no prompt.
   `xv step guardian` runs `agents.guardian_repass` only with a re-pass prompt, and falls back to `agents.guardian`, then `agents.default`.
+  `xv step guardian` builds the re-pass section once and passes it to `prompt.build` as `repass`, so one diff picks both the prompt and the command.
   `xv guard` always runs the guardian's first pass, with `agents.guardian`, then `agents.default`, even when the record names a packet.
   For `change_misses_scenario`, a miss is a repeat when an earlier pass sent back the same key, and the repeat stops for the originator.
   For `report_misses_outcome`, `orders.miss_run` counts the send-backs of the same outcome in an unbroken run of scenario reports.
