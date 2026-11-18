@@ -252,6 +252,12 @@ def evaluate(data, after, config):
                         f"Test files changed with no record after the {after}: "
                         + ", ".join(wall["unrecorded"]) + ". Revert them, or record why the scenario forces it."))
 
+    if checks.get("removal_not_made"):
+        out.append(fire("removal_not_made", "originator",
+                        f"{owner}: a removal the record names is not in the tree after the {after}: "
+                        + "; ".join(checks["removal_not_made"])
+                        + ". Remove it, or say why the test stays."))
+
     if checks.get("protected_changed"):
         out.append(fire("protected_changed", "originator",
                         f"The {after} changed files only people change: {', '.join(checks['protected_changed'])}. "

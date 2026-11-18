@@ -265,9 +265,11 @@ def cmd_move(a):
                  for s in data.get("slice_only") or [] if isinstance(s, dict))
     if a.slice_only and listed:
         entry["slice_only"] = True
+    if a.deleted:
+        entry["deleted"] = True
     same = same_move(data["moved_tests"], entry)
     if same:
-        same.update({k: v for k, v in entry.items() if k == "slice_only"})
+        same.update({k: v for k, v in entry.items() if k in ("slice_only", "deleted")})
     else:
         data["moved_tests"].append(entry)
     body = log_line(body, by, f"moved a test in {a.file}: {a.why}"
@@ -737,9 +739,34 @@ def extract_report(text):
         raise XVError(f"the xv-report block is not JSON: {e}")
 
 
+def extract_run_report(text):
+    """The last report block of the whole run, for a harness that shows every message: codex's agent messages or
+    opencode's text parts. The last message is read first (`extract_report`)."""
+    report = extract_report(text)
+    if report is not None:
+        return report
+    texts = []
+    for line in text.splitlines():
+        try:
+            ev = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(ev, dict):
+            continue
+        item, part = ev.get("item"), ev.get("part")
+        if isinstance(item, dict) and item.get("type") == "agent_message":
+            texts.append(item.get("text", ""))
+        elif isinstance(part, dict) and part.get("type") == "text":
+            texts.append(part.get("text", ""))
+    for t in reversed(texts):
+        if isinstance(t, str) and REPORT_RE.search(t):
+            return extract_report(t)
+    return None
+
+
 def apply_report(data, body, agent, text):
     """Apply a worker's final message to the record. Returns (body, report)."""
-    report = extract_report(text)
+    report = extract_run_report(text)
     checks = data.setdefault("checks", {})
     if report is None:
         report = {"agent": agent, "status": "no-report", "summary": "ended without an xv-report block"}
