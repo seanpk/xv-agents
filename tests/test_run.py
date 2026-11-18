@@ -2284,6 +2284,23 @@ class RemovalNotMadeTest(WatchLoopSetup):
         self.to_the_cleaner(self.named("Red#test_milk_today"))
         self.assert_no_removal_stop(self.step("cleaner", FAKE_CLEANER_REMOVES="test_milk_today"))
 
+    def test_a_slice_only_test_named_with_a_dash_in_its_path_is_found_still_there(self):
+        self.to_the_cleaner(self.named("tests/milk-red.py::Red::test_milk_today"))
+        self.assert_removal_stop(self.step("cleaner"), "tests/test_red.py", "test_milk_today")
+
+    def test_a_slice_only_entry_with_no_name_after_double_colon_stops_saying_so(self):
+        self.to_the_cleaner(self.named("Red::"))
+        p = self.step("cleaner")
+        self.assert_removal_stop(p, "tests/test_red.py")
+        self.assertIn("could not be read", json.loads(p.stdout)["stop"]["question"])
+
+    def test_a_slice_only_move_whose_assertion_names_a_double_colon_test_still_there_stops(self):
+        self.to_the_maker()
+        self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--assertion",
+                "removed tests/milk-red.py::Red::test_milk_today as slice-only", "--why", "slice-only; removed",
+                "--by", "cleaner", cwd=self.wt)
+        self.assert_removal_stop(self.step("maker"), "tests/test_red.py", "test_milk_today")
+
     TITLE = "shows milk running out today"
 
     def js_file(self, title):
