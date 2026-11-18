@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import sys
 import unittest
 
@@ -279,6 +280,24 @@ class RepassAmendmentsTest(RepassCase):
         p = self.run_xv("step", "guardian", "s1")
         self.assertEqual(self.ran(), [])
         self.assertEqual(p.returncode, 10, self.out)
+
+    def test_a_repass_step_runs_the_repass_diff_once_for_both_the_prompt_and_the_command(self):
+        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.repass()
+        real, bin_dir = shutil.which("git"), os.path.join(self.tmp, "bin")
+        diffs = os.path.join(self.tmp, "diffs.log")
+        os.makedirs(bin_dir)
+        with open(os.path.join(bin_dir, "git"), "w") as f:
+            f.write(f'#!/bin/sh\ncase "$*" in *"..HEAD -- . :(exclude).xv"*) echo "$*" >> "{diffs}";; esac\n'
+                    f'exec "{real}" "$@"\n')
+        os.chmod(os.path.join(bin_dir, "git"), 0o755)
+        path = os.environ["PATH"]
+        os.environ["PATH"] = bin_dir + os.pathsep + path
+        self.addCleanup(os.environ.__setitem__, "PATH", path)
+        self.run_xv("step", "guardian", "s1")
+        self.assertEqual(self.ran(), ["second:repass"], self.out)
+        with open(diffs) as f:
+            self.assertEqual(len(f.read().splitlines()), 1, self.out)
 
     def test_xv_prompt_guardian_with_a_failed_repass_diff_exits_2_and_writes_no_stop(self):
         self.agents(default="default", guardian="first", guardian_repass="second")
