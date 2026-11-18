@@ -63,7 +63,7 @@ def make_handler(store):
 def serve(store=None, port=0):
     """Start the API in a background thread. Returns the server; its port is server.server_port."""
     server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(store or Store()))
-    threading.Thread(target=server.serve_forever, daemon=True).start()
+    threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True).start()
     return server
 
 

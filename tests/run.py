@@ -1,8 +1,10 @@
-"""Run the suite: `python3 tests/run.py --shard i/n --jobs k`.
+"""Run the suite: `python3 tests/run.py [--shard i/n] [--jobs k]`.
 
 The shards 1/n to n/n together run every test once. Within a shard the tests run in k
-processes at the same time. The output is unittest's, so a failure reads `FAIL: test (id)`.
-Exits non-zero if any test fails.
+processes at the same time; with no `--jobs`, k is the number of cores this process may
+use. `XV_TEST_JOBS=n` in the environment caps k at n either way, so a person can keep
+cores free on their own machine. The output is unittest's, so a failure reads
+`FAIL: test (id)`. Exits non-zero if any test fails.
 """
 import argparse
 import glob
@@ -36,6 +38,23 @@ def files_with_no_tests(ids):
                   if os.path.basename(f)[:-3] not in modules)
 
 
+def cores():
+    """The cores this process may run on."""
+    try:
+        return len(os.sched_getaffinity(0))
+    except AttributeError:
+        return os.cpu_count() or 1
+
+
+def job_count(requested, cap, cores):
+    """The processes to run: `requested` (`--jobs`), or `cores` when none was asked for;
+    never more than `cap` (`XV_TEST_JOBS`) when it is set; at least one."""
+    jobs = requested if requested is not None else cores
+    if cap not in (None, ""):
+        jobs = min(jobs, int(cap))
+    return max(1, jobs)
+
+
 def run_ids(path):
     with open(path) as f:
         ids = f.read().split()
@@ -47,14 +66,15 @@ def run_ids(path):
 def main(argv):
     p = argparse.ArgumentParser()
     p.add_argument("--shard", default="1/1")
-    p.add_argument("--jobs", type=int, default=1)
+    p.add_argument("--jobs", type=int, help="processes per shard; default: every core, see XV_TEST_JOBS")
     p.add_argument("--run-ids")
     a = p.parse_args(argv)
     if a.run_ids:
         return run_ids(a.run_ids)
     i, n = (int(x) for x in a.shard.split("/"))
-    if not 1 <= i <= n or a.jobs < 1:
+    if not 1 <= i <= n or (a.jobs is not None and a.jobs < 1):
         p.error("--shard needs 1 <= i <= n and --jobs needs at least 1")
+    jobs = job_count(a.jobs, os.environ.get("XV_TEST_JOBS"), cores())
     every = collect()
     missing = files_with_no_tests(every)
     if missing:
@@ -62,7 +82,7 @@ def main(argv):
         print("FAILED")
         return 1
     mine = every[i - 1::n]
-    chunks = [c for c in (mine[k::a.jobs] for k in range(a.jobs)) if c]
+    chunks = [c for c in (mine[k::jobs] for k in range(jobs)) if c]
     procs = []
     with tempfile.TemporaryDirectory(prefix="xv-run-") as tmp:
         for k, chunk in enumerate(chunks):
@@ -84,7 +104,7 @@ def main(argv):
     if ran != len(mine):
         print("FAIL: %d tests were collected for this shard and %d ran" % (len(mine), ran))
         failed = True
-    print("Ran %d tests in shard %d/%d" % (len(mine), i, n))
+    print("Ran %d tests in shard %d/%d, %d jobs" % (len(mine), i, n, jobs))
     print("FAILED" if failed else "OK")
     return 1 if failed else 0
 

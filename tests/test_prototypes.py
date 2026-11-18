@@ -74,7 +74,7 @@ if m and op in ("worktree remove", "worktree add", "branch -D"):
         with open(log, "a") as f:
             f.write(json.dumps({{"variant": m.group(1), "op": op, "what": what, "t": time.time()}}) + "\\n")
     note("start")
-    time.sleep(0.3)
+    time.sleep(0.1)
     if op == "worktree add" and os.environ.get("FAKE_GIT_REFUSE") == m.group(1):
         sys.stderr.write("fatal: Unable to create '.git/index.lock': File exists.\\n")
         note("end")
@@ -97,7 +97,7 @@ def note(what):
     with open(os.environ["FAKE_AGENT_LOG"], "a") as f:
         f.write(json.dumps({{"variant": v, "what": what, "t": time.time()}}) + "\\n")
 note("start")
-time.sleep(2)
+time.sleep(1)
 p = subprocess.run([{python!r}, {fake!r}, prompt], capture_output=True, text=True)
 sys.stdout.write(p.stdout)
 note("end")

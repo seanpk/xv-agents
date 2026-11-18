@@ -1,3 +1,4 @@
+import importlib.util
 import os
 import re
 import shutil
@@ -9,6 +10,14 @@ import unittest
 from helpers import HOME
 
 RUNNER = os.path.join(HOME, "tests", "run.py")
+
+
+def runner_module():
+    """tests/run.py as a module; `import run` would find scripts/run.py first."""
+    spec = importlib.util.spec_from_file_location("tests_run", RUNNER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 MARKING = '''import os
 import unittest
@@ -71,16 +80,18 @@ class RunnerCase(unittest.TestCase):
             with open(os.path.join(self.tmp, name + ".py"), "w") as f:
                 f.write(module_source(name, tests, self.failing.get(name, ())))
 
-    def launch(self, *args):
+    def launch(self, *args, **env_extra):
         open(self.mark, "w").close()
-        env = dict(os.environ, XV_MARK=self.mark)
+        env = dict(os.environ, XV_MARK=self.mark, **env_extra)
+        if "XV_TEST_JOBS" not in env_extra:
+            env.pop("XV_TEST_JOBS", None)  # a cap in the shell must not change what these tests check
         return subprocess.run([sys.executable, os.path.join(self.tmp, "run.py"), *args],
                               cwd=self.tmp, env=env, capture_output=True, text=True,
                               stdin=subprocess.DEVNULL, timeout=120)
 
-    def run_runner(self, *args):
+    def run_runner(self, *args, **env_extra):
         self.write()
-        p = self.launch(*args)
+        p = self.launch(*args, **env_extra)
         with open(self.mark) as f:
             return p, f.read().split()
 
@@ -121,6 +132,32 @@ class RunnerTest(RunnerCase):
                 f.write(MEET.format(cls=class_name(me), me=me, other=other))
         p = self.launch("--shard", "1/1", "--jobs", "2")
         self.assertEqual(p.returncode, 0, p.stderr + p.stdout)
+
+    def test_no_jobs_flag_runs_as_many_processes_as_there_are_cores(self):
+        run = runner_module()
+        p, marks = self.run_runner("--shard", "1/1")
+        self.assertEqual(p.returncode, 0, p.stderr + p.stdout)
+        self.assertEqual(sorted(marks), self.everything())
+        self.assertIn("%d jobs" % run.cores(), p.stdout)
+
+    def test_the_env_var_caps_the_jobs_with_and_without_the_flag(self):
+        p, marks = self.run_runner("--shard", "1/1", XV_TEST_JOBS="2")
+        self.assertEqual(p.returncode, 0, p.stderr + p.stdout)
+        self.assertEqual(sorted(marks), self.everything())
+        self.assertIn(", 2 jobs", p.stdout)
+        p, _ = self.run_runner("--shard", "1/1", "--jobs", "3", XV_TEST_JOBS="2")
+        self.assertIn(", 2 jobs", p.stdout)
+        p, _ = self.run_runner("--shard", "1/1", "--jobs", "1", XV_TEST_JOBS="2")
+        self.assertIn(", 1 jobs", p.stdout)
+
+    def test_the_job_count_is_the_flag_or_the_cores_capped_by_the_env_var_and_at_least_one(self):
+        job_count = runner_module().job_count
+        self.assertEqual(job_count(None, None, 8), 8)
+        self.assertEqual(job_count(3, None, 8), 3)
+        self.assertEqual(job_count(None, "4", 8), 4)
+        self.assertEqual(job_count(3, "4", 8), 3)
+        self.assertEqual(job_count(None, "", 8), 8)
+        self.assertEqual(job_count(None, "0", 8), 1)
 
     def test_a_failing_test_makes_the_command_exit_non_zero(self):
         self.failing = {"test_b": ["five"]}
