@@ -13,6 +13,11 @@ sid = (re.search(r"\.xv/slices/([\w.-]+)\.md", prompt) or [None, None])[1]
 
 
 if os.environ.get("FAKE_NO_REPORT") and not title.startswith("# The forecaster"):
+    if os.environ.get("FAKE_EARLIER_REPORT"):
+        # a harness that shows every message, and none of them holds a report block
+        for text in ("done, and no report block", "all finished, nothing more to say"):
+            print(json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": text}}))
+        sys.exit(0)
     print("done, and no report block")
     sys.exit(0)
 

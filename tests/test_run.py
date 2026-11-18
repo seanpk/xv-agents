@@ -2151,10 +2151,10 @@ class RemovalNotMadeTest(WatchLoopSetup):
     TEST = "Red.test_milk_today"
     MARK = {"file": "tests/test_red.py", "test": TEST, "why": "one wording line", "checks": "CHANGELOG.md"}
 
-    def to_the_maker(self):
+    def to_the_maker(self, mark=None):
         """Forecast and scenario; the scenario marks its one test slice-only, accepted because it checks CHANGELOG.md."""
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.step("scenario", FAKE_REPORT_EXTRA=json.dumps({"slice_only": [self.MARK]}), check=True)
+        self.step("scenario", FAKE_REPORT_EXTRA=json.dumps({"slice_only": [mark or self.MARK]}), check=True)
         self.assertEqual([m.get("accepted") for m in self.record()["slice_only"]], [True])
 
     def step(self, agent, check=False, **env):
@@ -2173,8 +2173,8 @@ class RemovalNotMadeTest(WatchLoopSetup):
         self.assertNotIn("removal_not_made", p.stdout, p.stdout + p.stderr)
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
 
-    def to_the_cleaner(self):
-        self.to_the_maker()
+    def to_the_cleaner(self, mark=None):
+        self.to_the_maker(mark)
         self.step("maker", check=True)
 
     # 1. after the cleaner
@@ -2226,8 +2226,185 @@ class RemovalNotMadeTest(WatchLoopSetup):
         self.assertEqual(self.record()["red"]["files"], ["tests/test_red.py"])
 
     def test_a_run_with_no_report_block_in_any_message_still_stops_with_no_report(self):
+        # a run that shows every message, and none of them holds a block
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.step("scenario", FAKE_NO_REPORT="1", FAKE_EARLIER_REPORT="")
+        p = self.step("scenario", FAKE_NO_REPORT="1", FAKE_EARLIER_REPORT="1")
+        log = open(self.run_log("scenario")).read()
+        self.assertEqual(log.count('"agent_message"'), 2)
+        self.assertNotIn("xv-report", log)
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "no_report")
+
+    def run_log(self, agent):
+        runs = os.path.join(self.repo, ".git", "xv", "runs", "s1")
+        return os.path.join(runs, sorted(f for f in os.listdir(runs) if f.endswith(f"-{agent}.out"))[-1])
+
+    # 5. the cleaner's brief asks for the kept list
+    def test_the_cleaners_report_example_has_a_kept_list_with_file_test_and_why(self):
+        text = open(os.path.join(HOME, "skills", "cleaner", "SKILL.md")).read()
+        example = text[text.index("```xv-report"):]
+        self.assertIn('"kept"', example)
+        kept = example[example.index('"kept"'):].split("]")[0]
+        for key in ('"file"', '"test"', '"why"'):
+            self.assertIn(key, kept)
+        self.assertIn("`kept`", text[:text.index("```xv-report")])
+
+    # 6. a test is found by its name anywhere in its file; a name that cannot be read stops
+    def named(self, test, file="tests/test_red.py"):
+        return dict(self.MARK, test=test, file=file)
+
+    def test_a_slice_only_test_named_with_a_class_and_an_arrow_is_found_still_there(self):
+        self.to_the_cleaner(self.named("Red > test_milk_today"))
+        self.assert_removal_stop(self.step("cleaner"), "tests/test_red.py", "test_milk_today")
+
+    def test_a_slice_only_test_named_with_a_class_and_an_arrow_passes_once_removed(self):
+        self.to_the_cleaner(self.named("Red > test_milk_today"))
+        self.assert_no_removal_stop(self.step("cleaner", FAKE_CLEANER_REMOVES="test_milk_today"))
+
+    TITLE = "shows milk running out today"
+
+    def js_file(self, title):
+        with open(os.path.join(self.wt, "tests", "milk.test.js"), "w") as f:
+            f.write('describe("milk", () => {\n  it("%s", () => {});\n});\n' % title)
+        sh(["git", "add", "tests/milk.test.js"], self.wt)
+        sh(["git", "commit", "-qm", "a js test"], self.wt)
+
+    def test_a_slice_only_it_title_still_in_a_js_file_stops_naming_file_and_title(self):
+        self.to_the_cleaner(self.named(self.TITLE, "tests/milk.test.js"))
+        self.js_file(self.TITLE)
+        self.assert_removal_stop(self.step("cleaner"), "tests/milk.test.js", self.TITLE)
+
+    def test_a_slice_only_it_title_gone_from_a_js_file_passes(self):
+        self.to_the_cleaner(self.named(self.TITLE, "tests/milk.test.js"))
+        self.js_file("shows something else")
+        self.assert_no_removal_stop(self.step("cleaner", FAKE_CLEANER_REMOVES="test_milk_today"))
+
+    def test_a_slice_only_entry_whose_name_cannot_be_read_stops_saying_so(self):
+        self.to_the_cleaner(self.named("Red >"))
+        p = self.step("cleaner")
+        self.assert_removal_stop(p, "tests/test_red.py")
+        self.assertIn("could not be read", json.loads(p.stdout)["stop"]["question"])
+
+    def test_a_slice_only_move_whose_name_cannot_be_read_stops_the_next_step_saying_so(self):
+        self.to_the_maker()
+        self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--assertion", ";",
+                "--why", "slice-only; removed", "--by", "cleaner", cwd=self.wt)
+        p = self.step("maker")
+        self.assert_removal_stop(p, "tests/test_red.py")
+        self.assertIn("could not be read", json.loads(p.stdout)["stop"]["question"])
+
+    # the session path: `xv record report`, then `xv orders --after <agent>`
+    def session(self, agent, **report):
+        path = os.path.join(self.tmp, f"{agent}-message.txt")
+        body = dict(agent=agent, status="done" if agent == "cleaner" else "green", summary="s", **report)
+        with open(path, "w") as f:
+            f.write("done\n```xv-report\n" + json.dumps(body) + "\n```\n")
+        self.xv("record", "report", "s1", agent, path, cwd=self.wt)
+        return self.xv("orders", "s1", "--after", agent, cwd=self.wt, check=False)
+
+    def test_a_session_cleaner_that_left_a_slice_only_test_stops_for_the_originator(self):
+        self.to_the_cleaner()
+        p = self.session("cleaner")
+        self.assertIn("removal_not_made", p.stdout, p.stdout + p.stderr)
+        self.assertIn("test_milk_today", p.stdout)
+        self.assertIn("tests/test_red.py", p.stdout)
+
+    def test_a_session_cleaner_that_kept_a_slice_only_test_and_said_why_passes(self):
+        self.to_the_cleaner()
+        kept = [{"file": "tests/test_red.py", "test": self.TEST, "why": "it guards the inclusive start"}]
+        p = self.session("cleaner", kept=kept)
+        self.assertNotIn("removal_not_made", p.stdout, p.stdout + p.stderr)
+
+    def test_a_session_cleaner_that_removed_the_test_passes(self):
+        self.to_the_cleaner()
+        path = os.path.join(self.wt, "tests", "test_red.py")
+        text = open(path).read()
+        with open(path, "w") as f:
+            f.write(text[:text.index("    def test_milk_today")] + "    pass\n")
+        self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--assertion", self.TEST,
+                "--why", "slice-only; removed", "--by", "cleaner", cwd=self.wt)
+        p = self.session("cleaner")
+        self.assertNotIn("removal_not_made", p.stdout, p.stdout + p.stderr)
+
+    def test_a_session_step_after_a_slice_only_move_for_a_test_still_there_stops(self):
+        self.move_recorded("--slice-only")
+        p = self.session("maker")
+        self.assertIn("removal_not_made", p.stdout, p.stdout + p.stderr)
+        self.assertIn("test_milk_today", p.stdout)
+
+
+# stands in for `claude`: the result JSON holds the last message only; the whole run is in the session transcript
+CLAUDE_WRAPPER = """#!PYTHON
+import json, os, subprocess, sys
+prompt = sys.argv[-1]
+fake = subprocess.run(["PYTHON", "FAKE", prompt], capture_output=True, text=True).stdout
+sid = "sess-0001"
+mode = os.environ.get("WRAP_MODE", "report-earlier")
+last = fake if mode == "report-last" else "all finished, nothing more to say"
+messages = [fake, last] if mode == "report-earlier" else ["done, nothing to report", last]
+if mode != "no-transcript":
+    path = os.path.join(os.path.expanduser("~"), ".claude", "projects", "-work", sid + ".jsonl")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(json.dumps({"type": "user", "message": {"role": "user", "content": prompt}}) + "\\n")
+        for i, text in enumerate(messages):
+            msg = {"id": "m%d" % i, "role": "assistant", "content": [{"type": "text", "text": text}],
+                   "usage": {"input_tokens": 1, "output_tokens": 1}}
+            f.write(json.dumps({"type": "assistant", "timestamp": "2026-11-18T04:00:0%d.000Z" % i,
+                                "message": msg}) + "\\n")
+print(json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": last,
+                  "session_id": sid, "total_cost_usd": 0.01, "num_turns": 2, "duration_ms": 10,
+                  "usage": {"input_tokens": 1, "output_tokens": 1}}))
+"""
+
+
+class ClaudeWholeRunReportTest(RepoCase):
+    """Claude Code's `--output-format json` holds only the last message: the earlier ones are in the session
+    transcript, found by the result's session_id."""
+
+    def setUp(self):
+        super().setUp()
+        from unittest import mock
+        self.home = os.path.join(self.tmp, "home")
+        os.makedirs(self.home)
+        bindir = os.path.join(self.tmp, "bin")
+        os.makedirs(bindir)
+        self.claude = os.path.join(bindir, "claude")
+        with open(self.claude, "w") as f:
+            f.write(CLAUDE_WRAPPER.replace("PYTHON", sys.executable).replace("FAKE", FAKE))
+        os.chmod(self.claude, 0o755)
+        cfg = os.path.join(self.repo, ".xv", "config.yml")
+        text = open(cfg).read()
+        text = (text[:text.index("agents:")] + 'agents:\n  default: ["%s", "--output-format", "json", "{prompt}"]\n'
+                % self.claude + text[text.index("seats:"):])
+        open(cfg, "w").write(text)
+        sh(["git", "commit", "-qam", "a claude-shaped agent"], self.repo)
+        self.wt = self.new_slice("s1", "Milk that runs out today shows as running out soon.")
+        self.xv("record", "set", "s1", "budget", '{"usd": 1}', "--by", "pat", cwd=self.wt)
+        patch = mock.patch.dict(os.environ, {"HOME": self.home, "USERPROFILE": self.home})
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def run_scenario(self, mode):
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"WRAP_MODE": "report-last"}):  # the forecaster reports in its last message
+            self.xv("step", "forecaster", "s1", cwd=self.wt)
+        with mock.patch.dict(os.environ, {"WRAP_MODE": mode}):
+            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+
+    def test_a_report_in_an_earlier_message_of_the_session_is_read_when_the_last_has_none(self):
+        p = self.run_scenario("report-earlier")
+        self.assertNotIn("no_report", p.stdout, p.stdout + p.stderr)
+        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+        self.assertEqual(data["red"]["files"], ["tests/test_red.py"])
+
+    def test_a_session_with_no_report_block_in_any_message_still_stops_with_no_report(self):
+        p = self.run_scenario("no-report")
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "no_report")
+
+    def test_a_result_whose_session_has_no_transcript_still_stops_with_no_report(self):
+        p = self.run_scenario("no-transcript")
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "no_report")
 
 
