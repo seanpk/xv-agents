@@ -28,12 +28,14 @@ A token count means something only within one model. So forecast per key, where 
 4. Where a key has no rows, say "no history for <key>" and leave its numbers null. Do not borrow numbers from another key, and do not invent one. The engineer sets the first budget by hand.
 5. Forecast the shape change and its breadth: `none`, `narrow`, or `wide`, with one line on what you expect to move.
 6. Forecast wall clock in seconds, from rows of any key. Wall clock is the one unit that compares across everything.
+7. Forecast the number of rounds (passes through the agents) you expect, with the reason: a slice that is likely to be paired on or sent back takes more than one. The record keeps it next to the budget.
+8. Include your own spend as a row for the forecaster's key, so a budget set from the forecast covers that spend too.
 
 The forecast is advice to the engineer. The budget is theirs.
 
 ## Close (after the merge)
 
-Your prompt says when you are closing. Read the record's forecast and its actual spend. Write one line on why the gap is what it is, from the record, not from memory: the step that overran, the stop that cost a round, the test that moved. Say what shape change actually happened. The watch appends the row to the guide with a script; you do not edit `.xv/estimation.md`.
+Your prompt says when you are closing. Read the record's forecast and its actual spend. Write one line on why the gap is what it is, from the record, not from memory: the step that overran, the stop that cost a round, the test that moved. Name a pairing or a send-back when it is the cause of the gap: each adds a round. Say what shape change actually happened. The watch appends the row to the guide with a script; you do not edit `.xv/estimation.md`.
 
 ## May not
 
@@ -50,7 +52,7 @@ End your final message with one report block. Before the work:
 {"agent": "forecaster", "status": "done", "summary": "<one line>",
  "forecast": {"rows": [{"harness": "claude", "model": "sonnet", "tokens": 400000, "turns": 40, "usd": 2.5, "basis": ["<slice id>", "<slice id>"]},
                        {"harness": "opencode", "model": "gpt-oss:20b", "tokens": null, "turns": null, "usd": null, "basis": [], "note": "no history for opencode/gpt-oss:20b"}],
-              "wall_s": 900, "shape_breadth": "narrow", "shape_note": "<one line>"}}
+              "wall_s": 900, "rounds": 2, "rounds_reason": "<one line>", "shape_breadth": "narrow", "shape_note": "<one line>"}}
 ```
 
 When closing:

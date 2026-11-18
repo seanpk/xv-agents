@@ -15,7 +15,7 @@ import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from xvlib import (XVError, die, load_config, read_doc, record_path,  # noqa: E402
+from xvlib import (XVError, die, git, load_config, read_doc, record_path,  # noqa: E402
                    repo_root, slice_root, split_front_matter)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -132,7 +132,7 @@ def pointers(agent, root, config, data=None, extra=None):
         lines.append(f"- Test paths (the wall): {', '.join(tests['paths'])}.")
     if agent == "forecaster":
         keys = [f"{a} on {'/'.join(agent_key(config, a))}"
-                for a in ("scenario", "maker", "cleaner", "guardian")]
+                for a in ("forecaster", "scenario", "maker", "cleaner", "guardian")]
         lines.append(f"- Agents on this slice: {'; '.join(keys)}.")
     xv = "xv" if shutil.which("xv") else os.path.join(XV_HOME, "bin", "xv")
     lines.append(f"- The `xv` command: `{xv}`.")
@@ -202,7 +202,28 @@ def refactor_section(agent, data):
     return "\n".join(lines) + "\n"
 
 
-def build(agent, slice_id=None, root=None, close=False, init=False, extra=None, part=None, saved=None):
+def repass_section(root, data):
+    """A guardian re-pass: its earlier packet and the diff made after that packet's commit. A first pass has neither."""
+    packet = (data or {}).get("packet")
+    full = os.path.join(root, packet) if packet else None
+    if not full or not os.path.isfile(full):
+        return ""
+    head = (((data.get("checks") or {}).get("guardian") or {}).get("packet_head")
+            or git(["log", "-1", "--format=%H", "--", packet], root, check=False).strip())
+    if not head:
+        return ""
+    diff = git(["diff", f"{head}..HEAD", "--", ".", ":(exclude).xv"], root)
+    with open(full, encoding="utf-8", errors="replace") as f:
+        earlier = f.read().strip()
+    return ("\n## This is a re-pass\n\nYou wrote the packet below on an earlier pass. Review only what changed since "
+            f"it, at commit {head[:12]}, and keep the five checks. The diff after that commit follows.\n\n"
+            f"### Your earlier packet\n\n{earlier}\n\n### The diff since that packet's commit\n\n"
+            f"```diff\n{diff.rstrip()}\n```\n")
+
+
+def build(agent, slice_id=None, root=None, close=False, init=False, extra=None, part=None, saved=None,
+          repass=True):
+    """`repass`: False for a first pass, True to build the re-pass section here, or the section a caller already built."""
     root = root or repo_root()
     config = load_config(root)
     data = body = None
@@ -237,6 +258,7 @@ def build(agent, slice_id=None, root=None, close=False, init=False, extra=None, 
     if agent == "maker" and (data or {}).get("kind") != "refactor":
         text = "\n".join(l for l in text.splitlines() if not l.startswith(REFACTOR_POINT))
     return (text + ("\n\n" + part.strip() if part else "") + "\n" + refactor_section(agent, data) + answer_section(data, body)
+            + ((repass if isinstance(repass, str) else repass_section(root, data)) if agent == "guardian" and repass else "")
             + commands_section(config, agent)
             + pointers(agent, root, config, data, extra) + "\n")
 

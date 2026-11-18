@@ -783,6 +783,10 @@ def apply_report(data, body, agent, text):
             {**{k: v for k, v in r.items() if k != "refused"}, "accepted": r.get("test") in accepted_before,
              **({"refused": True} if r.get("test") in refused else {})}
             for r in report["wall_recommendations"] if isinstance(r, dict)]
+        said = {r.get("test") for r in data["wall_recommendations"]}
+        # a recommendation a person accepted stays on the record when the next pass leaves it out
+        data["wall_recommendations"] += [r for r in old if isinstance(r, dict) and r.get("accepted")
+                                         and r.get("test") not in said]
     if agent == "forecaster" and report.get("forecast") and not data.get("forecast"):
         data["forecast"] = report["forecast"]
     if agent == "cleaner" and report.get("commit"):
@@ -915,7 +919,7 @@ def cmd_packet(a):
         checks.update(packetlib.packet_checks(a.file, data, slice_root(path)))
     except XVError as e:
         checks["packet_problems"] = [str(e)]
-    guardian_facts(root, data, checks, os.path.abspath(a.file))
+    guardian_facts(slice_root(path), data, checks, os.path.abspath(a.file))
     body = log_line(body, "guardian", f"packet: shape_change={data['shape_change']}, "
                                       f"pitch_contradiction={data['pitch_contradiction']}")
     v = orders.verdict(data, "guardian", load_config(slice_root(path)))
@@ -941,6 +945,8 @@ def guardian_facts(root, data, checks, packet_file):
     checks["picture_change"] = pdata.get("picture_change") or report.get("picture_change")
     checks["shape_breadth"] = pdata.get("shape_breadth") or report.get("shape_breadth")
     data["packet"] = os.path.relpath(packet_file, root)
+    # where the work stood when this pass wrote its packet: a re-pass reads only what comes after
+    checks["packet_head"] = git(["rev-parse", "HEAD"], root).strip()
 
 
 def apply_verdict(data, body, agent, v):

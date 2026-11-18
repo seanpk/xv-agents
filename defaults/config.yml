@@ -49,6 +49,8 @@ agents:
   default: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "sonnet", "{prompt}"]
   forecaster: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "haiku", "{prompt}"]
   guardian: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "opus", "{prompt}"]
+  # A whole command list for the guardian's re-pass only (after a pairing or a send-back); absent, the re-pass runs `guardian`, then `default`:
+  # guardian_repass: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "sonnet", "{prompt}"]
   # A local model through opencode:
   # maker: ["opencode", "run", "--auto", "--format", "json", "--model", "ollama/gpt-oss:20b", "{prompt}"]
   # Grok (its home rules and skills load into every run; see docs/harness-notes.md):
