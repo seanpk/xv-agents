@@ -1217,6 +1217,7 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         else:
             data["shape_change"] = data["pitch_contradiction"] = "yes"
             checks["missing_packet"] = True
+    checks["removal_not_made"] = record.removals_not_made(root, data, agent, report)
     return checks
 
 

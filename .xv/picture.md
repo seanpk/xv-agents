@@ -26,7 +26,8 @@ Sean Kennedy sits with them.
 
 ## The shape
 - Runs on agent harnesses: Claude Code, opencode, Grok.
-  Codex runs as a step (first run 2026-11-04, the scenario-defect eval, 6/6): the watch reads its `xv-report` from the last `agent_message` of `codex exec --json`, `session_of` takes its `thread_id`, and `evals/harnesses.json` has a `codex` entry on `gpt-6.1-terra` with the sandbox off; AGENTS.md and the skills still load, so the brief is not the whole prompt.
+  Codex runs as a step (first run 2026-11-04, the scenario-defect eval, 6/6): the watch reads its `xv-report` from the last `agent_message` of `codex exec --json`, or, when that message has none, from the last earlier `agent_message` that has one (`record.extract_run_report`), `session_of` takes its `thread_id`, and `evals/harnesses.json` has a `codex` entry on `gpt-6.1-terra` with the sandbox off; AGENTS.md and the skills still load, so the brief is not the whole prompt.
+  For Claude Code, whose `--output-format json` holds only the last message, `record.extract_run_report` reads the earlier messages from the session transcript that the result's `session_id` names (`spend.claude_transcript`, `spend.claude_session_texts`).
   Cursor reads the same skill format and has not been run (README).
   `xv init` gives Claude Code agent lines a starter Bash allow list; other harnesses' lines are left as written.
   `xv prompt` shows each Claude Code agent its own line's Bash rules as the commands it may run, with cautions: chain only listed forms, no extra flags in front, no pipe to an unlisted program.
@@ -45,6 +46,11 @@ Sean Kennedy sits with them.
   `init`, `slice`, `run`, `step`, `close` and `guard` all land in `run.py`, the largest script.
   `slice` also runs `xv slice rebase` (`--onto`, `--continue`, `--abort`).
 - Roughly: `xvlib` is the shared base (config, git, record paths, and the shared test-name matcher `names_test`; `covered` names use `names.covered_name_found`).
+  The removal check reads names with `record.test_names`, which keeps the part after the last `>`, the part after the last `::` or `#`, and the last `.` part of a dotted name.
+  A part after `::` or `#` that is not a plain name cannot be read, and the check stops on it.
+  In a move's assertion, which may be a sentence, it reads the first word that holds `::` or `#`, or else the last word.
+  A sentence whose last word is not a plain name, or whose `::` or `#` word starts with the separator, cannot be read.
+  It finds names with `record.test_still_there`, which matches a name as a whole word anywhere in its file.
   `record` owns the slice record, and the build rules: `has_build`, `build_commit` and `wall_for_build`.
   `suite` runs `tests.command` for `run` and `record`.
   `suite` also holds `failing_tests`, `own_red_names` and `in_own_red`, which `run` and `record` both import.
@@ -61,6 +67,11 @@ Sean Kennedy sits with them.
   `shape_or_pitch` fires on `yes`, not on `accepted`; `accepted` holds only when `accepted_by` names a decision in the slice's `decisions` list with `order: shape_or_pitch` (`xv run`, `xv record packet`), and `xv guard` always reads it as `yes`.
   `shape_wider_than_forecast` does not fire when `shape_change` is `accepted`, or when a stop of that order was answered without sending work back, at a breadth no narrower than the current one; the stop records `breadth`, and a stop with no `breadth` covers any (the answer marks a send-back `sendback`).
   `moves_to_accept` counts moves by file and assertion, except moves marked `expected` (`scripts/orders.py`).
+  After every `xv step`, and after `xv record report` for any agent except a scenario on a slice from a build, `record.removals_not_made` looks in the tree for each removal the record names; `removal_not_made` then stops for the originator, naming what is still there.
+  After the cleaner, that covers each accepted `slice_only` test, unless the cleaner's report lists it under `kept` with a `why`.
+  After any step, it covers each move marked `slice_only` or `removal_named` whose test is still in its file, and each move marked `deleted` whose file is still there.
+  `xv record move --slice-only` marks the move `removal_named`, and `--deleted` marks it `deleted`.
+  A name the check cannot read is listed as "the test name could not be read", and that stops too.
   After the maker and the cleaner, `moves` compares each test file that changed since the wall baseline, or that the record already holds as expected, with the slice's base and a test file the slice added with its newest `red` commit, against `expect_moves` and `renames`.
   It records a fit as a move marked `expected`, which replaces a hand-recorded entry for the same file.
   After the guardian, `expected_moves_wrong` stops for the originator when the packet's `expected_moves` does not match the record.
