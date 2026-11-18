@@ -62,8 +62,8 @@ def joined_unsafely(command):
     return False
 
 
-MOVE_NAME = re.compile(r"(?:[\w./]+::)?(?:\w+(?:::|\.|#|\s>\s))*(?P<name>\w+)"
-                       r"(?:\s+(?:\([^\n]*\)|\[[^\n]*\]|\{[^\n]*\}|<[^\n]*>))?")
+MOVE_NOTE = re.compile(r"\s+(?:\([^\n]*\)|\[[^\n]*\]|\{[^\n]*\}|<[^\n]*>)")
+MOVE_NAME = re.compile(r"(?:[\w./]+::)?(?:\w+(?:::|\.|#|\s>\s))*(?P<name>\w+)(?:" + MOVE_NOTE.pattern + ")?")
 
 
 def move_test_name(text):

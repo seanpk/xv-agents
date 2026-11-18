@@ -17,7 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import moves  # noqa: E402
-from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely, move_test_name  # noqa: E402
+from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely, MOVE_NOTE, move_test_name  # noqa: E402
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
 import wall  # noqa: E402
@@ -257,7 +257,7 @@ def cmd_move(a):
     if a.slice_only:
         shown = subprocess.run(["git", "show", "HEAD:" + a.file], cwd=repo_root(), capture_output=True)
         start = shown.stdout.decode("utf-8", "replace") if shown.returncode == 0 else None
-        name = re.sub(r"\s+(?:\([^\n]*\)|\[[^\n]*\]|\{[^\n]*\}|<[^\n]*>)$", "", a.assertion.strip())
+        name = MOVE_NOTE.sub("", a.assertion.strip())
         key = a.file if re.match(r"[\w./]+::", name) else ""  # a path prefix is read only in the `file::` form
         if start is None or not covered_name_found(name, {key: start}):
             raise XVError(f"{a.assertion!r} names no test in {a.file} as it was when the step began")
