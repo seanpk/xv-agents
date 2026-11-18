@@ -891,10 +891,15 @@ def expected_moves(root, data, config):
 
 def test_names(text, prose=False):
     """The names a test may be found by: `Class > name` gives `name`, `Class.name` gives `name`, a title stays
-    whole; with `prose`, the last word of a sentence too. Empty when no name can be read."""
+    whole; with `prose`, the last word of a sentence too. A name with `::` or `#` is cut at the last one (in prose,
+    the word that holds it); what is left must be a plain name. Empty when no name can be read."""
     seg = str(text).split(";")[0].split(">")[-1].strip()
-    if re.fullmatch(r"[\w./]*(?:::|#)[\w.]+(?:(?:::|#)[\w.]+)*", seg):
+    if prose:
+        seg = next((w for w in seg.split() if re.search(r"::|#", w)), seg)
+    if re.search(r"::|#", seg):
         seg = re.split(r"::|#", seg)[-1]
+        if not re.fullmatch(r"[\w.]*\w", seg):
+            return []
     if not seg:
         return []
     names = [seg]
