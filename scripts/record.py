@@ -895,7 +895,12 @@ def test_names(text, prose=False):
     the word that holds it); what is left must be a plain name. Empty when no name can be read."""
     seg = str(text).split(";")[0].split(">")[-1].strip()
     if prose:
-        seg = next((w for w in seg.split() if re.search(r"::|#", w)), seg)
+        word = next((w for w in seg.split() if re.search(r"::|#", w)), None)
+        if word is None and seg.split() and not re.fullmatch(r"[\w.]*\w", seg.split()[-1]):
+            return []  # a sentence that does not end in a plain name: no name can be read
+        if word is not None and re.match(r"::|#", word):
+            return []  # a separator with nothing before it names no test
+        seg = word or seg
     if re.search(r"::|#", seg):
         seg = re.split(r"::|#", seg)[-1]
         if not re.fullmatch(r"[\w.]*\w", seg):
