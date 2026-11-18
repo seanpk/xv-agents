@@ -86,7 +86,7 @@
   "tests/test_retro.py": 59,
   "tests/test_retro_accept_brief_shape.py": 17,
   "tests/test_retro_accept_fields.py": 27,
-  "tests/test_run.py": 538,
+  "tests/test_run.py": 545,
   "tests/test_slice_rebase.py": 321,
   "tests/test_slice_skill_readback.py": 4,
   "tests/test_spend.py": 21,
@@ -100,7 +100,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "58cf9c6642eb8122ed22106dc33f718e33c255b2",
+ "commit": "4634fa4dbde9a09543fb557062c8d3af6b7e8e7e",
  "files": {
   "tests/data/cannot-run/cargo-load.txt": "d3e835e2490c11e3f1b7c1a00ef224a143e7badb854bddd76372f2c3a55b5dd6",
   "tests/data/cannot-run/cargo-none.txt": "7553d787f97f86d518d5fa9ec516c5226bb880a466df2f96684c69bf4595cd46",
@@ -188,7 +188,7 @@
   "tests/test_retro.py": "9f4d4a04610c599d67d87bfb5aa1a8bd661afb981f0a71182144f89b3e2e9c0e",
   "tests/test_retro_accept_brief_shape.py": "1bda031d8ea361a132cae45bb139639a90cbe5f0378eeedf413fc4d5e342a0cd",
   "tests/test_retro_accept_fields.py": "00670790242da7834390e068fb17335328aef443fb5b543c1dc29e1d3dd11b9d",
-  "tests/test_run.py": "f1f3a3cea568438eef1af915a1a48931684750f582ee223bdc82bf2c7b54ff4a",
+  "tests/test_run.py": "7b081f3a043f27ddad9e0022117de8c9d2f7f5ed13bb1b98db2adfc7858c580e",
   "tests/test_slice_rebase.py": "2f5e83bcc86b25332b4fe6bc5669250f48b10f6d62175f67f9bb65fe3378632b",
   "tests/test_slice_skill_readback.py": "1d016e8e5211bdf73914c5f9e66a55aa44885226dc6251c31d174bb7498c3930",
   "tests/test_spend.py": "2a023d8a4b36d01cff5b2498f02cb3387c3dfb73d9f6922254584db629acc918",

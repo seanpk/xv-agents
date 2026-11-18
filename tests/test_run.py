@@ -2301,6 +2301,21 @@ class RemovalNotMadeTest(WatchLoopSetup):
                 "--by", "cleaner", cwd=self.wt)
         self.assert_removal_stop(self.step("maker"), "tests/test_red.py", "test_milk_today")
 
+    def prose_move(self, sentence):
+        self.to_the_maker()
+        self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--assertion", sentence,
+                "--why", "slice-only; removed", "--by", "cleaner", cwd=self.wt)
+        return self.step("maker")
+
+    def test_a_prose_assertion_with_a_dotted_name_and_no_plain_last_word_never_passes_unchecked(self):
+        self.assert_removal_stop(self.prose_move("removed Red.test_milk_today as slice-only"), "tests/test_red.py")
+
+    def test_a_prose_assertion_ending_in_a_full_stop_never_passes_unchecked(self):
+        self.assert_removal_stop(self.prose_move("removed Red.test_milk_today."), "tests/test_red.py")
+
+    def test_a_prose_assertion_with_a_hash_that_is_not_a_name_never_passes_unchecked(self):
+        self.assert_removal_stop(self.prose_move("removed Red.test_milk_today for #183"), "tests/test_red.py")
+
     TITLE = "shows milk running out today"
 
     def js_file(self, title):
