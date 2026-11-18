@@ -2144,5 +2144,98 @@ class SliceNewInputsTest(RepoCase):
         self.assertEqual(self.may_ignore("Only thing."), "Only thing.")
 
 
+class RemovalNotMadeTest(WatchLoopSetup):
+    """What an agent reports is checked against the tree: a removal the record says was made or was owed is looked
+    for in the files, and a report missing from the last message is looked for in the whole run."""
+
+    TEST = "Red.test_milk_today"
+    MARK = {"file": "tests/test_red.py", "test": TEST, "why": "one wording line", "checks": "CHANGELOG.md"}
+
+    def to_the_maker(self):
+        """Forecast and scenario; the scenario marks its one test slice-only, accepted because it checks CHANGELOG.md."""
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.step("scenario", FAKE_REPORT_EXTRA=json.dumps({"slice_only": [self.MARK]}), check=True)
+        self.assertEqual([m.get("accepted") for m in self.record()["slice_only"]], [True])
+
+    def step(self, agent, check=False, **env):
+        from unittest import mock
+        with mock.patch.dict(os.environ, env):
+            return self.xv("step", agent, "s1", cwd=self.wt, check=check)
+
+    def assert_removal_stop(self, p, *named):
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual((stop["order"], stop["seat"]), ("removal_not_made", "originator"))
+        for n in named:
+            self.assertIn(n, stop["question"])
+
+    def assert_no_removal_stop(self, p):
+        self.assertNotIn("removal_not_made", p.stdout, p.stdout + p.stderr)
+        self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
+
+    def to_the_cleaner(self):
+        self.to_the_maker()
+        self.step("maker", check=True)
+
+    # 1. after the cleaner
+    def test_a_slice_only_test_still_in_its_file_after_the_cleaner_stops_naming_file_and_test(self):
+        self.to_the_cleaner()
+        self.assert_removal_stop(self.step("cleaner"), "tests/test_red.py", "test_milk_today")
+
+    def test_a_slice_only_test_the_cleaner_removed_passes(self):
+        self.to_the_cleaner()
+        self.assert_no_removal_stop(self.step("cleaner", FAKE_CLEANER_REMOVES="test_milk_today"))
+        self.assertNotIn("def test_milk_today", open(os.path.join(self.wt, "tests", "test_red.py")).read())
+
+    def test_a_slice_only_test_the_cleaner_says_it_kept_and_why_passes(self):
+        self.to_the_cleaner()
+        kept = {"kept": [{"file": "tests/test_red.py", "test": self.TEST, "why": "it guards the inclusive start"}]}
+        self.assert_no_removal_stop(self.step("cleaner", FAKE_CLEANER_REPORT_EXTRA=json.dumps(kept)))
+
+    def test_a_kept_test_with_no_why_still_stops(self):
+        self.to_the_cleaner()
+        kept = {"kept": [{"file": "tests/test_red.py", "test": self.TEST, "why": ""}]}
+        self.assert_removal_stop(self.step("cleaner", FAKE_CLEANER_REPORT_EXTRA=json.dumps(kept)), "test_milk_today")
+
+    # 2. after any step
+    def move_recorded(self, *flags):
+        self.to_the_maker()
+        self.xv("record", "move", "s1", "--file", "tests/test_red.py", *flags, "--assertion", self.TEST,
+                "--why", "slice-only; removed", "--by", "cleaner", cwd=self.wt)
+
+    def test_a_slice_only_move_for_a_test_still_there_stops_the_next_step(self):
+        self.move_recorded("--slice-only")
+        self.assert_removal_stop(self.step("maker"), "tests/test_red.py", "test_milk_today")
+
+    def test_a_deleted_move_for_a_file_still_there_stops_the_next_step(self):
+        self.move_recorded("--deleted")
+        self.assert_removal_stop(self.step("maker"), "tests/test_red.py")
+
+    def test_a_slice_only_move_for_a_test_that_is_gone_does_not_stop_a_later_step(self):
+        self.to_the_cleaner()
+        self.assert_no_removal_stop(self.step("cleaner", FAKE_CLEANER_REMOVES="test_milk_today"))
+        p = self.step("guardian")  # it ends at ready_to_merge, a stop for the merge, so only the order is checked
+        self.assertNotIn("removal_not_made", p.stdout, p.stdout + p.stderr)
+
+    # 3. the whole run's last report
+    def test_a_report_in_an_earlier_message_is_read_when_the_last_has_none(self):
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        p = self.step("scenario", FAKE_EARLIER_REPORT="1")
+        self.assertNotIn("no_report", p.stdout, p.stdout + p.stderr)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(self.record()["red"]["files"], ["tests/test_red.py"])
+
+    def test_a_run_with_no_report_block_in_any_message_still_stops_with_no_report(self):
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        p = self.step("scenario", FAKE_NO_REPORT="1", FAKE_EARLIER_REPORT="")
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "no_report")
+
+    # 4. CHANGELOG.md
+    def test_the_changelog_has_a_line_for_the_removal_check(self):
+        with open(os.path.join(HOME, "CHANGELOG.md")) as f:
+            unreleased = f.read().split("## Unreleased", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("removal_not_made", unreleased)
+
+
 if __name__ == "__main__":
     unittest.main()

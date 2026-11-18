@@ -18,7 +18,13 @@ if os.environ.get("FAKE_NO_REPORT") and not title.startswith("# The forecaster")
 
 
 def report(**kw):
-    print("done\n```xv-report\n" + json.dumps(kw) + "\n```")
+    block = "done\n```xv-report\n" + json.dumps(kw) + "\n```"
+    if os.environ.get("FAKE_EARLIER_REPORT"):
+        # a harness that shows every message (codex's JSON events): the report is in an earlier one, the last has none
+        for text in (block, "all finished, nothing more to say"):
+            print(json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": text}}))
+        return
+    print(block)
 
 
 def edit_build_added(mode):
@@ -172,7 +178,23 @@ elif title.startswith("# The cleaner"):
         with open("pantry/store.py", "a") as f:
             f.write("\n# cleaned\n")
         os.system("git commit -q --no-verify -am 'a cleaner fix'")
-    report(agent="cleaner", status="done", summary="nothing to fix", commit=None, applied=[])
+    if os.environ.get("FAKE_CLEANER_REMOVES"):
+        # removes the named test from tests/test_red.py and records it as a slice-only move, as the brief says
+        import subprocess
+        name = os.environ["FAKE_CLEANER_REMOVES"]
+        t = open("tests/test_red.py").read()
+        start = t.index(f"    def {name}(")
+        end = t.find("\n    def ", start + 1)
+        t = t[:start].rstrip("\n") + "\n" + ("" if end < 0 else "\n" + t[end + 1:])
+        if "    def " not in t:
+            t += "    pass\n"
+        open("tests/test_red.py", "w").write(t)
+        xv = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "bin", "xv")
+        subprocess.run([sys.executable, xv, "record", "move", sid, "--file", "tests/test_red.py", "--slice-only",
+                        "--assertion", f"Red.{name}", "--why", "slice-only; removed", "--by", "cleaner"], check=True)
+        subprocess.run(["git", "commit", "-q", "--no-verify", "-am", "remove a slice-only test"], check=True)
+    extra = json.loads(os.environ.get("FAKE_CLEANER_REPORT_EXTRA") or "{}")
+    report(agent="cleaner", status="done", summary="nothing to fix", commit=None, applied=[], **extra)
 elif title.startswith("# The guardian"):
     packet_path = ".xv/slices/pr-packet.md" if sid == "pr-packet" else f".xv/slices/{sid}.packet.md"
     miss = os.environ.get("FAKE_SCENARIO_MISS")
