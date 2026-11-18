@@ -2260,6 +2260,30 @@ class RemovalNotMadeTest(WatchLoopSetup):
         self.to_the_cleaner(self.named("Red > test_milk_today"))
         self.assert_no_removal_stop(self.step("cleaner", FAKE_CLEANER_REMOVES="test_milk_today"))
 
+    def test_a_slice_only_test_named_with_class_and_double_colon_is_found_still_there(self):
+        self.to_the_cleaner(self.named("Red::test_milk_today"))
+        self.assert_removal_stop(self.step("cleaner"), "tests/test_red.py", "test_milk_today")
+
+    def test_a_slice_only_test_named_with_class_and_hash_is_found_still_there(self):
+        self.to_the_cleaner(self.named("Red#test_milk_today"))
+        self.assert_removal_stop(self.step("cleaner"), "tests/test_red.py", "test_milk_today")
+
+    def test_a_slice_only_test_named_with_file_class_and_double_colons_is_found_still_there(self):
+        self.to_the_cleaner(self.named("tests/test_red.py::Red::test_milk_today"))
+        self.assert_removal_stop(self.step("cleaner"), "tests/test_red.py", "test_milk_today")
+
+    def test_a_slice_only_test_named_with_file_and_double_colon_is_found_still_there(self):
+        self.to_the_cleaner(self.named("tests/test_red.py::test_milk_today"))
+        self.assert_removal_stop(self.step("cleaner"), "tests/test_red.py", "test_milk_today")
+
+    def test_a_slice_only_test_named_with_class_and_double_colon_passes_once_removed(self):
+        self.to_the_cleaner(self.named("Red::test_milk_today"))
+        self.assert_no_removal_stop(self.step("cleaner", FAKE_CLEANER_REMOVES="test_milk_today"))
+
+    def test_a_slice_only_test_named_with_class_and_hash_passes_once_removed(self):
+        self.to_the_cleaner(self.named("Red#test_milk_today"))
+        self.assert_no_removal_stop(self.step("cleaner", FAKE_CLEANER_REMOVES="test_milk_today"))
+
     TITLE = "shows milk running out today"
 
     def js_file(self, title):
