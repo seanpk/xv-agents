@@ -77,7 +77,8 @@ Sean Kennedy sits with them.
   After a directed edit, `orders.verdict` does not fire the order the answer closed or any order bundled with it, `ready_to_merge` included, and the answer's `--next` stands.
   At the scenario step, a directed edit counts the suite green when every failing test is one of the slice's own red tests.
   `record.guardian_facts` turns the packet into the record's fields on every path.
-  `record.guardian_facts` also keeps `checks.guardian.packet_head`, the HEAD when `xv record packet` ran.
+  `record.guardian_facts` also keeps `checks.guardian.packet_head`, the HEAD of the slice's worktree when `xv record packet` ran.
+  `xv record packet` takes the packet head and the packet's path from the checkout that holds the record, whichever checkout it runs from.
   When the record names a packet whose file is there and whose head is found, the guardian's prompt is a re-pass.
   A re-pass prompt carries that packet and `git diff <packet_head>..HEAD` without `.xv/`, under `## This is a re-pass`.
   With the packet file missing or no head found, the prompt is a first pass.
