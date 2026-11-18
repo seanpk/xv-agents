@@ -40,7 +40,7 @@ Sean Kennedy sits with them.
   `orders` reaches `spend` and `xvlib`.
   `record` and `evals/report` reach `spend`.
   `record` reaches `orders`, `packet`, `moves` and `wall`.
-  `names` holds `covered_name_found`, `COVERED_SEPARATOR` and `joined_unsafely`, which `record` and `run` both import.
+  `names` holds `covered_name_found`, `COVERED_SEPARATOR`, `joined_unsafely`, `MOVE_NOTE` and `move_test_name`, which `record` and `run` import.
 - `bin/xv` is the only entry point.
   It maps each command name to one script and runs it.
   `init`, `slice`, `run`, `step`, `close` and `guard` all land in `run.py`, the largest script.
@@ -48,8 +48,8 @@ Sean Kennedy sits with them.
 - Roughly: `xvlib` is the shared base (config, git, record paths, and the shared test-name matcher `names_test`; `covered` names use `names.covered_name_found`).
   The removal check reads names with `record.test_names`, which keeps the part after the last `>`, the part after the last `::` or `#`, and the last `.` part of a dotted name.
   A part after `::` or `#` that is not a plain name cannot be read, and the check stops on it.
-  In a move's assertion, which may be a sentence, it reads the first word that holds `::` or `#`, or else the last word.
-  A sentence whose last word is not a plain name, or whose `::` or `#` word starts with the separator, cannot be read.
+  It reads a move's assertion with `names.move_test_name`: one of `name`, `Class.name`, `Class > name`, `Class::name`, `Class#name` or `file::Class::name`, with an optional note in brackets that is not read.
+  It never reads a sentence for a name; an assertion in no such form cannot be read.
   It finds names with `record.test_still_there`, which matches a name as a whole word anywhere in its file.
   `record` owns the slice record, and the build rules: `has_build`, `build_commit` and `wall_for_build`.
   `suite` runs `tests.command` for `run` and `record`.
@@ -71,6 +71,8 @@ Sean Kennedy sits with them.
   After the cleaner, that covers each accepted `slice_only` test, unless the cleaner's report lists it under `kept` with a `why`.
   After any step, it covers each move marked `slice_only` or `removal_named` whose test is still in its file, and each move marked `deleted` whose file is still there.
   `xv record move --slice-only` marks the move `removal_named`, and `--deleted` marks it `deleted`.
+  `xv record move --slice-only` refuses an assertion that `names.move_test_name` cannot read, and records nothing.
+  It also refuses a name that `names.covered_name_found` does not find in the file as committed at `HEAD`, the step's start.
   A name the check cannot read is listed as "the test name could not be read", and that stops too.
   After the maker and the cleaner, `moves` compares each test file that changed since the wall baseline, or that the record already holds as expected, with the slice's base and a test file the slice added with its newest `red` commit, against `expect_moves` and `renames`.
   It records a fit as a move marked `expected`, which replaces a hand-recorded entry for the same file.
@@ -99,6 +101,7 @@ Sean Kennedy sits with them.
   `xv step guardian` builds the re-pass section once and passes it to `prompt.build` as `repass`, so one diff picks both the prompt and the command.
   `xv guard` always runs the guardian's first pass, with `agents.guardian`, then `agents.default`, even when the record names a packet.
   For `change_misses_scenario`, a miss is a repeat when an earlier pass sent back the same key, and the repeat stops for the originator.
+  A packet whose front matter says `change_misses_scenario: no` while its `## Scenario misses` section lists a miss stops for the originator under `change_misses_scenario`, naming the disagreement.
   For `report_misses_outcome`, `orders.miss_run` counts the send-backs of the same outcome in an unbroken run of scenario reports.
   The third miss in a row stops for the originator.
   A pass that covered the outcome, an amendment (`reports_before_amend`, written by `xv slice amend`), or a person's answer ends the run.
@@ -216,7 +219,7 @@ Sean Kennedy sits with them.
   A `not_covered` outcome named in an earlier answered `red_misses_scenario` stop does not stop again, unless that answer sent the slice back (`sendback`).
   On a later scenario pass, the coverage kept from earlier passes (`checks.scenario.covered_kept`) is added to the report's `covered` before the check, except when the record's `next` is `maker` (a pass that went on to the maker ends the run), so an empty `covered` does not stop when something was kept; each kept name is checked again against the red files.
   A record written before the rename keeps its kept outcomes under `covers_kept`, and the check reads them when `covered_kept` is empty or missing (`scripts/run.py:1119`).
-  A `covered` name whose last part is a slice-only test that the cleaner removed by a recorded move does not stop; only the move's assertion before a `;` is read.
+  A `covered` name whose last part is a slice-only test that the cleaner removed by a recorded move does not stop; the move's name is read with `names.move_test_name`.
   A `covered` name may start with a red file's path or module and is split by `::`, `.`, `#`, `/` or ` > `; it matches when each part after the path is a whole word in that red file, in order (`names.covered_name_found`); a name whose test part is empty stops, and the stop names the name that does not match.
   A numbered outcome of the scenario or an amendment that is in neither `covered` nor `not_covered` sends the slice back to the scenario agent (`xv step` and `xv run` compute this).
   The match ignores backticks, `*` and `_` in both the scenario's outcome and the report's (`run.norm`).

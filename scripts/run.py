@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import agentcli  # noqa: E402
 import orders  # noqa: E402
 import prompt as promptlib  # noqa: E402
-from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely  # noqa: E402,F401
+from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely, move_test_name  # noqa: E402,F401
 import record  # noqa: E402
 import spend as spendlib  # noqa: E402
 from suite import failing_tests, in_own_red, own_red_names, run_suite, shell, tests_timeout  # noqa: E402
@@ -1276,7 +1276,7 @@ def unreadable_input(root, data, report):
         out.append("The report's `covered` is missing, empty, or has an outcome that names no test.")
     else:
         files = red_file_texts(root, data.get("red") or {}, data)
-        removed = [COVERED_SEPARATOR.split(m["assertion"].split(";")[0])[-1].strip() for m in data.get("moved_tests") or []
+        removed = [move_test_name(m["assertion"]) for m in data.get("moved_tests") or []
                    if isinstance(m, dict) and m.get("by") == "cleaner" and m.get("slice_only")
                    and isinstance(m.get("assertion"), str)]
         for c in covered:

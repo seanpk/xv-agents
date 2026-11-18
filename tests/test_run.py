@@ -1807,17 +1807,17 @@ class RemovedSliceOnlyTestInCoversTest(WatchLoopSetup):
         self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA=json.dumps(extra)))
 
     def test_a_kept_name_goes_on_when_the_move_assertion_carries_the_cleaners_words(self):
-        self.removed(test="Red.test_cheese; removed")
+        self.removed(test="Red.test_cheese (removed)")
         self.assert_goes_on(self.milk_only())
 
     def test_a_reported_name_goes_on_when_the_move_assertion_carries_the_cleaners_words(self):
-        self.removed(test="Red.test_cheese; removed")
+        self.removed(test="Red.test_cheese (removed)")
         extra = {"covered": [{"outcome":"milk today", "test": "test_milk_today"},
                             {"outcome":"cheese", "test": "Red.test_cheese"}]}
         self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA=json.dumps(extra)))
 
     def test_a_name_still_stops_when_the_words_after_the_semicolon_name_another_test(self):
-        self.removed(test="Red.test_gouda; removed")
+        self.removed(test="Red.test_gouda (removed)")
         self.assert_stops(self.milk_only(), "test_cheese")
 
     def test_a_name_for_a_test_the_record_does_not_show_removed_still_stops(self):
@@ -2291,15 +2291,17 @@ class RemovalNotMadeTest(WatchLoopSetup):
 
     def test_a_slice_only_move_whose_assertion_names_a_double_colon_test_still_there_stops(self):
         self.to_the_maker()
-        self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--assertion",
-                "removed tests/milk-red.py::Red::test_milk_today as slice-only", "--why", "slice-only; removed",
-                "--by", "cleaner", cwd=self.wt)
-        self.assert_removal_stop(self.step("maker"), "tests/test_red.py", "test_milk_today")
+        p = self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--assertion",
+                    "removed tests/milk-red.py::Red::test_milk_today as slice-only", "--why", "slice-only; removed",
+                    "--by", "cleaner", cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("must be the test's name", p.stderr)
 
     def prose_move(self, sentence):
         self.to_the_maker()
-        self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--assertion", sentence,
-                "--why", "slice-only; removed", "--by", "cleaner", cwd=self.wt)
+        self.xv("record", "add", "s1", "moved_tests", json.dumps(
+            {"file": "tests/test_red.py", "assertion": sentence, "why": "slice-only; removed", "by": "cleaner",
+             "slice_only": True}), cwd=self.wt)
         return self.step("maker")
 
     def test_a_prose_assertion_with_a_dotted_name_and_no_plain_last_word_never_passes_unchecked(self):
@@ -2336,10 +2338,7 @@ class RemovalNotMadeTest(WatchLoopSetup):
         self.assertIn("could not be read", json.loads(p.stdout)["stop"]["question"])
 
     def test_a_slice_only_move_whose_name_cannot_be_read_stops_the_next_step_saying_so(self):
-        self.to_the_maker()
-        self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--assertion", ";",
-                "--why", "slice-only; removed", "--by", "cleaner", cwd=self.wt)
-        p = self.step("maker")
+        p = self.prose_move(";")
         self.assert_removal_stop(p, "tests/test_red.py")
         self.assertIn("could not be read", json.loads(p.stdout)["stop"]["question"])
 
