@@ -18,6 +18,14 @@ An entry with three or more sightings that still splits people is marked `(watch
 
 ## Open
 
+### 2026-11-18: A check that cannot read its input must stop, and each slice found one more input shape it passes
+- added: 2026-11-18 by Sean Kennedy
+- from: 2026-11-18-report-tree, `change_misses_scenario` at 04:29:34, 12:32:58, 13:10:41 and 18:24:04 and the guardian summary at 18:52:00 (`::`, `#`, hyphenated paths, prose assertions, a prose assertion ending in a plain word, each still passing unchecked in `test_names`, `scripts/record.py:892-909`); 2026-11-16-repass, `change_misses_scenario` at 20:23:50 (the re-pass `git` helper ignores the exit status, so a failed diff reads as an empty diff, `scripts/prompt.py:212`)
+- miss: Decision 12 says a check whose input cannot run "stops for a person; it never passes". On two slices the guardian found a check that passed when it could not read its input. On `report-tree` it was found four times, one input shape at a time, and the same stop fired as a stall. No lint can see it. A test over a table of input shapes, with the default being "stop", would hold it, but that is a design change to write once, not a check to bolt on. Evidence only.
+- rule: A check that cannot read its input must stop, and each slice found one more input shape it passes
+- seen: [seanpk/xv-agents@2026-11-18]
+
+
 ### 2026-11-12: Renaming a test file a build added trips the wall hook as an unrecorded move
 - added: 2026-11-12 by Sean Kennedy
 - from: 2026-11-11-pairing-b, the rename of the build's tests/test_pairing.py to tests/test_pairing_build.py, refused by the wall hook until the move was recorded at 2026-11-11T20:15:59

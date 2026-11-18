@@ -43,3 +43,9 @@ Each entry is a heading and these lines:
 - from: 2026-11-09-kept-pick, `red_cannot_run` at 2026-11-11T20:03:07 ("Failed to import test module: test_prototypes, test_from_build"); 2026-11-11-pairing-b, `red_cannot_run` at 2026-11-11T20:07:55 ("Failed to import test module: test_pairing"); the retro-fixes red command is already `cd tests && python3 -m unittest ...`
 - miss: The scenario agent wrote a red command that ran from the repo root, so it failed on import before any test ran. Each slice stopped and a person said "G1" or "1". The scenario agent's next pass ran from `tests/`. The test modules import each other by bare name, which is a fact the agents cannot infer.
 - seen: [seanpk/xv-agents@2026-11-12]
+
+### An outcome that is a CHANGELOG line goes in `not_covered` as slice-only, not left out of the report
+- added: 2026-11-18 by Sean Kennedy
+- from: 2026-11-16-red-lands, `report_misses_outcome` send-back at 20:03:08 ("5. A line in CHANGELOG.md."); 2026-11-16-repass, `report_misses_outcome` send-backs at 20:24:25, 20:24:50, 20:35:52, 20:59:29, 20:59:51, and the stops at 20:25:11 and 21:00:13 (outcomes 7 and 8)
+- miss: The scenario agent left the CHANGELOG outcome out of both lists on two slices. On `repass` it took four send-backs and two stops to get the outcome numbered 8 listed, and Sean answered "repass: 1" each time. The existing rule says a CHANGELOG test is slice-only, but it does not say where the outcome goes in the report.
+- seen: [seanpk/xv-agents@2026-11-18]
