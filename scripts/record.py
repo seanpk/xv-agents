@@ -254,6 +254,13 @@ def cmd_move(a):
         raise XVError("a slice-only assertion must be the test's name (`name`, `Class.name`, `Class > name`, "
                       "`Class::name`, `Class#name` or `file::Class::name`), with an optional note in brackets "
                       "after it: (...), [...], {...} or <...>")
+    if a.slice_only:
+        shown = subprocess.run(["git", "show", "HEAD:" + a.file], cwd=repo_root(), capture_output=True)
+        start = shown.stdout.decode("utf-8", "replace") if shown.returncode == 0 else None
+        name = re.sub(r"\s+(?:\([^\n]*\)|\[[^\n]*\]|\{[^\n]*\}|<[^\n]*>)$", "", a.assertion.strip())
+        key = a.file if re.match(r"[\w./]+::", name) else ""  # a path prefix is read only in the `file::` form
+        if start is None or not covered_name_found(name, {key: start}):
+            raise XVError(f"{a.assertion!r} names no test in {a.file} as it was when the step began")
     by = a.by or "maker"
     pairing = open_pairing(data)
     if pairing:

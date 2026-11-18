@@ -8,6 +8,18 @@ from helpers import HOME, RepoCase, sh
 import record
 
 
+def commit_tests(wt, files):
+    """Setup: commit these test files (path -> text) so a slice-only move finds its name in the file at the
+    step's start."""
+    for path, text in files.items():
+        full = os.path.join(wt, path)
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, "w") as f:
+            f.write(text)
+    sh(["git", "add", "-A"], wt)
+    sh(["git", "commit", "-qm", "the tests"], wt)
+
+
 class SliceRecordTest(RepoCase):
     def test_slice_new_makes_branch_worktree_and_record(self):
         wt = self.new_slice("s1")
@@ -294,6 +306,7 @@ class SliceOnlyMoveTest(RepoCase):
 
     def test_a_move_with_slice_only_keeps_the_marker_and_a_plain_move_does_not(self):
         wt = self.new_slice("s1")
+        commit_tests(wt, {"tests/test_x.py": "def a():\n    pass\n"})
         self.xv("record", "add", "s1", "slice_only", json.dumps(
             {"file": "tests/test_x.py", "test": "a", "why": "w"}), cwd=wt)
         self.assertIs(self.move("s1", wt, "--slice-only")["moved_tests"][0]["slice_only"], True)
@@ -302,6 +315,7 @@ class SliceOnlyMoveTest(RepoCase):
 
     def test_a_plain_move_of_a_test_in_a_red_file_leaves_red_alone(self):
         wt = self.new_slice("s1")
+        commit_tests(wt, {"tests/test_x.py": "def a():\n    pass\n"})
         path = os.path.join(self.tmp, "out.txt")
         with open(path, "w") as f:
             f.write("```xv-report\n" + json.dumps(
@@ -413,6 +427,8 @@ class SliceOnlyGateTest(RepoCase):
 
     def listed(self):
         wt = self.new_slice("s1")
+        body = "def test_file_is_ts():\n    pass\n\n\ndef test_file_is_ts_and_more():\n    pass\n\n\ndef test_other():\n    pass\n"
+        commit_tests(wt, {"tests/test_x.py": body, "tests/test_y.py": body, "tests/test_other.py": body})
         self.xv("record", "add", "s1", "slice_only", json.dumps(
             {"file": "tests/test_x.py", "test": "test_file_is_ts", "why": "w"}), cwd=wt)
         return wt
@@ -427,6 +443,7 @@ class SliceOnlyGateTest(RepoCase):
 
     def test_with_nothing_listed_it_is_a_plain_move(self):
         wt = self.new_slice("s1")
+        commit_tests(wt, {"tests/test_x.py": "def test_file_is_ts():\n    pass\n"})
         self.assertFalse(self.move(wt, "tests/test_x.py", "test_file_is_ts").get("slice_only"))
 
     def test_a_longer_assertion_that_contains_the_listed_name_is_a_plain_move(self):
@@ -998,6 +1015,7 @@ class WallChoicesTest(RepoCase):
 
     def test_a_move_whose_assertion_starts_with_the_marked_name_keeps_the_flag(self):
         wt = self.new_slice("s1")
+        commit_tests(wt, {"tests/test_x.py": "def test_file_is_ts():\n    pass\n"})
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
         self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion",
                 "test_file_is_ts (removed)", "--why", "w", "--slice-only", cwd=wt)
@@ -1005,6 +1023,7 @@ class WallChoicesTest(RepoCase):
 
     def test_a_move_of_another_test_does_not_get_the_flag(self):
         wt = self.new_slice("s1")
+        commit_tests(wt, {"tests/test_x.py": "def test_other():\n    pass\n"})
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
         self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion",
                 "test_other (removed)", "--why", "w", "--slice-only", cwd=wt)
@@ -1680,6 +1699,7 @@ class OneHomeRecordTest(RepoCase):
 
     def test_a_move_the_command_and_a_report_both_record_is_one_move_with_its_flag(self):
         wt = self.new_slice("s1")
+        commit_tests(wt, {"tests/test_x.py": "def test_a():\n    pass\n"})
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.mark("test_a")), cwd=wt)
         self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion", "test_a",
                 "--why", "w", "--slice-only", "--by", "maker", cwd=wt)
