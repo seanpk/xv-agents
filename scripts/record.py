@@ -919,7 +919,7 @@ def cmd_packet(a):
         checks.update(packetlib.packet_checks(a.file, data, slice_root(path)))
     except XVError as e:
         checks["packet_problems"] = [str(e)]
-    guardian_facts(root, data, checks, os.path.abspath(a.file))
+    guardian_facts(slice_root(path), data, checks, os.path.abspath(a.file))
     body = log_line(body, "guardian", f"packet: shape_change={data['shape_change']}, "
                                       f"pitch_contradiction={data['pitch_contradiction']}")
     v = orders.verdict(data, "guardian", load_config(slice_root(path)))
