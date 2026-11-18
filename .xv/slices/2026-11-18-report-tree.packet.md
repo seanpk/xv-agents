@@ -129,3 +129,7 @@ For the person, not a miss: as the last packet said, on a slice-only move `prose
 - Shape proposal, for people: Share the item/part event parsing between extract_report and extract_run_report in scripts/record.py; it needs a shared reader and a rework of extract_report, so it is left for the packet.
 - Shape proposal, for people: Share the item/part event parsing between extract_report and extract_run_report in scripts/record.py (needs a shared reader and a rework of extract_report).
 - Shape proposal, for people: Have test_names in scripts/record.py reuse names.COVERED_SEPARATOR for the `::`/`#` forms instead of its own regex; it changes how names are cut, so it is not a cleanup.
+
+## Pairings
+
+- Pairing 1: Sean Kennedy with Claude (claude-session session 009e989d-2ceb-45ce-b5a4-beec83f9774d), because: Sean picked option 1 at change_misses_scenario: decision 12, a :: or # name the check cannot read must stop, not pass; a small fix in test_names with two tests, then a guardian re-pass. Commits: 5422f07f5f, 5fbdd7272a. Resumed at guardian. Spend: 10091 tokens (in 10, out 4048, cache write 6033; cache read 465550 not counted), 5 turns, usd not reported. Not blind (written or changed in the pairing): tests/test_run.py.
