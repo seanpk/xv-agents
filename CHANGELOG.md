@@ -2,9 +2,9 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
-## Unreleased
+## 0.5.1, 2026-11-19
 
-- The removal check reads only names it can find (slice 2026-11-18-move-names, decided by Sean Kennedy). `xv record move --slice-only` takes an `--assertion` only in the form of a test's name (`name`, `Class.name`, `Class > name`, `Class::name`, `Class#name` or `file::Class::name`), with an optional note in brackets after it, and refuses any other text and records nothing. After a step the removal check looks for exactly that name, without its note, never reads a sentence for a name, and stops a move it cannot read with "the test name could not be read". A packet whose front matter says `change_misses_scenario: no` while its `## Scenario misses` section lists a miss stops for the person who set the work going. The cleaner's brief says what the note for a slice-only removal is. It moves no position on xtremevibing.com.
+- The removal check reads only names it can find (#193, decided by Sean Kennedy). `xv record move --slice-only` takes an `--assertion` only in the form of a test's name (`name`, `Class.name`, `Class > name`, `Class::name`, `Class#name` or `file::Class::name`), with an optional note in brackets after it, and refuses any other text and records nothing. After a step the removal check looks for exactly that name, without its note, never reads a sentence for a name, and stops a move it cannot read with "the test name could not be read". A packet whose front matter says `change_misses_scenario: no` while its `## Scenario misses` section lists a miss stops for the person who set the work going. The cleaner's brief says what the note for a slice-only removal is. It moves no position on xtremevibing.com.
 
 ## 0.5.0, 2026-11-18
 
