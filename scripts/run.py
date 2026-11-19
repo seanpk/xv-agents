@@ -780,6 +780,16 @@ def is_record_path(f):
             and not name.startswith(("packet-", "pr-")))
 
 
+def step_stop(path, root, config, data, body, slice_id, agent, st, fired):
+    """Write a stop that fires before an agent runs: the record entry, the log line, the seat, the exit."""
+    data["stops"].append(st)
+    data["status"] = "stopped"
+    body = record.log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
+    record.save(path, data, body)
+    reach(config, st["seat"], st["question"], os.path.relpath(path, root))
+    return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": st, "fired": fired}
+
+
 def step(agent, slice_id, review_again=False):
     """Run one step. Returns (0, verdict) to go on, (EXIT_STOP, verdict) when a person must answer."""
     root0 = repo_root()
@@ -802,12 +812,7 @@ def step(agent, slice_id, review_again=False):
         st = {"at": now(), "step": agent, "order": budget_stop["order"], "seat": budget_stop["seat"],
               "question": budget_stop["question"], "answered_by": [], "answer": None, "also": [],
               "pre_step": True, "budget_seen": data.get("budget")}
-        data["stops"].append(st)
-        data["status"] = "stopped"
-        body = record.log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
-        record.save(path, data, body)
-        reach(config, st["seat"], st["question"], os.path.relpath(path, root))
-        return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": st, "fired": [budget_stop]}
+        return step_stop(path, root, config, data, body, slice_id, agent, st, [budget_stop])
 
     if agent == "scenario" and data.get("kind") == "refactor" and "\n### Amended " not in body:
         return refactor_scenario(path, root, config, data, body, slice_id)
@@ -832,12 +837,7 @@ def step(agent, slice_id, review_again=False):
                         "branch, then run the guardian again.")
             st = {"at": now(), "step": agent, "order": "repass_diff_failed", "seat": "originator",
                   "question": question, "answered_by": [], "answer": None, "also": []}
-            data["stops"].append(st)
-            data["status"] = "stopped"
-            body = record.log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {question}")
-            record.save(path, data, body)
-            reach(config, st["seat"], question, os.path.relpath(path, root))
-            return EXIT_STOP, {"slice": slice_id, "after": agent, "stop": st, "fired": []}
+            return step_stop(path, root, config, data, body, slice_id, agent, st, [])
 
     head_before = git(["rev-parse", "HEAD"], root).strip()
     pre = pre_step(agent, root, data, config)

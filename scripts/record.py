@@ -830,16 +830,17 @@ def apply_report(data, body, agent, text):
                                      if isinstance(n, dict) else n for n in report["slice_only"]]
     if agent == "guardian" and isinstance(report.get("wall_recommendations"), list):
         old = data.get("wall_recommendations") or []
-        accepted_before = {r.get("test") for r in old if r.get("accepted")}
-        refused = {r.get("test") for r in old if r.get("refused")}
+        accepted_before = {(r.get("file"), r.get("test")) for r in old if r.get("accepted")}
+        refused = {(r.get("file"), r.get("test")) for r in old if r.get("refused")}
         data["wall_recommendations"] = [
-            {**{k: v for k, v in r.items() if k != "refused"}, "accepted": r.get("test") in accepted_before,
-             **({"refused": True} if r.get("test") in refused else {})}
+            {**{k: v for k, v in r.items() if k != "refused"},
+             "accepted": (r.get("file"), r.get("test")) in accepted_before,
+             **({"refused": True} if (r.get("file"), r.get("test")) in refused else {})}
             for r in report["wall_recommendations"] if isinstance(r, dict)]
-        said = {r.get("test") for r in data["wall_recommendations"]}
+        said = {(r.get("file"), r.get("test")) for r in data["wall_recommendations"]}
         # a recommendation a person accepted stays on the record when the next pass leaves it out
         data["wall_recommendations"] += [r for r in old if isinstance(r, dict) and r.get("accepted")
-                                         and r.get("test") not in said]
+                                         and (r.get("file"), r.get("test")) not in said]
     if agent == "forecaster" and report.get("forecast") and not data.get("forecast"):
         data["forecast"] = report["forecast"]
     if agent == "cleaner" and report.get("commit"):
