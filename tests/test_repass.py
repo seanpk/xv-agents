@@ -392,12 +392,6 @@ class AcceptedWallRecommendationTest(RepassCase):
         got = {r["file"]: bool(r.get("refused")) for r in self.record()["wall_recommendations"]}
         self.assertEqual(got, {"tests/test_other.py": False, "tests/test_store.py": True})
 
-    def test_the_changelog_has_a_line_for_this_slice(self):
-        # slice-only: a one-time line in CHANGELOG.md
-        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        with open(os.path.join(root, "CHANGELOG.md")) as f:
-            self.assertIn("2026-11-19-wall-keep", f.read())
-
     def test_a_recommendation_nobody_accepted_is_replaced_by_the_next_pass(self):
         plain = dict(self.REC, accepted=False)
         self.xv("record", "add", "s1", "wall_recommendations", json.dumps(plain), cwd=self.wt)
