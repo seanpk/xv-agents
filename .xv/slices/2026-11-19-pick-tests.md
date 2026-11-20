@@ -65,3 +65,4 @@ None. A feature starts from words.
 - 2026-11-20T01:43:39+00:00 guardian: done: Test-only slice: two green pins for prototype pick refusals; no shape or pitch stop; picture line 200 needs widening; the conflict test does not check the refusal's reason.
 - 2026-11-20T01:43:39+00:00 watch: stop (moves_to_accept) for originator: The guardian proposes a change to the picture; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.
 - 2026-11-20T01:43:52+00:00 watch: offered 2 options for moves_to_accept
+- 2026-11-20T01:47:23+00:00 watch: picture edit directed by Sean Kennedy (8cdcc73): the guardian's 2 edits to .xv/picture.md (line 200, after 200), as worded in the packet
