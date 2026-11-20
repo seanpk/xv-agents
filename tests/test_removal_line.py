@@ -169,9 +169,10 @@ class RemovalCommittedBeforeItsMoveTest(PairingCase):
     def test_a_removal_committed_in_a_pairing_then_moved_with_line_is_taken(self):
         self.open_stop()
         self.commit("tests/test_milk.py", SliceOnlyRemovalLineTest.PY, "the tests")
+        before_start = self.head()  # HEAD before `xv pairing start` commits the record
         self.start()
         start = self.pairings()[0]["start_commit"]
-        self.assertEqual(start, self.head())
+        self.assertEqual(start, before_start)
         self.commit("tests/test_milk.py", SliceOnlyRemovalLineTest.PY_GONE, "pairing (pat with claude): remove it")
         p = self.xv("record", "move", "s1", "--file", "tests/test_milk.py", "--slice-only", "--line", "5",
                     "--assertion", "removed", "--why", "slice-only; removed", "--by", "pat", cwd=self.wt, check=False)
