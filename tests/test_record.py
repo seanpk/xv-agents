@@ -309,7 +309,7 @@ class SliceOnlyMoveTest(RepoCase):
         commit_tests(wt, {"tests/test_x.py": "def a():\n    pass\n"})
         self.xv("record", "add", "s1", "slice_only", json.dumps(
             {"file": "tests/test_x.py", "test": "a", "why": "w"}), cwd=wt)
-        self.assertIs(self.move("s1", wt, "--slice-only")["moved_tests"][0]["slice_only"], True)
+        self.assertIs(self.move("s1", wt, "--slice-only", "--line", "1")["moved_tests"][0]["slice_only"], True)
         wt = self.new_slice("s2")
         self.assertFalse(self.move("s2", wt)["moved_tests"][0].get("slice_only"))
 
@@ -321,7 +321,7 @@ class SliceOnlyMoveTest(RepoCase):
             f.write("```xv-report\n" + json.dumps(
                 {"agent": "scenario", "status": "red", "summary": "r", "red": RED}) + "\n```\n")
         self.xv("record", "report", "s1", "scenario", path, cwd=wt)
-        self.assertEqual(self.move("s1", wt, "--slice-only")["red"], RED)
+        self.assertEqual(self.move("s1", wt, "--slice-only", "--line", "1")["red"], RED)
 
 
 class PacketTemplateTest(RepoCase):
@@ -420,9 +420,11 @@ class SameMoveTest(RepoCase):
 class SliceOnlyGateTest(RepoCase):
     """--slice-only counts only for a test the scenario listed in slice_only."""
 
+    LINES = {"test_file_is_ts": 1, "test_file_is_ts_and_more": 5, "test_other": 9}
+
     def move(self, wt, f, test):
         self.xv("record", "move", "s1", "--file", f, "--assertion", test, "--why", "w",
-                "--slice-only", cwd=wt)
+                "--slice-only", "--line", str(self.LINES[test]), cwd=wt)
         return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["moved_tests"][0]
 
     def listed(self):
@@ -1018,7 +1020,7 @@ class WallChoicesTest(RepoCase):
         commit_tests(wt, {"tests/test_x.py": "def test_file_is_ts():\n    pass\n"})
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
         self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion",
-                "test_file_is_ts (removed)", "--why", "w", "--slice-only", cwd=wt)
+                "test_file_is_ts (removed)", "--why", "w", "--slice-only", "--line", "1", cwd=wt)
         self.assertIs(self.show(wt)["moved_tests"][0].get("slice_only"), True)
 
     def test_a_move_of_another_test_does_not_get_the_flag(self):
@@ -1026,7 +1028,7 @@ class WallChoicesTest(RepoCase):
         commit_tests(wt, {"tests/test_x.py": "def test_other():\n    pass\n"})
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
         self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion",
-                "test_other (removed)", "--why", "w", "--slice-only", cwd=wt)
+                "test_other (removed)", "--why", "w", "--slice-only", "--line", "1", cwd=wt)
         self.assertFalse(self.show(wt)["moved_tests"][0].get("slice_only"))
 
 
@@ -1513,9 +1515,10 @@ class SliceOnlyAssertionFormTest(RepoCase):
             "Red#test_milk_today", "tests/test_red.py::Red::test_milk_today"]
     NOTES = ["(removed as asked)", "[see issue#183]", "{removed}", "<removed>"]
 
-    def move(self, wt, assertion):
-        return self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--assertion",
-                       assertion, "--why", "slice-only; removed", "--by", "cleaner", cwd=wt, check=False)
+    def move(self, wt, assertion, line=5):
+        return self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--line", str(line),
+                       "--assertion", assertion, "--why", "slice-only; removed", "--by", "cleaner", cwd=wt,
+                       check=False)
 
     def moves(self, wt):
         return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)["moved_tests"]
@@ -1532,11 +1535,10 @@ class SliceOnlyAssertionFormTest(RepoCase):
     def test_a_name_that_is_in_no_file_when_the_step_began_is_refused_and_nothing_is_recorded(self):
         wt = self.new_slice("s1")
         self.commit_file(wt)
-        for text in ("Red.test_milk_todya", "test_milk_todya", "Red.test_milk_todya (removed)",
-                     "Other.test_milk_today", "tests/test_red.py::Other::test_milk_today"):
-            with self.subTest(assertion=text):
-                p = self.move(wt, text)
-                self.assertNotEqual(p.returncode, 0, text)
+        for line in (2, 99):  # a blank line, a number past the end
+            with self.subTest(line=line):
+                p = self.move(wt, "Red.test_milk_today", line)
+                self.assertNotEqual(p.returncode, 0, line)
                 self.assertIn("test_red.py", p.stderr)
                 self.assertEqual(self.moves(wt), [])
 
@@ -1556,15 +1558,14 @@ class SliceOnlyAssertionFormTest(RepoCase):
         self.assertNotEqual(p.returncode, 0)
         self.assertEqual(self.moves(wt), [])
 
-    def test_a_sentence_or_a_broken_name_is_refused_and_nothing_is_recorded(self):
+    def test_a_sentence_or_a_broken_name_is_a_free_note_and_is_taken(self):
         wt = self.new_slice("s1")
+        self.commit_file(wt)
         for text in self.REFUSED:
             with self.subTest(assertion=text):
                 p = self.move(wt, text)
-                self.assertNotEqual(p.returncode, 0, text)
-                self.assertIn("must be the test's name", p.stderr)
-                self.assertIn("bracket", p.stderr)
-                self.assertEqual(self.moves(wt), [])
+                self.assertEqual(p.returncode, 0, p.stderr)
+                self.assertEqual(len(self.moves(wt)), 1)
 
     def test_each_form_of_a_name_is_taken(self):
         for text in self.READ:
@@ -1573,8 +1574,8 @@ class SliceOnlyAssertionFormTest(RepoCase):
                 wt = self.new_slice(sid)
                 self.commit_file(wt)
                 p = self.xv("record", "move", sid, "--file", "tests/test_red.py",
-                            "--slice-only", "--assertion", text, "--why", "slice-only; removed", "--by", "cleaner",
-                            cwd=wt, check=False)
+                            "--slice-only", "--line", "5", "--assertion", text, "--why", "slice-only; removed",
+                            "--by", "cleaner", cwd=wt, check=False)
                 self.assertEqual(p.returncode, 0, p.stderr)
 
     def test_a_name_followed_by_a_note_in_brackets_is_taken_whichever_bracket(self):
@@ -1584,7 +1585,7 @@ class SliceOnlyAssertionFormTest(RepoCase):
                 wt = self.new_slice(sid)
                 self.commit_file(wt)
                 p = self.xv("record", "move", sid, "--file", "tests/test_red.py",
-                            "--slice-only", "--assertion", "Red.test_milk_today " + note, "--why",
+                            "--slice-only", "--line", "5", "--assertion", "Red.test_milk_today " + note, "--why",
                             "slice-only; removed", "--by", "cleaner", cwd=wt, check=False)
                 self.assertEqual(p.returncode, 0, p.stderr)
 
@@ -1613,7 +1614,9 @@ class RemovalCheckNamesTest(unittest.TestCase):
             with open(os.path.join(root, "tests", "test_red.py"), "w") as f:
                 f.write(body)
             data = {"moved_tests": [{"file": "tests/test_red.py", "assertion": assertion, "why": "w",
-                                     "slice_only": True, "removal_named": True}], "slice_only": []}
+                                     "slice_only": True, "removal_named": True, "line": 5,
+                                     "line_text": "def test_milk_today(self):", "line_count": 1}],
+                    "slice_only": []}
             return record.removals_not_made(root, data, agent, None)
 
     def test_none_of_the_inputs_passes_while_the_test_is_still_in_its_file(self):
@@ -1621,11 +1624,10 @@ class RemovalCheckNamesTest(unittest.TestCase):
             with self.subTest(assertion=text):
                 self.assertTrue(self.check(text, self.TEST_FILE), text)
 
-    def test_an_input_that_is_not_a_name_in_a_form_stops_as_unreadable_even_when_the_test_is_gone(self):
+    def test_an_input_that_is_not_a_name_is_a_note_nothing_reads_and_passes_when_the_line_is_gone(self):
         for text in self.UNREADABLE:
             with self.subTest(assertion=text):
-                left = self.check(text, self.GONE_FILE)
-                self.assertEqual(left, ["tests/test_red.py: the test name could not be read"], text)
+                self.assertEqual(self.check(text, self.GONE_FILE), [], text)
 
     def test_a_name_with_a_note_passes_once_the_test_is_gone(self):
         for text in ("Red.test_milk_today (removed as asked)", "Red.test_milk_today [see issue#183]"):
@@ -1634,7 +1636,7 @@ class RemovalCheckNamesTest(unittest.TestCase):
 
     def test_a_name_with_a_note_stops_naming_the_test_while_it_is_there(self):
         left = self.check("Red.test_milk_today [see issue#183]", self.TEST_FILE)
-        self.assertEqual(left, ["tests/test_red.py: test_milk_today"])
+        self.assertEqual(left, ["tests/test_red.py: line 5: def test_milk_today(self):"])
 
     def test_the_note_is_not_read_for_a_name(self):
         gone_but_named_in_note = self.GONE_FILE.replace("test_other", "test_noted")
@@ -1644,11 +1646,11 @@ class RemovalCheckNamesTest(unittest.TestCase):
 class CleanerBriefNoteTest(unittest.TestCase):
     """5. The cleaner's brief says what the note for a slice-only removal is."""
 
-    def test_the_brief_says_the_note_is_the_tests_name_as_written_with_an_optional_bracketed_note(self):
+    def test_the_brief_says_the_assertion_is_a_free_note_and_gives_the_line(self):
         with open(os.path.join(HOME, "skills", "cleaner", "SKILL.md")) as f:
             text = " ".join(f.read().split())
-        self.assertIn("as it is written in the file", text)
-        self.assertRegex(text, r"optional note in brackets")
+        self.assertIn("The assertion is a free note", text)
+        self.assertIn("--line <n>", text)
 
 
 class OneHomeRecordTest(RepoCase):
@@ -1702,7 +1704,7 @@ class OneHomeRecordTest(RepoCase):
         commit_tests(wt, {"tests/test_x.py": "def test_a():\n    pass\n"})
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.mark("test_a")), cwd=wt)
         self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion", "test_a",
-                "--why", "w", "--slice-only", "--by", "maker", cwd=wt)
+                "--why", "w", "--slice-only", "--line", "1", "--by", "maker", cwd=wt)
         self.report(wt, "maker", status="green", moved_tests=[
             {"file": "tests/test_x.py", "assertion": "test_a", "why": "w"}])
         moves = self.show(wt)["moved_tests"]

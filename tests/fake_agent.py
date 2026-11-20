@@ -189,6 +189,7 @@ elif title.startswith("# The cleaner"):
         name = os.environ["FAKE_CLEANER_REMOVES"]
         t = open("tests/test_red.py").read()
         start = t.index(f"    def {name}(")
+        line_no = t[:start].count("\n") + 1
         end = t.find("\n    def ", start + 1)
         t = t[:start].rstrip("\n") + "\n" + ("" if end < 0 else "\n" + t[end + 1:])
         if "    def " not in t:
@@ -196,8 +197,27 @@ elif title.startswith("# The cleaner"):
         open("tests/test_red.py", "w").write(t)
         xv = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "bin", "xv")
         subprocess.run([sys.executable, xv, "record", "move", sid, "--file", "tests/test_red.py", "--slice-only",
-                        "--assertion", f"Red.{name}", "--why", "slice-only; removed", "--by", "cleaner"], check=True)
+                        "--line", str(line_no), "--assertion", f"Red.{name}", "--why", "slice-only; removed", "--by", "cleaner"], check=True)
         subprocess.run(["git", "commit", "-q", "--no-verify", "-am", "remove a slice-only test"], check=True)
+    if os.environ.get("FAKE_CLEANER_COMMITS_REMOVAL_THEN_MOVES_LINE"):
+        # commits the removal of the test starting at the given line of tests/test_red.py, then records the move
+        # with --line: the move comes after the removal, so the line is read from where the step began
+        import subprocess
+        line = int(os.environ["FAKE_CLEANER_COMMITS_REMOVAL_THEN_MOVES_LINE"])
+        rows = open("tests/test_red.py").read().split("\n")
+        end = line
+        while end < len(rows) and rows[end].startswith("        "):
+            end += 1
+        rows = rows[:line - 1] + rows[end:]
+        t = "\n".join(rows)
+        if "    def " not in t:
+            t = t.rstrip("\n") + "\n    def test_kept(self):\n        pass\n"
+        open("tests/test_red.py", "w").write(t)
+        subprocess.run(["git", "commit", "-q", "--no-verify", "-am", "remove a slice-only test"], check=True)
+        xv = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "bin", "xv")
+        subprocess.run([sys.executable, xv, "record", "move", sid, "--file", "tests/test_red.py", "--slice-only",
+                        "--line", str(line), "--assertion", "removed", "--why", "slice-only; removed",
+                        "--by", "cleaner"], check=True)
     extra = json.loads(os.environ.get("FAKE_CLEANER_REPORT_EXTRA") or "{}")
     report(agent="cleaner", status="done", summary="nothing to fix", commit=None, applied=[], **extra)
 elif title.startswith("# The guardian"):

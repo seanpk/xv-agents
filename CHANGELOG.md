@@ -2,6 +2,10 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
+## Unreleased
+
+- A slice-only removal names its line, and the check reads the tree (decided by Sean Kennedy). `xv record move --slice-only` takes `--line <n>`, the line where the removed test starts in the file at the commit where the step (or pairing) began, and refuses a blank line or a number past the end; `--assertion` is a free note that nothing reads. After a step the removal check counts that line's text in the file now and stops with `removal_not_made`, naming the file, the line number and the text, when the count is not lower. `xv step` saves `step_start` and `xv pairing start` saves `start_commit`, so a removal committed before its move is recorded is taken. Two slice-only moves for one file and line are one move. The cleaner's brief says how to give the line, and the watch brief lists the stop for `change_misses_scenario: no` with a miss listed. It moves no position on xtremevibing.com.
+
 ## 0.5.2, 2026-11-19
 
 - Wall marks are kept by file and test (#190, decided by Sean Kennedy). A wall recommendation a person accepted or refused on an earlier guardian pass keeps its mark only when the next pass names the same file and the same test; the same test name in another file is a new, unmarked recommendation. In `xv step`, the budget stop and the `repass_diff_failed` stop share one piece of code, with the same record entry, log line, message and exit. It moves no position on xtremevibing.com.

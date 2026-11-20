@@ -17,7 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import moves  # noqa: E402
-from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely, MOVE_NOTE, move_test_name  # noqa: E402
+from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely, move_test_name  # noqa: E402
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
 import wall  # noqa: E402
@@ -240,9 +240,21 @@ def move_words(assertion):
 
 
 def same_move(moves, entry):
-    """The move already recorded for this file and assertion, if any: one move is recorded once."""
+    """The move already recorded for this file and assertion, if any: one move is recorded once. A slice-only
+    move with a line is the same move when the file and the line are the same."""
+    if entry.get("line"):
+        return next((m for m in moves if m.get("file") == entry.get("file") and m.get("line") == entry["line"]), None)
     return next((m for m in moves if m.get("file") == entry.get("file")
                  and move_words(m.get("assertion")) == move_words(entry.get("assertion"))), None)
+
+
+def start_commit(data):
+    """The commit a slice-only line is read from: where the open pairing began, else where the step began, else HEAD."""
+    p = open_pairing(data)
+    if p and p.get("start_commit"):
+        return p["start_commit"]
+    step = data.get("step_start") or {}
+    return "HEAD" if step.get("ended") else step.get("commit") or "HEAD"
 
 
 def cmd_move(a):
@@ -250,17 +262,28 @@ def cmd_move(a):
     for name in ("file", "assertion", "why"):
         if not getattr(a, name):
             raise XVError(f"a moved test names its {name}")
-    if a.slice_only and move_test_name(a.assertion) is None:
-        raise XVError("a slice-only assertion must be the test's name (`name`, `Class.name`, `Class > name`, "
-                      "`Class::name`, `Class#name` or `file::Class::name`), with an optional note in brackets "
-                      "after it: (...), [...], {...} or <...>")
+    line_no, line_text, line_count = None, None, None
     if a.slice_only:
-        shown = subprocess.run(["git", "show", "HEAD:" + a.file], cwd=repo_root(), capture_output=True)
-        start = shown.stdout.decode("utf-8", "replace") if shown.returncode == 0 else None
-        name = MOVE_NOTE.sub("", a.assertion.strip())
-        key = a.file if re.match(r"[\w./]+::", name) else ""  # a path prefix is read only in the `file::` form
-        if start is None or not covered_name_found(name, {key: start}):
-            raise XVError(f"{a.assertion!r} names no test in {a.file} as it was when the step began")
+        if a.line is None:
+            raise XVError("a slice-only move names the line where the removed test starts: --line <n>")
+        if a.line < 1:
+            raise XVError("--line is a line number, one or more")
+        shown = subprocess.run(["git", "show", start_commit(data) + ":" + a.file], cwd=repo_root(),
+                               capture_output=True)
+        if shown.returncode != 0:  # a file the step made is not there at its start: it is read at HEAD
+            shown = subprocess.run(["git", "show", "HEAD:" + a.file], cwd=repo_root(), capture_output=True)
+        if shown.returncode != 0:
+            raise XVError(f"{a.file} is not in the tree as it was when the step began")
+        text = shown.stdout.decode("utf-8", "replace")
+        rows = text.split("\n")
+        if text.endswith("\n"):
+            rows.pop()
+        if a.line > len(rows):
+            raise XVError(f"{a.file} has {len(rows)} lines as it was when the step began: no line {a.line}")
+        line_text = rows[a.line - 1].strip()
+        if not line_text:
+            raise XVError(f"line {a.line} of {a.file} is blank: name the line where the removed test starts")
+        line_no, line_count = a.line, text.count(line_text)
     by = a.by or "maker"
     pairing = open_pairing(data)
     if pairing:
@@ -272,13 +295,15 @@ def cmd_move(a):
     entry = {"file": a.file, "assertion": a.assertion, "why": a.why, "by": by, "at": now()}
     if pairing:
         entry["pairing"] = pairing["n"]
-    listed = any(s.get("file") == a.file and s.get("test") and names_test(a.assertion, s["test"], start=True)
-                 for s in data.get("slice_only") or [] if isinstance(s, dict))
+    listed = line_text is not None and any(
+        s.get("file") == a.file and s.get("test") and any(names_test(line_text, n) for n in test_names(s["test"]))
+        for s in data.get("slice_only") or [] if isinstance(s, dict))
     if a.slice_only and listed:
         entry["slice_only"] = True
     if a.deleted:
         entry["deleted"] = True
     if a.slice_only:
+        entry.update(line=line_no, line_text=line_text, line_count=line_count)
         entry["removal_named"] = True  # the move says a test was removed, whether or not the wall lists it
     same = same_move(data["moved_tests"], entry)
     if same:
@@ -958,6 +983,15 @@ def removals_not_made(root, data, agent, report):
         if m.get("deleted") and os.path.exists(os.path.join(root, m["file"])):
             if m["file"] not in left:
                 left.append(m["file"])
+        elif m.get("line") and m.get("line_text"):
+            path = os.path.join(root, m["file"])
+            if os.path.isfile(path):
+                with open(path, encoding="utf-8", errors="replace") as f:
+                    now_count = f.read().count(m["line_text"])
+                if now_count >= m.get("line_count", 1):
+                    item = f"{m['file']}: line {m['line']}: {m['line_text']}"
+                    if item not in left:
+                        left.append(item)
         elif (m.get("slice_only") or m.get("removal_named")) and isinstance(m.get("assertion"), str):
             name = move_test_name(m["assertion"])
             check(m["file"], [name] if name else [])
@@ -1268,6 +1302,8 @@ def main(argv=None):
     s.add_argument("--to", help="the new path of a file that moved")
     s.add_argument("--deleted", action="store_true", help="the whole file was removed")
     s.add_argument("--slice-only", action="store_true", help="a slice-only test removed after green")
+    s.add_argument("--line", type=int, help="with --slice-only: the line where the removed test starts, in the file "
+                   "at the commit where the step (or pairing) began")
     s.add_argument("--by")
     s.set_defaults(fn=cmd_move)
 
