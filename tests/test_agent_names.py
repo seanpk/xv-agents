@@ -68,9 +68,20 @@ class TreeNamesTest(unittest.TestCase):
         for top in ("scripts", "ci"):
             for root, _d, names in os.walk(os.path.join(HOME, top)):
                 for n in names:
+                    if n == "xv-listener.yml":  # 16: keeps its name, as `xv listen` does
+                        continue
                     if any(w in n for w in ("scenario", "guardian", "listener")):
                         bad.append(os.path.join(root, n))
         self.assertEqual(bad, [])
+
+    def test_the_listener_ci_file_keeps_its_name_and_runs_xv_listen(self):
+        # 16
+        ci = os.path.join(HOME, "ci", "github")
+        self.assertTrue(os.path.isfile(os.path.join(ci, "xv-listener.yml")))
+        self.assertIn("xv listen", read("ci", "github", "xv-listener.yml"))
+        others = [n for n in os.listdir(ci) if n != "xv-listener.yml"
+                  and any(w in n for w in ("scenario", "guardian", "listener"))]
+        self.assertEqual(others, [])
 
     def test_the_internal_step_is_land_test_writer(self):
         run_py = read("scripts", "run.py")
@@ -300,6 +311,49 @@ class StepNamesTest(RepoCase):
         p = self.xv("record", "show", "s1", "--json", cwd=self.wt)
         self.assertNotIn("#204", p.stdout + p.stderr)
         self.assertEqual(json_in(p.stdout)["next"], "inspector")
+
+
+class PairingNextTest(RepoCase):
+    # 1: `--next test-writer` is accepted by `xv pairing end`
+    def setUp(self):
+        super().setUp()
+        fake = os.path.join(HOME, "tests", "fake_agent.py")
+        cfg = os.path.join(self.repo, ".xv", "config.yml")
+        text = open(cfg).read()
+        a, b = text.index("agents:"), text.index("seats:")
+        with open(cfg, "w") as f:
+            f.write(text[:a] + 'agents:\n  default: ["%s", "%s", "{prompt}"]\n' % (sys.executable, fake) + text[b:])
+        sh(["git", "commit", "-qam", "fake agents"], self.repo)
+        self.wt = self.new_slice("s1", "Milk that runs out today shows as running out soon.")
+        self.home = os.path.join(self.tmp, "home")
+        os.makedirs(self.home)
+        for k in ("HOME", "USERPROFILE"):
+            old = os.environ.get(k)
+            os.environ[k] = self.home
+            self.addCleanup(lambda k=k, old=old: os.environ.pop(k, None) if old is None
+                            else os.environ.__setitem__(k, old))
+        p = self.xv("run", "s1", cwd=self.wt, check=False)
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.xv("pairing", "start", "s1", "--by", "pat", "--why", "the red is wrong and I want to fix it",
+                cwd=self.wt)
+
+    def end(self, *args):
+        return self.xv("pairing", "end", "s1", *args, cwd=self.wt, check=False)
+
+    def test_next_test_writer_needs_an_amendment_made_since_it_opened(self):
+        p = self.end("--next", "test-writer")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("amend", (p.stdout + p.stderr).lower())
+        self.assertNotIn("invalid choice", p.stderr)
+
+    def test_next_test_writer_goes_through_after_an_amendment(self):
+        path = os.path.join(self.tmp, "amendment.md")
+        with open(path, "w") as f:
+            f.write("The list also shows the day.")
+        self.xv("slice", "amend", "s1", "--scenario-file", path, "--by", "pat", cwd=self.wt)
+        p = self.end("--next", "test-writer")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertNotIn("#204", p.stdout + p.stderr)
 
 
 class InstallNamesTest(unittest.TestCase):
