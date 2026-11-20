@@ -253,7 +253,8 @@ def start_commit(data):
     p = open_pairing(data)
     if p and p.get("start_commit"):
         return p["start_commit"]
-    return (data.get("step_start") or {}).get("commit") or "HEAD"
+    step = data.get("step_start") or {}
+    return "HEAD" if step.get("ended") else step.get("commit") or "HEAD"
 
 
 def cmd_move(a):
