@@ -11,8 +11,8 @@ This picture is written one sentence per line, and a list item's extra lines lin
 
 ## What an outsider sees
 A toolkit for running software changes through AI agents with people kept in charge.
-It has two parts: prompts ("skills") for seven agents (watch, forecaster, test writer, maker, cleaner, inspector, field listener) and five person-facing skills, plus a standard-library Python CLI, `xv`, that does the checkable work: it keeps a per-change record, hashes the tests (the "wall"), computes stop conditions, and runs the agents headless or in CI.
-Its stated rule is that no agent here says yes: an agent stops and hands the change to a person (README).
+It has two parts: prompts ("skills") for seven agents (watch, forecaster, scenario, maker, cleaner, guardian, listener) and five person-facing skills, plus a standard-library Python CLI, `xv`, that does the checkable work: it keeps a per-change record, hashes the tests (the "wall"), computes stop conditions, and runs the agents headless or in CI.
+Its stated rule is "an agent may stop, it may not decide" (README).
 It is also the tool its own team uses to try XV on other repos (v0.2.0 came from one trial).
 One known user so far (2026-10-24).
 
@@ -22,7 +22,7 @@ They could be a team of professionals, or a non-technical person with an idea.
 Sean Kennedy sits with them.
 
 - The seats inside a team: the person who set the work going, the two people, the chief engineer (`scripts/orders.py`, `defaults/config.yml`).
-- The end users of an adopting system are indirect, reached only through the field listener (Sentry, PostHog, feedback files).
+- The end users of an adopting system are indirect, reached only through the listener (Sentry, PostHog, feedback files).
 
 ## The shape
 - Runs on agent harnesses: Claude Code, opencode, Grok.
@@ -55,7 +55,7 @@ Sean Kennedy sits with them.
   `suite` runs `tests.command` for `run` and `record`.
   `suite` also holds `failing_tests`, `own_red_names` and `in_own_red`, which `run` and `record` both import.
   `xv record offer` can put one directed edit on an option, and refuses one that does not fit its kind (`skills/watch/SKILL.md` lists the refusals).
-  `xv record answer --pick` on that option makes the edit, runs the suite and the orders, and commits the file, the record and, after the inspector, the inspection report's line, in the person's name (`record.make_directed_edit`).
+  `xv record answer --pick` on that option makes the edit, runs the suite and the orders, and commits the file, the record and, after the guardian, the packet line, in the person's name (`record.make_directed_edit`).
   Both the offer and the answer read and edit the file in the slice's worktree, wherever they are run from.
   `orders` holds the stop rules.
   After `rebase`, `orders` decides `rebase_conflict`, `rebase_dropped`, `rebase_stuck`, `rebase_suite_red` and `rebase_red_ref`; `record.apply_verdict` writes a rebase stop as it does any other, and `orders.budget_before` checks before each rebase maker run.
@@ -64,7 +64,7 @@ Sean Kennedy sits with them.
   A red file that both sides changed is hashed at the replayed baseline commit.
   `prompt.build` takes `part` (the rebase part of the maker's brief) and `saved` (the record from before the rebase).
   `wall.baseline` takes `keep` and `skip`, and `wall.hashes_at` hashes files at a ref.
-  `shape_or_pitch` fires on `yes`, not on `accepted`; `accepted` holds only when `accepted_by` names a decision in the slice's `decisions` list with `order: shape_or_pitch` (`xv run`, `xv record packet`), and `xv inspect` always reads it as `yes`.
+  `shape_or_pitch` fires on `yes`, not on `accepted`; `accepted` holds only when `accepted_by` names a decision in the slice's `decisions` list with `order: shape_or_pitch` (`xv run`, `xv record packet`), and `xv guard` always reads it as `yes`.
   `shape_wider_than_forecast` does not fire when `shape_change` is `accepted`, or when a stop of that order was answered without sending work back, at a breadth no narrower than the current one; the stop records `breadth`, and a stop with no `breadth` covers any (the answer marks a send-back `sendback`).
   `moves_to_accept` counts moves by file and assertion, except moves marked `expected` (`scripts/orders.py`).
   After every `xv step`, and after `xv record report` for any agent except a scenario on a slice from a build, `record.removals_not_made` looks in the tree for each removal the record names; `removal_not_made` then stops for the originator, naming what is still there.
@@ -80,30 +80,30 @@ Sean Kennedy sits with them.
   A move recorded before `--line` existed keeps the old name check.
   After the maker and the cleaner, `moves` compares each test file that changed since the wall baseline, or that the record already holds as expected, with the slice's base and a test file the slice added with its newest `red` commit, against `expect_moves` and `renames`.
   It records a fit as a move marked `expected`, which replaces a hand-recorded entry for the same file.
-  After the inspector, `expected_moves_wrong` stops for the originator when the packet's `expected_moves` does not match the record.
+  After the guardian, `expected_moves_wrong` stops for the originator when the packet's `expected_moves` does not match the record.
   One move is recorded once.
   Two tellings that differ only in whitespace or commas are one move; `==` and `!=` stay two (`record.move_words`).
   `xv record report` for the maker and the cleaner runs the expected-move and wall checks.
   `packet.packet_checks` is the one place where `xv step` and `xv record packet` run the packet lint and the `expected_moves` count.
   It also writes a note, not a stop, naming each `.xv/picture.md` line that holds more than one sentence (`packet.crowded_picture_lines`); a second run replaces the note.
   An old note is stripped only where it starts a line (`packet.note_crowded_picture_lines`).
-  When no stop blocks, `orders` also returns a send-back with seat `watch`, naming where the slice goes and the misses: `change_misses_scenario` after the inspector, `report_misses_outcome` after the test-writer step.
+  When no stop blocks, `orders` also returns a send-back with seat `watch`, naming where the slice goes and the misses: `change_misses_scenario` after the guardian, `report_misses_outcome` after the scenario step.
   `orders.verdict` also returns `next`.
-  After the test-writer step, `next` is `cleaner` when the red failed on the base and passes on the build.
+  After the scenario step, `next` is `cleaner` when the red failed on the base and passes on the build.
   One function, `record.apply_verdict`, writes the stop or the send-backs, and `next`, on `xv step`, `xv run`, `xv record packet`, and `xv record answer` after a directed edit; it adds no second open stop of the same order.
   After a directed edit, `orders.verdict` does not fire the order the answer closed or any order bundled with it, `ready_to_merge` included, and the answer's `--next` stands.
-  At the test-writer step, a directed edit counts the suite green when every failing test is one of the slice's own red tests.
-  `record.inspector_facts` turns the inspection report into the record's fields on every path.
-  `record.inspector_facts` also keeps `checks.inspector.packet_head`, the HEAD of the slice's worktree when `xv record packet` ran.
+  At the scenario step, a directed edit counts the suite green when every failing test is one of the slice's own red tests.
+  `record.guardian_facts` turns the packet into the record's fields on every path.
+  `record.guardian_facts` also keeps `checks.guardian.packet_head`, the HEAD of the slice's worktree when `xv record packet` ran.
   `xv record packet` takes the packet head and the packet's path from the checkout that holds the record, whichever checkout it runs from.
-  When the record names a packet whose file is there and whose head is found, the inspector's prompt is a re-pass.
+  When the record names a packet whose file is there and whose head is found, the guardian's prompt is a re-pass.
   A re-pass prompt carries that packet and `git diff <packet_head>..HEAD` without `.xv/`, under `## This is a re-pass`.
   With the packet file missing or no head found, the prompt is a first pass.
-  When the re-pass diff cannot run, `xv step inspector` runs no agent, writes a `repass_diff_failed` stop for the originator, and exits 10.
-  `xv prompt inspector` writes no record, so on the same failure it exits 2 and gives no prompt.
-  `xv step inspector` runs `agents.inspector_repass` only with a re-pass prompt, and falls back to `agents.inspector`, then `agents.default`.
-  `xv step inspector` builds the re-pass section once and passes it to `prompt.build` as `repass`, so one diff picks both the prompt and the command.
-  `xv inspect` always runs the inspector's first pass, with `agents.inspector`, then `agents.default`, even when the record names a packet.
+  When the re-pass diff cannot run, `xv step guardian` runs no agent, writes a `repass_diff_failed` stop for the originator, and exits 10.
+  `xv prompt guardian` writes no record, so on the same failure it exits 2 and gives no prompt.
+  `xv step guardian` runs `agents.guardian_repass` only with a re-pass prompt, and falls back to `agents.guardian`, then `agents.default`.
+  `xv step guardian` builds the re-pass section once and passes it to `prompt.build` as `repass`, so one diff picks both the prompt and the command.
+  `xv guard` always runs the guardian's first pass, with `agents.guardian`, then `agents.default`, even when the record names a packet.
   For `change_misses_scenario`, a miss is a repeat when an earlier pass sent back the same key, and the repeat stops for the originator.
   A packet whose front matter says `change_misses_scenario: no` while its `## Scenario misses` section lists a miss stops for the originator under `change_misses_scenario`, naming the disagreement.
   For `report_misses_outcome`, `orders.miss_run` counts the send-backs of the same outcome in an unbroken run of scenario reports.
@@ -123,21 +123,21 @@ Sean Kennedy sits with them.
   `agentcli.run` gives every agent CLI a closed stdin when the prompt is in argv.
   `agentcli.run` reports a working folder that is not there as gone, never as a missing agent CLI.
   When the agent ran but its run log cannot be written, `agentcli.run` raises `RanError`, which keeps the run's result.
-  `boundary`, `packet` and `check` are the inspector's checks.
+  `boundary`, `packet` and `check` are the guardian's checks.
   `packet` also holds the allowed field values (`ALLOWED`, `YES_NO`).
   `listen`, `retro`, `promote` and `prototypes` are the side loops.
   `run.close` writes `modules_touched`, from `boundary.change` against the slice's base, and `maker_sendbacks`.
   A person's answer that sends work back keeps `sendback_to: <step>`.
   `retro.reworked` finds the modules that at least `limits.rework_slices` closed, sent-back slices touched; `due` and the retro prompt both use it on slices created since the last retro.
   `retro.accept` only prints the `xv slice new --kind refactor` command for a candidate of kind `refactor`.
-  After the test-writer step, `slice_only_marks` lists slice-only marks for the person who set the work going; they accept the marks or run `xv record unmark`.
+  After the scenario step, `slice_only_marks` lists slice-only marks for the person who set the work going; they accept the marks or run `xv record unmark`.
   An answer to `slice_only_marks`, or an answer that bundles it, marks every listed mark `accepted`.
   An accepted mark is kept when the scenario runs again and is not asked about again.
   A mark whose `checks` names a file listed in `tests.slice_only_files` (default `CHANGELOG.md`) is accepted by the watch with a log line and is not asked about.
   An agent's report cannot set `accepted` on its own mark.
-  The inspector's `wall_recommendations` go to the same person in `moves_to_accept`.
-  A recommendation a person accepted stays on the record when the next inspector pass names no recommendation with its file and test.
-  An accepted or refused mark carries to the next inspector pass only on a recommendation with the same file and test; the same test name in another file is a new, unmarked recommendation.
+  The guardian's `wall_recommendations` go to the same person in `moves_to_accept`.
+  A recommendation a person accepted stays on the record when the next guardian pass names no recommendation with its file and test.
+  An accepted or refused mark carries to the next guardian pass only on a recommendation with the same file and test; the same test name in another file is a new, unmarked recommendation.
   Only a person's `--accept-wall <test>` accepts one, and only `--refuse-wall <test>` takes back one accepted earlier; an accepted `mark slice-only` recommendation is listed in `slice_only`, and refusing it later takes it out, matched on file and test; a new recommendation not named is refused, and an agent's report sets neither.
   Both flags take the test with its file, in the forms the coverage check takes (`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`); a bare name that two files share is refused, and the refusal names each `file::test`.
   Giving either flag on another kind of stop, or both on one test, is refused.
@@ -145,14 +145,14 @@ Sean Kennedy sits with them.
   `decisions` reads every slice record through `retro.records()` and counts answered stops per order: picks equal to the recommendation, `new_info: none`, and causes.
   `record.apply_report` keeps a scenario report's `old_tests_to_move` and `may_not_files_needed`, and a report without them clears them.
   `prompt` shows them to the maker only, and only the picture from `may_not_files_needed`.
-  `recording` and `playwright_agents` serve the test writer.
+  `recording` and `playwright_agents` serve the scenario agent.
   `install` and `adapt` handle distribution.
 - Outbound calls: `evals/grade`, `boundary`, `check`, `listen`, `recording`.
   The docs add the agent CLIs, `gh`, and the fetched harness doc pages.
 - `defaults/` is the starter `.xv/` that `xv init` copies into every adopting repo.
   A change there reaches every new adopter.
-  `xv init` also writes a starter Claude Code `--allowedTools` list onto the default, forecaster and inspector lines, built from the test command it chose, so the written `config.yml` differs from `defaults/config.yml`.
-  An `inspector_repass` line a team adds by hand gets no starter `--allowedTools` list.
+  `xv init` also writes a starter Claude Code `--allowedTools` list onto the default, forecaster and guardian lines, built from the test command it chose, so the written `config.yml` differs from `defaults/config.yml`.
+  A `guardian_repass` line a team adds by hand gets no starter `--allowedTools` list.
   Changing the test command later does not change the list, and `xv prompt` then shows the agent that stale list as its allowed commands.
   `xv init` runs the guessed test command once to check it (`test_run` in its output).
   `xv init --no-try` skips that and prints `test_run_skipped` instead.
@@ -206,8 +206,8 @@ Sean Kennedy sits with them.
   The build's edits to `.xv/` are dropped and named in the log, except the pick's own prototypes folder.
   `xv prototype start` refuses once `kind` is not `prototype`.
   `xv close` deletes a kept pick's branch, never a `--from` ref.
-  After the maker, a test-writer step checks the red in a temporary detached worktree at `pre_maker_commit`, saved before the maker's first run, with the red files copied from HEAD and `worktrees.setup` run first; in a slice from a build, it runs in the scratch checkout at the base instead.
-  In a slice from a build, the test writer runs in a temporary detached worktree that starts at the tip of `refs/xv/<id>/red` when the base is an ancestor of that tip, and at the base otherwise.
+  After the maker, a scenario step checks the red in a temporary detached worktree at `pre_maker_commit`, saved before the maker's first run, with the red files copied from HEAD and `worktrees.setup` run first; in a slice from a build, it runs in the scratch checkout at the base instead.
+  In a slice from a build, the scenario agent runs in a temporary detached worktree that starts at the tip of `refs/xv/<id>/red` when the base is an ancestor of that tip, and at the base otherwise.
   Unless the build is shared, the agent's record copy has `build: none`, `branch` set to the base, no `prototypes` and no `prototype_sessions`, and no commit that is not an ancestor of the base.
   The red runs there, and the wall baseline is hashed there.
   Its commit moves the ref.
@@ -215,12 +215,12 @@ Sean Kennedy sits with them.
   A commit counts as already on the branch when its author time, subject and changed files match one there (`run.land_scratch`).
   A conflict stops with `red_conflicts_with_build` for the originator.
   The red then runs on the build, and the maker's prompt names the tests that fail.
-  A session test-writer step makes that checkout and names it.
-  The next `xv step test-writer` or `xv close` drops a checkout that no report landed.
-  A red command joined at the top level by anything but `&&` (`;`, `||`, `|`, `&` or a new line, outside quotes) is not run and not kept as the slice's red; the test-writer step stops for the originator (`red_command_joined`), and `next` stays `test-writer`, so the test writer rewrites it with `&&`.
+  A session scenario step makes that checkout and names it.
+  The next `xv step scenario` or `xv close` drops a checkout that no report landed.
+  A red command joined at the top level by anything but `&&` (`;`, `||`, `|`, `&` or a new line, outside quotes) is not run and not kept as the slice's red; the scenario step stops for the originator (`red_command_joined`), and `next` stays `scenario`, so the scenario agent rewrites it with `&&`.
   `xv record report` applies the same rule in session mode, with or without a build (`record.cmd_report`).
-  A red that fails before any test runs (exit 126 or 127, a runner's own words that a file could not load or no tests were found, or a general error name with no real failing test) stops the test-writer step for the originator (`red_cannot_run`), and `next` stays `test-writer`.
-  After the test-writer step, `red_misses_scenario` stops for the originator before the maker when the report lists a `not_covered` outcome, when `red_gaps` lists anything, or when the check cannot read its input: no `## Scenario` heading, `covered` or `not_covered` missing or not a list, `covered` empty, or with an item whose `test` is not one name, a list of non-empty strings, or a string joined with `,` or `;`, or a `covered` name that matches no whole word in any red file.
+  A red that fails before any test runs (exit 126 or 127, a runner's own words that a file could not load or no tests were found, or a general error name with no real failing test) stops the scenario step for the originator (`red_cannot_run`), and `next` stays `scenario`.
+  After the scenario step, `red_misses_scenario` stops for the originator before the maker when the report lists a `not_covered` outcome, when `red_gaps` lists anything, or when the check cannot read its input: no `## Scenario` heading, `covered` or `not_covered` missing or not a list, `covered` empty, or with an item whose `test` is not one name, a list of non-empty strings, or a string joined with `,` or `;`, or a `covered` name that matches no whole word in any red file.
   In a slice from a build, the coverage check and the flags check read each red file from the red ref, and read every file that any red on the ref changed (`run.red_file_texts`).
   A `not_covered` outcome named in an earlier answered `red_misses_scenario` stop does not stop again, unless that answer sent the slice back (`sendback`).
   On a later scenario pass, the coverage kept from earlier passes (`checks.scenario.covered_kept`) is added to the report's `covered` before the check, except when the record's `next` is `maker` (a pass that went on to the maker ends the run), so an empty `covered` does not stop when something was kept; each kept name is checked again against the red files.
@@ -228,17 +228,17 @@ Sean Kennedy sits with them.
   A `covered` name whose last part is a test that the cleaner removed by a recorded `--slice-only` move does not stop.
   The test is found as a whole word in the move's `line_text`, or, for a move recorded before `--line`, read from its assertion with `names.move_test_name`.
   A `covered` name may start with a red file's path or module and is split by `::`, `.`, `#`, `/` or ` > `; it matches when each part after the path is a whole word in that red file, in order (`names.covered_name_found`); a name whose test part is empty stops, and the stop names the name that does not match.
-  A numbered outcome of the scenario or an amendment that is in neither `covered` nor `not_covered` sends the slice back to the test writer (`xv step` and `xv run` compute this).
+  A numbered outcome of the scenario or an amendment that is in neither `covered` nor `not_covered` sends the slice back to the scenario agent (`xv step` and `xv run` compute this).
   The match ignores backticks, `*` and `_` in both the scenario's outcome and the report's (`run.norm`).
   The send-back lists each missed outcome as `<number>. <text>`, a form the check accepts, and says every outcome goes in on each pass.
   A `covered` outcome that is a number, or starts with one, covers the outcome of the scenario or of an amendment with that number, whatever words follow.
   When two outcomes share a number, the number covers only the first one; a later one needs its own words (`run.missed_outcomes`).
-  After the test-writer step, `unrecorded_move` stops for the originator before the maker when any test file that existed at the base, under `tests.paths` or in the red, lost or changed a line other than a blank, comment or import, unless a recorded move names the file.
+  After the scenario step, `unrecorded_move` stops for the originator before the maker when any test file that existed at the base, under `tests.paths` or in the red, lost or changed a line other than a blank, comment or import, unless a recorded move names the file.
   In a slice from a build, a test file the build only added lines to is not unrecorded; a line the build changed or removed at the base still stops.
   A line the build added that the maker or the cleaner later changes or removes stops too, measured from the build's commit (`wall.check`).
   An answered `unrecorded_move` stop records each file's content (`blobs`), and the same content does not stop again.
   The maker and the cleaner record a move in their own names (`--by maker`, `--by cleaner`).
-  The test writer records none: it says what it moved in its report, and the stop puts it before the person.
+  The scenario agent records none: it says what it moved in its report, and the stop puts it before the person.
   A person's name reaches the record only through an answer at a stop (#93), or through a move recorded while their pairing is open.
   A directed test edit records a move with `by` set to the person, through that answer (#132).
   Any step that stops, other than at `ready_to_merge`, or ends with no report keeps `next` on itself.
@@ -254,9 +254,9 @@ Sean Kennedy sits with them.
   After an error mid-rebase, `--continue` and `--abort` read the notes' stops and budget.
   A staged record is put back before `--continue`.
   Leftover conflict markers stop as `rebase_stuck` before staging.
-  A refactor slice's test-writer step runs no agent until the scenario is amended.
+  A refactor slice's scenario step runs no agent until the scenario is amended.
   It runs the suite, and `suite_not_green_at_start` stops for the originator unless the suite is green.
-  After an amend, the test writer writes a red as on a feature slice, and only the amendment's outcomes need `covered` or `not_covered`.
+  After an amend, the scenario agent writes a red as on a feature slice, and only the amendment's outcomes need `covered` or `not_covered`.
 - Surfaces: the `xv` CLI, `skills/*/SKILL.md`, three GitHub Actions examples in `ci/github/`, and `.github/workflows/` (tests, weekly drift check).
 - `evals/` holds a small "pantry" fixture app, scenarios, and recorded runs on three harnesses.
 
@@ -265,7 +265,7 @@ Sean Kennedy sits with them.
   Someone other than the `originator` may answer an `originator` stop, so a teammate can pick up the work; `answered_by` records who (#62).
 - "Slice" is the unit of change.
   "Record" is the slice file.
-  "The inspection report" is the inspector's output, and "the field report" the field listener's; "packet" stays the word for either one where people decide on it, and in commands (`xv packet lint`, `xv record packet`), file names (`<id>.packet.md`, `packet-<date>.md`) and record fields (`packet`, `packet_head`).
+  "Packet" is the guardian's output (the listener's is "the packet from production").
   `expected_moves` in a packet's front matter is the record's count of expected moves.
 - "The wall" is the test hash check.
   "The shape" means the system's structure, but also "shape change" in a packet.
@@ -273,22 +273,20 @@ Sean Kennedy sits with them.
   `shape_change` is `yes`, `no` or `accepted`; `pitch_contradiction` is `yes` or `no` (#85).
   `change_misses_scenario` is `yes` or `no` and optional; a missing one reads as `no` (#96, renamed in #185).
 - A record or packet written before #185 is read under the new names (`xvlib.upgrade_names`, called by `split_front_matter`); saving it writes the new names.
-- A record written before #168 that holds `scenario` or `guardian` as a step (in `next`, `checks`, `reports`, `step_start`, stops, spend, pairings or moved tests) is read under the new step names in the same place, with a warning that names #204.
-  `xvlib.upgrade_config`, called by `load_config`, reads `agents.guardian`, `agents.guardian_repass`, `agents.scenario`, `agents.listener` and `listener:` the same way, and `xv step`, `xv prompt`, `xv orders --after`, `--next`, `--step` and `xv guard` take the old names, each with the warning.
 - A pairing is the person who set the work going working on a slice with the watch's own session, from an open stop or a send-back to a resume step.
   A test written or changed in a pairing is not blind.
 - The shape conversation opens on a shape change, and before and after a burst.
   A stall (`repeated_failure`, `diff_growing`) is not a shape conversation; it puts four choices to the person who set the work going: continue, reshape the slice, raise the budget, or bring in a second person (#86).
-- The maker and the test writer read the picture and pull its binding decisions; they do not edit it, with one exception: the maker may edit `.xv/picture.md` only when the scenario report names it in `may_not_files_needed`.
+- The maker and the scenario agent read the picture and pull its binding decisions; they do not edit it, with one exception: the maker may edit `.xv/picture.md` only when the scenario report names it in `may_not_files_needed`.
   No other protected file is exempt (`run.post_step`).
-  The inspector lists the edit.
+  The guardian lists the edit.
   The rebase maker may not edit a test file or `.xv/picture.md`: on a conflict replay such an edit stops with `rebase_conflict`, and on a replay with no conflict it stops with `rebase_conflict` too.
   The edit is left uncommitted in the worktree, and the question says `--continue` keeps it and `git checkout -- <file>` drops it.
   For a file the maker added, the question names `rm <file>` or `git rm -f <file>` and says `git status` shows it and `git diff` does not (`orders.drop_edit`).
   The watch edits it only when a person directs it, in its own commit naming that person.
   This is not a directed `doc` edit, because that kind refuses `.xv/`.
   Accepting a picture change is a person's (#88, #68, #90).
-- "Picture" is `.xv/picture.md`; the inspection report carries a "boundary diagram".
+- "Picture" is `.xv/picture.md`, but the guardian's packet carries a "boundary picture".
   These are different things.
 - "Skill" and "agent" are used almost interchangeably.
   A skill is the file.
@@ -361,10 +359,10 @@ Drafted from the repo's docs; Sean cut and added on 2026-10-24.
 11. Exit codes are a contract with CI: 10 a person must act, 0 nothing left, 2 an error or a refusal.
     (`docs/decisions.md` 12)
 12. A check whose input is broken or that cannot run stops for a person; it never passes.
-    A red that cannot run is not a failing red: the test-writer step stops for the person who set the work going.
+    A red that cannot run is not a failing red: the scenario step stops for the person who set the work going.
     Read-only agents are checked, not trusted.
     (`docs/decisions.md` 13, 51, 78)
-13. Every brief opens with Own the result, ends with its may-not list, what it writes to the record, and when to stop, and points to files rather than restating them.
+13. Every brief opens with Own the result, keeps the stop line, ends with its may-not list, what it writes to the record, and when to stop, and points to files rather than restating them.
     (`docs/briefs.md`, "Every brief")
 14. A version that renames anything in `.xv/` carries its upgrade steps in `CHANGELOG.md`.
     (`docs/decisions.md` 74)
