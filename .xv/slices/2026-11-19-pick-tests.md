@@ -2,7 +2,7 @@
 id: 2026-11-19-pick-tests
 title: Two prototype pick paths have tests
 kind: defect
-status: open
+status: stopped
 originator: Sean Kennedy
 created: 2026-11-19
 branch: xv/2026-11-19-pick-tests
@@ -10,7 +10,7 @@ base: 07f5734397e770fdcb049a0eb78b318877d93cf6
 next: forecaster
 build: none
 build_shared: no
-forecast: null
+forecast: {"rows": [{"harness": "claude", "model": "sonnet", "tokens": 200000, "turns": null, "usd": 1.0, "basis": ["2026-11-19-wall-keep", "2026-11-06-covers-stall", "2026-10-25-diff-count"]}, {"harness": "claude", "model": "opus", "tokens": 120000, "turns": null, "usd": 1.2, "basis": ["2026-11-19-wall-keep", "2026-11-06-covers-stall", "2026-11-18-move-names"]}, {"harness": "claude", "model": "haiku", "tokens": 50000, "turns": null, "usd": 0.01, "basis": ["2026-11-19-wall-keep", "2026-11-18-move-names"]}], "wall_s": 600, "rounds": 1, "rounds_reason": "One scenario, maker, cleaner and guardian pass expected; a reopen is possible if the red on the --keep conflict or missing-file case passes early or misses a point, and the sonnet and opus bands carry a partial reopen rather than a full second round.", "shape_breadth": "narrow", "shape_note": "Expect changes only to tests under tests/** for the two pick paths; a shared helper in tests may move, and no source change is expected."}
 budget: null
 red: null
 wall_baseline: null
@@ -22,12 +22,12 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: []
-stops: []
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 6, "tokens_out": 5336, "cache_read": 62963, "cache_write": 45663, "tokens": 51005, "usd": 0.0124, "turns": 4, "wall_s": 25.6, "session": "54e1ac7b-ae28-4581-8b0b-e0da8e6b67a1", "step": "forecaster", "at": "2026-11-20T01:21:05+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-19-pick-tests/01-forecaster.out"}]
+stops: [{"at": "2026-11-20T01:21:05+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-19-pick-tests budget ... --by <name>`).", "answered_by": [], "answer": null, "also": [], "budget_seen": null}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Narrow test-only defect: one clean pass expected, sonnet ~200k, opus ~120k, haiku (forecaster) ~50k; wall ~600s; a reopen is possible but priced only as a partial band.", "at": "2026-11-20T01:21:05+00:00"}], "forecaster": {"at": "2026-11-20T01:21:05+00:00", "wrote": [], "removal_not_made": []}}
 ---
 # Two prototype pick paths have tests
 
@@ -48,3 +48,5 @@ None. A feature starts from words.
 
 ## Log
 - 2026-11-20T01:20:35+00:00 watch: slice opened by Sean Kennedy
+- 2026-11-20T01:21:05+00:00 forecaster: done: Narrow test-only defect: one clean pass expected, sonnet ~200k, opus ~120k, haiku (forecaster) ~50k; wall ~600s; a reopen is possible but priced only as a partial band.
+- 2026-11-20T01:21:05+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-19-pick-tests budget ... --by <name>`).
