@@ -197,7 +197,8 @@ Sean Kennedy sits with them.
   A new `--axis` keeps none.
   A variant that ran out cannot be picked.
   `xv prototype pick --keep` merges the pick's branch onto the slice branch as the build, and the record says `build: {kind: kept_pick, ref, variant, commit}`; the other two are removed.
-  The pick refuses a missing `--scenario-file` before it changes anything, so a refused `--keep` leaves the slice branch, the record and all three prototypes as they were.
+  The pick, with or without `--keep`, refuses a missing `--scenario-file` before it changes anything, so the slice branch, the record and all three prototypes, their worktrees and their branches stay as they were.
+  A `--keep` pick commits the variant's uncommitted work onto the variant's own branch before it merges, so a pick refused for a conflict outside `.xv/` leaves the record and the slice branch as they were but moves that variant's branch tip.
   The build's edits to `.xv/` are dropped and named in the log, except the pick's own prototypes folder.
   `xv prototype start` refuses once `kind` is not `prototype`.
   `xv close` deletes a kept pick's branch, never a `--from` ref.
