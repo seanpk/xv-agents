@@ -69,11 +69,14 @@ Sean Kennedy sits with them.
   `moves_to_accept` counts moves by file and assertion, except moves marked `expected` (`scripts/orders.py`).
   After every `xv step`, and after `xv record report` for any agent except a scenario on a slice from a build, `record.removals_not_made` looks in the tree for each removal the record names; `removal_not_made` then stops for the originator, naming what is still there.
   After the cleaner, that covers each accepted `slice_only` test, unless the cleaner's report lists it under `kept` with a `why`.
-  After any step, it covers each move marked `slice_only` or `removal_named` whose test is still in its file, and each move marked `deleted` whose file is still there.
-  `xv record move --slice-only` marks the move `removal_named`, and `--deleted` marks it `deleted`.
-  `xv record move --slice-only` refuses an assertion that `names.move_test_name` cannot read, and records nothing.
-  It also refuses a name that `names.covered_name_found` does not find in the file as committed at `HEAD`, the step's start.
-  A name the check cannot read is listed as "the test name could not be read", and that stops too.
+  After any step, it covers each move marked `deleted` whose file is still there, and each move marked `slice_only` or `removal_named` that has a `--line`.
+  For a move with a line, the check counts the line's text in the file now, and stops when the count is not lower than it was in the file at the start commit; it names the file, the line number and the text.
+  The check on accepted slice-only marks finds a name as any whole word in the file, as before.
+  `xv record move --slice-only` takes `--line <n>`, marks the move `removal_named`, and `--deleted` marks it `deleted`.
+  `--slice-only` without `--line` is refused, as is a blank line or a number past the end of the file, and nothing is recorded; `--assertion` is a free note that nothing reads.
+  The line is read from the open pairing's `start_commit`, else from `step_start`, which `xv step` saves before the agent runs, else from `HEAD`.
+  Two slice-only moves for the same file and line are one move.
+  A move recorded before `--line` existed keeps the old name check.
   After the maker and the cleaner, `moves` compares each test file that changed since the wall baseline, or that the record already holds as expected, with the slice's base and a test file the slice added with its newest `red` commit, against `expect_moves` and `renames`.
   It records a fit as a move marked `expected`, which replaces a hand-recorded entry for the same file.
   After the guardian, `expected_moves_wrong` stops for the originator when the packet's `expected_moves` does not match the record.

@@ -818,6 +818,8 @@ def step(agent, slice_id, review_again=False):
         return refactor_scenario(path, root, config, data, body, slice_id)
 
     if (config.get("agents") or {}).get(agent) == "session":
+        if data.pop("step_start", None):
+            record.save(path, data, body)  # a session step has none: a move reads HEAD
         where = ""
         if agent == "scenario" and record.has_build(data):
             drop_session_scratch(root, slice_id)  # an earlier, unreported checkout
@@ -841,7 +843,9 @@ def step(agent, slice_id, review_again=False):
 
     head_before = git(["rev-parse", "HEAD"], root).strip()
     pre = pre_step(agent, root, data, config)
-    scratch = scenario_scratch(root, data, config) if agent == "scenario" and record.has_build(data) else None
+    data["step_start"] = {"agent": agent, "commit": head_before}
+    record.save(path, data, body)  # a slice-only move reads its line from here
+    scratch =scenario_scratch(root, data, config) if agent == "scenario" and record.has_build(data) else None
     extra = None
     if scratch and data.get("build_shared") == "yes":
         extra = [f"The build is at `{data['build']['ref']}`, a reference only: the red tests what the scenario says, "

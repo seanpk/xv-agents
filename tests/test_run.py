@@ -2195,8 +2195,14 @@ class RemovalNotMadeTest(WatchLoopSetup):
     # 2. after any step
     def move_recorded(self, *flags):
         self.to_the_maker()
-        self.xv("record", "move", "s1", "--file", "tests/test_red.py", *flags, "--assertion", self.TEST,
+        line = ["--line", str(self.milk_line())] if "--slice-only" in flags else []
+        self.xv("record", "move", "s1", "--file", "tests/test_red.py", *flags, *line, "--assertion", self.TEST,
                 "--why", "slice-only; removed", "--by", "cleaner", cwd=self.wt)
+
+    def milk_line(self):
+        with open(os.path.join(self.wt, "tests", "test_red.py")) as f:
+            text = f.read()
+        return text[:text.index("    def test_milk_today")].count("\n") + 1
 
     def test_a_slice_only_move_for_a_test_still_there_stops_the_next_step(self):
         self.move_recorded("--slice-only")
@@ -2291,11 +2297,12 @@ class RemovalNotMadeTest(WatchLoopSetup):
 
     def test_a_slice_only_move_whose_assertion_names_a_double_colon_test_still_there_stops(self):
         self.to_the_maker()
-        p = self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--assertion",
+        p = self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--line",
+                    str(self.milk_line()), "--assertion",
                     "removed tests/milk-red.py::Red::test_milk_today as slice-only", "--why", "slice-only; removed",
                     "--by", "cleaner", cwd=self.wt, check=False)
-        self.assertNotEqual(p.returncode, 0)
-        self.assertIn("must be the test's name", p.stderr)
+        self.assertEqual(p.returncode, 0, p.stderr)  # the assertion is a free note
+        self.assert_removal_stop(self.step("maker"), "tests/test_red.py", "test_milk_today")
 
     def prose_move(self, sentence):
         self.to_the_maker()
@@ -2368,9 +2375,11 @@ class RemovalNotMadeTest(WatchLoopSetup):
         self.to_the_cleaner()
         path = os.path.join(self.wt, "tests", "test_red.py")
         text = open(path).read()
+        line = self.milk_line()
         with open(path, "w") as f:
             f.write(text[:text.index("    def test_milk_today")] + "    pass\n")
-        self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--assertion", self.TEST,
+        self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--line", str(line),
+                "--assertion", self.TEST,
                 "--why", "slice-only; removed", "--by", "cleaner", cwd=self.wt)
         p = self.session("cleaner")
         self.assertNotIn("removal_not_made", p.stdout, p.stdout + p.stderr)
