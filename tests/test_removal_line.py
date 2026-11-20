@@ -156,3 +156,63 @@ class RemovalLineBriefsTest(unittest.TestCase):
         text = self.read("skills", "watch", "SKILL.md")
         self.assertIn("change_misses_scenario: no", text)
         self.assertIn("## Scenario misses", text)
+
+
+from test_pairing import PairingCase  # noqa: E402
+from test_run import WatchLoopSetup  # noqa: E402
+
+
+class RemovalCommittedBeforeItsMoveTest(PairingCase):
+    """3 and 8. In a pairing the start commit is the pairing's `start_commit`; a removal committed in the pairing and
+    recorded after is taken."""
+
+    def test_a_removal_committed_in_a_pairing_then_moved_with_line_is_taken(self):
+        self.open_stop()
+        self.commit("tests/test_milk.py", SliceOnlyRemovalLineTest.PY, "the tests")
+        self.start()
+        start = self.pairings()[0]["start_commit"]
+        self.assertEqual(start, self.head())
+        self.commit("tests/test_milk.py", SliceOnlyRemovalLineTest.PY_GONE, "pairing (pat with claude): remove it")
+        p = self.xv("record", "move", "s1", "--file", "tests/test_milk.py", "--slice-only", "--line", "5",
+                    "--assertion", "removed", "--why", "slice-only; removed", "--by", "pat", cwd=self.wt, check=False)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        moves = self.record()["moved_tests"]
+        self.assertEqual(len(moves), 1)
+        self.assertIn("def test_milk_today(self):", json.dumps(moves))
+        self.assertEqual(record.removals_not_made(self.wt, self.record(), "cleaner", None), [])
+
+
+class StepStartRemovalTest(WatchLoopSetup):
+    """8. `xv step` saves HEAD as `step_start` before the agent runs; a removal the agent commits and then records
+    with `--line` is read from there."""
+
+    def step(self, agent, check=True, **env):
+        from unittest import mock
+        with mock.patch.dict(os.environ, env):
+            return self.xv("step", agent, "s1", cwd=self.wt, check=check)
+
+    def test_step_saves_head_as_step_start_before_the_agent_runs(self):
+        self.step("forecaster")
+        before = sh_head(self.wt)
+        self.step("scenario")
+        data = self.record()
+        self.assertEqual(data["step_start"]["agent"], "scenario")
+        self.assertEqual(data["step_start"]["commit"], before)
+
+    def test_a_removal_committed_by_the_step_then_moved_with_line_is_taken(self):
+        self.step("forecaster")
+        self.step("scenario")
+        self.step("maker")
+        text = open(os.path.join(self.wt, "tests", "test_red.py")).read()
+        line = text.split("\n").index("    def test_milk_today(self):") + 1
+        p = self.step("cleaner", check=False, FAKE_CLEANER_COMMITS_REMOVAL_THEN_MOVES_LINE=str(line))
+        self.assertNotIn("removal_not_made", p.stdout, p.stdout + p.stderr)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        moves = self.record()["moved_tests"]
+        self.assertEqual(len(moves), 1)
+        self.assertIn("def test_milk_today(self):", json.dumps(moves))
+
+
+def sh_head(wt):
+    from helpers import sh
+    return sh(["git", "rev-parse", "HEAD"], wt).stdout.strip()
