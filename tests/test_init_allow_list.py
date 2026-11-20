@@ -64,11 +64,11 @@ class InitAllowListTest(RepoCase):
             self.assertFalse(has(entries, prefix), prefix)
         self.assertFalse(covers(entries, config["tests"]["command"]), "the forecaster may run tests")
 
-    def test_the_guardian_gets_the_read_only_part_and_the_test_command(self):
+    def test_the_inspector_gets_the_read_only_part_and_the_test_command(self):
         self.xv("init")
         config = load_config(self.repo)
         entries = allowed(config, "inspector")
-        self.assertIsNotNone(entries, "the guardian line has no --allowedTools")
+        self.assertIsNotNone(entries, "the inspector line has no --allowedTools")
         for prefix in READ_ONLY:
             self.assertTrue(has(entries, prefix), prefix)
         for prefix in MAKER_ONLY:
@@ -94,6 +94,6 @@ class InitAllowListTest(RepoCase):
 
 # Watch first: run `xv init` in a scratch repo and read the agents block of .xv/config.yml.
 # The default line lists read-only shell and git commands, git rm/mv, xv record move and your
-# test command, one rule per part; the forecaster's list is read-only; the guardian's adds the
+# test command, one rule per part; the forecaster's list is read-only; the inspector's adds the
 # test command's rules and xv wall diff, xv boundary and xv packet lint.
 # Look for a test command that is allowed in a form a headless agent could not actually run.

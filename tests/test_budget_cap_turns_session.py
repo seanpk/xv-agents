@@ -37,7 +37,7 @@ class TurnsAndSessionTest(BudgetCapSetup):
         cfg = os.path.join(self.repo, ".xv", "config.yml")
         text = open(cfg).read().replace("agents:\n", "agents:\n  inspector: session\n", 1)
         open(cfg, "w").write(text)
-        sh(["git", "commit", "-qam", "guardian in the session"], self.repo)
+        sh(["git", "commit", "-qam", "inspector in the session"], self.repo)
         wt = self.new_slice("s2", "Milk that runs out today shows as running out soon.")
         self.xv("record", "set", "s2", "budget", json.dumps({"usd": 1, "tokens": 10000000}), "--by", "pat", cwd=wt)
         row = {"step": "maker", "usd": 1.05, "tokens": 10, "tokens_in": 10, "tokens_out": 0,

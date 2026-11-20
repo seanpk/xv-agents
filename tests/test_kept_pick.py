@@ -71,7 +71,7 @@ class KeptPickBase(RepoCase):
         with mock.patch.dict(os.environ, self.env(**more)):
             return self.xv("step", agent, "p1", cwd=self.wt, check=False)
 
-    def scenario_step(self, **more):
+    def writer_step(self, **more):
         p = self.step("forecaster")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         return self.step("test-writer", **more)
@@ -206,28 +206,28 @@ class AfterTheKeptPickTest(KeptPickBase):
 
 
 class RedOnTheKeptPickTest(KeptPickBase):
-    def test_the_scenario_agent_is_not_told_where_the_kept_build_is(self):
+    def test_the_test_writer_is_not_told_where_the_kept_build_is(self):
         self.pick("--keep", check=True)
-        self.scenario_step()
+        self.writer_step()
         prompt = self.prompt_of("# The test writer")
-        self.assertTrue(prompt, "the scenario agent did not run")
+        self.assertTrue(prompt, "the test writer did not run")
         self.assertNotIn("proto-b", prompt)
         copy = self.copy_of("# The test writer")
-        self.assertIsNotNone(copy, "the scenario agent had no record copy")
+        self.assertIsNotNone(copy, "the test writer had no record copy")
         self.assertNotIn("proto-b", copy, "the record copy names the kept branch")
         self.assertNotIn("kept_pick", copy)
         self.assertNotIn(self.record()["build"]["commit"][:7], copy)
 
-    def test_a_shared_kept_pick_is_named_to_the_scenario_agent_as_a_reference_only(self):
+    def test_a_shared_kept_pick_is_named_to_the_test_writer_as_a_reference_only(self):
         self.pick("--keep", "--share-build", check=True)
-        self.scenario_step()
+        self.writer_step()
         prompt = self.prompt_of("# The test writer")
         self.assertIn("xv/p1-proto-b", prompt)
         self.assertRegex(prompt, r"(?i)reference only")
 
     def test_a_red_that_fails_on_the_kept_build_goes_to_the_maker_with_no_stop(self):
         self.pick("--keep", check=True)
-        p = self.scenario_step()
+        p = self.writer_step()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         data = self.record()
         self.assertIs(data["checks"]["test-writer"].get("red_fails"), True, "the red did not fail on the base")
@@ -239,7 +239,7 @@ class RedOnTheKeptPickTest(KeptPickBase):
 
     def test_the_maker_works_from_the_kept_build_in_a_new_context(self):
         self.pick("--keep", check=True)
-        self.scenario_step()
+        self.writer_step()
         p = self.step("maker")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         ran = self.ran("# The maker")

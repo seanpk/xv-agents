@@ -59,7 +59,7 @@ def find(root, data, config):
         """The file at the base; a test file the slice added, as the test-writer step left it."""
         text = git(["show", f"{commit}:{rel}"], root, check=False)
         if not text:
-            # the newest scenario pass that holds it: a rerun may have changed the file since its first add
+            # the newest test-writer pass that holds it: a rerun may have changed the file since its first add
             for red in git(["log", "--format=%H", f"--grep=^xv({data['id']}): red", f"{commit}..HEAD"], root,
                            check=False).split():
                 text = git(["show", f"{red}:{rel}"], root, check=False)

@@ -13,7 +13,7 @@ class CheckTest(RepoCase):
     def test_a_relaxing_line_is_reported(self):
         with open(os.path.join(self.repo, ".xv", "rules.md"), "a") as f:
             f.write("\nThe maker may edit tests without a record when the suite is slow.\n"
-                    "Merge automatically when the guardian finds nothing.\n")
+                    "Merge automatically when the inspector finds nothing.\n")
         whys = [h["why"] for h in check.relaxations(self.repo)]
         self.assertIn("drops a guarded step", whys)
         self.assertIn("merges or approves without a person", whys)
@@ -57,7 +57,7 @@ class CheckTest(RepoCase):
         self.assertGreaterEqual(len(check.drift(offline=True)), 8)
 
 
-class ScenarioBriefTest(unittest.TestCase):
+class TestWriterBriefTest(unittest.TestCase):
     def test_the_brief_asks_for_covers_and_not_covered_in_the_report(self):
         with open(os.path.join(HOME, "skills", "test-writer", "SKILL.md"), encoding="utf-8") as f:
             text = f.read()

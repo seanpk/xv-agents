@@ -167,12 +167,12 @@ class PairingEndTest(PairingCase):
         q = self.xv("run", "s1", cwd=self.wt, check=False)
         self.assertIn("pairing", (q.stdout + q.stderr).lower())
 
-    def test_end_next_scenario_needs_an_amendment_made_since_it_opened(self):
+    def test_end_next_test_writer_needs_an_amendment_made_since_it_opened(self):
         p = self.end("--next", "test-writer", check=False)
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("amend", (p.stdout + p.stderr).lower())
 
-    def test_end_next_scenario_goes_through_after_an_amendment(self):
+    def test_end_next_test_writer_goes_through_after_an_amendment(self):
         path = os.path.join(self.tmp, "amendment.md")
         with open(path, "w") as f:
             f.write("The list also shows the day.")
@@ -237,7 +237,7 @@ def turn(mid, ts, out):
 
 
 class PairingFieldsTest(PairingCase):
-    """Amendment 10: the entry's fields, the spend row through a reader, the guardian's prompt, solo."""
+    """Amendment 10: the entry's fields, the spend row through a reader, the inspector's prompt, solo."""
 
     def start_with(self, session):
         return self.xv("pairing", "start", "s1", "--by", "pat", "--why", "fix the red with the agent",
@@ -312,7 +312,7 @@ class PairingFieldsTest(PairingCase):
         self.assertTrue(all(r["tokens_out"] < 700 for r in rows))
 
     # -- 3, 10
-    def test_the_guardian_prompt_names_each_not_blind_file_and_the_others_do_not(self):
+    def test_the_inspector_prompt_names_each_not_blind_file_and_the_others_do_not(self):
         self.open_stop()
         self.start()
         self.commit("tests/test_pairing_made.py", "import unittest\n", "pairing (pat with agent): a test")
@@ -320,9 +320,9 @@ class PairingFieldsTest(PairingCase):
         self.end("--next", "inspector")
         entry = self.pairings()[0]
         self.assertEqual(entry["not_blind"], ["tests/test_pairing_made.py"])
-        guardian = self.xv("prompt", "inspector", "s1", cwd=self.wt).stdout
-        self.assertIn("tests/test_pairing_made.py", guardian)
-        self.assertIn("not blind", guardian.lower())
+        inspector = self.xv("prompt", "inspector", "s1", cwd=self.wt).stdout
+        self.assertIn("tests/test_pairing_made.py", inspector)
+        self.assertIn("not blind", inspector.lower())
         for seat in ("test-writer", "maker", "cleaner"):
             self.assertNotIn("tests/test_pairing_made.py", self.xv("prompt", seat, "s1", cwd=self.wt).stdout, seat)
 

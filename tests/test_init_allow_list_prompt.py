@@ -82,6 +82,6 @@ class InitAllowListPromptTest(RepoCase):
         self.assertIn("--allowedTools", step[0])
 
 
-# Watch first: run `xv init` in a repo with a tests/ folder and `xv prompt guardian` with xv on the
+# Watch first: run `xv init` in a repo with a tests/ folder and `xv prompt inspector` with xv on the
 # PATH; the named xv command should be plain `xv`. Then read the skill's test command step for the
 # line about changing the --allowedTools test rules along with tests.command.

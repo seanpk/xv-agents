@@ -27,12 +27,12 @@ class PictureInTheBriefsTest(unittest.TestCase):
         text = brief("skills", "maker", "SKILL.md")
         self.assertRegex(text, r"(?i)binding decisions[^\n]*before[^\n]*code|before[^\n]*code[^\n]*binding decisions")
 
-    def test_the_scenario_agent_may_read_the_picture_and_pull_the_binding_decisions(self):
+    def test_the_test_writer_may_read_the_picture_and_pull_the_binding_decisions(self):
         text = brief("skills", "test-writer", "SKILL.md")
         self.assertIn(".xv/picture.md", section(text, "Read"))
         self.assertRegex(text, r"(?i)binding decisions")
 
-    def test_the_scenario_brief_says_each_numbered_point_must_be_in_covers_or_not_covered(self):
+    def test_the_test_writer_brief_says_each_numbered_point_must_be_in_covers_or_not_covered(self):
         text = brief("skills", "test-writer", "SKILL.md")
         self.assertRegex(text, r"(?is)each numbered outcome[^\n]*amendment[^\n]*`covered`[^\n]*`not_covered`")
 
@@ -118,18 +118,18 @@ def paragraphs(text, *words):
     return [b for b in blocks if all(w.lower() in b.lower() for w in words)]
 
 
-class ScenarioCatchesTest(unittest.TestCase):
-    def test_the_scenario_brief_marks_a_one_time_wording_check_slice_only(self):
+class TestWriterCatchesTest(unittest.TestCase):
+    def test_the_test_writer_brief_marks_a_one_time_wording_check_slice_only(self):
         text = brief("skills", "test-writer", "SKILL.md")
         self.assertTrue(paragraphs(text, "slice_only", "wording", "README"), "no slice_only line for a wording change")
         self.assertTrue(paragraphs(text, "slice_only", "version pin"))
 
-    def test_the_scenario_report_names_each_old_test_the_red_forces_to_change(self):
+    def test_the_test_writer_report_names_each_old_test_the_red_forces_to_change(self):
         text = brief("skills", "test-writer", "SKILL.md")
         hits = paragraphs(text, "old test", "force", "report", "why")
         self.assertTrue([h for h in hits if "file" in h and "test" in h], "no report line naming old tests")
 
-    def test_the_scenario_report_names_the_may_not_files_the_red_needs_changed(self):
+    def test_the_test_writer_report_names_the_may_not_files_the_red_needs_changed(self):
         text = brief("skills", "test-writer", "SKILL.md")
         hits = paragraphs(text, "may-not", "report", ".xv/picture.md")
         self.assertTrue(hits, "no report line naming may-not files")
@@ -155,14 +155,14 @@ class ScenarioCatchesTest(unittest.TestCase):
         self.assertTrue(paragraphs(text, "may-not", "inspection report", "test writer"),
                         "the inspector brief does not list the changes the test writer's report allowed")
 
-    def test_the_scenario_brief_asks_a_red_case_for_each_way_a_value_can_be_wrong(self):
+    def test_the_test_writer_brief_asks_a_red_case_for_each_way_a_value_can_be_wrong(self):
         text = brief("skills", "test-writer", "SKILL.md")
         hits = paragraphs(text, "missing", "empty", "wrong type", "not_covered")
         self.assertTrue([h for h in hits if re.search(r"(?i)on the list", h)],
                         "no line asks for missing, empty, wrong type and off-list cases")
         self.assertTrue([h for h in hits if re.search(r"(?i)flag|field|report key", h)])
 
-    def test_the_scenario_brief_asks_a_case_where_a_read_only_agent_claims_a_persons_word(self):
+    def test_the_test_writer_brief_asks_a_case_where_a_read_only_agent_claims_a_persons_word(self):
         text = brief("skills", "test-writer", "SKILL.md")
         hits = paragraphs(text, "read-only agent", "only a person")
         self.assertTrue(hits, "no case for an agent claiming what only a person may give")
@@ -182,7 +182,7 @@ class ScenarioCatchesTest(unittest.TestCase):
         self.assertTrue([h for h in hits if re.search(r"(?i)only `?\.xv/picture\.md", h)],
                         "the maker brief does not say the picture is the only file it may change")
 
-    def test_the_scenario_brief_says_the_maker_may_change_only_the_picture_from_the_list(self):
+    def test_the_test_writer_brief_says_the_maker_may_change_only_the_picture_from_the_list(self):
         text = brief("skills", "test-writer", "SKILL.md")
         hits = paragraphs(text, "6d.", "may-not", "maker may change")
         self.assertTrue(hits)
@@ -197,7 +197,7 @@ class ScenarioCatchesTest(unittest.TestCase):
         self.assertNotIn("a named may-not file", line)
         self.assertRegex(line, r"(?i)only `?\.xv/picture\.md")
 
-    def test_the_scenario_brief_says_a_number_in_covers_names_only_the_scenarios_own_point(self):
+    def test_the_test_writer_brief_says_a_number_in_covers_names_only_the_scenarios_own_point(self):
         text = brief("skills", "test-writer", "SKILL.md")
         self.assertRegex(text, r"(?is)\bnumber\b[^\n]*only[^\n]*scenario's own outcome")
         self.assertRegex(text, r"(?is)amendment's outcome[^\n]*own words")
@@ -218,11 +218,11 @@ class RetroDocsNameNumberedFilesTest(unittest.TestCase):
 
 class DefectsToolsDocsTest(unittest.TestCase):
     """defects-tools 16 and 17: the docs name what changed. README, the watch, xv-slice and cleaner briefs and the
-    picture name `build.commit`, the wall-flag forms, `run.py land-scenario`, `brief:` names and the repeating `--ignore`."""
+    picture name `build.commit`, the wall-flag forms, `run.py land-test-writer`, `brief:` names and the repeating `--ignore`."""
 
     def test_the_watch_brief_names_the_session_landing_and_the_wall_flag_forms(self):
         text = brief("skills", "watch", "SKILL.md")
-        self.assertIn("run.py land-scenario", text)
+        self.assertIn("run.py land-test-writer", text)
         self.assertIn("file::test", text)
 
     def test_the_xv_slice_brief_says_ignore_can_repeat(self):

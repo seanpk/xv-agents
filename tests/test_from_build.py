@@ -73,7 +73,7 @@ class FromBuildBase(RepoCase):
         with mock.patch.dict(os.environ, self.env(**more)):
             return self.xv("step", agent, "s1", cwd=self.wt, check=False)
 
-    def scenario_step(self, **more):
+    def writer_step(self, **more):
         self.step("forecaster")
         return self.step("test-writer", **more)
 
@@ -103,7 +103,7 @@ class FromBuildBase(RepoCase):
         self.xv("slice", "amend", "s1", "--by", "pat", "--scenario-file", f, cwd=self.wt)
 
     def copies(self, log):
-        """The record copies each scenario agent run could read, in order."""
+        """The record copies each test writer run could read, in order."""
         if not os.path.exists(log):
             return []
         rows = [json.loads(line) for line in open(log) if line.strip()]
@@ -209,7 +209,7 @@ class SliceNewFromTest(FromBuildBase):
 
 
 class BuildNotSharedTest(FromBuildBase):
-    # 4. by default the scenario agent never sees the build
+    # 4. by default the test writer never sees the build
     def setUp(self):
         super().setUp()
         self.make_build(fixed=False)
@@ -218,18 +218,18 @@ class BuildNotSharedTest(FromBuildBase):
     def test_the_record_says_build_shared_no(self):
         self.assertEqual(self.record().get("build_shared"), "no")
 
-    def test_the_scenario_agent_runs_in_a_worktree_at_base(self):
-        self.scenario_step()
+    def test_the_test_writer_runs_in_a_worktree_at_base(self):
+        self.writer_step()
         ran = self.ran("# The test writer")
-        self.assertIsNotNone(ran, "the scenario agent did not run")
-        self.assertFalse(ran["exists"][MARKER], "the scenario agent's checkout has the build in it")
+        self.assertIsNotNone(ran, "the test writer did not run")
+        self.assertFalse(ran["exists"][MARKER], "the test writer's checkout has the build in it")
         self.assertTrue(self.is_ancestor(self.main, ran["head"]))
         self.assertFalse(self.is_ancestor(self.build, ran["head"]))
 
-    def test_the_scenario_agents_prompt_names_no_build_branch_or_diff(self):
-        self.scenario_step()
+    def test_the_test_writers_prompt_names_no_build_branch_or_diff(self):
+        self.writer_step()
         prompt = self.prompt_of("# The test writer")
-        self.assertTrue(prompt, "the scenario agent did not run")
+        self.assertTrue(prompt, "the test writer did not run")
         self.assertNotIn(BUILD, prompt)
         self.assertNotIn(self.build[:7], prompt)
 
@@ -244,10 +244,10 @@ class BuildSharedTest(FromBuildBase):
     def test_the_record_says_build_shared_yes(self):
         self.assertEqual(self.record().get("build_shared"), "yes")
 
-    def test_the_scenario_agents_prompt_names_the_build_as_a_reference_only(self):
-        self.scenario_step()
+    def test_the_test_writers_prompt_names_the_build_as_a_reference_only(self):
+        self.writer_step()
         prompt = self.prompt_of("# The test writer")
-        self.assertTrue(prompt, "the scenario agent did not run")
+        self.assertTrue(prompt, "the test writer did not run")
         self.assertIn(BUILD, prompt)
         self.assertRegex(prompt, r"(?i)reference only")
         self.assertRegex(prompt, r"(?is)what the scenario says")
@@ -259,7 +259,7 @@ class RedOnTheBuildTest(FromBuildBase):
     def test_a_red_that_passes_on_the_base_stops_even_when_the_build_has_the_fix(self):
         self.make_build(fixed=True)
         self.open_slice("--from", BUILD)
-        p = self.scenario_step(FAKE_RED_COMMAND="python3 -m unittest tests.test_store")
+        p = self.writer_step(FAKE_RED_COMMAND="python3 -m unittest tests.test_store")
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "scenario_not_red")
         self.assertNotEqual(self.record()["next"], "cleaner")
@@ -268,7 +268,7 @@ class RedOnTheBuildTest(FromBuildBase):
     def test_a_red_that_fails_on_the_build_goes_to_the_maker_with_no_stop(self):
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
-        p = self.scenario_step()
+        p = self.writer_step()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertIsNone(json.loads(p.stdout).get("stop"))
         self.assertEqual(self.open_stops(), [])
@@ -279,14 +279,14 @@ class RedOnTheBuildTest(FromBuildBase):
     def test_the_maker_is_told_which_red_test_missed_on_the_build(self):
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
-        self.scenario_step()
+        self.writer_step()
         maker = self.xv("prompt", "maker", "s1", cwd=self.wt).stdout
         self.assertIn("test_milk_today", maker)
 
     def test_the_maker_starts_from_the_build_with_the_red_in_it(self):
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
-        self.scenario_step()
+        self.writer_step()
         self.assertTrue(os.path.exists(os.path.join(self.wt, "tests", "test_red.py")),
                         "the red is not on the slice branch")
         p = self.step("maker")
@@ -301,7 +301,7 @@ class RedOnTheBuildTest(FromBuildBase):
     def test_a_red_that_passes_on_the_build_skips_the_maker(self):
         self.make_build(fixed=True)
         self.open_slice("--from", BUILD)
-        p = self.scenario_step()
+        p = self.writer_step()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         rec = self.record()
         self.assertIs(rec["checks"]["test-writer"].get("red_fails"), True, "the red did not fail on the base")
@@ -317,10 +317,10 @@ class RedOnTheBuildTest(FromBuildBase):
         self.assertIn("cleaner", steps)
 
     # 9. the decision is in scripts/orders.py
-    def test_orders_decides_where_the_slice_goes_after_the_scenario_step(self):
+    def test_orders_decides_where_the_slice_goes_after_the_test_writer_step(self):
         self.make_build(fixed=True)
         self.open_slice("--from", BUILD)
-        self.scenario_step()
+        self.writer_step()
         p = self.xv("orders", "s1", "--after", "test-writer", cwd=self.wt, check=False)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertEqual(json.loads(p.stdout).get("next"), "cleaner")
@@ -328,7 +328,7 @@ class RedOnTheBuildTest(FromBuildBase):
     def test_orders_sends_a_red_that_fails_on_the_build_to_the_maker(self):
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
-        self.scenario_step()
+        self.writer_step()
         p = self.xv("orders", "s1", "--after", "test-writer", cwd=self.wt, check=False)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         v = json.loads(p.stdout)
@@ -337,25 +337,25 @@ class RedOnTheBuildTest(FromBuildBase):
 
     def test_a_slice_with_no_build_goes_to_the_maker_as_now(self):
         self.open_slice()
-        p = self.scenario_step()
+        p = self.writer_step()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
 
-class SecondScenarioPassTest(FromBuildBase):
-    # 12. a second scenario pass starts at the base with the earlier red, and lands without a conflict
+class SecondTestWriterPassTest(FromBuildBase):
+    # 12. a second test-writer pass starts at the base with the earlier red, and lands without a conflict
     def setUp(self):
         super().setUp()
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
-        p = self.scenario_step()
+        p = self.writer_step()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.amend()
 
     def test_the_second_pass_starts_at_the_base_with_the_earlier_red_in_it(self):
         self.step("test-writer", FAKE_RED_TEXT="SECOND-PASS")
         ran = self.ran("# The test writer")
-        self.assertIsNotNone(ran, "the scenario agent did not run")
+        self.assertIsNotNone(ran, "the test writer did not run")
         self.assertFalse(ran["exists"][MARKER], "the second pass's checkout has the build in it")
         self.assertTrue(ran["exists"]["tests/test_red.py"], "the second pass's checkout does not have the earlier red")
         self.assertFalse(self.is_ancestor(self.build, ran["head"]))
@@ -370,14 +370,14 @@ class SecondScenarioPassTest(FromBuildBase):
 
 
 class SecondPassAfterTheMakerTest(FromBuildBase):
-    # 12. a second scenario pass after the maker starts at the base with the earlier red, not the maker's fix
+    # 12. a second test-writer pass after the maker starts at the base with the earlier red, not the maker's fix
     MAKER_FIX = "today <= i.expires_on <= last"
     PROBE = f"{MARKER} tests/test_red.py pantry/store.py"
 
     def open_and_make(self, build_files=None):
         self.make_build(fixed=False, files=build_files)
         self.open_slice("--from", BUILD)
-        p = self.scenario_step()
+        p = self.writer_step()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         p = self.step("maker")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
@@ -398,7 +398,7 @@ class SecondPassAfterTheMakerTest(FromBuildBase):
         self.open_and_make()
         self.step("test-writer", FAKE_RED_TEXT="SECOND-PASS", FAKE_CWD_PROBE=self.PROBE)
         ran = self.ran("# The test writer")
-        self.assertIsNotNone(ran, "the scenario agent did not run")
+        self.assertIsNotNone(ran, "the test writer did not run")
         self.assertFalse(ran["exists"][MARKER], "the second pass's checkout has the build in it")
         self.assertTrue(ran["exists"]["tests/test_red.py"], "the second pass's checkout does not have the earlier red")
         self.assertNotIn(self.MAKER_FIX, ran["texts"]["pantry/store.py"],
@@ -416,7 +416,7 @@ class SecondPassAfterTheMakerTest(FromBuildBase):
         self.open_and_make(self.build_edits_the_makers_file())
         self.step("test-writer", FAKE_RED_TEXT="SECOND-PASS", FAKE_CWD_PROBE=self.PROBE)
         ran = self.ran("# The test writer")
-        self.assertIsNotNone(ran, "the second scenario pass did not start")
+        self.assertIsNotNone(ran, "the second test-writer pass did not start")
         self.assertFalse(ran["exists"][MARKER], "the second pass's checkout has the build in it")
         self.assertTrue(ran["exists"]["tests/test_red.py"], "the second pass's checkout does not have the earlier red")
         self.assertNotIn(self.MAKER_FIX, ran["texts"]["pantry/store.py"],
@@ -437,7 +437,7 @@ class SecondPassAfterTheMakerTest(FromBuildBase):
     def test_a_second_pass_after_the_maker_leaves_no_checkout_behind(self):
         self.open_and_make(self.build_edits_the_makers_file())
         self.step("test-writer", FAKE_RED_TEXT="SECOND-PASS")
-        self.assertEqual(self.scratch_worktrees(), [], "the scenario agent's checkout was left behind")
+        self.assertEqual(self.scratch_worktrees(), [], "the test writer's checkout was left behind")
 
 
 class RedOnItsOwnRefTest(FromBuildBase):
@@ -457,7 +457,7 @@ class RedOnItsOwnRefTest(FromBuildBase):
         """A first pass whose red adds a test to tests/test_store.py; then the slice is amended."""
         self.make_build(fixed=False, files=build_files)
         self.open_slice("--from", BUILD)
-        p = self.scenario_step(FAKE_RED_ADDS_TO_OLD="1")
+        p = self.writer_step(FAKE_RED_ADDS_TO_OLD="1")
         if build_files and self.open_stops():  # 13: the build's change to a test file stops once; the person accepts it
             self.assertEqual([s["order"] for s in self.open_stops()], ["unrecorded_move"], p.stdout + p.stderr)
             self.xv("record", "answer", "s1", "--by", "pat", "--answer", "the build's change is accepted",
@@ -499,7 +499,7 @@ class RedOnItsOwnRefTest(FromBuildBase):
         self.assertTrue(tips, "no ref holds the red at the base, without the build")
         self.step("test-writer", FAKE_RED_TEXT="SECOND-PASS", FAKE_CWD_PROBE=self.PROBE)
         ran = self.ran("# The test writer")
-        self.assertIsNotNone(ran, "the second scenario pass did not start")
+        self.assertIsNotNone(ran, "the second test-writer pass did not start")
         self.assertIn(ran["head"], tips, "the second pass's checkout is not at the tip of the red's ref")
 
     def test_the_red_ref_moves_to_the_second_pass_red(self):
@@ -517,7 +517,7 @@ class RedOnItsOwnRefTest(FromBuildBase):
         self.first_pass(self.build_edits_near_the_red())
         self.step("test-writer", FAKE_RED_TEXT="SECOND-PASS", FAKE_CWD_PROBE=self.PROBE)
         ran = self.ran("# The test writer")
-        self.assertIsNotNone(ran, "the second scenario pass did not start")
+        self.assertIsNotNone(ran, "the second test-writer pass did not start")
         self.assertFalse(ran["exists"][MARKER], "the second pass's checkout has the build in it")
         store = ran["texts"]["tests/test_store.py"]
         self.assertIn(self.FIRST_RED, store, "the second pass's checkout does not have the earlier red")
@@ -539,7 +539,7 @@ class RedOnItsOwnRefTest(FromBuildBase):
     def test_a_second_pass_leaves_no_checkout_behind_when_the_red_edits_a_file_the_build_changed(self):
         self.first_pass(self.build_edits_near_the_red())
         self.step("test-writer", FAKE_RED_TEXT="SECOND-PASS")
-        self.assertEqual(self.scratch_worktrees(), [], "the scenario agent's checkout was left behind")
+        self.assertEqual(self.scratch_worktrees(), [], "the test writer's checkout was left behind")
 
 
 class RedRefRebaseTest(FromBuildBase):
@@ -572,7 +572,7 @@ class RedRefRebaseTest(FromBuildBase):
         """A first pass from the build whose red adds a test to tests/test_store.py, and then main moves on."""
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
-        p = self.scenario_step(FAKE_RED_ADDS_TO_OLD="1")
+        p = self.writer_step(FAKE_RED_ADDS_TO_OLD="1")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertIn(self.FIRST_RED, open(os.path.join(self.wt, "tests", "test_store.py")).read(),
                       "the first red did not land on the slice branch")
@@ -610,7 +610,7 @@ class RedRefRebaseTest(FromBuildBase):
             os.remove(self.cwds)
         self.step("test-writer", FAKE_RED_TEXT="SECOND-PASS", FAKE_CWD_PROBE=self.PROBE)
         ran = self.ran("# The test writer")
-        self.assertIsNotNone(ran, "the scenario pass after the rebase did not start")
+        self.assertIsNotNone(ran, "the test-writer pass after the rebase did not start")
         self.assertFalse(ran["exists"][MARKER], "the pass after the rebase has the build in it")
         self.assertTrue(ran["exists"]["docs.txt"], "the pass after the rebase is not at the new base")
         self.assertTrue(ran["exists"]["tests/test_red.py"], "the pass after the rebase started without the earlier red")
@@ -667,7 +667,7 @@ class BuildConflictTest(FromBuildBase):
     def test_a_red_that_conflicts_with_the_build_stops(self):
         self.make_build(fixed=False, files={"tests/test_red.py": "# the build's own test file\nBUILD_TEST = True\n"})
         self.open_slice("--from", BUILD)
-        p = self.scenario_step()
+        p = self.writer_step()
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "red_conflicts_with_build")
         self.assertEqual([s["order"] for s in self.open_stops()], ["red_conflicts_with_build"])
@@ -678,7 +678,7 @@ class BuildConflictTest(FromBuildBase):
     def test_the_conflict_stop_says_the_red_is_kept_on_its_ref_and_a_later_pass_starts_from_it(self):
         self.make_build(fixed=False, files={"tests/test_red.py": "# the build's own test file\nBUILD_TEST = True\n"})
         self.open_slice("--from", BUILD)
-        p = self.scenario_step()
+        p = self.writer_step()
         stop = json.loads(p.stdout)["stop"]
         self.assertIn("refs/xv/s1/red", stop["question"])
         held = sh(["git", "rev-parse", "--verify", "refs/xv/s1/red"], self.repo).stdout.strip()
@@ -713,7 +713,7 @@ class BuildConflictTest(FromBuildBase):
         old = open(os.path.join(self.repo, "tests", "test_store.py")).read()
         self.make_build(fixed=False, files={"tests/test_store.py": old.replace('["yogurt"]', '["yogurt"] or []')})
         self.open_slice("--from", BUILD)
-        self.scenario_step()
+        self.writer_step()
         fired = []
         for agent, after in (("maker", "cleaner"), ("cleaner", "inspector")):
             self.step(agent)  # stops for the session, which does the work itself
@@ -751,7 +751,7 @@ class BuildAddedTestsTest(FromBuildBase):
         return text.replace(line, "")
 
     def run_through(self, **env):
-        """The steps up to the guardian; a stop for the build's change is answered like a person would."""
+        """The steps up to the inspector; a stop for the build's change is answered like a person would."""
         self.open_slice("--from", BUILD)
         self.step("forecaster")
         for agent, after in (("test-writer", "maker"), ("maker", "cleaner"), ("cleaner", "inspector")):
@@ -806,7 +806,7 @@ class BuildAddedTestsTest(FromBuildBase):
 
 
 class RecordCopyTest(FromBuildBase):
-    # 14. when the build is not shared, the scenario agent's record copy names no branch or commit at the build
+    # 14. when the build is not shared, the test writer's record copy names no branch or commit at the build
     def setUp(self):
         super().setUp()
         self.make_build(fixed=False)
@@ -814,38 +814,38 @@ class RecordCopyTest(FromBuildBase):
         self.log = os.path.join(self.tmp, "records.log")
 
     def assert_names_no_build(self, copy):
-        self.assertIsNotNone(copy, "the scenario agent's checkout has no copy of the record")
+        self.assertIsNotNone(copy, "the test writer's checkout has no copy of the record")
         self.assertNotIn(BUILD, copy)
         self.assertNotRegex(copy, r"(?<![\w.])xv/s1\b", "the copy names the slice branch, which is at the build")
         self.assertEqual(self.commits_at_the_build(copy), [], "the copy names a commit at the build")
 
     def test_the_first_pass_copy_names_no_branch_or_commit_at_the_build(self):
-        self.scenario_step(FAKE_RECORD_LOG=self.log)
+        self.writer_step(FAKE_RECORD_LOG=self.log)
         copies = self.copies(self.log)
-        self.assertEqual(len(copies), 1, "the scenario agent did not run")
+        self.assertEqual(len(copies), 1, "the test writer did not run")
         self.assert_names_no_build(copies[0])
 
     def test_a_second_pass_copy_names_no_branch_or_commit_at_the_build(self):
-        self.scenario_step(FAKE_RECORD_LOG=self.log)
+        self.writer_step(FAKE_RECORD_LOG=self.log)
         self.amend()
         self.step("test-writer", FAKE_RECORD_LOG=self.log)
         copies = self.copies(self.log)
-        self.assertEqual(len(copies), 2, "the second scenario pass did not run")
+        self.assertEqual(len(copies), 2, "the second test-writer pass did not run")
         self.assert_names_no_build(copies[1])
 
     def test_a_second_pass_copy_after_the_maker_names_no_branch_or_commit_at_the_build(self):
-        self.scenario_step(FAKE_RECORD_LOG=self.log)
+        self.writer_step(FAKE_RECORD_LOG=self.log)
         p = self.step("maker")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.amend()
         self.step("test-writer", FAKE_RECORD_LOG=self.log)
         copies = self.copies(self.log)
-        self.assertEqual(len(copies), 2, "the second scenario pass did not run")
+        self.assertEqual(len(copies), 2, "the second test-writer pass did not run")
         self.assert_names_no_build(copies[1])
 
     # 14, as Sean settled it: the unshared copy keeps no commit that is not an ancestor of base, for any field
     def test_a_second_pass_copy_after_a_cleaner_that_committed_names_no_commit_off_the_base(self):
-        self.scenario_step(FAKE_RECORD_LOG=self.log)
+        self.writer_step(FAKE_RECORD_LOG=self.log)
         p = self.step("maker")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.step("cleaner", FAKE_CLEANER_COMMITS="1")
@@ -853,37 +853,37 @@ class RecordCopyTest(FromBuildBase):
         self.amend()
         self.step("test-writer", FAKE_RECORD_LOG=self.log)
         copies = self.copies(self.log)
-        self.assertEqual(len(copies), 2, "the second scenario pass did not run")
+        self.assertEqual(len(copies), 2, "the second test-writer pass did not run")
         self.assertEqual(self.commits_off_the_base(copies[1]), [], "the copy names a commit that is not on the base")
 
     def test_no_copy_names_a_commit_off_the_base_in_any_field(self):
         head = sh(["git", "rev-parse", "HEAD"], self.wt).stdout.strip()
         self.xv("record", "set", "s1", "explored_at", head, "--by", "pat", cwd=self.wt)
         self.xv("record", "set", "s1", "notes", json.dumps({"seen": [self.build[:12]]}), "--by", "pat", cwd=self.wt)
-        self.scenario_step(FAKE_RECORD_LOG=self.log)
+        self.writer_step(FAKE_RECORD_LOG=self.log)
         self.amend()
         self.step("test-writer", FAKE_RECORD_LOG=self.log)
         copies = self.copies(self.log)
-        self.assertEqual(len(copies), 2, "the second scenario pass did not run")
+        self.assertEqual(len(copies), 2, "the second test-writer pass did not run")
         for n, copy in enumerate(copies, 1):
             self.assertIsNotNone(copy, f"pass {n}'s checkout has no copy of the record")
             self.assertEqual(self.commits_off_the_base(copy), [], f"pass {n}'s copy names a commit that is not on the base")
 
 
-class SessionScenarioTest(FromBuildBase):
-    # 15. with agents.scenario: session, xv step scenario makes the checkout at the base and names it
+class SessionTestWriterTest(FromBuildBase):
+    # 15. with agents.test-writer: session, xv step test-writer makes the checkout at the base and names it
     def setUp(self):
         super().setUp()
         cfg = os.path.join(self.repo, ".xv", "config.yml")
         text = open(cfg).read().replace("agents:\n", "agents:\n  test-writer: session\n", 1)
         open(cfg, "w").write(text)
-        sh(["git", "commit", "-qam", "scenario in the session"], self.repo)
+        sh(["git", "commit", "-qam", "test writer in the session"], self.repo)
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
 
     def test_the_step_makes_the_checkout_at_the_base_and_names_it(self):
-        p = self.scenario_step()
-        self.assertNotEqual(p.returncode, 0, "the scenario step did not stop for the session")
+        p = self.writer_step()
+        self.assertNotEqual(p.returncode, 0, "the test-writer step did not stop for the session")
         out = p.stdout + p.stderr
         seen = {os.path.realpath(self.repo), os.path.realpath(self.wt)}
         named = []
@@ -900,8 +900,8 @@ class SessionScenarioTest(FromBuildBase):
         self.assertFalse(os.path.exists(os.path.join(checkout, MARKER)), "the named checkout has the build in it")
 
 
-class SessionScenarioReportTest(FromBuildBase):
-    # #147 point 1: `xv record report <id> scenario -` lands the red written in the session's checkout and drops it
+class SessionTestWriterReportTest(FromBuildBase):
+    # #147 point 1: `xv record report <id> test-writer -` lands the red written in the session's checkout and drops it
     RED_TEST = ("import unittest\n\n\nclass Red(unittest.TestCase):\n    def test_milk_today(self):\n"
                 "        self.assertEqual(1, 2)\n")
     REPORT = {"agent": "test-writer", "status": "red", "summary": "red",
@@ -914,7 +914,7 @@ class SessionScenarioReportTest(FromBuildBase):
         cfg = os.path.join(self.repo, ".xv", "config.yml")
         text = open(cfg).read().replace("agents:\n", "agents:\n  test-writer: session\n", 1)
         open(cfg, "w").write(text)
-        sh(["git", "commit", "-qam", "scenario in the session"], self.repo)
+        sh(["git", "commit", "-qam", "test writer in the session"], self.repo)
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
 
@@ -929,7 +929,7 @@ class SessionScenarioReportTest(FromBuildBase):
         os.makedirs(os.path.join(checkout, "tests"), exist_ok=True)
         with open(os.path.join(checkout, "tests", "test_red.py"), "w") as f:
             f.write(test or self.RED_TEST)
-        path = os.path.join(self.tmp, "scenario-report.txt")
+        path = os.path.join(self.tmp, "test-writer-report.txt")
         with open(path, "w") as f:
             f.write("```xv-report\n" + json.dumps(report or self.REPORT) + "\n```\n")
         return self.xv("record", "report", "s1", "test-writer", path, cwd=self.wt, check=False)
@@ -938,7 +938,7 @@ class SessionScenarioReportTest(FromBuildBase):
         return sh(["git", "for-each-ref", "--format=%(refname)", "refs/xv/s1/"], self.repo).stdout.split()
 
     def test_the_report_lands_the_red_on_the_slice_branch(self):
-        checkout = self.checkout_named(self.scenario_step())
+        checkout = self.checkout_named(self.writer_step())
         p = self.write_the_red_and_report(checkout)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertIn("assertEqual(1, 2)", open(os.path.join(self.wt, "tests", "test_red.py")).read())
@@ -946,14 +946,14 @@ class SessionScenarioReportTest(FromBuildBase):
         self.assertTrue(self.is_ancestor(self.build, "HEAD", cwd=self.wt))
 
     def test_the_report_keeps_the_red_on_its_ref_at_the_base(self):
-        checkout = self.checkout_named(self.scenario_step())
+        checkout = self.checkout_named(self.writer_step())
         self.write_the_red_and_report(checkout)
         self.assertEqual(self.red_refs_of_the_slice(), ["refs/xv/s1/red"])
 
     JOINED = dict(REPORT, red=dict(REPORT["red"], command="python3 -m unittest tests.test_red; true"))
 
     def test_a_red_joined_with_a_semicolon_is_not_kept_and_the_stop_fires(self):
-        checkout = self.checkout_named(self.scenario_step())
+        checkout = self.checkout_named(self.writer_step())
         p = self.write_the_red_and_report(checkout, report=self.JOINED)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertFalse((self.record().get("red") or {}).get("command"))
@@ -962,7 +962,7 @@ class SessionScenarioReportTest(FromBuildBase):
         self.assertIn("red_command_joined", o.stdout + o.stderr)
 
     def test_a_red_joined_unsafely_restores_the_earlier_red(self):
-        checkout = self.checkout_named(self.scenario_step())
+        checkout = self.checkout_named(self.writer_step())
         self.write_the_red_and_report(checkout)
         earlier = self.record()["red"]["command"]
         checkout = self.checkout_named(self.step("test-writer"))
@@ -971,26 +971,26 @@ class SessionScenarioReportTest(FromBuildBase):
         self.assertTrue(self.record()["checks"]["test-writer"]["red_joined_unsafely"])
 
     def test_the_report_runs_the_red_on_the_base_and_on_the_build_and_records_the_checks(self):
-        checkout = self.checkout_named(self.scenario_step())
+        checkout = self.checkout_named(self.writer_step())
         self.write_the_red_and_report(checkout)
         checks = self.record()["checks"]["test-writer"]
         self.assertIs(checks["red_fails"], True)
         self.assertEqual(checks["red_on_build"]["passes"], False)
 
     def test_the_report_drops_the_checkout(self):
-        checkout = self.checkout_named(self.scenario_step())
+        checkout = self.checkout_named(self.writer_step())
         self.write_the_red_and_report(checkout)
         self.assertFalse(os.path.exists(checkout), "the checkout is still there after the report")
         self.assertNotIn(checkout, sh(["git", "worktree", "list", "--porcelain"], self.repo).stdout)
 
     def test_the_report_takes_the_wall_baseline_at_the_base(self):
-        checkout = self.checkout_named(self.scenario_step())
+        checkout = self.checkout_named(self.writer_step())
         self.write_the_red_and_report(checkout)
         self.assertIn("wall_baseline", self.record())
         self.assertTrue(os.path.exists(os.path.join(self.wt, ".xv", "slices", "s1.wall.json")))
 
     def test_a_second_step_drops_the_checkout_nobody_reported_on(self):
-        first = self.checkout_named(self.scenario_step())
+        first = self.checkout_named(self.writer_step())
         second = self.checkout_named(self.step("test-writer"))
         self.assertNotEqual(first, second)
         self.assertFalse(os.path.exists(first), "the first checkout is still there after a second step")
@@ -998,24 +998,24 @@ class SessionScenarioReportTest(FromBuildBase):
         self.xv("close", "s1", "--why", "x", cwd=self.wt, check=False)  # drops the one left
 
 
-class SessionScenarioConflictTest(FromBuildBase):
+class SessionTestWriterConflictTest(FromBuildBase):
     # #147 point 1: a red that does not apply to the build is reported for orders, and the checkout is dropped
-    checkout_named = SessionScenarioReportTest.checkout_named
-    write_the_red_and_report = SessionScenarioReportTest.write_the_red_and_report
-    RED_TEST = SessionScenarioReportTest.RED_TEST
-    REPORT = SessionScenarioReportTest.REPORT
+    checkout_named = SessionTestWriterReportTest.checkout_named
+    write_the_red_and_report = SessionTestWriterReportTest.write_the_red_and_report
+    RED_TEST = SessionTestWriterReportTest.RED_TEST
+    REPORT = SessionTestWriterReportTest.REPORT
 
     def setUp(self):
         super().setUp()
         cfg = os.path.join(self.repo, ".xv", "config.yml")
         text = open(cfg).read().replace("agents:\n", "agents:\n  test-writer: session\n", 1)
         open(cfg, "w").write(text)
-        sh(["git", "commit", "-qam", "scenario in the session"], self.repo)
+        sh(["git", "commit", "-qam", "test writer in the session"], self.repo)
         self.make_build(fixed=False, files={"tests/test_red.py": "# the build's own test file\nBUILD_TEST = True\n"})
         self.open_slice("--from", BUILD)
 
     def test_a_red_that_conflicts_with_the_build_is_reported_for_orders(self):
-        checkout = self.checkout_named(self.scenario_step())
+        checkout = self.checkout_named(self.writer_step())
         self.write_the_red_and_report(checkout)
         out = self.xv("orders", "s1", "--after", "test-writer", cwd=self.wt, check=False).stdout
         self.assertIn("red_conflicts_with_build", [f["order"] for f in json.loads(out)["fired"]])
@@ -1030,10 +1030,10 @@ class CloseRedRefTest(FromBuildBase):
     def test_close_deletes_the_red_ref(self):
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
-        p = self.scenario_step()
+        p = self.writer_step()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         refs = sh(["git", "for-each-ref", "--format=%(refname)", "refs/xv/s1/"], self.repo).stdout.split()
-        self.assertEqual(refs, ["refs/xv/s1/red"], "the scenario step kept no red ref")
+        self.assertEqual(refs, ["refs/xv/s1/red"], "the test-writer step kept no red ref")
         self.xv("close", "s1", "--why", "as forecast", cwd=self.wt)
         left = sh(["git", "for-each-ref", "--format=%(refname)", "refs/xv/s1/"], self.repo).stdout.split()
         self.assertEqual(left, [], "close left the red ref")
@@ -1041,7 +1041,7 @@ class CloseRedRefTest(FromBuildBase):
     def test_close_leaves_another_slices_red_ref(self):
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
-        self.scenario_step()
+        self.writer_step()
         sh(["git", "update-ref", "refs/xv/other/red", self.main], self.repo)
         self.xv("close", "s1", "--why", "as forecast", cwd=self.wt)
         self.assertTrue(sh(["git", "rev-parse", "--verify", "-q", "refs/xv/other/red"], self.repo).stdout.strip())
@@ -1049,7 +1049,7 @@ class CloseRedRefTest(FromBuildBase):
     def test_a_new_slice_with_the_same_id_does_not_start_from_the_closed_slices_red(self):
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
-        self.scenario_step()
+        self.writer_step()
         self.xv("close", "s1", "--why", "as forecast", cwd=self.wt)
         sh(["git", "worktree", "remove", "--force", self.wt], self.repo)
         sh(["git", "branch", "-D", "xv/s1"], self.repo)
@@ -1081,7 +1081,7 @@ class BuildRefDeletedTest(FromBuildBase):
     def test_a_report_after_the_build_branch_is_deleted_saves_the_wall_check(self):
         self.build_changes_a_test_file()
         self.open_slice("--from", BUILD)
-        self.scenario_step()
+        self.writer_step()
         sh(["git", "branch", "-D", BUILD], self.repo)
         p = self.maker_report()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
@@ -1090,7 +1090,7 @@ class BuildRefDeletedTest(FromBuildBase):
     def test_the_stored_commit_still_tells_the_builds_own_change_from_the_slices_after_the_branch_is_deleted(self):
         self.build_changes_a_test_file()
         self.open_slice("--from", BUILD)
-        self.scenario_step()
+        self.writer_step()
         self.xv("record", "stop", "s1", "--order", "unrecorded_move", "--seat", "originator",
                 "--question", "tests/test_store.py changed with no record", "--step", "maker", cwd=self.wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "the build's change is accepted",
@@ -1102,7 +1102,7 @@ class BuildRefDeletedTest(FromBuildBase):
     def test_a_record_with_no_stored_commit_and_no_branch_keeps_the_file_unrecorded_and_says_why(self):
         self.build_changes_a_test_file()
         self.open_slice("--from", BUILD)
-        self.scenario_step()
+        self.writer_step()
         path, data, body = record.load(self.wt, "s1")
         data["build"].pop("commit")  # a record from before the commit was kept
         record.save(path, data, body)
@@ -1161,7 +1161,7 @@ class CloseKeepsTheFromRefTest(FromBuildBase):
     def test_close_leaves_the_from_ref_though_its_commit_is_in_the_slice_branch(self):
         self.make_build(fixed=True)
         self.open_slice("--from", BUILD)
-        self.scenario_step()
+        self.writer_step()
         self.xv("close", "s1", "--why", "as forecast", cwd=self.wt)
         self.assertTrue(sh(["git", "rev-parse", "--verify", "-q", BUILD], self.repo).stdout.strip(),
                         "close deleted the --from ref")
@@ -1219,7 +1219,7 @@ JOINED = ["python3 -m unittest tests.test_red; echo done", "python3 -m unittest 
 
 
 class SessionBase(FromBuildBase):
-    """The scenario agent in the person's session: `xv record report s1 scenario` and `xv orders` do the step's work."""
+    """The test writer in the person's session: `xv record report s1 test-writer` and `xv orders` do the step's work."""
 
     with_build = True
 
@@ -1228,7 +1228,7 @@ class SessionBase(FromBuildBase):
         cfg = os.path.join(self.repo, ".xv", "config.yml")
         text = open(cfg).read().replace("agents:\n", "agents:\n  test-writer: session\n", 1)
         open(cfg, "w").write(text)
-        sh(["git", "commit", "-qam", "scenario in the session"], self.repo)
+        sh(["git", "commit", "-qam", "test writer in the session"], self.repo)
         self.slice_base = sh(["git", "rev-parse", "HEAD"], self.repo).stdout.strip()
         if self.with_build:
             self.make_build(fixed=False)
@@ -1238,9 +1238,9 @@ class SessionBase(FromBuildBase):
         self.step("forecaster")
 
     def checkout(self):
-        """Run `xv step scenario` and return the checkout it names; the slice worktree when it names none."""
+        """Run `xv step test-writer` and return the checkout it names; the slice worktree when it names none."""
         p = self.step("test-writer")
-        self.assertNotEqual(p.returncode, 0, "the scenario step did not stop for the session")
+        self.assertNotEqual(p.returncode, 0, "the test-writer step did not stop for the session")
         seen = {os.path.realpath(self.repo), os.path.realpath(self.wt)}
         for path in re.findall(r"/[^\s`'\"()]+", p.stdout + p.stderr):
             path = path.rstrip(".,:;")
@@ -1250,7 +1250,7 @@ class SessionBase(FromBuildBase):
         return self.wt
 
     def send(self, where, command=RED_COMMAND, write=True, **extra):
-        """Write the red in `where`, and give the report on stdin as `xv record report s1 scenario -` does."""
+        """Write the red in `where`, and give the report on stdin as `xv record report s1 test-writer -` does."""
         if write:
             with open(os.path.join(where, "tests", "test_red.py"), "w") as f:
                 f.write(RED_TEXT)
@@ -1279,7 +1279,7 @@ class SessionBase(FromBuildBase):
 
 
 class SessionLandsTheRedTest(SessionBase):
-    # 1. a slice from a build, in session mode: `xv record report <id> scenario -` does the step's landing
+    # 1. a slice from a build, in session mode: `xv record report <id> test-writer -` does the step's landing
     def test_the_report_lands_the_red_on_the_slice_branch(self):
         where = self.checkout()
         self.assertNotEqual(os.path.realpath(where), os.path.realpath(self.wt), "the step named no checkout")
@@ -1290,10 +1290,10 @@ class SessionLandsTheRedTest(SessionBase):
 
     def test_the_report_runs_the_red_at_the_base_and_on_the_build(self):
         self.send(self.checkout())
-        scenario = self.record()["checks"].get("test-writer") or {}
-        self.assertIs(scenario.get("red_fails"), True, f"the red was not run at the base: {scenario}")
-        self.assertEqual((scenario.get("red_on_build") or {}).get("passes"), False,
-                         f"the red was not run on the build: {scenario}")
+        writer = self.record()["checks"].get("test-writer") or {}
+        self.assertIs(writer.get("red_fails"), True, f"the red was not run at the base: {writer}")
+        self.assertEqual((writer.get("red_on_build") or {}).get("passes"), False,
+                         f"the red was not run on the build: {writer}")
 
     def test_the_report_takes_the_wall_baseline_at_the_base(self):
         self.send(self.checkout())
@@ -1311,14 +1311,14 @@ class SessionLandsTheRedTest(SessionBase):
     def test_orders_after_the_report_give_the_same_stop_as_the_cli_path_for_a_point_left_uncovered(self):
         self.send(self.checkout(), not_covered=[{"outcome":"milk tomorrow", "why": "no seam"}])
         self.assertIn("red_misses_scenario", self.fired(),
-                      "the saved scenario checks did not reach `xv orders --after scenario`")
+                      "the saved test-writer checks did not reach `xv orders --after test-writer`")
 
-    def test_the_checkout_is_dropped_by_the_next_scenario_step(self):
+    def test_the_checkout_is_dropped_by_the_next_test_writer_step(self):
         first = self.checkout()
         self.assertTrue(os.path.isdir(first))
         self.send(first)
         second = self.checkout()
-        self.assertFalse(os.path.exists(first), "the first scenario checkout is still there after the next step")
+        self.assertFalse(os.path.exists(first), "the first test-writer checkout is still there after the next step")
         self.assertNotEqual(first, second)
 
     def test_the_checkout_is_dropped_by_close(self):
@@ -1326,7 +1326,7 @@ class SessionLandsTheRedTest(SessionBase):
         self.send(first)
         self.assertIsNone(self.orders_after()["stop"])
         self.xv("close", "s1", "--why", "as forecast", cwd=self.wt)
-        self.assertFalse(os.path.exists(first), "the scenario checkout is still there after close")
+        self.assertFalse(os.path.exists(first), "the test-writer checkout is still there after close")
 
 
 class SessionJoinedRedTest(SessionBase):
@@ -1366,7 +1366,7 @@ class RedRefOnConflictTest(FromBuildBase):
     def conflicted(self):
         self.make_build(fixed=False, files=self.CLASH)
         self.open_slice("--from", BUILD)
-        return self.scenario_step()
+        return self.writer_step()
 
     def ref_tip(self):
         p = sh(["git", "rev-parse", "--verify", "-q", self.REF + "^{commit}"], self.repo, check=False)
@@ -1386,7 +1386,7 @@ class RedRefOnConflictTest(FromBuildBase):
         self.assertEqual(stop["order"], "red_conflicts_with_build")
         self.assertIn(self.REF, stop["question"])
 
-    def test_the_next_scenario_pass_starts_from_that_red(self):
+    def test_the_next_test_writer_pass_starts_from_that_red(self):
         self.conflicted()
         tip = self.ref_tip()
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "run it again", "--next", "test-writer",
@@ -1394,7 +1394,7 @@ class RedRefOnConflictTest(FromBuildBase):
         os.remove(self.cwds)
         self.step("test-writer", FAKE_CWD_PROBE="tests/test_red.py")
         ran = self.ran("# The test writer")
-        self.assertIsNotNone(ran, "the next scenario pass did not start")
+        self.assertIsNotNone(ran, "the next test-writer pass did not start")
         self.assertEqual(ran["head"], tip, "the next pass did not start from the red on the ref")
 
 
@@ -1403,10 +1403,10 @@ class CloseDropsTheRedRefTest(FromBuildBase):
     def test_close_deletes_the_red_ref(self):
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
-        self.scenario_step()
+        self.writer_step()
         held = lambda: sh(["git", "rev-parse", "--verify", "-q", "refs/xv/s1/red^{commit}"], self.repo,
                           check=False).returncode == 0
-        self.assertTrue(held(), "the scenario step kept no red ref")
+        self.assertTrue(held(), "the test-writer step kept no red ref")
         self.xv("close", "s1", "--why", "as forecast", cwd=self.wt)
         self.assertFalse(held(), "refs/xv/s1/red is still there after close")
 
@@ -1464,16 +1464,16 @@ if __name__ == "__main__":
 
 # What a person should watch on the first green run: build something with an agent on
 # a branch, then run `xv slice new <id> --from <branch>` and `xv run <id>`. See the
-# scenario agent write its red in a checkout without the build, see the red fail on the
+# test writer write its red in a checkout without the build, see the red fail on the
 # base, and see where the slice goes: to the cleaner with no maker when the build already
 # passes, or to the maker, starting from the build, with the failing tests named as misses.
 # Then let main move on and run `xv slice rebase <id>`: see the red's own ref
 # (`git for-each-ref refs/xv`) move onto the new base with the red in it and no build, and
-# see the next scenario pass start from it. Give main a test file that clashes with the
+# see the next test-writer pass start from it. Give main a test file that clashes with the
 # red and see the rebase stop and name that ref, rather than leave it on the old base.
 
 
-class SessionScenarioNoBuildJoinedTest(RepoCase):
+class SessionTestWriterNoBuildJoinedTest(RepoCase):
     """A slice not from a build: a joined red is kept out and `xv record report` sets red_joined itself."""
 
     def report(self, command):
@@ -1515,7 +1515,7 @@ class LateRedLandsTest(FromBuildBase):
         """A first pass whose red conflicts with the build, so its cherry-pick aborts and the red stays on its ref."""
         self.make_build(fixed=False, files=self.CLASH)
         self.open_slice("--from", BUILD)
-        p = self.scenario_step()
+        p = self.writer_step()
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
 
     def answer(self):
@@ -1566,7 +1566,7 @@ class LandedRedStaysOnceTest(FromBuildBase):
         super().setUp()
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
-        p = self.scenario_step()
+        p = self.writer_step()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.amend()
 
@@ -1593,7 +1593,7 @@ class ChecksReadTheRedRefTest(FromBuildBase):
         self.make_build(fixed=False, files=self.CLASH)
         self.open_slice("--from", BUILD)
         self.amend("The household runs `xv record show --frobnicate` and sees the milk.")
-        p = self.scenario_step(**more)
+        p = self.writer_step(**more)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         return self.record()["checks"]["test-writer"]
 
@@ -1613,7 +1613,7 @@ class CoverageAcrossRedsTest(FromBuildBase):
         super().setUp()
         self.make_build(fixed=False)
         self.open_slice("--from", BUILD)
-        p = self.scenario_step()
+        p = self.writer_step()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.amend()
 
@@ -1629,6 +1629,6 @@ class CoverageAcrossRedsTest(FromBuildBase):
         self.assertTrue([u for u in unreadable if "test_in_no_red_at_all" in u], unreadable)
 
 
-# What a person should watch on the first green: a slice opened with `--from` whose first scenario pass hit a
-# conflict; clear the conflict, run the scenario step again, and see the red land on the slice branch with no new
+# What a person should watch on the first green: a slice opened with `--from` whose first test-writer pass hit a
+# conflict; clear the conflict, run the test-writer step again, and see the red land on the slice branch with no new
 # commit from the agent.

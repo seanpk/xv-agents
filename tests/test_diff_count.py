@@ -8,7 +8,7 @@ from helpers import RepoCase, sh
 HERE = os.path.dirname(os.path.abspath(__file__))
 FAKE = os.path.join(HERE, "fake_agent.py")
 
-# What the stand-in scenario and maker leave outside .xv/, counted by hand:
+# What the stand-in test writer and maker leave outside .xv/, counted by hand:
 # tests/test_red.py is 10 new lines; pantry/store.py changes one line (1 added, 1 deleted).
 OUTSIDE_XV = 10 + 2
 
@@ -41,7 +41,7 @@ class DiffCountTest(RepoCase):
         with open(packet, "w") as f:
             f.write("".join(f"line {i}\n" for i in range(200)))
         sh(["git", "add", "-A"], self.wt)
-        sh(["git", "commit", "-qm", "a packet the guardian wrote"], self.wt)
+        sh(["git", "commit", "-qm", "a packet the inspector wrote"], self.wt)
         self.xv("step", "cleaner", "s1", cwd=self.wt, check=False)
         self.assertEqual(self.record()["checks"]["cleaner"]["diff_lines"], OUTSIDE_XV)
 

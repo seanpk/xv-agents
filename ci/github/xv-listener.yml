@@ -48,7 +48,7 @@ jobs:
         run: |
           day=$(date -u +%F)
           git config user.name "xv field listener"
-          git config user.email "xv-listener@users.noreply.github.com"
+          git config user.email "xv-field-listener@users.noreply.github.com"
           git checkout -b "xv/packet-$day"
           git add ".xv/slices/packet-$day.md"
           git commit -m "xv: the field report, $day"

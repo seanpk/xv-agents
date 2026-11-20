@@ -6,7 +6,7 @@ from helpers import RepoCase, sh
 
 TOOLS = ("Bash(cat:*),Bash(git diff:*),Bash(cd tests:*),Bash(python3 -m unittest:*),"
          "Bash(xv wall diff:*),Read,Edit")
-GUARDIAN_TOOLS = "Bash(cat:*),Bash(xv packet lint:*),Bash(git log:*)"
+INSPECTOR_TOOLS = "Bash(cat:*),Bash(xv packet lint:*),Bash(git log:*)"
 
 
 def agent_line(tools, harness="claude"):
@@ -70,10 +70,10 @@ class AllowedCommandsPromptTest(RepoCase):
         self.assertNotIn("git status *", out)
 
     def test_a_seat_with_its_own_line_gets_its_own_list_not_the_default(self):
-        wt = self.slice_with(default=agent_line(TOOLS), inspector=agent_line(GUARDIAN_TOOLS))
-        guardian = self.prompt(wt, "inspector")
-        self.assertIn("`xv packet lint`", guardian)
-        self.assertNotIn("`python3 -m unittest`", guardian)
+        wt = self.slice_with(default=agent_line(TOOLS), inspector=agent_line(INSPECTOR_TOOLS))
+        inspector = self.prompt(wt, "inspector")
+        self.assertIn("`xv packet lint`", inspector)
+        self.assertNotIn("`python3 -m unittest`", inspector)
         maker = self.prompt(wt, "maker")
         self.assertIn("`python3 -m unittest`", maker)
         self.assertNotIn("`xv packet lint`", maker)
@@ -85,7 +85,7 @@ class AllowedCommandsPromptTest(RepoCase):
 
     def test_a_harness_other_than_claude_gets_no_list(self):
         wt = self.slice_with(default=agent_line(None, harness="opencode"),
-                             inspector=agent_line(GUARDIAN_TOOLS))
+                             inspector=agent_line(INSPECTOR_TOOLS))
         out = self.prompt(wt)
         self.assertNotIn("python3 -W ignore -m unittest", out)
         self.assertNotIn("`git diff`", out)

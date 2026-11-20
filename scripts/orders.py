@@ -182,7 +182,7 @@ def evaluate(data, after, config):
             out.append(fire("red_conflicts_with_build", "originator",
                             "The test writer wrote its red at the base, and it does not apply to the build the slice "
                             "starts from: " + checks["cherry_pick_conflict"]
-                            + f" The red is kept on `refs/xv/{data.get('id')}/red` at the base, and a later scenario "
+                            + f" The red is kept on `refs/xv/{data.get('id')}/red` at the base, and a later test-writer "
                             "pass starts from it whatever you land by hand, so a hand-landed red under another "
                             "commit subject is not lost. Resolve it by hand, or change the red so it fits the build."))
         if checks.get("old_red_changed"):

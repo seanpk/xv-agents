@@ -73,6 +73,38 @@ class OldNamesInARecordTest(unittest.TestCase):
         self.assertEqual(err, "")
 
 
+class FinishedRecordReadsSilentlyTest(unittest.TestCase):
+    """Sean's answer to the explore's question 1: a closed record reads its old names silently. Nothing rewrites
+    it, so a warning on every `xv decisions` or `xv retro counts` would tell a person nothing they can act on."""
+
+    def test_a_closed_record_with_old_names_reads_them_as_the_new_ones_with_nothing_on_stderr(self):
+        data, err = warnings_of(lambda: split_front_matter(OLD_RECORD.replace("id: s1\n", "id: s1\nstatus: closed\n"))[0])
+        self.assertEqual(err, "")
+        self.assertEqual(data["next"], "inspector")
+        self.assertEqual(data["step_start"]["agent"], "test-writer")
+        self.assertEqual([s["step"] for s in data["spend"]], ["test-writer", "inspector"])
+
+    def test_an_abandoned_record_reads_its_old_names_silently_too(self):
+        _, err = warnings_of(lambda: split_front_matter(OLD_RECORD.replace("id: s1\n", "id: s1\nstatus: abandoned\n"))[0])
+        self.assertEqual(err, "")
+
+    def test_an_open_record_still_warns_once_for_each_old_name(self):
+        for status in ("open", "working", "stopped", "ready", "pairing"):
+            _, err = warnings_of(lambda: split_front_matter(OLD_RECORD.replace("id: s1\n", f"id: s1\nstatus: {status}\n"))[0])
+            lines = err.strip().splitlines()
+            self.assertEqual(len(lines), 2, f"{status}: {err}")
+            self.assertTrue(any("'guardian'" in l for l in lines), err)
+            self.assertTrue(any("'scenario'" in l for l in lines), err)
+
+    def test_a_closed_record_read_after_an_open_one_does_not_hide_the_open_ones_warning(self):
+        xvlib._warned.clear()
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            split_front_matter(OLD_RECORD.replace("id: s1\n", "id: s1\nstatus: closed\n"))
+            split_front_matter(OLD_RECORD.replace("id: s1\n", "id: s1\nstatus: stopped\n"))
+        self.assertEqual(len(err.getvalue().strip().splitlines()), 2, err.getvalue())
+
+
 class OldConfigKeysTest(unittest.TestCase):
     OLD = {"agents": {"default": ["d"], "scenario": ["s"], "guardian": ["g"], "guardian_repass": ["r"],
                       "listener": ["l"]},
@@ -151,6 +183,19 @@ class OldNamesOnTheCommandLineTest(WatchLoopSetup):
         with open(rec) as f:
             self.assertIn("next: test-writer", f.read())
 
+    def test_a_closed_record_with_an_old_name_shows_with_nothing_on_stderr(self):
+        rec = os.path.join(self.wt, ".xv", "slices", "s1.md")
+        with open(rec) as f:
+            text = f.read()
+        self.assertIn("\nstatus: ", text)
+        text = text.replace("next: forecaster", "next: scenario", 1)
+        text = "\n".join("status: closed" if l.startswith("status: ") else l for l in text.split("\n"))
+        with open(rec, "w") as f:
+            f.write(text)
+        p = self.xv("record", "show", "s1", "--json", cwd=self.wt)
+        self.assertEqual(json.loads(p.stdout)["next"], "test-writer")
+        self.assertEqual(p.stderr, "")
+
     def test_xv_guard_runs_the_inspector_and_warns(self):
         sh(["git", "checkout", "-q", "-b", "pr"], self.repo)
         with open(os.path.join(self.repo, "change.txt"), "w") as f:
@@ -206,6 +251,39 @@ class AdaptDropsOldNamesTest(RepoCase):
         self.assertIn(DROP, p.stderr)
         self.assertTrue(os.path.exists(os.path.join(agents, "xv-inspector.md")))
         self.assertFalse(os.path.exists(old))
+
+
+class OldScratchFileTest(RepoCase):
+    """An open slice's git dir may hold the file an xv before #168 wrote for a session-mode test-writer checkout."""
+
+    def old_file(self):
+        path = sh(["git", "rev-parse", "--path-format=absolute", "--git-path", "xv-scenario-scratch-s1.json"],
+                  self.repo).stdout.strip()
+        with open(path, "w") as f:
+            json.dump({"scratch": os.path.join(self.tmp, "gone"), "head_before": "abc"}, f)
+        return path
+
+    def test_the_old_file_is_read_with_a_warning(self):
+        import run
+        self.old_file()
+        state, err = warnings_of(run.session_scratch_state, self.repo, "s1")
+        self.assertEqual(state["head_before"], "abc")
+        self.assertIn("xv-scenario-scratch-s1.json", err)
+        self.assertIn("xv-test-writer-scratch-s1.json", err)
+        self.assertIn(DROP, err)
+
+    def test_dropping_the_checkout_removes_the_old_file(self):
+        import run
+        old = self.old_file()
+        warnings_of(run.drop_session_scratch, self.repo, "s1")
+        self.assertFalse(os.path.exists(old))
+
+    def test_a_new_checkout_is_written_under_the_new_name(self):
+        import run
+        state, _ = warnings_of(run.session_scratch_state, self.repo, "s1", {"scratch": "x", "head_before": "h"})
+        new = sh(["git", "rev-parse", "--path-format=absolute", "--git-path", "xv-test-writer-scratch-s1.json"],
+                 self.repo).stdout.strip()
+        self.assertTrue(os.path.exists(new))
 
 
 class OldNameInAPacketMissTest(unittest.TestCase):

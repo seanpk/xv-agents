@@ -258,7 +258,7 @@ class EndTest(PairingCase):
             with self.subTest(next=nxt):
                 self.refused("pairing", "end", "s1", "--next", nxt)
 
-    def test_end_at_scenario_needs_an_amendment_made_since_the_pairing_opened(self):
+    def test_end_at_test_writer_needs_an_amendment_made_since_the_pairing_opened(self):
         p = self.refused("pairing", "end", "s1", "--next", "test-writer")
         self.assertIn("xv slice amend", p.stderr)
         self.write("amend.md", "1. The household also sees Y.\n")
@@ -320,12 +320,12 @@ class EndTest(PairingCase):
 
 
 class NotBlindTest(PairingCase):
-    """Point 3: a test written or changed in a pairing is not blind, and the record, the packet and the guardian's
+    """Point 3: a test written or changed in a pairing is not blind, and the record, the packet and the inspector's
     prompt say so; point 5: a changed old test needs a move recorded in the pairing."""
 
     def setUp(self):
         super().setUp()
-        self.ok("wall", "baseline", "s1")  # the scenario step takes it, before any pairing
+        self.ok("wall", "baseline", "s1")  # the test-writer step takes it, before any pairing
         self.commit("the wall baseline")
         self.stop()
         self.start()
@@ -337,7 +337,7 @@ class NotBlindTest(PairingCase):
         self.assertEqual(self.show()["pairings"][0]["not_blind"], ["tests/test_new.py"])
         self.assertIn("not blind: tests/test_new.py", self.body())
 
-    def test_the_guardian_prompt_names_the_tests_that_are_not_blind(self):
+    def test_the_inspector_prompt_names_the_tests_that_are_not_blind(self):
         self.add_test()
         self.commit(f"{PREFIX} a test")
         self.end()
@@ -441,9 +441,9 @@ class PacketTest(PairingCase):
         self.assertEqual(text.count("## Pairings"), 1)
         self.assertEqual(len([ln for ln in text.splitlines() if ln.startswith("- Pairing ")]), 2)
 
-    def test_the_packet_checks_write_the_section_after_the_guardian_runs(self):
+    def test_the_packet_checks_write_the_section_after_the_inspector_runs(self):
         self.end()
-        self.write(".xv/slices/s1.packet.md", self.PACKET)  # the guardian writes its packet afresh
+        self.write(".xv/slices/s1.packet.md", self.PACKET)  # the inspector writes its packet afresh
         packetlib.packet_checks(os.path.join(self.wt, ".xv", "slices", "s1.packet.md"), self.show(), self.wt)
         self.assertIn("- Pairing 1: pat with Claude", self.packet())
 

@@ -33,7 +33,7 @@ class RepassCase(RepoCase):
         return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
 
     def first_pass(self):
-        """A change the first pass saw, then its packet, committed the way the guardian step commits it."""
+        """A change the first pass saw, then its packet, committed the way the inspector step commits it."""
         self.commit("pantry/earlier.py", BEFORE + "\n", "xv(s1): make it work")
         packet = os.path.join(self.wt, ".xv", "slices", "s1.packet.md")
         with open(packet, "w") as f:
@@ -112,7 +112,7 @@ print("done, no report")
 
 
 class RepassCommandTest(RepassCase):
-    # -- 2, as amended by 8: `agents.guardian_repass` is a whole command list, for the re-pass only
+    # -- 2, as amended by 8: `agents.inspector_repass` is a whole command list, for the re-pass only
     def setUp(self):
         super().setUp()
         self.script = os.path.join(self.tmp, "mark.py")
@@ -150,19 +150,19 @@ class RepassCommandTest(RepassCase):
                 "--settled", "the line is as the maker wrote it", cwd=self.wt)
         self.commit("pantry/later.py", AFTER + "\n", "xv(s1): make it work again")
 
-    def test_a_first_pass_never_runs_the_guardian_repass_command(self):
+    def test_a_first_pass_never_runs_the_inspector_repass_command(self):
         self.agents(default="default", inspector="first", inspector_repass="second")
         self.commit("pantry/earlier.py", BEFORE + "\n", "xv(s1): make it work")
         self.step()
         self.assertEqual(self.ran(), ["first"], self.out)
 
-    def test_a_repass_without_the_key_runs_the_guardian_command(self):
+    def test_a_repass_without_the_key_runs_the_inspector_command(self):
         self.agents(default="default", inspector="first")
         self.repass()
         self.step()
         self.assertEqual(self.ran(), ["first"], self.out)
 
-    def test_a_repass_without_the_key_or_a_guardian_runs_the_default_command(self):
+    def test_a_repass_without_the_key_or_a_inspector_runs_the_default_command(self):
         self.agents(default="default")
         self.repass()
         self.step()
@@ -230,7 +230,7 @@ class RepassAmendmentsTest(RepassCase):
         sh(["git", "commit", "-qam", "xv(s1): record"], self.wt)
 
     # 9
-    def test_xv_guard_runs_a_first_pass_with_the_guardian_command_though_the_record_names_a_packet(self):
+    def test_xv_guard_runs_a_first_pass_with_the_inspector_command_though_the_record_names_a_packet(self):
         self.agents(default="default", inspector="first", inspector_repass="second")
         self.repass()
         self.run_xv("inspect", "--base", "main")
@@ -242,21 +242,21 @@ class RepassAmendmentsTest(RepassCase):
         self.run_xv("inspect", "--base", "main")
         self.assertEqual(self.ran(), ["default:first"], self.out)
 
-    def test_xv_step_guardian_still_runs_the_repass_command_with_the_repass_prompt(self):
+    def test_xv_step_inspector_still_runs_the_repass_command_with_the_repass_prompt(self):
         self.agents(default="default", inspector="first", inspector_repass="second")
         self.repass()
         self.run_xv("step", "inspector", "s1")
         self.assertEqual(self.ran(), ["second:repass"], self.out)
 
     # 10
-    def test_a_missing_packet_file_makes_the_step_a_first_pass_with_the_guardian_command(self):
+    def test_a_missing_packet_file_makes_the_step_a_first_pass_with_the_inspector_command(self):
         self.agents(default="default", inspector="first", inspector_repass="second")
         self.repass()
         self.drop_the_packet_file()
         self.run_xv("step", "inspector", "s1")
         self.assertEqual(self.ran(), ["first:first"], self.out)
 
-    def test_a_missing_packet_file_with_no_guardian_command_runs_the_default_as_a_first_pass(self):
+    def test_a_missing_packet_file_with_no_inspector_command_runs_the_default_as_a_first_pass(self):
         self.agents(default="default", inspector_repass="second")
         self.repass()
         self.drop_the_packet_file()
@@ -299,7 +299,7 @@ class RepassAmendmentsTest(RepassCase):
         with open(diffs) as f:
             self.assertEqual(len(f.read().splitlines()), 1, self.out)
 
-    def test_xv_prompt_guardian_with_a_failed_repass_diff_exits_2_and_writes_no_stop(self):
+    def test_xv_prompt_inspector_with_a_failed_repass_diff_exits_2_and_writes_no_stop(self):
         self.agents(default="default", inspector="first", inspector_repass="second")
         self.repass()
         self.break_the_diff()
@@ -325,8 +325,8 @@ class PacketFromMainCheckoutTest(RepassCase):
 
     def test_the_packet_head_is_the_head_of_the_slices_worktree(self):
         self.packet_from_main()
-        guardian = self.record()["checks"]["inspector"]
-        self.assertEqual(guardian["packet_head"], self.wt_head)
+        inspector = self.record()["checks"]["inspector"]
+        self.assertEqual(inspector["packet_head"], self.wt_head)
 
     def test_the_packet_path_is_relative_to_the_slices_worktree(self):
         self.packet_from_main()
@@ -348,7 +348,7 @@ class AcceptedWallRecommendationTest(RepassCase):
     def report(self, recs):
         out = ("done\n```xv-report\n" + json.dumps(
             {"agent": "inspector", "status": "done", "summary": "ok", "wall_recommendations": recs}) + "\n```\n")
-        path = os.path.join(self.tmp, "guardian-out.txt")
+        path = os.path.join(self.tmp, "inspector-out.txt")
         with open(path, "w") as f:
             f.write(json.dumps({"result": out}))
         self.xv("record", "report", "s1", "inspector", path, cwd=self.wt)
@@ -447,8 +447,8 @@ class ForecasterBriefTest(RepassCase):
         self.assertIn("forecaster on", line)
 
 
-# What a person should watch on the first green run: open a slice, run it to a guardian pass, send it
-# back to the maker, and read the second guardian prompt (`xv prompt guardian <id>`): it should carry the
+# What a person should watch on the first green run: open a slice, run it to an inspector pass, send it
+# back to the maker, and read the second inspector prompt (`xv prompt inspector <id>`): it should carry the
 # first packet and only the diff made after it, with the five checks still there.
 
 if __name__ == "__main__":

@@ -192,7 +192,7 @@ class WatchLoopTest(WatchLoopSetup):
         self.assertEqual(data["status"], "ready")
         self.assertEqual(sh(["git", "rev-list", "--count", "main"], self.repo).stdout.strip(), "2")
 
-    def scenario_with_red(self, command):
+    def writer_with_red(self, command):
         os.environ["FAKE_RED_COMMAND"] = command
         try:
             self.xv("step", "forecaster", "s1", cwd=self.wt)
@@ -202,7 +202,7 @@ class WatchLoopTest(WatchLoopSetup):
 
     def test_a_red_joined_with_semicolons_is_refused_and_names_the_command(self):
         command = "false ; false ; true"
-        p = self.scenario_with_red(command)
+        p = self.writer_with_red(command)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         stop = json.loads(p.stdout)["stop"]
         self.assertEqual(stop["order"], "red_command_joined")
@@ -214,7 +214,7 @@ class WatchLoopTest(WatchLoopSetup):
     def test_an_old_assertion_changed_in_a_red_file_stops_before_the_maker(self):
         os.environ["FAKE_SCENARIO_EDITS_OLD"] = "1"
         try:
-            p = self.scenario_with_red("false")
+            p = self.writer_with_red("false")
         finally:
             del os.environ["FAKE_SCENARIO_EDITS_OLD"]
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
@@ -226,7 +226,7 @@ class WatchLoopTest(WatchLoopSetup):
     def test_an_old_assertion_changed_in_a_file_outside_the_red_stops_before_the_maker(self):
         os.environ["FAKE_SCENARIO_EDITS_OLD_OUTSIDE_RED"] = "1"
         try:
-            p = self.scenario_with_red("false")
+            p = self.writer_with_red("false")
         finally:
             del os.environ["FAKE_SCENARIO_EDITS_OLD_OUTSIDE_RED"]
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
@@ -236,7 +236,7 @@ class WatchLoopTest(WatchLoopSetup):
         self.assertIn("tests/test_store.py", stop["question"])
         self.assertNotIn("maker", [s["step"] for s in self.record()["spend"]])
 
-    def test_a_scenario_step_whose_old_red_check_cannot_run_stops_before_the_maker(self):
+    def test_a_test_writer_step_whose_old_red_check_cannot_run_stops_before_the_maker(self):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.xv("record", "set", "s1", "base", "", cwd=self.wt)
         p = self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
@@ -246,8 +246,8 @@ class WatchLoopTest(WatchLoopSetup):
         self.assertIn("base", stop["question"])
         self.assertNotIn("maker", [s["step"] for s in self.record()["spend"]])
 
-    def test_a_red_that_cannot_run_is_not_a_failing_red_and_stops_the_scenario_step(self):
-        p = self.scenario_with_red("python3 -c 'import xv_no_such_module'")
+    def test_a_red_that_cannot_run_is_not_a_failing_red_and_stops_the_test_writer_step(self):
+        p = self.writer_with_red("python3 -c 'import xv_no_such_module'")
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         stop = json.loads(p.stdout)["stop"]
         self.assertEqual(stop["order"], "red_cannot_run")
@@ -260,28 +260,28 @@ class WatchLoopTest(WatchLoopSetup):
         self.assertNotIn("maker", [s["step"] for s in data["spend"]])
 
     def test_a_red_that_runs_its_tests_and_some_fail_is_still_a_failing_red(self):
-        p = self.scenario_with_red("echo 'FAIL: test_x (t.A.test_x)' && echo 'Ran 1 test' && false")
+        p = self.writer_with_red("echo 'FAIL: test_x (t.A.test_x)' && echo 'Ran 1 test' && false")
         self.assertNotIn("red_command_joined", p.stdout)
         self.assertNotIn("red_cannot_run", p.stdout)
         self.assertIs(self.record()["checks"]["test-writer"]["red_fails"], True)
 
     def test_a_red_joined_with_or_is_refused(self):
-        p = self.scenario_with_red("false || true")
+        p = self.writer_with_red("false || true")
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "red_command_joined")
 
     def test_a_red_joined_with_and_is_not_refused_and_fails_when_the_first_runner_fails(self):
-        p = self.scenario_with_red("false && true")
+        p = self.writer_with_red("false && true")
         self.assertNotIn("red_command_joined", p.stdout)
         self.assertIs(self.record()["checks"]["test-writer"]["red_fails"], True)
 
     def test_a_refused_red_is_not_kept_as_the_slice_red(self):
         before = self.record().get("red")
-        p = self.scenario_with_red("false ; false ; true")
+        p = self.writer_with_red("false ; false ; true")
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "red_command_joined")
         self.assertEqual(self.record().get("red"), before)
 
-    def test_after_a_refused_red_the_next_step_is_the_scenario_not_the_maker(self):
-        p = self.scenario_with_red("false ; false ; true")
+    def test_after_a_refused_red_the_next_step_is_the_test_writer_not_the_maker(self):
+        p = self.writer_with_red("false ; false ; true")
         stop = json.loads(p.stdout)["stop"]
         self.assertEqual(stop["order"], "red_command_joined")
         self.assertIn("test writer", stop["question"])
@@ -291,7 +291,7 @@ class WatchLoopTest(WatchLoopSetup):
         self.assertNotIn("maker", [s["step"] for s in data["spend"]])
 
     def test_a_red_joined_with_and_goes_on_to_the_maker(self):
-        self.scenario_with_red("false && true")
+        self.writer_with_red("false && true")
         self.assertEqual(self.record()["next"], "maker")
 
     def amend(self, text):
@@ -300,7 +300,7 @@ class WatchLoopTest(WatchLoopSetup):
             f.write(text)
         self.xv("slice", "amend", "s1", "--scenario-file", path, "--by", "pat", cwd=self.wt)
 
-    def scenario_with_env(self, **env):
+    def writer_with_env(self, **env):
         from unittest import mock
         with mock.patch.dict(os.environ, env):
             self.xv("step", "forecaster", "s1", cwd=self.wt)
@@ -316,34 +316,34 @@ class WatchLoopTest(WatchLoopSetup):
 
     def test_a_flag_in_backticks_that_no_red_file_has_stops_before_the_maker(self):
         self.amend("The list takes `--since <date>`.")
-        self.assert_stopped_before_the_maker(self.scenario_with_env(), "--since")
+        self.assert_stopped_before_the_maker(self.writer_with_env(), "--since")
 
     def test_a_flag_in_an_amendment_counts(self):
         self.amend("Also `--until <date>`.")
-        self.assert_stopped_before_the_maker(self.scenario_with_env(), "--until")
+        self.assert_stopped_before_the_maker(self.writer_with_env(), "--until")
 
     def test_an_xv_command_in_backticks_that_no_red_file_has_stops_before_the_maker(self):
         self.amend("A person runs `xv ghost <id>`.")
-        self.assert_stopped_before_the_maker(self.scenario_with_env(), "xv ghost")
+        self.assert_stopped_before_the_maker(self.writer_with_env(), "xv ghost")
 
     def test_a_flag_a_red_file_has_goes_on_to_the_maker(self):
         self.amend("The list takes `--since <date>`.")
-        p = self.scenario_with_env(FAKE_RED_TEXT="xv list --since 2026-10-01")
+        p = self.writer_with_env(FAKE_RED_TEXT="xv list --since 2026-10-01")
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
     def test_a_flag_in_plain_words_does_not_stop(self):
         self.amend("The list takes a --since flag, written without backticks.")
-        p = self.scenario_with_env()
+        p = self.writer_with_env()
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
     def test_an_item_the_report_says_it_did_not_cover_stops_before_the_maker(self):
-        p = self.scenario_with_env(FAKE_NOT_COVERED='[{"outcome":"the grocer share", "why": "no seam to start the app"}]')
+        p = self.writer_with_env(FAKE_NOT_COVERED='[{"outcome":"the grocer share", "why": "no seam to start the app"}]')
         self.assert_stopped_before_the_maker(p, "the grocer share", "no seam to start the app")
 
     def test_a_report_with_nothing_left_uncovered_goes_on_to_the_maker(self):
-        p = self.scenario_with_env(FAKE_NOT_COVERED="[]")
+        p = self.writer_with_env(FAKE_NOT_COVERED="[]")
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
@@ -354,53 +354,53 @@ class WatchLoopTest(WatchLoopSetup):
         self.assertIn("## Scenario", text)
         with open(path, "w") as f:
             f.write(text.replace("## Scenario", "## Story"))
-        self.assert_stopped_before_the_maker(self.scenario_with_env(), "Scenario")
+        self.assert_stopped_before_the_maker(self.writer_with_env(), "Scenario")
 
     def test_a_report_with_no_not_covered_stops_before_the_maker(self):
-        p = self.scenario_with_env(FAKE_REPORT_DROP="not_covered")
+        p = self.writer_with_env(FAKE_REPORT_DROP="not_covered")
         self.assert_stopped_before_the_maker(p, "not_covered")
 
     def test_a_not_covered_that_is_not_a_list_stops_before_the_maker(self):
-        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"not_covered": "nothing"}')
+        p = self.writer_with_env(FAKE_REPORT_EXTRA='{"not_covered": "nothing"}')
         self.assert_stopped_before_the_maker(p, "not_covered")
 
     def test_a_report_with_no_covers_stops_before_the_maker(self):
-        p = self.scenario_with_env(FAKE_REPORT_DROP="covered")
+        p = self.writer_with_env(FAKE_REPORT_DROP="covered")
         self.assert_stopped_before_the_maker(p, "`covered`")
 
     def test_a_covers_that_is_not_a_list_stops_before_the_maker(self):
-        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covered": "everything"}')
+        p = self.writer_with_env(FAKE_REPORT_EXTRA='{"covered": "everything"}')
         self.assert_stopped_before_the_maker(p, "`covered`")
 
     def test_a_covers_item_that_names_no_test_stops_before_the_maker(self):
-        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covered": [{"outcome":"milk today"}]}')
+        p = self.writer_with_env(FAKE_REPORT_EXTRA='{"covered": [{"outcome":"milk today"}]}')
         self.assert_stopped_before_the_maker(p, "`covered`")
 
     def test_an_empty_covers_stops_before_the_maker(self):
-        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covered": []}')
+        p = self.writer_with_env(FAKE_REPORT_EXTRA='{"covered": []}')
         self.assert_stopped_before_the_maker(p, "`covered`")
 
     def test_a_covers_item_whose_test_is_in_no_red_file_stops_before_the_maker(self):
-        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covered": [{"outcome":"milk today", "test": "test_a_ghost"}]}')
+        p = self.writer_with_env(FAKE_REPORT_EXTRA='{"covered": [{"outcome":"milk today", "test": "test_a_ghost"}]}')
         self.assert_stopped_before_the_maker(p, "test_a_ghost")
 
     def test_one_covers_item_with_a_missing_test_among_found_ones_stops_before_the_maker(self):
-        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covered": [{"outcome":"milk today", "test": "test_milk_today"},'
+        p = self.writer_with_env(FAKE_REPORT_EXTRA='{"covered": [{"outcome":"milk today", "test": "test_milk_today"},'
                                                      ' {"outcome":"cheese", "test": "test_cheese_ghost"}]}')
         self.assert_stopped_before_the_maker(p, "test_cheese_ghost")
 
     def test_a_covers_test_that_is_only_part_of_a_longer_test_name_stops_before_the_maker(self):
-        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covered": [{"outcome":"milk today", "test": "test_milk"}]}')
+        p = self.writer_with_env(FAKE_REPORT_EXTRA='{"covered": [{"outcome":"milk today", "test": "test_milk"}]}')
         self.assert_stopped_before_the_maker(p, "test_milk")
 
     def test_a_covers_test_found_in_a_red_file_goes_on_to_the_maker(self):
-        p = self.scenario_with_env(FAKE_REPORT_EXTRA='{"covered": [{"outcome":"milk today", "test": "test_milk_today"}]}')
+        p = self.writer_with_env(FAKE_REPORT_EXTRA='{"covered": [{"outcome":"milk today", "test": "test_milk_today"}]}')
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
     def covers_test(self, test, **env):
         extra = json.dumps({"covered": [{"outcome":"milk today", "test": test}]})
-        return self.scenario_with_env(FAKE_REPORT_EXTRA=extra, **env)
+        return self.writer_with_env(FAKE_REPORT_EXTRA=extra, **env)
 
     def assert_goes_on(self, p):
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
@@ -408,16 +408,16 @@ class WatchLoopTest(WatchLoopSetup):
 
     def test_a_covers_test_that_is_a_list_of_names_all_in_red_files_goes_on_to_the_maker(self):
         extra = json.dumps({"covered": [{"outcome":"milk today", "test": ["test_milk_today", "test_cheese"]}]})
-        p = self.scenario_with_env(FAKE_REPORT_EXTRA=extra, FAKE_RED_TEXT="def test_cheese(self): pass")
+        p = self.writer_with_env(FAKE_REPORT_EXTRA=extra, FAKE_RED_TEXT="def test_cheese(self): pass")
         self.assert_goes_on(p)
 
     def test_a_covers_list_with_a_name_in_no_red_file_stops_before_the_maker(self):
         extra = json.dumps({"covered": [{"outcome":"milk today", "test": ["test_milk_today", "test_cheese_ghost"]}]})
-        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "test_cheese_ghost")
+        self.assert_stopped_before_the_maker(self.writer_with_env(FAKE_REPORT_EXTRA=extra), "test_cheese_ghost")
 
     def test_a_covers_list_with_a_name_that_is_part_of_a_longer_name_stops_before_the_maker(self):
         extra = json.dumps({"covered": [{"outcome":"milk today", "test": ["test_milk_today", "test_milk"]}]})
-        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "test_milk")
+        self.assert_stopped_before_the_maker(self.writer_with_env(FAKE_REPORT_EXTRA=extra), "test_milk")
 
     def test_an_empty_covers_list_stops_before_the_maker(self):
         self.assert_stopped_before_the_maker(self.covers_test([]), "`covered`")
@@ -453,15 +453,15 @@ class WatchLoopTest(WatchLoopSetup):
 
     def test_a_covers_list_with_a_number_among_the_names_stops_before_the_maker(self):
         extra = json.dumps({"covered": [{"outcome":"milk today", "test": ["test_milk_today", 7]}]})
-        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "`covered`")
+        self.assert_stopped_before_the_maker(self.writer_with_env(FAKE_REPORT_EXTRA=extra), "`covered`")
 
     def test_a_covers_list_with_an_empty_string_among_the_names_stops_before_the_maker(self):
         extra = json.dumps({"covered": [{"outcome":"milk today", "test": ["test_milk_today", ""]}]})
-        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "`covered`")
+        self.assert_stopped_before_the_maker(self.writer_with_env(FAKE_REPORT_EXTRA=extra), "`covered`")
 
     def test_a_covers_list_with_a_null_among_the_names_stops_before_the_maker(self):
         extra = json.dumps({"covered": [{"outcome":"milk today", "test": ["test_milk_today", None]}]})
-        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "`covered`")
+        self.assert_stopped_before_the_maker(self.writer_with_env(FAKE_REPORT_EXTRA=extra), "`covered`")
 
     def test_a_covers_name_with_a_red_module_in_front_goes_on_to_the_maker(self):
         self.assert_goes_on(self.covers_test("tests.test_red.Red.test_milk_today"))
@@ -491,26 +491,26 @@ class WatchLoopTest(WatchLoopSetup):
 
     def test_a_covers_list_with_a_name_whose_test_part_is_empty_stops_before_the_maker(self):
         extra = json.dumps({"covered": [{"outcome":"milk today", "test": ["test_milk_today", "Red."]}]})
-        self.assert_stopped_before_the_maker(self.scenario_with_env(FAKE_REPORT_EXTRA=extra), "Red.")
+        self.assert_stopped_before_the_maker(self.writer_with_env(FAKE_REPORT_EXTRA=extra), "Red.")
 
     def test_a_command_whose_words_are_apart_in_the_red_stops_before_the_maker(self):
         self.amend("A person runs `xv slice ghost`.")
-        p = self.scenario_with_env(FAKE_RED_TEXT="slice a list of other things, then ghost")
+        p = self.writer_with_env(FAKE_RED_TEXT="slice a list of other things, then ghost")
         self.assert_stopped_before_the_maker(p, "xv slice ghost")
 
     def test_a_command_whose_words_are_out_of_order_in_the_red_stops_before_the_maker(self):
         self.amend("A person runs `xv slice ghost`.")
-        p = self.scenario_with_env(FAKE_RED_TEXT="ghost slice")
+        p = self.writer_with_env(FAKE_RED_TEXT="ghost slice")
         self.assert_stopped_before_the_maker(p, "xv slice ghost")
 
     def test_a_command_whose_words_are_together_in_order_in_the_red_goes_on_to_the_maker(self):
         self.amend("A person runs `xv slice ghost`.")
-        p = self.scenario_with_env(FAKE_RED_TEXT="self.xv('slice', 'ghost', 's1')")
+        p = self.writer_with_env(FAKE_RED_TEXT="self.xv('slice', 'ghost', 's1')")
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
     def assert_refused(self, command):
-        p = self.scenario_with_red(command)
+        p = self.writer_with_red(command)
         stop = json.loads(p.stdout)["stop"]
         self.assertEqual(stop["order"], "red_command_joined")
         self.assertIn("&&", stop["question"])
@@ -526,17 +526,17 @@ class WatchLoopTest(WatchLoopSetup):
         self.assert_refused("false & true")
 
     def test_a_newline_inside_quotes_is_not_a_join(self):
-        p = self.scenario_with_red("python3 -c 'import sys\nsys.exit(1)'")
+        p = self.writer_with_red("python3 -c 'import sys\nsys.exit(1)'")
         self.assertNotIn("red_command_joined", p.stdout)
         self.assertIs(self.record()["checks"]["test-writer"]["red_fails"], True)
 
     def test_a_pipe_inside_quotes_is_not_a_join(self):
-        p = self.scenario_with_red("python3 -c 'import sys; a = 1 | 0; sys.exit(1)'")
+        p = self.writer_with_red("python3 -c 'import sys; a = 1 | 0; sys.exit(1)'")
         self.assertNotIn("red_command_joined", p.stdout)
         self.assertIs(self.record()["checks"]["test-writer"]["red_fails"], True)
 
     def test_a_semicolon_inside_quotes_is_not_a_join(self):
-        p = self.scenario_with_red("python3 -c 'import sys; sys.exit(1)'")
+        p = self.writer_with_red("python3 -c 'import sys; sys.exit(1)'")
         self.assertNotIn("red_command_joined", p.stdout)
         self.assertIs(self.record()["checks"]["test-writer"]["red_fails"], True)
 
@@ -550,8 +550,8 @@ class WatchLoopTest(WatchLoopSetup):
     def open_stops(self):
         return [s for s in self.record()["stops"] if s.get("answer") is None]
 
-    def scenario_covering(self, covered=(), not_covered=()):
-        """Run the scenario step once, with a report that covers only the given points."""
+    def writer_covering(self, covered=(), not_covered=()):
+        """Run the test-writer step once, with a report that covers only the given points."""
         from unittest import mock
         extra = {"covered": [{"outcome":c, "test": "test_milk_today"} for c in covered],
                  "not_covered": [{"outcome":n, "why": "no seam to start the app"} for n in not_covered]}
@@ -561,7 +561,7 @@ class WatchLoopTest(WatchLoopSetup):
     def test_a_numbered_point_in_neither_covers_nor_not_covered_goes_back_without_a_stop(self):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.scenario_covering(covered=[self.P1])
+        p = self.writer_covering(covered=[self.P1])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.open_stops(), [])
         self.assertEqual(self.record()["next"], "test-writer")
@@ -569,23 +569,23 @@ class WatchLoopTest(WatchLoopSetup):
         watch_lines = [ln for ln in self.record_text().splitlines() if " watch: " in ln and self.P2 in ln]
         self.assertTrue(watch_lines, "the watch records the send-back with the missed point")
 
-    def test_the_next_scenario_agent_gets_the_missed_point_through_xv_prompt(self):
+    def test_the_next_test_writer_gets_the_missed_point_through_xv_prompt(self):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario_covering(covered=[self.P1])
+        self.writer_covering(covered=[self.P1])
         prompt = self.xv("prompt", "test-writer", "s1", cwd=self.wt).stdout
         self.assertIn(self.P2, prompt)
 
     def test_a_numbered_point_in_not_covered_still_stops_for_the_person(self):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.scenario_covering(covered=[self.P1], not_covered=[self.P2])
+        p = self.writer_covering(covered=[self.P1], not_covered=[self.P2])
         self.assert_stopped_before_the_maker(p, "no seam to start the app")
 
     def test_every_numbered_point_in_covers_goes_on_to_the_maker(self):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.scenario_covering(covered=[self.P1, self.P2])
+        p = self.writer_covering(covered=[self.P1, self.P2])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
@@ -600,7 +600,7 @@ class WatchLoopTest(WatchLoopSetup):
     def covered_by_number(self, scenario, items):
         self.in_the_scenario(scenario)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        return self.scenario_covering(covered=items)
+        return self.writer_covering(covered=items)
 
     P3 = "3. A household sees the pantry list in order."
 
@@ -608,7 +608,7 @@ class WatchLoopTest(WatchLoopSetup):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
         self.amend(self.P3)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.scenario_covering(covered=["1", "2", "3"])  # #182: a number now covers an amendment's outcome too
+        p = self.writer_covering(covered=["1", "2", "3"])  # #182: a number now covers an amendment's outcome too
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
@@ -616,14 +616,14 @@ class WatchLoopTest(WatchLoopSetup):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
         self.amend(self.P3)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario_covering(covered=["1", "2", "3. Pantry list order"])  # #182: the number covers it
+        self.writer_covering(covered=["1", "2", "3. Pantry list order"])  # #182: the number covers it
         self.assertEqual(self.record()["next"], "maker")
 
     def test_an_amendments_point_is_still_covered_by_its_own_words(self):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
         self.amend(self.P3)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.scenario_covering(covered=["1", "2", self.P3])
+        p = self.writer_covering(covered=["1", "2", self.P3])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
@@ -631,14 +631,14 @@ class WatchLoopTest(WatchLoopSetup):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
         self.amend("2. A household sees a restock hint.")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario_covering(covered=["1", "2"])
+        self.writer_covering(covered=["1", "2"])
         self.assertEqual(self.record()["next"], "test-writer")
 
     def test_a_repeated_number_covers_only_the_first_outcome_with_that_number(self):
         self.in_the_scenario(self.P1)
         self.amend("1. A household sees a restock hint.")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario_covering(covered=["1"])
+        self.writer_covering(covered=["1"])
         self.assertEqual(self.record()["next"], "test-writer")
         self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and "A household sees a restock hint." in l])
 
@@ -667,14 +667,14 @@ class WatchLoopTest(WatchLoopSetup):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
         self.amend(self.P3)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.scenario_covering(covered=["1", "2"], not_covered=["3"])
+        p = self.writer_covering(covered=["1", "2"], not_covered=["3"])
         self.assert_stopped_before_the_maker(p, "no seam to start the app")
 
     def test_an_amendments_outcome_the_report_leaves_out_still_goes_back(self):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
         self.amend(self.P3)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario_covering(covered=["1", "2"])
+        self.writer_covering(covered=["1", "2"])
         self.assertEqual(self.record()["next"], "test-writer")
         self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and self.P3 in l])
 
@@ -683,20 +683,20 @@ class WatchLoopTest(WatchLoopSetup):
         self.in_the_scenario(self.P1)
         self.amend(ten)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario_covering(covered=["1"])
+        self.writer_covering(covered=["1"])
         self.assertEqual(self.record()["next"], "test-writer")
 
     def test_a_number_item_in_not_covered_still_stops_for_the_person(self):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.scenario_covering(covered=["1"], not_covered=["2"])
+        p = self.writer_covering(covered=["1"], not_covered=["2"])
         self.assert_stopped_before_the_maker(p, "no seam to start the app")
 
     def test_the_same_missed_point_on_the_next_pass_goes_back_again(self):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario_covering(covered=[self.P1])
-        p = self.scenario_covering(covered=[self.P1])
+        self.writer_covering(covered=[self.P1])
+        p = self.writer_covering(covered=[self.P1])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.open_stops(), [])
         self.assertEqual(self.record()["next"], "test-writer")
@@ -705,8 +705,8 @@ class WatchLoopTest(WatchLoopSetup):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         for _ in range(2):
-            self.scenario_covering(covered=[self.P1])
-        p = self.scenario_covering(covered=[self.P1])
+            self.writer_covering(covered=[self.P1])
+        p = self.writer_covering(covered=[self.P1])
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         stop = json.loads(p.stdout)["stop"]
         self.assertEqual((stop["order"], stop["seat"]), ("report_misses_outcome", "originator"))
@@ -716,9 +716,9 @@ class WatchLoopTest(WatchLoopSetup):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         for _ in range(2):
-            self.scenario_covering(covered=[self.P1])
-        self.scenario_covering(covered=[self.P1, self.P2])
-        p = self.scenario_covering(covered=[self.P1])
+            self.writer_covering(covered=[self.P1])
+        self.writer_covering(covered=[self.P1, self.P2])
+        p = self.writer_covering(covered=[self.P1])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.open_stops(), [])
         self.assertEqual(self.record()["next"], "test-writer")
@@ -727,9 +727,9 @@ class WatchLoopTest(WatchLoopSetup):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         for _ in range(2):
-            self.scenario_covering(covered=[self.P1])
+            self.writer_covering(covered=[self.P1])
         self.amend("3. A household sees the pantry list in order.")
-        p = self.scenario_covering(covered=[self.P1])
+        p = self.writer_covering(covered=[self.P1])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.open_stops(), [])
         self.assertEqual(self.record()["next"], "test-writer")
@@ -738,10 +738,10 @@ class WatchLoopTest(WatchLoopSetup):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         for _ in range(3):
-            self.scenario_covering(covered=[self.P1])
+            self.writer_covering(covered=[self.P1])
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "again", "--next", "test-writer",
                 "--settled", "Pat wants every point covered.", cwd=self.wt)
-        p = self.scenario_covering(covered=[self.P1])
+        p = self.writer_covering(covered=[self.P1])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.open_stops(), [])
         self.assertEqual(self.record()["next"], "test-writer")
@@ -751,58 +751,58 @@ class WatchLoopTest(WatchLoopSetup):
     def test_an_item_without_the_backticks_covers_the_point_that_has_them(self):
         self.amend(self.PM)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.scenario_covering(covered=["1. The doc kind refuses a file under .xv/ and any file named SKILL.md."])
+        p = self.writer_covering(covered=["1. The doc kind refuses a file under .xv/ and any file named SKILL.md."])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.record()["next"], "maker")
 
     def test_an_item_without_stars_and_underscores_covers_the_point_that_has_them(self):
         self.amend("1. A **household** sees milk in the _restock_ list.")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.scenario_covering(covered=["1. A household sees milk in the restock list."])
+        p = self.writer_covering(covered=["1. A household sees milk in the restock list."])
         self.assertEqual(self.record()["next"], "maker", p.stdout + p.stderr)
 
     def test_the_marks_come_off_the_item_too(self):
         self.amend("1. A household sees milk in the restock list.")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.scenario_covering(covered=["1. A `household` sees **milk** in the _restock_ list."])
+        p = self.writer_covering(covered=["1. A `household` sees **milk** in the _restock_ list."])
         self.assertEqual(self.record()["next"], "maker", p.stdout + p.stderr)
 
     def test_an_item_that_starts_with_the_amendments_number_covers_it_whatever_words_follow(self):
         self.amend(self.PM)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario_covering(covered=["1. The doc kind accepts a file under .xv/ and any file named SKILL.md."])
+        self.writer_covering(covered=["1. The doc kind accepts a file under .xv/ and any file named SKILL.md."])
         self.assertEqual(self.record()["next"], "maker")
 
     def test_the_send_back_hands_over_the_point_as_an_item_the_check_accepts(self):
         self.amend(f"{self.PM}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario_covering(covered=[self.P2])
+        self.writer_covering(covered=[self.P2])
         prompt = self.xv("prompt", "test-writer", "s1", cwd=self.wt).stdout
         self.assertIn(self.PM, prompt)
 
     def test_the_send_back_says_every_point_goes_in_covers_or_not_covered_each_pass(self):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario_covering(covered=[self.P1])
+        self.writer_covering(covered=[self.P1])
         said = " ".join(self.xv("prompt", "test-writer", "s1", cwd=self.wt).stdout.lower().split())
         self.assertIn("every outcome", said)
         self.assertIn("each pass", said)
         self.assertIn("amendments", said)
         self.assertIn("not_covered", said)
 
-    def guardian_with_miss(self, miss="Point 1 is not met: the list still leaves out milk that runs out today.",
+    def inspector_with_miss(self, miss="Point 1 is not met: the list still leaves out milk that runs out today.",
                            **env):
         from unittest import mock
         with mock.patch.dict(os.environ, dict(env, FAKE_SCENARIO_MISS=miss)):
             return self.xv("step", "inspector", "s1", cwd=self.wt, check=False)
 
-    def to_the_guardian(self):
+    def to_the_inspector(self):
         for agent in ("forecaster", "test-writer", "maker", "cleaner"):
             self.xv("step", agent, "s1", cwd=self.wt)
 
     def test_a_change_misses_scenario_in_the_packet_sends_the_slice_to_the_maker_without_a_stop(self):
-        self.to_the_guardian()
-        p = self.guardian_with_miss()
+        self.to_the_inspector()
+        p = self.inspector_with_miss()
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         data = self.record()
         self.assertEqual(data["change_misses_scenario"], "yes")
@@ -812,50 +812,50 @@ class WatchLoopTest(WatchLoopSetup):
                       "\n".join(ln for ln in self.record_text().splitlines() if " watch: " in ln))
 
     def test_the_maker_gets_the_miss_through_xv_prompt(self):
-        self.to_the_guardian()
-        self.guardian_with_miss()
+        self.to_the_inspector()
+        self.inspector_with_miss()
         self.assertIn("milk that runs out today", self.xv("prompt", "maker", "s1", cwd=self.wt).stdout)
 
     def test_a_change_misses_scenario_beside_a_shape_change_still_stops_for_two_people(self):
-        self.to_the_guardian()
-        p = self.guardian_with_miss(FAKE_SHAPE_CHANGE="yes")
+        self.to_the_inspector()
+        p = self.inspector_with_miss(FAKE_SHAPE_CHANGE="yes")
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "shape_or_pitch")
 
-    def test_the_same_change_misses_scenario_on_the_next_guardian_pass_stops_for_the_person(self):
-        self.to_the_guardian()
-        self.guardian_with_miss()
+    def test_the_same_change_misses_scenario_on_the_next_inspector_pass_stops_for_the_person(self):
+        self.to_the_inspector()
+        self.inspector_with_miss()
         for agent in ("maker", "cleaner"):
             self.xv("step", agent, "s1", cwd=self.wt)
-        p = self.guardian_with_miss()
+        p = self.inspector_with_miss()
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(json.loads(p.stdout)["stop"]["seat"], "originator")
         self.assertNotEqual(json.loads(p.stdout)["stop"]["order"], "ready_to_merge")
 
     def test_a_miss_marked_amend_yes_is_not_sent_back_and_stops_for_the_person(self):
-        self.to_the_guardian()
-        p = self.guardian_with_miss("2: the scenario itself is wrong here, to: maker, amend: yes")
+        self.to_the_inspector()
+        p = self.inspector_with_miss("2: the scenario itself is wrong here, to: maker, amend: yes")
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         stop = json.loads(p.stdout)["stop"]
         self.assertEqual(stop["seat"], "originator")
         self.assertNotEqual(stop["order"], "ready_to_merge")
         self.assertEqual(len(self.open_stops()), 1)
 
-    def test_xv_decisions_counts_a_guardian_send_back_as_a_change_misses_scenario_row(self):
-        self.to_the_guardian()
-        self.guardian_with_miss("2: milk that runs out today is left out, to: maker")
+    def test_xv_decisions_counts_a_inspector_send_back_as_a_change_misses_scenario_row(self):
+        self.to_the_inspector()
+        self.inspector_with_miss("2: milk that runs out today is left out, to: maker")
         out = self.xv("decisions", cwd=self.wt).stdout
         self.assertTrue([ln for ln in out.splitlines() if "change_misses_scenario" in ln], out)
 
-    def test_xv_decisions_counts_a_scenario_send_back_as_a_report_misses_outcome_row(self):
+    def test_xv_decisions_counts_a_test_writer_send_back_as_a_report_misses_outcome_row(self):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario_covering(covered=[self.P1])
+        self.writer_covering(covered=[self.P1])
         out = self.xv("decisions", cwd=self.wt).stdout
         self.assertTrue([ln for ln in out.splitlines() if "report_misses_outcome" in ln], out)
 
     def test_a_packet_with_no_miss_still_ends_in_the_merge_stop(self):
-        self.to_the_guardian()
+        self.to_the_inspector()
         p = self.xv("step", "inspector", "s1", cwd=self.wt, check=False)
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "ready_to_merge")
         self.assertEqual(self.record()["change_misses_scenario"], "no")
@@ -1125,7 +1125,7 @@ class AcceptedShapeChangeTest(WatchLoopSetup):
         rel = self.decide(order="moves_to_accept")
         self.assertEqual(self.record_packet("accepted", rel), "yes")
 
-    def test_the_guardian_brief_allows_accepted_and_names_accepted_by(self):
+    def test_the_inspector_brief_allows_accepted_and_names_accepted_by(self):
         text = open(os.path.join(HOME, "skills", "inspector", "SKILL.md")).read()
         may_not = text[text.index("## May not"):text.index("## Writes to the slice record")]
         self.assertNotIn("anything but `yes` or `no`", may_not)
@@ -1198,8 +1198,8 @@ class PreStepBudgetStopTest(WatchLoopSetup):
         self.assertEqual(a.returncode, 0, a.stderr)
 
 
-class NamedByTheScenarioReachTheMakerTest(RepoCase):
-    """The scenario report's `old_tests_to_move` and `may_not_files_needed` are kept, shown to the maker, and honoured."""
+class NamedByTheTestWriterReachTheMakerTest(RepoCase):
+    """The test-writer report's `old_tests_to_move` and `may_not_files_needed` are kept, shown to the maker, and honoured."""
 
     OLD = {"file": "tests/test_api.py", "test": "test_message", "why": "the reply text changes"}
     FILE = {"file": ".xv/picture.md", "why": "the red needs a new binding decision"}
@@ -1216,11 +1216,11 @@ class NamedByTheScenarioReachTheMakerTest(RepoCase):
         record.apply_report(data, "", agent, text)
         return data
 
-    def test_the_record_keeps_the_old_tests_the_scenario_report_names(self):
+    def test_the_record_keeps_the_old_tests_the_test_writer_report_names(self):
         data = self.report("test-writer", old_tests_to_move=[self.OLD], may_not_files_needed=[self.FILE])
         self.assertEqual(data.get("old_tests_to_move"), [self.OLD])
 
-    def test_the_record_keeps_the_may_not_files_needed_the_scenario_report_names(self):
+    def test_the_record_keeps_the_may_not_files_needed_the_test_writer_report_names(self):
         data = self.report("test-writer", old_tests_to_move=[self.OLD], may_not_files_needed=[self.FILE])
         self.assertEqual(data.get("may_not_files_needed"), [self.FILE])
 
@@ -1313,7 +1313,7 @@ class NamedByTheScenarioReachTheMakerTest(RepoCase):
         text = "```xv-report\n" + json.dumps({"agent": "test-writer", "status": "red", "summary": "s", **keys}) + "\n```\n"
         record.apply_report(data, "", "test-writer", text)
 
-    def test_a_scenario_report_that_leaves_the_lists_out_clears_the_earlier_ones(self):
+    def test_a_test_writer_report_that_leaves_the_lists_out_clears_the_earlier_ones(self):
         data = self.report("test-writer", old_tests_to_move=[self.OLD], may_not_files_needed=[self.FILE])
         self.second_report(data)
         self.assertEqual(data.get("may_not_files_needed") or [], [])
@@ -1336,12 +1336,12 @@ class NamedByTheScenarioReachTheMakerTest(RepoCase):
                                           changes=[".xv/picture.md"]), [".xv/picture.md"])
 
 
-class ScenarioChecksTest(WatchLoopSetup):
-    """The checks after the scenario step: what they accept, and what they no longer raise for no reason."""
+class TestWriterChecksTest(WatchLoopSetup):
+    """The checks after the test-writer step: what they accept, and what they no longer raise for no reason."""
 
     first = {}
 
-    def scenario(self, **env):
+    def writer(self, **env):
         from unittest import mock
         with mock.patch.dict(os.environ, env):
             return self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
@@ -1349,7 +1349,7 @@ class ScenarioChecksTest(WatchLoopSetup):
     def covers_with(self, test, **env):
         extra = json.dumps({"covered": [{"outcome":"milk today", "test": test}]})
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        return self.scenario(FAKE_REPORT_EXTRA=extra, **env)
+        return self.writer(FAKE_REPORT_EXTRA=extra, **env)
 
     def assert_goes_on(self, p):
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
@@ -1414,86 +1414,86 @@ class ScenarioChecksTest(WatchLoopSetup):
         self.assert_stops(self.covers_with("tests/test_red.py::Red::test_milk"), "test_milk")
 
     # 4. the coverage from earlier passes stays after a send-back
-    def send_back_to_the_scenario(self):
-        """Pass one stops on a not_covered item; a person sends the slice back to the scenario agent."""
+    def send_back_to_the_test_writer(self):
+        """Pass one stops on a not_covered item; a person sends the slice back to the test writer."""
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario(FAKE_NOT_COVERED='[{"outcome":"the grocer share", "why": "no seam"}]', **self.first)
+        self.writer(FAKE_NOT_COVERED='[{"outcome":"the grocer share", "why": "no seam"}]', **self.first)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go again", "--next", "test-writer",
                 "--settled", "Pat said to cover the grocer share.", cwd=self.wt)
 
     def test_an_empty_covers_on_a_pass_after_a_send_back_does_not_stop(self):
-        self.send_back_to_the_scenario()
-        self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA='{"covered": []}'))
+        self.send_back_to_the_test_writer()
+        self.assert_goes_on(self.writer(FAKE_REPORT_EXTRA='{"covered": []}'))
 
     def test_a_point_covered_on_the_earlier_pass_stays_covered_after_a_send_back(self):
         point = "1. A household sees milk running out soon."
         self.amend(point)
         self.first = {"FAKE_REPORT_EXTRA": json.dumps({"covered": [{"outcome":point, "test": "test_milk_today"}]})}
-        self.send_back_to_the_scenario()
-        self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA='{"covered": []}'))
+        self.send_back_to_the_test_writer()
+        self.assert_goes_on(self.writer(FAKE_REPORT_EXTRA='{"covered": []}'))
 
     def test_a_point_kept_under_covers_kept_in_a_record_from_before_the_rename_stays_covered(self):
         point = "1. A household sees milk running out soon."
         self.amend(point)
         self.first = {"FAKE_REPORT_EXTRA": json.dumps({"covered": [{"outcome":point, "test": "test_milk_today"}]})}
-        self.send_back_to_the_scenario()
+        self.send_back_to_the_test_writer()
         path = os.path.join(self.wt, ".xv", "slices", "s1.md")
         with open(path) as f:
             text = f.read()
         self.assertIn('"covered_kept"', text)
         with open(path, "w") as f:
             f.write(text.replace('"covered_kept"', '"covers_kept"'))
-        self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA='{"covered": []}'))
+        self.assert_goes_on(self.writer(FAKE_REPORT_EXTRA='{"covered": []}'))
 
     def test_a_kept_name_whose_test_is_gone_stops_on_the_pass_after_a_send_back(self):
         self.first = {"FAKE_RED_TEXT": "def test_cheese(self): pass",
                       "FAKE_REPORT_EXTRA": json.dumps({"covered": [{"outcome":"cheese", "test": "test_cheese"}]})}
-        self.send_back_to_the_scenario()
-        self.assert_stops(self.scenario(FAKE_REPORT_EXTRA='{"covered": []}'), "test_cheese")
+        self.send_back_to_the_test_writer()
+        self.assert_stops(self.writer(FAKE_REPORT_EXTRA='{"covered": []}'), "test_cheese")
 
     # #174 point 4: a not_covered item a person answered is not asked again; a new item is
     # amendment 9: only an answer that did not send the slice back settles the item
     def answer_without_a_send_back(self):
         """Pass one stops on a not_covered item; a person accepts it and the slice goes on to the maker."""
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario(FAKE_NOT_COVERED='[{"outcome":"the grocer share", "why": "no seam"}]', **self.first)
+        self.writer(FAKE_NOT_COVERED='[{"outcome":"the grocer share", "why": "no seam"}]', **self.first)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "fine without it", "--next", "maker",
                 cwd=self.wt)
         self.assertFalse(self.record()["stops"][-1].get("sendback"))
 
     def test_a_not_covered_item_a_person_answered_does_not_stop_again_on_a_later_pass(self):
         self.answer_without_a_send_back()
-        p = self.scenario(FAKE_NOT_COVERED='[{"outcome":"the grocer share", "why": "no seam"}]')
+        p = self.writer(FAKE_NOT_COVERED='[{"outcome":"the grocer share", "why": "no seam"}]')
         self.assert_goes_on(p)
         self.assertEqual([s["order"] for s in self.record()["stops"]].count("red_misses_scenario"), 1)
 
     def test_a_not_covered_item_the_person_sent_back_stops_again_when_reported_again(self):
-        self.send_back_to_the_scenario()
+        self.send_back_to_the_test_writer()
         self.assertTrue(self.record()["stops"][-1].get("sendback"))
-        p = self.scenario(FAKE_NOT_COVERED='[{"outcome":"the grocer share", "why": "no seam"}]')
+        p = self.writer(FAKE_NOT_COVERED='[{"outcome":"the grocer share", "why": "no seam"}]')
         self.assert_stops(p, "the grocer share")
         self.assertEqual([s["order"] for s in self.record()["stops"]].count("red_misses_scenario"), 2)
 
     def test_a_new_not_covered_item_still_stops_on_a_later_pass(self):
         self.answer_without_a_send_back()
-        p = self.scenario(FAKE_NOT_COVERED='[{"outcome":"the grocer share", "why": "no seam"},'
+        p = self.writer(FAKE_NOT_COVERED='[{"outcome":"the grocer share", "why": "no seam"},'
                                            ' {"outcome":"the pantry export", "why": "no seam"}]')
         self.assert_stops(p, "the pantry export")
         self.assertNotIn("the grocer share", json.loads(p.stdout)["stop"]["question"])
 
     def test_an_empty_covers_on_the_first_pass_still_stops(self):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.assert_stops(self.scenario(FAKE_REPORT_EXTRA='{"covered": []}'), "`covered`")
+        self.assert_stops(self.writer(FAKE_REPORT_EXTRA='{"covered": []}'), "`covered`")
 
     def test_an_empty_covers_after_a_send_back_still_stops_when_nothing_was_kept(self):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.scenario(FAKE_REPORT_EXTRA='{"covered": []}')
+        self.writer(FAKE_REPORT_EXTRA='{"covered": []}')
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "again", "--next", "test-writer",
                 "--settled", "Pat wants a covers list.", cwd=self.wt)
-        self.assert_stops(self.scenario(FAKE_REPORT_EXTRA='{"covered": []}'), "`covered`")
+        self.assert_stops(self.writer(FAKE_REPORT_EXTRA='{"covered": []}'), "`covered`")
 
 
-class ScenarioChecksAtTheBaseTest(RepoCase):
+class TestWriterChecksAtTheBaseTest(RepoCase):
     """The base holds the xv code, so the checks can tell an existing subcommand from a new one."""
 
     def setUp(self):
@@ -1513,112 +1513,112 @@ class ScenarioChecksAtTheBaseTest(RepoCase):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
 
     record = WatchLoopSetup.record
-    amend = ScenarioChecksTest.amend
-    scenario = ScenarioChecksTest.scenario
-    assert_goes_on = ScenarioChecksTest.assert_goes_on
-    assert_stops = ScenarioChecksTest.assert_stops
+    amend = TestWriterChecksTest.amend
+    writer = TestWriterChecksTest.writer
+    assert_goes_on = TestWriterChecksTest.assert_goes_on
+    assert_stops = TestWriterChecksTest.assert_stops
 
     # 3. an existing subcommand with no new flag is not raised
     def test_an_xv_subcommand_that_exists_at_the_base_is_not_raised_when_the_red_lacks_it(self):
         self.amend("A person runs `xv slice amend`.")
-        self.assert_goes_on(self.scenario())
+        self.assert_goes_on(self.writer())
 
     def test_a_top_level_xv_command_that_exists_at_the_base_is_not_raised(self):
         self.amend("A person runs `xv decisions`.")
-        self.assert_goes_on(self.scenario())
+        self.assert_goes_on(self.writer())
 
     def test_a_new_flag_on_an_existing_command_is_still_raised(self):
         self.amend("A person runs `xv slice new --priority high`.")
-        self.assert_stops(self.scenario(), "--priority")
+        self.assert_stops(self.writer(), "--priority")
 
     def test_an_existing_command_does_not_hide_a_flag_beside_it(self):
         self.amend("A person runs `xv slice amend --expect-moves imports`.")
-        p = self.scenario()
+        p = self.writer()
         self.assert_stops(p, "--expect-moves")
         self.assertNotIn("`xv slice amend`", json.loads(p.stdout)["stop"]["question"])
 
     def test_a_command_that_does_not_exist_at_the_base_is_still_raised(self):
         self.amend("A person runs `xv ghost <id>`.")
-        self.assert_stops(self.scenario(), "xv ghost")
+        self.assert_stops(self.writer(), "xv ghost")
 
     def test_a_subcommand_that_does_not_exist_under_a_real_command_is_still_raised(self):
         self.amend("A person runs `xv slice ghost`.")
-        self.assert_stops(self.scenario(), "xv slice ghost")
+        self.assert_stops(self.writer(), "xv slice ghost")
 
     # 2. a red_gaps name a person accepted is not raised again
     def accept_the_stop(self):
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "fine, no test for it", "--next", "maker",
                 cwd=self.wt)
 
-    def test_a_gap_a_person_accepted_is_not_raised_when_the_scenario_step_runs_again(self):
+    def test_a_gap_a_person_accepted_is_not_raised_when_the_test_writer_step_runs_again(self):
         self.amend("A person runs `xv ghost <id>`.")
-        self.assert_stops(self.scenario(), "xv ghost")
+        self.assert_stops(self.writer(), "xv ghost")
         self.accept_the_stop()
-        self.assert_goes_on(self.scenario())
+        self.assert_goes_on(self.writer())
 
     def test_a_gap_that_is_a_flag_a_person_accepted_is_not_raised_again(self):
         self.amend("The list takes `--since <date>`.")
-        self.assert_stops(self.scenario(), "--since")
+        self.assert_stops(self.writer(), "--since")
         self.accept_the_stop()
-        self.assert_goes_on(self.scenario())
+        self.assert_goes_on(self.writer())
 
     def test_a_gap_a_person_did_not_accept_is_still_raised_beside_an_accepted_one(self):
         self.amend("The list takes `--since <date>`.")
-        self.assert_stops(self.scenario(), "--since")
+        self.assert_stops(self.writer(), "--since")
         self.accept_the_stop()
         self.amend("Also `--until <date>`.")
-        p = self.scenario()
+        p = self.writer()
         self.assert_stops(p, "--until")
         self.assertNotIn("--since", json.loads(p.stdout)["stop"]["question"])
 
     def test_a_gap_is_raised_again_when_no_person_accepted_it(self):
         self.amend("The list takes `--since <date>`.")
-        self.assert_stops(self.scenario(), "--since")
-        self.assert_stops(self.scenario(), "--since")
+        self.assert_stops(self.writer(), "--since")
+        self.assert_stops(self.writer(), "--since")
 
     # 8. a flag the xv command already has at the base is not raised
     def test_a_flag_the_command_has_at_the_base_is_not_raised(self):
         self.amend("A person runs `xv slice amend --scenario-file notes.md`.")
-        self.assert_goes_on(self.scenario())
+        self.assert_goes_on(self.writer())
 
     def test_two_flags_the_command_has_at_the_base_are_not_raised(self):
         self.amend("A person runs `xv slice amend --scenario-file notes.md --by pat`.")
-        self.assert_goes_on(self.scenario())
+        self.assert_goes_on(self.writer())
 
     def test_a_flag_the_base_command_lacks_is_raised_beside_one_it_has(self):
         self.amend("A person runs `xv slice amend --scenario-file notes.md --expect-moves imports`.")
-        p = self.scenario()
+        p = self.writer()
         self.assert_stops(p, "--expect-moves")
         self.assertNotIn("--scenario-file", json.loads(p.stdout)["stop"]["question"])
 
     def test_a_flag_that_only_another_command_has_is_raised(self):
         self.amend("A person runs `xv slice amend --kind refactor`.")
-        self.assert_stops(self.scenario(), "--kind")
+        self.assert_stops(self.writer(), "--kind")
 
 
 class AdoptingReposShared(WatchLoopSetup):
     """The setup both adopting-repo classes share. It holds no tests, so neither inherits the other's."""
 
-    amend = ScenarioChecksTest.amend
-    scenario = ScenarioChecksTest.scenario
-    assert_goes_on = ScenarioChecksTest.assert_goes_on
-    assert_stops = ScenarioChecksTest.assert_stops
+    amend = TestWriterChecksTest.amend
+    writer = TestWriterChecksTest.writer
+    assert_goes_on = TestWriterChecksTest.assert_goes_on
+    assert_stops = TestWriterChecksTest.assert_stops
 
     def check_a_subcommand_the_installed_xv_has_is_not_raised(self):
         self.amend("A person runs `xv slice amend`.")
-        self.assert_goes_on(self.scenario())
+        self.assert_goes_on(self.writer())
 
     def check_a_flag_the_installed_command_has_is_not_raised(self):
         self.amend("A person runs `xv slice amend --scenario-file notes.md`.")
-        self.assert_goes_on(self.scenario())
+        self.assert_goes_on(self.writer())
 
     def check_a_command_the_installed_xv_lacks_is_raised(self):
         self.amend("A person runs `xv ghost <id>`.")
-        self.assert_stops(self.scenario(), "xv ghost")
+        self.assert_stops(self.writer(), "xv ghost")
 
     def check_a_flag_the_installed_command_lacks_is_raised(self):
         self.amend("A person runs `xv slice amend --expect-moves imports`.")
-        self.assert_stops(self.scenario(), "--expect-moves")
+        self.assert_stops(self.writer(), "--expect-moves")
 
 
 class AtAnAdoptingReposBaseTest(AdoptingReposShared):
@@ -1687,9 +1687,9 @@ class AtAnAdoptingReposBaseWithItsOwnBinAndScriptsTest(AdoptingReposShared):
 class SliceOnlyFilesTest(WatchLoopSetup):
     """10. Marks on a file the config lists as always slice-only are accepted with no stop."""
 
-    scenario = ScenarioChecksTest.scenario
-    assert_goes_on = ScenarioChecksTest.assert_goes_on
-    assert_stops = ScenarioChecksTest.assert_stops
+    writer = TestWriterChecksTest.writer
+    assert_goes_on = TestWriterChecksTest.assert_goes_on
+    assert_stops = TestWriterChecksTest.assert_stops
 
     def run_marks(self, *checks, **extra):
         """One slice-only mark per `checks` value, each naming the file its test checks (`checks`)."""
@@ -1701,7 +1701,7 @@ class SliceOnlyFilesTest(WatchLoopSetup):
                 m["checks"] = c
             m.update(extra)
             out.append(m)
-        return self.scenario(FAKE_REPORT_EXTRA=json.dumps({"slice_only": out}))
+        return self.writer(FAKE_REPORT_EXTRA=json.dumps({"slice_only": out}))
 
     def assert_marks_stop(self, p, *named):
         self.assert_stops(p, *named)
@@ -1771,16 +1771,16 @@ class SliceOnlyFilesTest(WatchLoopSetup):
 class RemovedSliceOnlyTestInCoversTest(WatchLoopSetup):
     """11. A covers name for a slice-only test the cleaner removed does not stop the slice."""
 
-    scenario = ScenarioChecksTest.scenario
-    assert_goes_on = ScenarioChecksTest.assert_goes_on
-    assert_stops = ScenarioChecksTest.assert_stops
+    writer = TestWriterChecksTest.writer
+    assert_goes_on = TestWriterChecksTest.assert_goes_on
+    assert_stops = TestWriterChecksTest.assert_stops
 
     def removed(self, test="Red.test_cheese", **moved):
         """Pass one covers a cheese test and the milk test; the cleaner then removes the cheese test."""
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         extra = {"covered": [{"outcome":"milk today", "test": "test_milk_today"},
                             {"outcome":"cheese", "test": "test_cheese"}]}
-        self.scenario(FAKE_RED_TEXT="def test_cheese(self): pass", FAKE_NOT_COVERED='[{"outcome":"x", "why": "y"}]',
+        self.writer(FAKE_RED_TEXT="def test_cheese(self): pass", FAKE_NOT_COVERED='[{"outcome":"x", "why": "y"}]',
                       FAKE_REPORT_EXTRA=json.dumps(extra))
         self.xv("record", "add", "s1", "slice_only", json.dumps(
             {"file": "tests/test_red.py", "test": "Red.test_cheese", "why": "one line", "accepted": True}),
@@ -1793,7 +1793,7 @@ class RemovedSliceOnlyTestInCoversTest(WatchLoopSetup):
                 "--settled", "Pat sent it back.", cwd=self.wt)
 
     def milk_only(self):
-        return self.scenario(FAKE_REPORT_EXTRA=json.dumps(
+        return self.writer(FAKE_REPORT_EXTRA=json.dumps(
             {"covered": [{"outcome":"milk today", "test": "test_milk_today"}]}))
 
     def test_a_kept_name_for_a_removed_slice_only_test_does_not_stop(self):
@@ -1804,7 +1804,7 @@ class RemovedSliceOnlyTestInCoversTest(WatchLoopSetup):
         self.removed()
         extra = {"covered": [{"outcome":"milk today", "test": "test_milk_today"},
                             {"outcome":"cheese", "test": "Red.test_cheese"}]}
-        self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA=json.dumps(extra)))
+        self.assert_goes_on(self.writer(FAKE_REPORT_EXTRA=json.dumps(extra)))
 
     def test_a_kept_name_goes_on_when_the_move_assertion_carries_the_cleaners_words(self):
         self.removed(test="Red.test_cheese (removed)")
@@ -1814,7 +1814,7 @@ class RemovedSliceOnlyTestInCoversTest(WatchLoopSetup):
         self.removed(test="Red.test_cheese (removed)")
         extra = {"covered": [{"outcome":"milk today", "test": "test_milk_today"},
                             {"outcome":"cheese", "test": "Red.test_cheese"}]}
-        self.assert_goes_on(self.scenario(FAKE_REPORT_EXTRA=json.dumps(extra)))
+        self.assert_goes_on(self.writer(FAKE_REPORT_EXTRA=json.dumps(extra)))
 
     def test_a_name_still_stops_when_the_words_after_the_semicolon_name_another_test(self):
         self.removed(test="Red.test_gouda (removed)")
@@ -1904,14 +1904,14 @@ CANNOT_RUN = {
 class RedCannotRunTest(WatchLoopSetup):
     """A red that fails before any test runs is not a failing red (scenario points 1 to 4)."""
 
-    def scenario(self, command):
+    def writer(self, command):
         from unittest import mock
         with mock.patch.dict(os.environ, {"FAKE_RED_COMMAND": command}):
             self.xv("step", "forecaster", "s1", cwd=self.wt)
             return self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
 
     def assert_cannot_run(self, command, *named):
-        p = self.scenario(command)
+        p = self.writer(command)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         stop = json.loads(p.stdout)["stop"]
         self.assertEqual(stop["order"], "red_cannot_run")
@@ -1924,7 +1924,7 @@ class RedCannotRunTest(WatchLoopSetup):
         self.assertNotIn("maker", [s["step"] for s in data["spend"]])
 
     def assert_failing_red(self, command):
-        p = self.scenario(command)
+        p = self.writer(command)
         self.assertNotIn("red_cannot_run", p.stdout + p.stderr)
         self.assertIs(self.record()["checks"]["test-writer"]["red_fails"], True)
         self.assertEqual(self.record()["next"], "maker")

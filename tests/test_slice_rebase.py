@@ -1066,7 +1066,7 @@ class SliceRebaseTest(RepoCase):
 
     def test_a_red_file_main_also_changed_keeps_the_slices_red_edits_in_the_wall_hash(self):
         self.slice_adds_a_failing_test_to_an_old_file()
-        self.xv("wall", "baseline", "s1", cwd=self.wt)  # the red lands with the wall hashed after it, as at the scenario step
+        self.xv("wall", "baseline", "s1", cwd=self.wt)  # the red lands with the wall hashed after it, as at the test-writer step
         sh(["git", "add", "-A"], self.wt)
         sh(["git", "commit", "-qm", "wall baseline"], self.wt)
         text = self.read(self.repo, "tests/test_store.py")

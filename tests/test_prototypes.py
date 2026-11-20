@@ -484,8 +484,8 @@ class KeptPickTest(PrototypesTest):
         p = self.run_steps()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         ran = self.ran("# The test writer")
-        self.assertIsNotNone(ran, "the scenario agent did not run")
-        self.assertFalse(ran["exists"][self.BUILD_FILE], "the scenario agent's checkout has the build in it")
+        self.assertIsNotNone(ran, "the test writer did not run")
+        self.assertFalse(ran["exists"][self.BUILD_FILE], "the test writer's checkout has the build in it")
         self.assertEqual(ran["head"], base, "the red was not written at the base")
         self.assertIs(self.record()["checks"]["test-writer"].get("red_fails"), True)
 

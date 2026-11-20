@@ -38,7 +38,7 @@ import spend as spendlib  # noqa: E402
 from suite import failing_tests, in_own_red, own_red_names, run_suite, shell, tests_timeout  # noqa: E402
 from xvlib import (XV_DIR, XVError, agent_name, die, drop_layer_edits, dropped_line, git, load_config, match_any,  # noqa: E402
                    now, warn_old_name, join_front_matter, main_root, record_path, repo_root, slice_root, split_front_matter, today,
-                   worktrees_config, worktrees_dir)
+                   worktrees_config, worktrees_dir, OLD_AGENTS)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 XV_HOME = os.path.dirname(HERE)
@@ -816,7 +816,7 @@ def step(agent, slice_id, review_again=False):
         return step_stop(path, root, config, data, body, slice_id, agent, st, [budget_stop])
 
     if agent == "test-writer" and data.get("kind") == "refactor" and "\n### Amended " not in body:
-        return refactor_scenario(path, root, config, data, body, slice_id)
+        return refactor_test_writer(path, root, config, data, body, slice_id)
 
     if (config.get("agents") or {}).get(agent) == "session":
         if data.pop("step_start", None):
@@ -824,7 +824,7 @@ def step(agent, slice_id, review_again=False):
         where = ""
         if agent == "test-writer" and record.has_build(data):
             drop_session_scratch(root, slice_id)  # an earlier, unreported checkout
-            scratch = scenario_scratch(root, data, config)
+            scratch = test_writer_scratch(root, data, config)
             session_scratch_state(root, slice_id, {"scratch": scratch, "head_before": git(["rev-parse", "HEAD"], root).strip()})
             where = (f" (write the red in {scratch}, a checkout at the base with no build; "
                      f"`xv record report` lands the red from it and drops it)")
@@ -846,7 +846,7 @@ def step(agent, slice_id, review_again=False):
     pre = pre_step(agent, root, data, config)
     data["step_start"] = {"agent": agent, "commit": head_before}
     record.save(path, data, body)  # a slice-only move reads its line from here
-    scratch = scenario_scratch(root, data, config) if agent == "test-writer" and record.has_build(data) else None
+    scratch = test_writer_scratch(root, data, config) if agent == "test-writer" and record.has_build(data) else None
     extra = None
     if scratch and data.get("build_shared") == "yes":
         extra = [f"The build is at `{data['build']['ref']}`, a reference only: the red tests what the scenario says, "
@@ -917,14 +917,24 @@ def accept_listed_marks(data, body, config):
     return body
 
 
-def session_scratch_path(root, slice_id):
-    return git_path(root, f"xv-scenario-scratch-{slice_id}.json")
+def session_scratch_path(root, slice_id, write=False):
+    """The file that names a session-mode test-writer checkout. One an xv before #168 wrote under the old step's
+    name, `xv-scenario-scratch-<id>.json`, is read under that name, with a warning; a write uses the new name."""
+    path = git_path(root, f"xv-test-writer-scratch-{slice_id}.json")
+    if write or os.path.exists(path):
+        return path
+    for old in (o for o, new in OLD_AGENTS.items() if new == "test-writer"):
+        old_path = git_path(root, f"xv-{old}-scratch-{slice_id}.json")
+        if os.path.exists(old_path):
+            warn_old_name(f"the checkout file {os.path.basename(old_path)}", os.path.basename(path))
+            return old_path
+    return path
 
 
 def session_scratch_state(root, slice_id, state=None):
     """The checkout a session-mode test-writer step made, kept in the git dir until its report lands the red:
     {"scratch": path, "head_before": the slice's HEAD then}. None when there is none."""
-    path = session_scratch_path(root, slice_id)
+    path = session_scratch_path(root, slice_id, write=state is not None)
     if state is not None:
         with open(path, "w") as f:
             json.dump(state, f)
@@ -936,16 +946,16 @@ def session_scratch_state(root, slice_id, state=None):
 
 
 def drop_session_scratch(root, slice_id):
-    """Drop a session-mode scenario checkout nobody reported on, and forget it."""
+    """Drop a session-mode test-writer checkout nobody reported on, and forget it."""
     state = session_scratch_state(root, slice_id)
     if state:
         drop_scratch(root, state["scratch"])
         os.remove(session_scratch_path(root, slice_id))
 
 
-def land_session_scenario(root, slice_id, report):
+def land_session_test_writer(root, slice_id, report):
     """`xv record report <id> test-writer -` after a session-mode test-writer step on a slice from a build: land the
-    red written in the checkout and run it as the agent path does, record the scenario checks, drop the checkout.
+    red written in the checkout and run it as the agent path does, record the test-writer checks, drop the checkout.
     `report` is the test writer's whole report. False when no such checkout is waiting."""
     state = session_scratch_state(root, slice_id)
     if not state:
@@ -967,9 +977,9 @@ def drop_scratch(root, scratch):
     shutil.rmtree(scratch, ignore_errors=True)
 
 
-def scenario_scratch(root, data, config):
+def test_writer_scratch(root, data, config):
     """A checkout at the base, outside the slice worktree, where the test writer writes the red without the build."""
-    scratch = tempfile.mkdtemp(prefix="xv-scenario-")
+    scratch = tempfile.mkdtemp(prefix="xv-test-writer-")
     start = red_held(root, data, data["base"]) or data["base"]  # the red from earlier passes, without the build
     git(["worktree", "add", "-q", "--detach", scratch, start], root)
     if is_trial(root):
@@ -1069,7 +1079,7 @@ def land_scratch(root, scratch, data, config, report):
     return landed
 
 
-def refactor_scenario(path, root, config, data, body, slice_id):
+def refactor_test_writer(path, root, config, data, body, slice_id):
     """A refactor slice writes no red: the suite is green at the start, and that is its oracle."""
     suite, out = run_suite(root, config, data.get("base"), slice_id)
     checks = {"at": now(), "suite": suite, "suite_output": (out or "")[-800:],
@@ -1531,7 +1541,7 @@ def close(slice_id, why=None, shape=None):
     body = record.log_line(body, "watch", "closed" + ("" if p.returncode == 0 else f"; guide: {p.stderr.strip()}"))
     record.save(path, data, body)
     commit(root, f"xv({slice_id}): close")
-    # the slice's red ref and any scenario checkout nobody reported on go with it: a new slice with the same
+    # the slice's red ref and any test-writer checkout nobody reported on go with it: a new slice with the same
     # id and base would otherwise start its first pass from this slice's red
     git(["update-ref", "-d", red_ref(data)], root, check=False)
     drop_session_scratch(root, slice_id)
@@ -1928,10 +1938,10 @@ def main(argv=None):
     s.add_argument("id")
     s.set_defaults(fn=cmd_run)
 
-    s = sub.add_parser("land-scenario", help="what `xv record report <id> test-writer` runs after a session-mode "
+    s = sub.add_parser("land-test-writer", help="what `xv record report <id> test-writer` runs after a session-mode "
                                              "test-writer step on a slice from a build (the report is on stdin)")
     s.add_argument("id")
-    s.set_defaults(fn=lambda a: land_session_scenario(
+    s.set_defaults(fn=lambda a: land_session_test_writer(
         slice_root(record_path(repo_root(), a.id)), a.id, json.loads(sys.stdin.read() or "{}")))
 
     s = sub.add_parser("close")

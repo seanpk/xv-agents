@@ -48,7 +48,7 @@ The scenario agent is now the test writer, the guardian the inspector, and the l
 - **Commands in your scripts:** `xv step test-writer` and `xv step inspector` replace `xv step scenario` and `xv step guardian`, and the same names go to `xv prompt`, `xv orders --after` and `--next`.
 - **Files from `xv adapt`:** run it again; it writes `xv-test-writer.md`, `xv-inspector.md` and `xv-field-listener.md`, and removes the files it wrote under the old names.
 
-Until #204 drops them, the old names still work: `xv step scenario` and `xv step guardian`, `xv guard`, the old config keys, and a slice record that holds an old step name. Each prints one line on stderr that names the new name and #204. Slice records need no change by hand: a record is saved with the new names the next time `xv` writes it.
+Until #204 drops them, the old names still work: `xv step scenario` and `xv step guardian`, `xv guard`, the old config keys, and an open slice record that holds an old step name. Each prints one line on stderr that names the new name and #204. Slice records need no change by hand: an open record is saved with the new names the next time `xv` writes it, and a closed or abandoned one reads its old names silently.
 
 ## The one rule
 

@@ -28,6 +28,7 @@ AGENTS = ["watch", "forecaster", "test-writer", "maker", "cleaner", "inspector",
 SKILLS = AGENTS + ["xv-slice", "xv-retro", "xv-promote", "xv-check", "xv-init"]
 OLD_SKILLS = list(OLD_AGENTS)  # a file under an agent's name before #168 still shadows that agent
 
+# `guardian` and `scenario agent` below are the names before #168: a person's file may still use them
 GUARDED = (r"(record|wall|inspector|guardian|stop|stops|packet|inspection report|review|baseline|test writer|"
            r"scenario agent|two people|pitch|check)")
 RELAX = [

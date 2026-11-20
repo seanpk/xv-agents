@@ -18,7 +18,7 @@
   ],
   "baseline_prompt": "This week's feedback from the household and the error tracker's export are in .xv/listen-src/. Write it up for the team's chief engineer in .xv/slices/packet-{today}.md.",
   "assertions": [
-    "listener_packet_exists",
+    "field_report_exists",
     "packet_does_not_rank",
     "users_quoted",
     "pitch_divergence_found",

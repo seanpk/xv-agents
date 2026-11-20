@@ -115,30 +115,40 @@ def agent_name(name, what="the step"):
     return name
 
 
-def _stored_name(value, where):
-    """A step name stored in a record: the old one reads as the new one, with a warning. One warning for each old
-    name, whichever field (`where`) holds it, so a repo of old closed records gets two lines, not twenty."""
+# A record with one of these statuses is finished: no `xv` write saves it again, so its old names read silently.
+FINISHED = ("closed", "abandoned")
+
+
+def _stored_name(value, where, quiet=False):
+    """A step name stored in a record: the old one reads as the new one, with a warning unless `quiet` (a finished
+    record). One warning for each old name, whichever field (`where`) holds it."""
     if isinstance(value, str) and value in OLD_AGENTS:
-        warn_old_name(f"the step {value!r} in a slice record",
-                      f"{OLD_AGENTS[value]!r} (the next `xv` write of the record saves it)")
+        if not quiet:
+            warn_old_name(f"the step {value!r} in a slice record",
+                          f"{OLD_AGENTS[value]!r} (the next `xv` write of the record saves it)")
         return OLD_AGENTS[value]
     return value
 
 
 def _upgrade_steps(data):
     """Old step names stored as values or keys: next, step_start, checks and its reports, stops, spend, pairings,
-    moved_tests. Returns a new dict; `data` is not changed."""
+    moved_tests. A closed or abandoned record reads them silently. Returns a new dict; `data` is not changed."""
     data = dict(data)
+    quiet = data.get("status") in FINISHED
+
+    def stored(value, where):
+        return _stored_name(value, where, quiet)
+
     if "next" in data:
-        data["next"] = _stored_name(data["next"], "next")
+        data["next"] = stored(data["next"], "next")
     if isinstance(data.get("step_start"), dict):
-        data["step_start"] = {**data["step_start"], "agent": _stored_name(data["step_start"].get("agent"), "step_start")}
+        data["step_start"] = {**data["step_start"], "agent": stored(data["step_start"].get("agent"), "step_start")}
     if isinstance(data.get("checks"), dict):
         checks = {}
         for k, v in data["checks"].items():
             if k == "reports" and isinstance(v, list):
-                v = [{**r, "agent": _stored_name(r.get("agent"), "reports")} if isinstance(r, dict) else r for r in v]
-            new = _stored_name(k, "checks")
+                v = [{**r, "agent": stored(r.get("agent"), "reports")} if isinstance(r, dict) else r for r in v]
+            new = stored(k, "checks")
             if new != k and new in data["checks"]:
                 continue  # the new key is there already: it wins
             checks[new] = v
@@ -150,14 +160,14 @@ def _upgrade_steps(data):
                 s = dict(s)
                 for k in ("step", "sendback_to"):
                     if k in s:
-                        s[k] = _stored_name(s[k], f"stops {k}")
+                        s[k] = stored(s[k], f"stops {k}")
                 if isinstance(s.get("sendback"), dict) and "to" in s["sendback"]:
-                    s["sendback"] = {**s["sendback"], "to": _stored_name(s["sendback"]["to"], "stops sendback")}
+                    s["sendback"] = {**s["sendback"], "to": stored(s["sendback"]["to"], "stops sendback")}
             stops.append(s)
         data["stops"] = stops
     for field, keys in (("spend", ("step",)), ("pairings", ("step", "next")), ("moved_tests", ("by",))):
         if isinstance(data.get(field), list):
-            data[field] = [{**r, **{k: _stored_name(r[k], f"{field} {k}") for k in keys if k in r}}
+            data[field] = [{**r, **{k: stored(r[k], f"{field} {k}") for k in keys if k in r}}
                            if isinstance(r, dict) else r for r in data[field]]
     return data
 

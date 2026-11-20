@@ -1,6 +1,6 @@
 ---
 name: xv-retro
-description: "Run a retro on XV slices that stopped, overran their budget, or drew the same inspector finding twice: a inspector-kind context proposes checks and standards, each tied to a moment in a slice record, and a person picks. Also reports how often each standard fires and is overridden. Use when the watch says a retro is due, or a person asks for \"a retro\", \"what should become a check\", \"why do we keep missing this\", or \"which rules should we retire\"."
+description: "Run a retro on XV slices that stopped, overran their budget, or drew the same inspector finding twice: an inspector-kind context proposes checks and standards, each tied to a moment in a slice record, and a person picks. Also reports how often each standard fires and is overridden. Use when the watch says a retro is due, or a person asks for \"a retro\", \"what should become a check\", \"why do we keep missing this\", or \"which rules should we retire\"."
 license: MIT
 ---
 

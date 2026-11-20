@@ -14,7 +14,7 @@ Each value is a bare word or one line of JSON.
 | `status` | the watch | `open`, `working`, `stopped`, `ready`, `pairing`, `closed`, `abandoned` |
 | `originator` | `xv slice new` | the person who set the work going; they answer the stops |
 | `created`, `branch`, `base` | `xv slice new` | `base` is the commit the slice started from; every diff is against it |
-| `next` | the watch | the step the slice resumes at: `forecaster`, `test-writer`, `maker`, `cleaner`, `inspector`, `close`, `prototype`, `none`; a record written before #168 may hold `scenario` or `guardian`, read as the new name with a warning until #204 |
+| `next` | the watch | the step the slice resumes at: `forecaster`, `test-writer`, `maker`, `cleaner`, `inspector`, `close`, `prototype`, `none`; a record written before #168 may hold `scenario` or `guardian`, read as the new name with a warning until #204 (silently in a closed or abandoned record) |
 | `forecast` | the forecaster | `{"rows": [{"harness", "model", "tokens", "turns", "usd", "basis"}], "wall_s", "rounds", "rounds_reason", "shape_breadth", "shape_note"}` |
 | `budget` | a person | `{"tokens", "usd", "turns", "set_by"}`; `raised_from` when raised |
 | `prototype_budgets` | a person | a prototype slice only: `{"a", "b", "c"}`, each in the shape of `budget` and free to differ |

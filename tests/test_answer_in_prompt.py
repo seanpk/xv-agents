@@ -76,7 +76,7 @@ class SliceAmendTest(RepoCase):
     def show(self, wt):
         return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
 
-    def test_amend_appends_with_date_and_who_clears_red_and_sends_it_back_to_the_scenario_agent(self):
+    def test_amend_appends_with_date_and_who_clears_red_and_sends_it_back_to_the_test_writer(self):
         wt = self.new_slice("s1", "The household sees X.")
         self.xv("record", "set", "s1", "red",
                 json.dumps({"files": ["tests/test_x.py"], "command": "true", "failure": "f"}), cwd=wt)
@@ -125,7 +125,7 @@ class SettledInPromptTest(RepoCase):
         self.assertIn("Attribution is a promote.attribution setting, empty by default.", prompt)
         self.assertNotIn("2 ok", prompt)
 
-    def test_the_scenario_brief_says_to_write_the_form_the_answer_names_or_stop(self):
+    def test_the_test_writer_brief_says_to_write_the_form_the_answer_names_or_stop(self):
         wt = self.new_slice("s1")
         low = self.xv("prompt", "test-writer", "s1", cwd=wt).stdout.lower()
         self.assertIn("settled", low)

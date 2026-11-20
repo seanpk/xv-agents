@@ -40,7 +40,7 @@ class SpendTest(unittest.TestCase):
                          ("gpt-oss:20b", 304, 17794 + 304, 0.0, 2))
         self.assertEqual(s["cache_read"], 1000)
 
-    def test_the_budget_counts_every_steps_spend_the_guardians_too(self):
+    def test_the_budget_counts_every_steps_spend_the_inspectors_too(self):
         data = {"budget": {"usd": 1, "tokens": 5000},
                 "spend": [{"step": "maker", "usd": 0.6, "tokens": 3000}, {"step": "maker", "usd": 0.5, "tokens": 1000},
                           {"step": "inspector", "usd": 9, "tokens": 99999}]}

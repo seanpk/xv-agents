@@ -257,12 +257,12 @@ class ReworkSignalTest(RepoCase):
         data = self.close_s1(wt)
         self.assertEqual(data["maker_sendbacks"], 1)
 
-    def test_a_slice_sent_back_through_the_scenario_agent_to_the_maker_closes_with_one_sendback(self):
+    def test_a_slice_sent_back_through_the_test_writer_to_the_maker_closes_with_one_sendback(self):
         wt = self.fake_agents()
         p = self.xv("run", "s1", cwd=wt, check=False)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "no, the red misses a case",
-                "--settled", "the scenario agent adds a red", "--next", "test-writer", cwd=wt)
+                "--settled", "the test writer adds a red", "--next", "test-writer", cwd=wt)
         self.assertEqual(self.record(wt)["next"], "test-writer")
         p = self.xv("run", "s1", cwd=wt, check=False)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)

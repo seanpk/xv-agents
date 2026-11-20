@@ -78,7 +78,7 @@
     "boundary_in_packet",
     "findings_cited",
     "stop_accept_moves",
-    "guardian_did_not_edit",
+    "inspector_did_not_edit",
     "report_present"
   ],
   "timeout": 1200

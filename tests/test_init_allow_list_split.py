@@ -8,7 +8,7 @@ from helpers import RepoCase, sh
 from xvlib import load_config
 
 READ_ONLY_MORE = ["rg", "wc", "sed -n", "diff", "git ls-files", "git grep", "git rev-parse"]
-GUARDIAN_ONLY = ["xv wall diff", "xv boundary", "xv packet lint"]
+INSPECTOR_ONLY = ["xv wall diff", "xv boundary", "xv packet lint"]
 
 
 def entries_of(config, seat):
@@ -82,13 +82,13 @@ class InitAllowListSplitTest(RepoCase):
             for prefix in READ_ONLY_MORE:
                 self.assertIn(f"Bash({prefix}:*)", entries, f"{seat}: {prefix}")
 
-    def test_only_the_guardian_gets_wall_boundary_and_packet_lint(self):
+    def test_only_the_inspector_gets_wall_boundary_and_packet_lint(self):
         config = self.init()
-        guardian = entries_of(config, "inspector")
-        for prefix in GUARDIAN_ONLY:
-            self.assertIn(f"Bash({prefix}:*)", guardian, prefix)
+        inspector = entries_of(config, "inspector")
+        for prefix in INSPECTOR_ONLY:
+            self.assertIn(f"Bash({prefix}:*)", inspector, prefix)
         for seat in ("default", "forecaster"):
-            for prefix in GUARDIAN_ONLY:
+            for prefix in INSPECTOR_ONLY:
                 self.assertNotIn(f"Bash({prefix}:*)", entries_of(config, seat), f"{seat}: {prefix}")
 
 

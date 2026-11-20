@@ -30,7 +30,7 @@ class RefactorKindCase(RepoCase):
     def record(self):
         return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
 
-    def maker_after_scenario(self, env=None):
+    def maker_after_test_writer(self, env=None):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.xv("step", "test-writer", "s1", cwd=self.wt)
         with mock.patch.dict(os.environ, env or {}):
@@ -46,8 +46,8 @@ class RefactorKindCase(RepoCase):
         self.assertEqual(self.record()["kind"], "refactor")
         self.assertIn(SCENARIO, open(os.path.join(self.wt, ".xv", "slices", "s1.md")).read())
 
-    # 2. the scenario step
-    def test_the_scenario_step_writes_no_red_and_goes_on_to_the_maker(self):
+    # 2. the test-writer step
+    def test_the_test_writer_step_writes_no_red_and_goes_on_to_the_maker(self):
         self.open_slice()
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         p = self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
@@ -55,7 +55,7 @@ class RefactorKindCase(RepoCase):
         self.assertFalse(os.path.exists(os.path.join(self.wt, "tests", "test_red.py")))
         self.assertEqual(self.record()["next"], "maker")
 
-    def test_the_scenario_step_stops_when_the_suite_is_not_green_at_the_start(self):
+    def test_the_test_writer_step_stops_when_the_suite_is_not_green_at_the_start(self):
         self.open_slice()
         with open(os.path.join(self.wt, "tests", "test_broken.py"), "w") as f:
             f.write("import unittest\n\n\nclass B(unittest.TestCase):\n    def test_b(self):\n"
@@ -106,39 +106,39 @@ class RefactorKindCase(RepoCase):
     # 6, 7, 8. the moves
     def test_an_import_only_change_to_an_old_test_is_an_expected_move(self):
         self.open_slice("--expect-moves", "imports")
-        p = self.maker_after_scenario({"FAKE_MAKER_IMPORT_MOVE": "1"})
+        p = self.maker_after_test_writer({"FAKE_MAKER_IMPORT_MOVE": "1"})
         self.assertEqual(p.returncode, 0, p.stdout)
         self.assertIn("tests/test_store.py", [m["file"] for m in self.record()["moved_tests"]])
 
     def test_the_same_import_change_stops_when_the_slice_did_not_expect_imports(self):
         self.open_slice()
-        p = self.maker_after_scenario({"FAKE_MAKER_IMPORT_MOVE": "1"})
+        p = self.maker_after_test_writer({"FAKE_MAKER_IMPORT_MOVE": "1"})
         self.assertEqual(self.stop_order(p), "unrecorded_move")
 
     def test_a_changed_assertion_still_stops_when_imports_are_expected(self):
         self.open_slice("--expect-moves", "imports")
-        p = self.maker_after_scenario({"FAKE_MAKER_CHEATS": "1"})
+        p = self.maker_after_test_writer({"FAKE_MAKER_CHEATS": "1"})
         self.assertEqual(self.stop_order(p), "unrecorded_move")
 
     def test_a_file_moved_to_a_new_path_with_the_named_rename_is_an_expected_move(self):
         self.open_slice("--expect-moves", "renames", "--rename", "StoreTest=StockTest")
-        p = self.maker_after_scenario({"FAKE_MAKER_RENAME_MOVE": "1"})
+        p = self.maker_after_test_writer({"FAKE_MAKER_RENAME_MOVE": "1"})
         self.assertEqual(p.returncode, 0, p.stdout)
         self.assertIn("tests/test_stock.py", [m["file"] for m in self.record()["moved_tests"]])
 
     def test_a_rename_the_slice_did_not_name_stops(self):
         self.open_slice("--expect-moves", "renames", "--rename", "Other=Name")
-        p = self.maker_after_scenario({"FAKE_MAKER_RENAME_MOVE": "1"})
+        p = self.maker_after_test_writer({"FAKE_MAKER_RENAME_MOVE": "1"})
         self.assertEqual(self.stop_order(p), "unrecorded_move")
 
     def test_a_rename_stops_when_only_imports_are_expected(self):
         self.open_slice("--expect-moves", "imports", "--rename", "StoreTest=StockTest")
-        p = self.maker_after_scenario({"FAKE_MAKER_RENAME_MOVE": "1"})
+        p = self.maker_after_test_writer({"FAKE_MAKER_RENAME_MOVE": "1"})
         self.assertEqual(self.stop_order(p), "unrecorded_move")
 
     def test_a_moved_file_with_a_changed_assertion_stops_even_with_the_rename_named(self):
         self.open_slice("--expect-moves", "renames", "--rename", "StoreTest=StockTest")
-        p = self.maker_after_scenario({"FAKE_MAKER_RENAME_MOVE": "1", "FAKE_MAKER_CHEATS": "1"})
+        p = self.maker_after_test_writer({"FAKE_MAKER_RENAME_MOVE": "1", "FAKE_MAKER_CHEATS": "1"})
         self.assertEqual(self.stop_order(p), "unrecorded_move")
 
     # 7 and 10. no moves_to_accept stop for an expected move
@@ -277,12 +277,12 @@ class CleanerMoveCase(FollowUpBase):
         self.assertEqual(self.run_slice({}).get("order"), "moves_to_accept")
 
 
-class RerunScenarioCase(FollowUpBase):
-    # 7. an expected move stays in the record when the scenario step runs again after the maker
+class RerunTestWriterCase(FollowUpBase):
+    # 7. an expected move stays in the record when the test-writer step runs again after the maker
     def expected_files(self):
         return [m["file"] for m in self.record()["moved_tests"] if m.get("expected")]
 
-    def test_an_expected_move_stays_in_the_record_after_the_scenario_step_runs_again(self):
+    def test_an_expected_move_stays_in_the_record_after_the_test_writer_step_runs_again(self):
         self.open_slice("--expect-moves", "imports")
         for step in ("forecaster", "test-writer"):
             self.xv("step", step, "s1", cwd=self.wt)
@@ -295,7 +295,7 @@ class RerunScenarioCase(FollowUpBase):
 
 
 class AddedTestFileMoveCase(FollowUpBase):
-    # record-state 4. a test file the slice added is compared with the file as the scenario step left it
+    # record-state 4. a test file the slice added is compared with the file as the test-writer step left it
     def maker_after_red(self, env):
         self.open_slice("--expect-moves", "imports", kind="feature")
         for step in ("forecaster", "test-writer"):
@@ -311,7 +311,7 @@ class AddedTestFileMoveCase(FollowUpBase):
         moves = [m for m in self.record()["moved_tests"] if m.get("file") == "tests/test_red.py"]
         self.assertEqual([m.get("expected") for m in moves], ["imports"], moves)
 
-    def test_an_import_only_change_after_a_second_scenario_pass_compares_with_that_pass(self):
+    def test_an_import_only_change_after_a_second_test_writer_pass_compares_with_that_pass(self):
         self.open_slice("--expect-moves", "imports", kind="feature")
         for step in ("forecaster", "test-writer"):
             self.xv("step", step, "s1", cwd=self.wt)

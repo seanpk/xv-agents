@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """A pairing: the person who set the work going works on a slice with the watch's own session.
 
-It opens at an open stop or a send-back, runs from the scenario to the cleaner as the person directs, and hands the
+It opens at an open stop or a send-back, runs from the test writer to the cleaner as the person directs, and hands the
 slice back to the loop at a step.
 
 The watch's session is the person's pair. At the person's direction it writes and changes tests and code. While the

@@ -1013,15 +1013,15 @@ def cmd_report(a):
     if reported and joined_unsafely(reported):
         data["red"] = red_before  # as `xv step` does: a refused red is not kept, and red_joined_unsafely is set
         if not has_build(data):  # no landing on a slice not from a build, so it is set here
-            scenario = data.setdefault("checks", {}).setdefault("test-writer", {})
-            scenario["red_fails"] = None
-            scenario["red_joined_unsafely"] = reported
+            writer = data.setdefault("checks", {}).setdefault("test-writer", {})
+            writer["red_fails"] = None
+            writer["red_joined_unsafely"] = reported
     save(path, data, body)
     if a.agent == "test-writer" and has_build(data):
         # a session-mode test-writer step left a checkout at the base: land the red written there, as `xv step` does
         # (record does not import run: the landing runs there, with the whole report on its stdin)
         p = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "run.py"),
-                            "land-scenario", a.id], cwd=slice_root(path), input=json.dumps(report or {}),
+                            "land-test-writer", a.id], cwd=slice_root(path), input=json.dumps(report or {}),
                            capture_output=True, text=True)
         if p.returncode != 0:
             raise XVError(p.stderr.strip() or "landing the test writer's red failed")

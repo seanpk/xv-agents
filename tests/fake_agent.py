@@ -101,13 +101,13 @@ if title.startswith("# The forecaster"):
         report(agent="forecaster", status="done", summary="forecast",
                forecast={"keys": [{"harness": "sh", "model": "default", "tokens": 1000, "basis": []}],
                          "wall_s": 10, "shape": "none", "breadth": "one comparison"})
-elif title.startswith(("# The test writer", "# The scenario agent")):
+elif title.startswith("# The test writer"):
     with open("tests/test_red.py", "w") as f:
         f.write("import unittest\nfrom datetime import date\nfrom pantry.store import Store\n\n\n"
                 "class Red(unittest.TestCase):\n    def test_milk_today(self):\n        s = Store()\n"
                 "        s.add('milk', 1, date(2026, 10, 21))\n"
                 "        self.assertEqual([i.name for i in s.expiring(3, date(2026, 10, 21))], ['milk'])\n")
-    if os.environ.get("FAKE_RED_SECOND_TEST"):  # a later scenario pass adds a test to the file
+    if os.environ.get("FAKE_RED_SECOND_TEST"):  # a later test-writer pass adds a test to the file
         with open("tests/test_red.py", "a") as f:
             f.write("\n    def test_milk_tomorrow(self):\n        s = Store()\n"
                     "        s.add('milk', 1, date(2026, 10, 22))\n"
@@ -220,7 +220,7 @@ elif title.startswith("# The cleaner"):
                         "--by", "cleaner"], check=True)
     extra = json.loads(os.environ.get("FAKE_CLEANER_REPORT_EXTRA") or "{}")
     report(agent="cleaner", status="done", summary="nothing to fix", commit=None, applied=[], **extra)
-elif title.startswith(("# The inspector", "# The guardian")):
+elif title.startswith("# The inspector"):
     packet_path = ".xv/slices/pr-packet.md" if sid == "pr-packet" else f".xv/slices/{sid}.packet.md"
     miss = os.environ.get("FAKE_SCENARIO_MISS")
     expected = os.environ.get("FAKE_PACKET_EXPECTED_MOVES", "0")
