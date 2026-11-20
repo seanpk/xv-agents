@@ -116,9 +116,11 @@ def agent_name(name, what="the step"):
 
 
 def _stored_name(value, where):
-    """A step name stored in a record: the old one reads as the new one, with a warning."""
+    """A step name stored in a record: the old one reads as the new one, with a warning. One warning for each old
+    name, whichever field (`where`) holds it, so a repo of old closed records gets two lines, not twenty."""
     if isinstance(value, str) and value in OLD_AGENTS:
-        warn_old_name(f"{value!r} in a slice record's {where}", f"{OLD_AGENTS[value]!r} (the next `xv` write saves it)")
+        warn_old_name(f"the step {value!r} in a slice record",
+                      f"{OLD_AGENTS[value]!r} (the next `xv` write of the record saves it)")
         return OLD_AGENTS[value]
     return value
 
