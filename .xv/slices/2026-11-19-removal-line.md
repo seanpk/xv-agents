@@ -117,3 +117,4 @@ None. A feature starts from words.
 - 2026-11-20T03:30:05+00:00 guardian: done: Re-pass: both misses fixed with new reds; no shape or pitch stop; coverage check now excuses any cleaner --slice-only move, not only listed ones, for Sean Kennedy to decide; picture edits proposed
 - 2026-11-20T03:30:05+00:00 watch: stop (moves_to_accept) for originator: 8 old test(s) moved with a record and 4 wall recommendation(s) from the guardian and the guardian proposes a change to the picture; the shape did not. Accept them from the packet, talk it through with someone, or send it back. The merge is yours.
 - 2026-11-20T03:30:36+00:00 watch: offered 3 options for moves_to_accept
+- 2026-11-20T04:16:44+00:00 watch: picture edit directed by Sean Kennedy (62604df): the guardian's 3 edits to .xv/picture.md (lines 51-52, 77, 227), as worded in the packet; Sean also kept the maker's edit to lines 72-79 (e09ef67)
