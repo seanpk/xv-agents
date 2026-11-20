@@ -82,7 +82,7 @@
   "tests/test_recording.py": 9,
   "tests/test_refactor_kind.py": 60,
   "tests/test_refactor_skills.py": 11,
-  "tests/test_removal_line.py": 42,
+  "tests/test_removal_line.py": 48,
   "tests/test_repass.py": 53,
   "tests/test_retro.py": 59,
   "tests/test_retro_accept_brief_shape.py": 17,
@@ -101,7 +101,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "a130c5488603034ec12421ac9e5173e06b8714eb",
+ "commit": "64cfdd38d2f15abe5bab6a91962b7734e340da92",
  "files": {
   "tests/data/cannot-run/cargo-load.txt": "d3e835e2490c11e3f1b7c1a00ef224a143e7badb854bddd76372f2c3a55b5dd6",
   "tests/data/cannot-run/cargo-none.txt": "7553d787f97f86d518d5fa9ec516c5226bb880a466df2f96684c69bf4595cd46",
@@ -185,7 +185,7 @@
   "tests/test_recording.py": "cd7ec7c5a70baa7e8ed2561895adb281f33fbd0280bbb61c51f1d47f16819581",
   "tests/test_refactor_kind.py": "1b08298950a9b0c586bc374756f722aab20765b84acd2b17b39956befa4ec21a",
   "tests/test_refactor_skills.py": "7b75a91712d9ecb1d0970ee189d22978e50b8f86b5d7fa0d92388a383487a2d5",
-  "tests/test_removal_line.py": "d86e1d12e4282b9de1e10f2660ae58d86f1b92ec60f7a1f3d845f1a5cb512ae3",
+  "tests/test_removal_line.py": "a4c6ba857290fd5191d09a81e678b660d0ce20de978286ef3d75e1cceeffaf8c",
   "tests/test_repass.py": "1d8fb5eec4ce19927cc06f6a8bd40aeb21cdd8c1dc9a197f4f2e12b4e1a8a239",
   "tests/test_retro.py": "9f4d4a04610c599d67d87bfb5aa1a8bd661afb981f0a71182144f89b3e2e9c0e",
   "tests/test_retro_accept_brief_shape.py": "1bda031d8ea361a132cae45bb139639a90cbe5f0378eeedf413fc4d5e342a0cd",

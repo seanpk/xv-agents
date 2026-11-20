@@ -135,6 +135,32 @@ class SliceOnlyRemovalLineTest(RepoCase):
         self.assertEqual(len(self.show(wt)["moved_tests"]), 2)
 
 
+class CoverageReadsTheLineNotTheNoteTest(RepoCase):
+    """1. `--assertion` is a free note that nothing reads: the coverage check finds a cleaner-removed test by the
+    text of the line the move recorded."""
+
+    def check(self, note, name):
+        import run
+        wt = self.new_slice("s1")
+        commit_tests(wt, {"tests/test_red.py": SliceOnlyRemovalLineTest.PY})
+        p = self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--line", "5",
+                    "--assertion", note, "--why", "slice-only; removed", "--by", "cleaner", cwd=wt, check=False)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        with open(os.path.join(wt, "tests/test_red.py"), "w") as f:
+            f.write(SliceOnlyRemovalLineTest.PY_GONE)
+        data = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+        data["red"] = {"files": ["tests/test_red.py"]}
+        report = {"covered": [{"outcome": "1", "test": [name]}], "not_covered": []}
+        return run.unreadable_input(wt, data, report)
+
+    def test_a_free_note_does_not_hide_a_removed_test_from_the_later_check(self):
+        self.assertEqual(self.check("removed as asked", "test_milk_today"), [])
+
+    def test_a_note_naming_a_test_does_not_excuse_another_missing_test(self):
+        out = self.check("removed test_ghost as asked", "test_ghost")
+        self.assertEqual(len(out), 1, out)
+
+
 class RemovalLineBriefsTest(unittest.TestCase):
     """5 and 6. The briefs and the picture say the new rule."""
 
@@ -212,6 +238,26 @@ class StepStartRemovalTest(WatchLoopSetup):
         moves = self.record()["moved_tests"]
         self.assertEqual(len(moves), 1)
         self.assertIn("def test_milk_today(self):", json.dumps(moves))
+
+    def test_a_slice_only_move_between_steps_reads_head_not_the_last_steps_start(self):
+        self.step("forecaster")
+        self.step("scenario")
+        self.step("maker")  # step_start is now the maker's start commit, and stays in the record
+        path = os.path.join(self.wt, "tests", "test_red.py")
+        text = open(path).read()
+        with open(path, "w") as f:
+            f.write("# one\n# two\n# three\n" + text)  # every line moves down three
+        from helpers import sh
+        sh(["git", "add", "-A"], self.wt)
+        sh(["git", "commit", "-qm", "between steps: three comment lines"], self.wt)
+        line = open(path).read().split("\n").index("    def test_milk_today(self):") + 1
+        p = self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--line", str(line),
+                    "--assertion", "removed", "--why", "slice-only; removed", "--by", "cleaner", cwd=self.wt,
+                    check=False)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        moves = self.record()["moved_tests"]
+        self.assertEqual(len(moves), 1)
+        self.assertEqual(moves[0]["line_text"], "def test_milk_today(self):")
 
 
 def sh_head(wt):
