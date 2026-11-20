@@ -371,6 +371,27 @@ class AcceptedWallRecommendationTest(RepassCase):
         self.assertIn("test_other", tests)
         self.assertEqual(self.accepted_tests(), ["test_added_by_the_build"])
 
+    def test_an_accepted_mark_is_kept_by_file_and_test_not_by_test_alone(self):
+        self.xv("record", "add", "s1", "wall_recommendations", json.dumps(self.REC), cwd=self.wt)
+        elsewhere = {"file": "tests/test_other.py", "test": "test_added_by_the_build",
+                     "recommend": "mark slice-only", "why": "x"}
+        self.report([elsewhere])
+        got = {(r["file"], bool(r.get("accepted"))) for r in self.record()["wall_recommendations"]
+               if r["test"] == "test_added_by_the_build"}
+        self.assertEqual(got, {("tests/test_store.py", True), ("tests/test_other.py", False)})
+
+    def test_a_refused_mark_is_kept_by_file_and_test_not_by_test_alone(self):
+        refused = dict(self.REC, accepted=False, refused=True)
+        self.xv("record", "add", "s1", "wall_recommendations", json.dumps(refused), cwd=self.wt)
+        elsewhere = {"file": "tests/test_other.py", "test": "test_added_by_the_build",
+                     "recommend": "mark slice-only", "why": "x"}
+        same = dict(refused, accepted=None)
+        same.pop("accepted")
+        same.pop("refused")
+        self.report([elsewhere, same])
+        got = {r["file"]: bool(r.get("refused")) for r in self.record()["wall_recommendations"]}
+        self.assertEqual(got, {"tests/test_other.py": False, "tests/test_store.py": True})
+
     def test_a_recommendation_nobody_accepted_is_replaced_by_the_next_pass(self):
         plain = dict(self.REC, accepted=False)
         self.xv("record", "add", "s1", "wall_recommendations", json.dumps(plain), cwd=self.wt)

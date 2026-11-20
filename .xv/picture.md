@@ -132,7 +132,8 @@ Sean Kennedy sits with them.
   A mark whose `checks` names a file listed in `tests.slice_only_files` (default `CHANGELOG.md`) is accepted by the watch with a log line and is not asked about.
   An agent's report cannot set `accepted` on its own mark.
   The guardian's `wall_recommendations` go to the same person in `moves_to_accept`.
-  A recommendation a person accepted stays on the record when the next guardian pass leaves it out.
+  A recommendation a person accepted stays on the record when the next guardian pass names no recommendation with its file and test.
+  An accepted or refused mark carries to the next guardian pass only on a recommendation with the same file and test; the same test name in another file is a new, unmarked recommendation.
   Only a person's `--accept-wall <test>` accepts one, and only `--refuse-wall <test>` takes back one accepted earlier; an accepted `mark slice-only` recommendation is listed in `slice_only`, and refusing it later takes it out, matched on file and test; a new recommendation not named is refused, and an agent's report sets neither.
   Both flags take the test with its file, in the forms the coverage check takes (`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`); a bare name that two files share is refused, and the refusal names each `file::test`.
   Giving either flag on another kind of stop, or both on one test, is refused.
