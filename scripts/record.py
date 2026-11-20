@@ -17,7 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import moves  # noqa: E402
-from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely, MOVE_NOTE, move_test_name  # noqa: E402
+from names import COVERED_SEPARATOR, covered_name_found, joined_unsafely, move_test_name  # noqa: E402
 import orders  # noqa: E402
 import packet as packetlib  # noqa: E402
 import wall  # noqa: E402
