@@ -51,12 +51,12 @@ def find(root, data, config):
         d = wall.diff(root, data["id"], config)
     except XVError:
         return []
-    # Compare with the slice's base, not the wall baseline: each scenario step resets
+    # Compare with the slice's base, not the wall baseline: each test-writer step resets
     # the baseline, and an expected move must stay while the file still differs from base.
     commit = data.get("base") or wall.load_baseline(root, data["id"])["commit"]
 
     def before(rel):
-        """The file at the base; a test file the slice added, as the scenario step left it."""
+        """The file at the base; a test file the slice added, as the test-writer step left it."""
         text = git(["show", f"{commit}:{rel}"], root, check=False)
         if not text:
             # the newest scenario pass that holds it: a rerun may have changed the file since its first add

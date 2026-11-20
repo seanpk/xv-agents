@@ -922,7 +922,7 @@ def session_scratch_path(root, slice_id):
 
 
 def session_scratch_state(root, slice_id, state=None):
-    """The checkout a session-mode scenario step made, kept in the git dir until its report lands the red:
+    """The checkout a session-mode test-writer step made, kept in the git dir until its report lands the red:
     {"scratch": path, "head_before": the slice's HEAD then}. None when there is none."""
     path = session_scratch_path(root, slice_id)
     if state is not None:
@@ -944,7 +944,7 @@ def drop_session_scratch(root, slice_id):
 
 
 def land_session_scenario(root, slice_id, report):
-    """`xv record report <id> scenario -` after a session-mode scenario step on a slice from a build: land the
+    """`xv record report <id> test-writer -` after a session-mode test-writer step on a slice from a build: land the
     red written in the checkout and run it as the agent path does, record the scenario checks, drop the checkout.
     `report` is the test writer's whole report. False when no such checkout is waiting."""
     state = session_scratch_state(root, slice_id)
@@ -955,7 +955,7 @@ def land_session_scenario(root, slice_id, report):
     config = load_config(root)
     if not os.path.isdir(state["scratch"]):
         raise XVError(f"the test writer's checkout {state['scratch']} is gone, so its red cannot be landed: "
-                      f"run `xv step scenario {slice_id}` again")
+                      f"run `xv step test-writer {slice_id}` again")
     landed = land_scratch(root, state["scratch"], data, config, report)
     data["checks"]["test-writer"] = post_step("test-writer", root, data, config, state["head_before"], {}, report, landed)
     record.save(path, data, body)
@@ -1929,7 +1929,7 @@ def main(argv=None):
     s.set_defaults(fn=cmd_run)
 
     s = sub.add_parser("land-scenario", help="what `xv record report <id> test-writer` runs after a session-mode "
-                                             "scenario step on a slice from a build (the report is on stdin)")
+                                             "test-writer step on a slice from a build (the report is on stdin)")
     s.add_argument("id")
     s.set_defaults(fn=lambda a: land_session_scenario(
         slice_root(record_path(repo_root(), a.id)), a.id, json.loads(sys.stdin.read() or "{}")))

@@ -14,18 +14,18 @@ Each value is a bare word or one line of JSON.
 | `status` | the watch | `open`, `working`, `stopped`, `ready`, `pairing`, `closed`, `abandoned` |
 | `originator` | `xv slice new` | the person who set the work going; they answer the stops |
 | `created`, `branch`, `base` | `xv slice new` | `base` is the commit the slice started from; every diff is against it |
-| `next` | the watch | the step the slice resumes at: `forecaster`, `scenario`, `maker`, `cleaner`, `guardian`, `close`, `prototype`, `none` |
+| `next` | the watch | the step the slice resumes at: `forecaster`, `test-writer`, `maker`, `cleaner`, `inspector`, `close`, `prototype`, `none`; a record written before #168 may hold `scenario` or `guardian`, read as the new name with a warning until #204 |
 | `forecast` | the forecaster | `{"rows": [{"harness", "model", "tokens", "turns", "usd", "basis"}], "wall_s", "rounds", "rounds_reason", "shape_breadth", "shape_note"}` |
 | `budget` | a person | `{"tokens", "usd", "turns", "set_by"}`; `raised_from` when raised |
 | `prototype_budgets` | a person | a prototype slice only: `{"a", "b", "c"}`, each in the shape of `budget` and free to differ |
-| `red` | the scenario agent | `{"files", "command", "failure", "watch_before_merge"}` |
+| `red` | the test writer | `{"files", "command", "failure", "watch_before_merge"}` |
 | `wall_baseline` | `xv wall baseline` | `{"commit", "count", "digest", "file"}`; the hashes are in `.xv/slices/<id>.wall.json` |
 | `moved_tests` | the maker, the cleaner | one item per move: `{"file", "assertion", "why", "by", "at"}` |
-| `wall_recommendations` | the guardian | one item per recommendation: `{"file", "test", "recommend", "why", "accepted"}`; `accepted` turns true when the person answers `moves_to_accept` |
+| `wall_recommendations` | the inspector | one item per recommendation: `{"file", "test", "recommend", "why", "accepted"}`; `accepted` turns true when the person answers `moves_to_accept` |
 | `suite` | the watch | `green` or `red` after the last maker or cleaner step |
 | `cleaner_commit` | the cleaner | the commit of the cleaner's fix |
-| `packet` | the watch | the path of the guardian's packet |
-| `shape_change`, `pitch_contradiction` | the guardian's packet | `yes` or `no`; `shape_change` may also be `accepted`, for a shape a decision record on the slice already accepted; the two-person stop reads them |
+| `packet` | the watch | the path of the inspection report |
+| `shape_change`, `pitch_contradiction` | the inspection report | `yes` or `no`; `shape_change` may also be `accepted`, for a shape a decision record on the slice already accepted; the two-person stop reads them |
 | `spend` | the watch | one item per step: `{"step", "harness", "model", "model_id", "tokens_in", "tokens_out", "cache_read", "cache_write", "tokens", "usd", "turns", "wall_s", "session", "log"}` |
 | `stops` | the watch | one item per stop: `{"at", "step", "order", "seat", "question", "answered_by", "answer"}`; an answer adds `settled` and, on a `moves_to_accept` stop, `accepted_wall` and `refused_wall` |
 | `decisions` | `xv record answer` | `{"date", "who", "decision", "record"}`, when two people decided, and also for `ready_to_merge`; `who` is a list of names (an old record may hold one string, which readers accept) |

@@ -1,6 +1,6 @@
 ---
-name: scenario
-description: "Make one XV slice's scenario executable and show it fail before the fix: a Playwright test or an API sequence, from a recording for a defect or from words for a feature. Writes only under the test paths. Never the maker. Use when the watch runs the scenario step, or when a person asks to \"make it red\", \"write the failing scenario\", or \"turn this recording into a test\"."
+name: test-writer
+description: "Make one XV slice's scenario executable and show it fail before the fix: a Playwright test or an API sequence, from a recording for a defect or from words for a feature. Writes only under the test paths. Never the maker. Use when the watch runs the test-writer step, or when a person asks to \"make it red\", \"write the failing scenario\", or \"turn this recording into a test\"."
 license: MIT
 ---
 
@@ -8,7 +8,7 @@ license: MIT
 
 You turn the slice's scenario into an executable red: a test that states what must be true, and fails on the code as it is now. You are never the maker. A context that writes the red and then makes it green is agreeing with itself.
 
-Own the result: even when agents write all of the code, a person is responsible for what it does. An agent may stop. It may not decide.
+Own the result: even when agents write all of the code, a person is responsible for what it does.
 
 ## Read
 
@@ -29,7 +29,7 @@ Own the result: even when agents write all of the code, a person is responsible 
 6a. **Write the form the answer names.** When the record's `settled` (the person's answer to an earlier stop, in your prompt under "Settled") names the form of the red, such as a lint rule or a script, write that form, or stop with a question. It does not swap in a test. A red that is not a test file still needs a red command you watch fail.
 6b. **Say what you moved.** If a test already in a file must change, because the scenario or a settled answer forces it, change only that assertion and say in your report the file, the assertion as it was and as it is, and why. A person's name goes on the record only through a person's answer at a stop.
 6c. **Name what the red will force to change.** Your report names each old test the red will force to change: the file, the test, and why. The maker may change a named old test without stopping, and records the move; a test you do not name still follows the maker's recorded-move rule.
-6d. **Name the may-not files the red needs changed.** Your report names each file on the maker's may-not list that the red needs changed (for example, `.xv/picture.md`). From that list the maker may change only `.xv/picture.md`, and only when you name it; naming any other file does not let the maker change it, and `protected_changed` still stops the slice. The guardian lists each change in the packet.
+6d. **Name the may-not files the red needs changed.** Your report names each file on the maker's may-not list that the red needs changed (for example, `.xv/picture.md`). From that list the maker may change only `.xv/picture.md`, and only when you name it; naming any other file does not let the maker change it, and `protected_changed` still stops the slice. The inspector lists each change in the inspection report.
 6e. **Test each way a value can be wrong.** When the scenario adds a check that accepts a value (a flag, a field, a report key), write a red case for each way the input can be wrong: missing, empty, wrong type, a value not on the list. When a read-only agent writes the value about itself, add a case where that agent claims what only a person may give. Test each case, or name it in `not_covered`.
 6f. **Set every stand-in setting.** Each red test sets every stand-in setting its result depends on, such as the fake agent's environment or a config value; it does not rely on a default.
 7. **After the maker, report the whole red.** When the slice has been through the maker and you are sent to fix a test, your `red` lists every file in the record's `red.files` plus any you added, and one command that runs all of them. The record keeps every old file.
@@ -56,7 +56,7 @@ For a new feature, end the test file with a comment that says what a person shou
 End your final message with one report block. `files` are the test files you wrote or added to, and after the maker every red file (step 7); `command` runs exactly those; `failure` is the line of output that shows the red.
 
 ```xv-report
-{"agent": "scenario", "status": "red", "summary": "<one line>",
+{"agent": "test-writer", "status": "red", "summary": "<one line>",
  "red": {"files": ["tests/test_expiring.py"], "command": "python3 -m unittest tests.test_expiring", "failure": "<the failing assertion, one line>",
          "watch_before_merge": "<for a feature: what a person should watch; null for a defect>"},
  "covered": [{"outcome": "<an outcome the scenario names>", "test": ["test_expiring_today", "test_expiring_tomorrow"]}],

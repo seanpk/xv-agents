@@ -159,7 +159,7 @@ def evaluate(data, after, config):
 
     if after == "test-writer" and data.get("kind") == "refactor" and checks.get("suite", "green") != "green":
         out.append(fire("suite_not_green_at_start", "originator",
-                        "A refactor slice needs a green suite at the start: it is the oracle, and the scenario step "
+                        "A refactor slice needs a green suite at the start: it is the oracle, and the test-writer step "
                         "writes no red. The suite is not green." + failing_clause(checks)
                         + " Fix it on its own slice, or set this one aside."))
 
@@ -177,7 +177,7 @@ def evaluate(data, after, config):
                             "The red command cannot run: it failed before any test ran (" + checks["red_cannot_run"]
                             + "). That is not a failing red, so the record holds no evidence the red fails for the "
                             "reasons the scenario names. Fix the command or the test files so the tests run, "
-                            "then run the scenario step again."))
+                            "then run the test-writer step again."))
         if checks.get("cherry_pick_conflict"):
             out.append(fire("red_conflicts_with_build", "originator",
                             "The test writer wrote its red at the base, and it does not apply to the build the slice "

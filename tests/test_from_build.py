@@ -1202,9 +1202,9 @@ class SliceSkillTest(unittest.TestCase):
         self.assertIn("xv slice new --from <ref>", para)
         self.assertRegex(para, r"(?i)what runs")
 
-    def test_the_watch_may_make_the_offer_at_a_stop_after_the_scenario_step(self):
+    def test_the_watch_may_make_the_offer_at_a_stop_after_the_test_writer_step(self):
         text = read("skills", "watch", "SKILL.md")
-        self.assertRegex(text, r"(?is)build to find out.{0,600}after the scenario step|after the scenario step.{0,600}build to find out")
+        self.assertRegex(text, r"(?is)build to find out.{0,600}after the test-writer step|after the test-writer step.{0,600}build to find out")
         self.assertRegex(text, r"(?is)build to find out.{0,600}before the maker|before the maker.{0,600}build to find out")
 
 

@@ -8,7 +8,7 @@ license: MIT
 
 A slice starts with a person. This skill writes down what they want in words, opens the slice record, and hands it to the watch. It owns the scenario. The `watch` skill owns running it.
 
-Own the result: even when agents write all of the code, a person is responsible for what it does. An agent may stop. It may not decide. The scenario is the person's statement of what must be true; you write it down, you do not choose it.
+Own the result: even when agents write all of the code, a person is responsible for what it does. The scenario is the person's statement of what must be true; you write it down, you do not choose it.
 
 ## Ask
 
@@ -27,7 +27,7 @@ When the scenario will not settle (the answers are not clear, the talk goes roun
 
 Read the scenario back in the person's words, in the message to the person: the full scenario and its "may ignore" lines, not only a path to a file. Tidy grammar only. If it is ambiguous about what must be true, ask; do not pick.
 
-Check it against `.xv/pitch.md`. If the scenario looks like it contradicts the pitch, say which line, and ask whether to go on. The guardian will flag it anyway; it is cheaper now.
+Check it against `.xv/pitch.md`. If the scenario looks like it contradicts the pitch, say which line, and ask whether to go on. The inspector will flag it anyway; it is cheaper now.
 
 ## Open
 
@@ -41,7 +41,7 @@ xv slice new <id> --title "<title>" --by <name> --kind feature|defect|prototype|
 
 The id is short and dated, such as `2026-10-21-expiring-today`. The command creates the branch `xv/<id>`, a worktree for it, and `.xv/slices/<id>.md` in that worktree, and prints the worktree path.
 
-With `--from <ref>` the branch starts at the build, and `base` stays the branch the slice merges into. The scenario agent still writes the red at `base`, without the build, and the red must fail there; then it runs on the build. A red test that fails on the build goes to the maker as a miss; a red that passes on it skips the maker. `--share-build` names the build to the scenario agent as a reference only, and needs `--from`.
+With `--from <ref>` the branch starts at the build, and `base` stays the branch the slice merges into. The test writer still writes the red at `base`, without the build, and the red must fail there; then it runs on the build. A red test that fails on the build goes to the maker as a miss; a red that passes on it skips the maker. `--share-build` names the build to the test writer as a reference only, and needs `--from`.
 
 Then load the `watch` skill and run the slice, starting with the forecaster. The person sets the budget from the forecast:
 
@@ -58,4 +58,4 @@ xv record set <id> budget '{"tokens": 400000, "usd": 3, "turns": 60}' --by <name
 ## Stop and report when
 
 - The person cannot say what must be true. A slice without a scenario is not ready.
-- The scenario contradicts the pitch and the person wants to go on anyway. Record their answer in the slice log and go on; the guardian will raise it for two people.
+- The scenario contradicts the pitch and the person wants to go on anyway. Record their answer in the slice log and go on; the inspector will raise it for two people.

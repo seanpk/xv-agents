@@ -40,7 +40,7 @@ v0.1 uses three layers on every harness: the maker's brief forbids an unrecorded
 
 ## Claude Code refuses writes under `.git/`
 
-Found by the first eval run, 2026-10-21. Slice worktrees were first placed under `.git/xv/worktrees/`. Claude Code treats every path under `.git/` as sensitive and denied the guardian's write of its packet and the maker's edit of a test file. Both agents stopped and reported the denial instead of finding a way around it. Worktrees moved to `.xv/worktrees/`, which `.xv/.gitignore` keeps out of the repo.
+Found by the first eval run, 2026-10-21. Slice worktrees were first placed under `.git/xv/worktrees/`. Claude Code treats every path under `.git/` as sensitive and denied the inspector's write of its inspection report and the maker's edit of a test file. Both agents stopped and reported the denial instead of finding a way around it. Worktrees moved to `.xv/worktrees/`, which `.xv/.gitignore` keeps out of the repo.
 
 ## Playwright test agents
 
@@ -53,6 +53,6 @@ Checked 2026-10-21 with Playwright 1.64.1.
 
 ## `gh skill install` and `npx skills add`
 
-- **`gh skill install` handles this repo's shape.** Checked 2026-10-21 with `gh skill install <path> --from-local --all --agent claude-code --scope project`: it found all the skills under [`skills/`](../skills/), copied each folder with its supporting files (the guardian's `packet.md`, the maker's `prototype.md`), and rewrote each `SKILL.md`'s front matter, adding `metadata.local-path`. It does not install [`bin/xv`](../bin/xv) or [`scripts/`](../scripts/), so the skills need the clone on `PATH` either way.
+- **`gh skill install` handles this repo's shape.** Checked 2026-10-21 with `gh skill install <path> --from-local --all --agent claude-code --scope project`: it found all the skills under [`skills/`](../skills/), copied each folder with its supporting files (the inspector's `packet.md`, the maker's `prototype.md`), and rewrote each `SKILL.md`'s front matter, adding `metadata.local-path`. It does not install [`bin/xv`](../bin/xv) or [`scripts/`](../scripts/), so the skills need the clone on `PATH` either way.
 - **A reinstall refuses to overwrite without `--force`, and `--force` overwrites a local edit with no warning.** Checked by editing an installed `SKILL.md` and installing again. This is why the project layer lives in `.xv/` and never in a skill's folder.
 - **`npx skills add`**: its help lists `add`, `update` and a lock file. Not checked against this repo.
