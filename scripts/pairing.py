@@ -141,11 +141,10 @@ def cmd_start(a):
     elif not session or not session.get("transcript"):
         body = record.log_line(body, "watch", f"pairing {n}: no transcript was found for the pair session, so its "
                                               "spend cannot be read when the pairing ends")
+    # the commit the pairing starts from is the HEAD before the commit that opens it (a commit cannot hold its own id)
+    entry["start_commit"] = entry["start_head"]
     record.save(path, data, body)
     commit_record(root, [os.path.relpath(path, root)], f"xv({a.id}): pairing {n} opened by {a.by} with {agent}")
-    # the commit the pairing starts from is the one that opened it; the record keeps it, and the next commit takes it
-    entry["start_commit"] = git(["rev-parse", "HEAD"], root).strip()
-    record.save(path, data, body)
     emit({"slice": a.id, "pairing": n, "prefix": entry["prefix"], "session": session, "answered": stop["order"],
           "note": f"xv step and xv run refuse on {a.id} until `xv pairing end {a.id} --next <step>`"}, True)
 
