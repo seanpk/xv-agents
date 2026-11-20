@@ -22,7 +22,9 @@ install replaces a copy nobody edited and refuses one somebody did, and
 `xv check` can tell current from stale. The scripts are not copied: everyone
 on the repo still needs `xv` from a user install, and CI checks out this repo.
 
-It never replaces a skill folder it did not make.
+It never replaces a skill folder it did not make. A link or copy it made under an
+agent's name before #168 (`scenario`, `guardian`, `listener`) is removed; an edited
+copy under an old name is left, and named under `skipped`.
 """
 
 import argparse
@@ -33,7 +35,7 @@ import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from xvlib import XVError, die, repo_root  # noqa: E402
+from xvlib import OLD_AGENTS, XVError, die, repo_root  # noqa: E402
 
 HOME_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKILLS = os.path.join(HOME_DIR, "skills")
@@ -94,9 +96,30 @@ def edited(path):
     return mark.get("digest") != digest(path)
 
 
+def drop_old_names(folder, dry, root=None):
+    """Take out the links and unedited copies this command made under the agents' names before #168.
+    Returns (removed, kept): an edited copy is kept and named."""
+    removed, kept = [], []
+    for old, new in OLD_AGENTS.items():
+        dest = os.path.join(folder, old)
+        if not os.path.lexists(dest) or not ours(dest):
+            continue
+        shown = os.path.relpath(dest, root) if root else dest
+        if not os.path.islink(dest) and edited(dest):
+            kept.append(f"{shown}: edited in this repo, under the old name of {new}; move your edits and remove it")
+            continue
+        if not dry:
+            os.remove(dest) if os.path.islink(dest) else shutil.rmtree(dest)
+        removed.append(shown)
+    return removed, kept
+
+
 def install_user(targets, dry, force):
-    done, skipped = [], []
+    done, skipped, dropped = [], [], []
     for folder in targets:
+        gone, kept = drop_old_names(folder, dry)
+        dropped += gone
+        skipped += kept
         for name in skill_names():
             dest, src = os.path.join(folder, name), os.path.join(SKILLS, name)
             if os.path.lexists(dest) and not ours(dest) and not force:
@@ -121,14 +144,20 @@ def install_user(targets, dry, force):
             os.symlink(os.path.join(HOME_DIR, "bin", "xv"), link)
         done.append(link)
     on_path = bindir in os.environ.get("PATH", "").split(os.pathsep)
-    return {"scope": "user", "linked": done, "skipped": skipped,
-            "path_note": None if on_path else f"add {bindir} to your PATH"}
+    out = {"scope": "user", "linked": done, "skipped": skipped,
+           "path_note": None if on_path else f"add {bindir} to your PATH"}
+    if dropped:
+        out["removed_old_names"] = dropped
+    return out
 
 
 def install_project(root, targets, dry, force):
-    done, skipped = [], []
+    done, skipped, dropped = [], [], []
     v = version()
     for folder in targets:
+        gone, kept = drop_old_names(folder, dry, root)
+        dropped += gone
+        skipped += kept
         for name in skill_names():
             dest, src = os.path.join(folder, name), os.path.join(SKILLS, name)
             if os.path.lexists(dest):
@@ -147,8 +176,11 @@ def install_project(root, targets, dry, force):
                     json.dump({"skill": name, "version": v, "digest": digest(dest)}, f)
                     f.write("\n")
             done.append(os.path.relpath(dest, root))
-    return {"scope": "project", "copied": done, "skipped": skipped, "version": v,
-            "next": "commit the copies; everyone on the repo still needs `xv` on PATH from a user install"}
+    out = {"scope": "project", "copied": done, "skipped": skipped, "version": v,
+           "next": "commit the copies; everyone on the repo still needs `xv` on PATH from a user install"}
+    if dropped:
+        out["removed_old_names"] = dropped
+    return out
 
 
 def remove(targets, root=None):
@@ -159,7 +191,7 @@ def remove(targets, root=None):
         os.remove(link)
         gone.append(link)
     for folder in targets:
-        for name in skill_names():
+        for name in skill_names() + list(OLD_AGENTS):
             dest = os.path.join(folder, name)
             if os.path.lexists(dest) and ours(dest):
                 os.remove(dest) if os.path.islink(dest) else shutil.rmtree(dest)

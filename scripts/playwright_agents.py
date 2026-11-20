@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Install Playwright's test agents for the scenario agent, without the healer.
+"""Install Playwright's test agents for the test writer, without the healer.
 
 Playwright's `init-agents` writes three agent definitions for a harness: a
-planner, a generator and a healer. The scenario agent uses the planner's way of
+planner, a generator and a healer. The test writer uses the planner's way of
 exploring and the generator's way of writing a test against the live page. The
 healer repairs a failing test by editing it until it passes, which is the move
 the test wall exists to stop, so this removes it.

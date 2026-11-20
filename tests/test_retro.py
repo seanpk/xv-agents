@@ -232,10 +232,10 @@ class ReworkSignalTest(RepoCase):
 
     def test_a_slice_sent_back_to_the_maker_once_closes_with_one_sendback(self):
         wt = self.fake_agents()
-        for agent in ("forecaster", "scenario", "maker", "cleaner"):
+        for agent in ("forecaster", "test-writer", "maker", "cleaner"):
             self.xv("step", agent, "s1", cwd=wt)
         with mock.patch.dict(os.environ, {"FAKE_SCENARIO_MISS": MISS}):
-            self.xv("step", "guardian", "s1", cwd=wt, check=False)
+            self.xv("step", "inspector", "s1", cwd=wt, check=False)
         self.assertEqual(self.record(wt)["next"], "maker")
         p = self.xv("run", "s1", cwd=wt, check=False)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
@@ -248,7 +248,7 @@ class ReworkSignalTest(RepoCase):
         p = self.xv("run", "s1", cwd=wt, check=False)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.xv("record", "stop", "s1", "--order", "slice_only_marks", "--seat", "originator",
-                "--question", "Is this right?", "--step", "guardian", cwd=wt)
+                "--question", "Is this right?", "--step", "inspector", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "no, rework the code",
                 "--settled", "the maker redoes it", "--next", "maker", cwd=wt)
         self.assertEqual(self.record(wt)["next"], "maker")
@@ -262,8 +262,8 @@ class ReworkSignalTest(RepoCase):
         p = self.xv("run", "s1", cwd=wt, check=False)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "no, the red misses a case",
-                "--settled", "the scenario agent adds a red", "--next", "scenario", cwd=wt)
-        self.assertEqual(self.record(wt)["next"], "scenario")
+                "--settled", "the scenario agent adds a red", "--next", "test-writer", cwd=wt)
+        self.assertEqual(self.record(wt)["next"], "test-writer")
         p = self.xv("run", "s1", cwd=wt, check=False)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         steps = [row["step"] for row in self.record(wt)["spend"]]

@@ -23,7 +23,7 @@ tests:
   command: "python3 tests/run.py"
   timeout: 900
   # Files whose tests are always slice-only: a mark on a test that checks one of
-  # these is accepted with no stop. The scenario agent's report names the file.
+  # these is accepted with no stop. The test writer's report names the file.
   slice_only_files: ["CHANGELOG.md"]
 
 source:
@@ -37,11 +37,11 @@ source:
 agents:
   default: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(ls:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(sed -n:*),Bash(diff:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git show:*),Bash(git ls-files:*),Bash(git grep:*),Bash(git rev-parse:*),Bash(git rm:*),Bash(git mv:*),Bash(cd tests:*),Bash(python3 -m unittest:*),Bash(python3 tests/run.py:*),Bash(xv record move:*)", "--model", "sonnet", "{prompt}"]
   forecaster: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(ls:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(sed -n:*),Bash(diff:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git show:*),Bash(git ls-files:*),Bash(git grep:*),Bash(git rev-parse:*)", "--model", "haiku", "{prompt}"]
-  guardian: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(ls:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(sed -n:*),Bash(diff:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git show:*),Bash(git ls-files:*),Bash(git grep:*),Bash(git rev-parse:*),Bash(cd tests:*),Bash(python3 -m unittest:*),Bash(python3 tests/run.py:*),Bash(xv wall diff:*),Bash(xv boundary:*),Bash(xv packet lint:*)", "--model", "opus", "{prompt}"]
+  inspector: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(ls:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(sed -n:*),Bash(diff:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git show:*),Bash(git ls-files:*),Bash(git grep:*),Bash(git rev-parse:*),Bash(cd tests:*),Bash(python3 -m unittest:*),Bash(python3 tests/run.py:*),Bash(xv wall diff:*),Bash(xv boundary:*),Bash(xv packet lint:*)", "--model", "opus", "{prompt}"]
   # A local model through opencode:
   # maker: ["opencode", "run", "--auto", "--format", "json", "--model", "ollama/gpt-oss:20b", "{prompt}"]
   # Grok (its home rules and skills load into every run; see docs/harness-notes.md):
-  # guardian: ["grok", "--output-format", "json", "-m", "grok-4.7", "--no-subagents", "--permission-mode", "bypassPermissions", "-p", "{prompt}"]
+  # inspector: ["grok", "--output-format", "json", "-m", "grok-4.7", "--no-subagents", "--permission-mode", "bypassPermissions", "-p", "{prompt}"]
 
 # Who sits in each seat. The person who set the work going is named in each slice record.
 # A one-person team sets two_people to solo: the two-person stops still fire and
@@ -61,9 +61,9 @@ limits:
   # A retro is due when this many closed slices, each sent back to the maker, touched one module. 0: off.
   rework_slices: 3
 
-# Where the listener gathers the packet from production. Leave it out until the
+# Where the field listener gathers the field report from production. Leave it out until the
 # repo has users. Tokens come from the environment, never from this file.
-# listener:
+# field_listener:
 #   sentry:
 #     org: my-org
 #     project: my-project

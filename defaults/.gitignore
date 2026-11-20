@@ -1,4 +1,4 @@
-# Kept out of the repo: slice worktrees, the raw data the listener gathers,
+# Kept out of the repo: slice worktrees, the raw data the field listener gathers,
 # and the whole-repo boundary output xv-init writes for the outsider read.
 worktrees/
 listen/

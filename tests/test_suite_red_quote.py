@@ -91,7 +91,7 @@ class LongOutputTest(RepoCase):
         sh(["git", "commit", "-qm", "a long red suite"], self.repo)
         wt = self.new_slice("s1", "Milk that runs out today shows as running out soon.")
         self.xv("record", "set", "s1", "budget", '{"usd": 1}', "--by", "pat", cwd=wt)
-        for agent in ("forecaster", "scenario", "maker"):
+        for agent in ("forecaster", "test-writer", "maker"):
             self.xv("step", agent, "s1", cwd=wt, check=False)
         p = self.xv("step", "cleaner", "s1", cwd=wt, check=False)
         stop = json.loads(p.stdout)["stop"]

@@ -51,13 +51,13 @@ class InitAllowListPromptTest(RepoCase):
             f.write("#!/bin/sh\n")
         os.chmod(fake, 0o755)
         env = dict(os.environ, PATH=bin_dir + os.pathsep + os.environ["PATH"])
-        out = subprocess.run([sys.executable, XV, "prompt", "guardian"], cwd=self.repo, env=env,
+        out = subprocess.run([sys.executable, XV, "prompt", "inspector"], cwd=self.repo, env=env,
                              capture_output=True, text=True, stdin=subprocess.DEVNULL).stdout
         named = re.search(r"The `xv` command: `([^`]+)`", out)
         self.assertIsNotNone(named, out[-400:])
         for extra in ("wall diff", "boundary", "packet lint"):
             with self.subTest(extra=extra):
-                self.assertTrue(rule_allows(entries_of(config, "guardian"), f"{named.group(1)} {extra}"),
+                self.assertTrue(rule_allows(entries_of(config, "inspector"), f"{named.group(1)} {extra}"),
                                 f"no starter rule matches `{named.group(1)} {extra}`")
 
     def test_a_python_repo_with_other_markers_gets_no_rule_for_other_runners(self):
@@ -70,7 +70,7 @@ class InitAllowListPromptTest(RepoCase):
         config = load_config(self.repo)
         command = config["tests"]["command"]
         self.assertIn("python3", command)
-        for seat in ("default", "guardian"):
+        for seat in ("default", "inspector"):
             for e in entries_of(config, seat):
                 with self.subTest(seat=seat, rule=e):
                     self.assertFalse(e.startswith(("Bash(npm", "Bash(bundle", "Bash(go ")), e)

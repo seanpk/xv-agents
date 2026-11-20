@@ -32,7 +32,7 @@ class RefactorKindCase(RepoCase):
 
     def maker_after_scenario(self, env=None):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.xv("step", "scenario", "s1", cwd=self.wt)
+        self.xv("step", "test-writer", "s1", cwd=self.wt)
         with mock.patch.dict(os.environ, env or {}):
             return self.xv("step", "maker", "s1", cwd=self.wt, check=False)
 
@@ -50,7 +50,7 @@ class RefactorKindCase(RepoCase):
     def test_the_scenario_step_writes_no_red_and_goes_on_to_the_maker(self):
         self.open_slice()
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        p = self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertFalse(os.path.exists(os.path.join(self.wt, "tests", "test_red.py")))
         self.assertEqual(self.record()["next"], "maker")
@@ -63,7 +63,7 @@ class RefactorKindCase(RepoCase):
         sh(["git", "add", "-A"], self.wt)
         sh(["git", "commit", "-qm", "a red suite"], self.wt)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        p = self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertIsNotNone(self.stop_order(p))
         self.assertNotEqual(self.record()["next"], "maker")
@@ -162,7 +162,7 @@ class RefactorKindCase(RepoCase):
             env["FAKE_MAKER_IMPORT_MOVE"] = "1"
         with mock.patch.dict(os.environ, env):
             self.xv("run", "s1", cwd=self.wt, check=False)
-        return self.record()["checks"]["guardian"].get("packet_problems") or []
+        return self.record()["checks"]["inspector"].get("packet_problems") or []
 
     def test_a_packet_whose_expected_moves_match_the_record_has_no_problem(self):
         self.assertEqual(self.packet_problems("1"), [])
@@ -247,8 +247,8 @@ class AmendedRefactorCase(FollowUpBase):
         with open(f, "w") as fh:
             fh.write("12. The tally also shows milk.")
         self.xv("slice", "amend", "s1", "--by", "pat", "--scenario-file", f, cwd=self.wt)
-        self.assertEqual(self.record()["next"], "scenario")
-        self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        self.assertEqual(self.record()["next"], "test-writer")
+        self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
 
     def test_an_amended_refactor_slice_writes_a_red_for_the_amendment(self):
         self.amended()
@@ -259,7 +259,7 @@ class AmendedRefactorCase(FollowUpBase):
 
     def test_the_amendments_red_must_fail_before_the_maker_runs(self):
         self.amended()
-        self.assertIs(self.record()["checks"]["scenario"].get("red_fails"), True)
+        self.assertIs(self.record()["checks"]["test-writer"].get("red_fails"), True)
 
 
 class CleanerMoveCase(FollowUpBase):
@@ -284,12 +284,12 @@ class RerunScenarioCase(FollowUpBase):
 
     def test_an_expected_move_stays_in_the_record_after_the_scenario_step_runs_again(self):
         self.open_slice("--expect-moves", "imports")
-        for step in ("forecaster", "scenario"):
+        for step in ("forecaster", "test-writer"):
             self.xv("step", step, "s1", cwd=self.wt)
         with mock.patch.dict(os.environ, {"FAKE_MAKER_IMPORT_MOVE": "1"}):
             self.xv("step", "maker", "s1", cwd=self.wt, check=False)
         self.assertIn("tests/test_store.py", self.expected_files())
-        self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
         self.xv("step", "cleaner", "s1", cwd=self.wt, check=False)
         self.assertIn("tests/test_store.py", self.expected_files())
 
@@ -298,7 +298,7 @@ class AddedTestFileMoveCase(FollowUpBase):
     # record-state 4. a test file the slice added is compared with the file as the scenario step left it
     def maker_after_red(self, env):
         self.open_slice("--expect-moves", "imports", kind="feature")
-        for step in ("forecaster", "scenario"):
+        for step in ("forecaster", "test-writer"):
             self.xv("step", step, "s1", cwd=self.wt)
         self.assertTrue(os.path.exists(os.path.join(self.wt, "tests", "test_red.py")))
         with mock.patch.dict(os.environ, env):
@@ -313,10 +313,10 @@ class AddedTestFileMoveCase(FollowUpBase):
 
     def test_an_import_only_change_after_a_second_scenario_pass_compares_with_that_pass(self):
         self.open_slice("--expect-moves", "imports", kind="feature")
-        for step in ("forecaster", "scenario"):
+        for step in ("forecaster", "test-writer"):
             self.xv("step", step, "s1", cwd=self.wt)
         with mock.patch.dict(os.environ, {"FAKE_RED_SECOND_TEST": "1"}):
-            self.xv("step", "scenario", "s1", cwd=self.wt)
+            self.xv("step", "test-writer", "s1", cwd=self.wt)
         self.assertIn("test_milk_tomorrow", open(os.path.join(self.wt, "tests", "test_red.py")).read())
         with mock.patch.dict(os.environ, {"FAKE_MAKER_IMPORT_MOVE_FILE": "tests/test_red.py"}):
             p = self.xv("step", "maker", "s1", cwd=self.wt, check=False)

@@ -1,8 +1,8 @@
 {
   "name": "scenario-defect",
   "increment": 1,
-  "agent": "scenario",
-  "what": "the scenario agent turns a recorded defect into a red test and touches nothing else",
+  "agent": "test-writer",
+  "what": "the test writer turns a recorded defect into a red test and touches nothing else",
   "slice": {"id": "expiring-today", "kind": "defect", "title": "An item that runs out today is missing from what runs out soon",
             "scenario": "expiring-today.md", "ignore": "Items already past their date.",
             "recording": ".xv/recordings/expiring-today.json"},

@@ -21,21 +21,23 @@ import sys
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from xvlib import XV_DIR, XVError, die, load_config, repo_root, worktrees_config  # noqa: E402
+from xvlib import OLD_AGENTS, XV_DIR, XVError, die, load_config, repo_root, worktrees_config  # noqa: E402
 
 XV_HOME = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-AGENTS = ["watch", "forecaster", "scenario", "maker", "cleaner", "guardian", "listener"]
+AGENTS = ["watch", "forecaster", "test-writer", "maker", "cleaner", "inspector", "field-listener"]
 SKILLS = AGENTS + ["xv-slice", "xv-retro", "xv-promote", "xv-check", "xv-init"]
+OLD_SKILLS = list(OLD_AGENTS)  # a file under an agent's name before #168 still shadows that agent
 
-GUARDED = r"(record|wall|guardian|stop|stops|packet|review|baseline|scenario agent|two people|pitch|check)"
+GUARDED = (r"(record|wall|inspector|guardian|stop|stops|packet|inspection report|review|baseline|test writer|"
+           r"scenario agent|two people|pitch|check)")
 RELAX = [
     (re.compile(r"\b(without|no need (for|to)|skip(ping)?|don'?t (need|bother)|need not|not required|optional)\b"
                 r"[^.\n]{0,50}\b" + GUARDED, re.I), "drops a guarded step"),
-    (re.compile(r"\b(maker|cleaner|scenario agent|agent|agents|watch)\b[^.\n]{0,30}\b(may|can|should|is allowed to)\b"
+    (re.compile(r"\b(maker|cleaner|test writer|scenario agent|inspector|agent|agents|watch)\b[^.\n]{0,30}\b(may|can|should|is allowed to)\b"
                 r"[^.\n]{0,20}\b(edit|change|delete|rewrite|merge|approve|rank|raise|accept|skip)\b[^.\n]{0,40}"
                 r"\b(test|tests|budget|standard|standards|pull request|pr|change|queue|its own)", re.I),
      "lets an agent do what a may-not list forbids"),
-    (re.compile(r"\bsame (context|session|agent)\b[^.\n]{0,60}\b(scenario|maker|cleaner|guardian|red|green)", re.I),
+    (re.compile(r"\bsame (context|session|agent)\b[^.\n]{0,60}\b(test writer|scenario|maker|cleaner|inspector|guardian|red|green)", re.I),
      "puts two agents in one context"),
     (re.compile(r"\b(turn|switch)(ed)? off\b[^.\n]{0,40}" + GUARDED + r"|\bdisable[ds]?\b[^.\n]{0,40}" + GUARDED, re.I),
      "turns off a check or a stop"),
@@ -76,9 +78,9 @@ def relaxations(root):
             hits.append({"where": f"{XV_DIR}/config.yml", "line": f"worktrees.{key}: {cmd}", "declared": True,
                          "why": f"runs a command in each slice's worktree ({key}; declared, and allowed)"})
     agents = config.get("agents") or {}
-    if agents.get("scenario") == "session" and agents.get("maker") == "session":
-        hits.append({"where": f"{XV_DIR}/config.yml", "line": "agents.scenario and agents.maker: session",
-                     "why": "the scenario agent and the maker may share the person's context; check they run in separate subagents"})
+    if agents.get("test-writer") == "session" and agents.get("maker") == "session":
+        hits.append({"where": f"{XV_DIR}/config.yml", "line": "agents.test-writer and agents.maker: session",
+                     "why": "the test writer and the maker may share the person's context; check they run in separate subagents"})
     return hits
 
 
@@ -122,7 +124,7 @@ def overrides(root):
         for path in glob.glob(os.path.join(root, pat)):
             rel = os.path.relpath(path, root)
             parts = re.split(r"[/.]", rel)
-            names = [s for s in SKILLS if s in parts or f"xv-{s}" in parts]
+            names = [s for s in SKILLS + OLD_SKILLS if s in parts or f"xv-{s}" in parts]
             if not names:
                 continue
             text = open(path, encoding="utf-8", errors="replace").read()
@@ -131,6 +133,11 @@ def overrides(root):
                 found.append({"file": rel, "skill": names[0], "kind": installed_copy(os.path.dirname(path), mark)})
                 continue
             m = GENERATED.search(text)
+            if m and m.group(1) in OLD_AGENTS:
+                found.append({"file": rel, "skill": OLD_AGENTS[m.group(1)],
+                              "kind": f"generated under the old name {m.group(1)} (now {OLD_AGENTS[m.group(1)]}): "
+                                      "re-run xv adapt, which removes it"})
+                continue
             if m:
                 current = skill_digest(m.group(1)) == m.group(2)
                 found.append({"file": rel, "skill": m.group(1),

@@ -1,8 +1,8 @@
 {
   "name": "scenario-feature",
   "increment": 3,
-  "agent": "scenario",
-  "what": "the scenario agent writes a feature's red from words, at the surface a user meets, with a note for the person who watches the first green",
+  "agent": "test-writer",
+  "what": "the test writer writes a feature's red from words, at the surface a user meets, with a note for the person who watches the first green",
   "slice": {
     "id": "hide-used-up",
     "kind": "feature",
@@ -13,7 +13,7 @@
   "setup": [],
   "skill_cmd": [
     "step",
-    "scenario",
+    "test-writer",
     "{id}"
   ],
   "baseline_prompt": "Write a failing test for this new feature in this repo, before anyone builds it: when the household uses the last of something, it no longer shows in the list of what the household has. Using the last loaf of bread takes bread off GET /items. Items with some left still show, as now.",

@@ -23,7 +23,7 @@ import packet as packetlib  # noqa: E402
 import wall  # noqa: E402
 from spend import claude_session_texts, claude_transcript, row_tokens  # noqa: E402
 from suite import failing_tests, in_own_red, own_red_names, run_suite  # noqa: E402
-from xvlib import (XV_DIR, XVError, die, emit, git, load_config, match_any, names_test, now, read_doc, solo,  # noqa: E402
+from xvlib import (OLD_AGENTS, XV_DIR, XVError, agent_name, die, emit, git, load_config, match_any, names_test, now, read_doc, solo,  # noqa: E402
                    record_path, repo_root, slice_root, today, write_doc)
 
 FIELDS = [
@@ -38,7 +38,7 @@ FIELDS = [
 ]
 LIST_FIELDS = {"moved_tests", "slice_only", "wall_recommendations", "spend", "stops", "decisions", "prototypes", "overrides"}
 STATUSES = {"open", "working", "stopped", "ready", "pairing", "closed", "abandoned"}
-STEPS = ["forecaster", "scenario", "maker", "cleaner", "guardian", "close", "none"]
+STEPS = ["forecaster", "test-writer", "maker", "cleaner", "inspector", "close", "none"]
 SEATS = {"originator", "two_people", "chief_engineer"}
 CAUSES = {"decision", "environment", "tool", "agent", "watch"}
 
@@ -97,7 +97,7 @@ def refuse_in_pairing(data, what):
     if p:
         raise XVError(f"{what} is refused: pairing {p['n']} is open on {data.get('id')} ({p.get('by')} with "
                       f"{p.get('agent')}, since {p.get('started_at')}: {p.get('why')}). End it first with "
-                      f"`xv pairing end {data.get('id')} --next maker|cleaner|guardian`")
+                      f"`xv pairing end {data.get('id')} --next maker|cleaner|inspector`")
 
 
 # ---------------------------------------------------------------- commands
@@ -184,6 +184,8 @@ def cmd_set(a):
         raise XVError(f"{a.field} is a list; use `xv record add` so nothing is overwritten")
     if a.field == "status" and value not in STATUSES:
         raise XVError(f"status is one of {sorted(STATUSES)}")
+    if a.field == "next":
+        value = agent_name(value)
     if a.field == "next" and value not in STEPS + ["prototype"]:
         raise XVError(f"next is one of {STEPS + ['prototype']}")
     if a.field == "forecast" and data.get("forecast") and not a.force:
@@ -689,8 +691,8 @@ def make_directed_edit(root, path, data, body, stop, edit, who):
     config = load_config(root)
     data["suite"], suite_out = run_suite(root, config, data.get("base"), data.get("id"))
     step = stop.get("step") or data["next"]
-    if data["suite"] == "red" and step == "scenario":
-        # at the scenario step the slice's own red is meant to fail; only a failure outside it makes the suite red
+    if data["suite"] == "red" and step == "test-writer":
+        # at the test-writer step the slice's own red is meant to fail; only a failure outside it makes the suite red
         failing = [n for n in failing_tests(suite_out or "") if not n.startswith(("(failures=", "(errors="))]
         own = own_red_names(root, data, data.get("base"))
         if failing and all(in_own_red(own, n) for n in failing):
@@ -706,8 +708,9 @@ def make_directed_edit(root, path, data, body, stop, edit, who):
         packet = os.path.join(root, data["packet"])
         with open(packet) as f:
             packet_text = f.read()
-        heading = "## Directed edits after the guardian"
-        packet_text = packet_text.rstrip("\n") + ("\n" if heading in packet_text else f"\n\n{heading}\n\n") \
+        heading = "## Directed edits after the inspector"
+        had = heading in packet_text or "## Directed edits after the guardian" in packet_text  # the heading before #168
+        packet_text = packet_text.rstrip("\n") + ("\n" if had else f"\n\n{heading}\n\n") \
             + f"- {file} ({kind}): directed by {by}\n"
         with open(packet, "w") as f:
             f.write(packet_text)
@@ -823,8 +826,10 @@ def apply_report(data, body, agent, text):
         report = {"agent": agent, "status": "no-report", "summary": "ended without an xv-report block"}
         checks.setdefault("reports", []).append(report)
         return log_line(body, agent, report["summary"]), None
+    if report.get("agent") in OLD_AGENTS:
+        report["agent"] = OLD_AGENTS[report["agent"]]  # a report that names its agent as before #168
     report.setdefault("agent", agent)
-    # only the agents that may move a test record one; the guardian's count is not a record
+    # only the agents that may move a test record one; the inspector's count is not a record
     moves = report.get("moved_tests") if agent in ("maker", "cleaner") else None
     for mv in moves if isinstance(moves, list) else []:
         if isinstance(mv, dict) and all(mv.get(k) for k in ("file", "assertion", "why")):
@@ -832,7 +837,7 @@ def apply_report(data, body, agent, text):
             mv.setdefault("at", now())
             if not same_move(data["moved_tests"], mv):
                 data["moved_tests"].append(mv)
-    if agent == "scenario" and report.get("red"):
+    if agent == "test-writer" and report.get("red"):
         old = data.get("red")
         if old and any(s.get("step") == "maker" for s in data.get("spend") or []):
             files = list(old.get("files") or [])
@@ -840,12 +845,12 @@ def apply_report(data, body, agent, text):
             data["red"] = {**report["red"], "files": files}
         else:
             data["red"] = report["red"]
-    if agent == "scenario":
+    if agent == "test-writer":
         for key, need in (("old_tests_to_move", ("file", "test", "why")), ("may_not_files_needed", ("file", "why"))):
             listed = report.get(key) if isinstance(report.get(key), list) else []
             data[key] = [e for e in listed
                          if isinstance(e, dict) and all(isinstance(e.get(k), str) and e[k] for k in need)]
-    if agent == "scenario" and isinstance(report.get("slice_only"), list):
+    if agent == "test-writer" and isinstance(report.get("slice_only"), list):
         kept = [m for m in data.get("slice_only") or []
                 if not any(isinstance(n, dict) and n.get("test") == m.get("test")
                            for n in report["slice_only"])]
@@ -853,7 +858,7 @@ def apply_report(data, body, agent, text):
         # an agent cannot accept its own mark; only a person's answer, or the config's listed files, do
         data["slice_only"] = kept + [accepted.get(n.get("test"), {k: v for k, v in n.items() if k != "accepted"})
                                      if isinstance(n, dict) else n for n in report["slice_only"]]
-    if agent == "guardian" and isinstance(report.get("wall_recommendations"), list):
+    if agent == "inspector" and isinstance(report.get("wall_recommendations"), list):
         old = data.get("wall_recommendations") or []
 
         def mark_key(r):
@@ -1004,22 +1009,22 @@ def cmd_report(a):
     text = sys.stdin.read() if a.file == "-" else open(a.file).read()
     red_before = data.get("red")
     body, report = apply_report(data, body, a.agent, text)
-    reported = ((report or {}).get("red") or {}).get("command") if a.agent == "scenario" else None
+    reported = ((report or {}).get("red") or {}).get("command") if a.agent == "test-writer" else None
     if reported and joined_unsafely(reported):
         data["red"] = red_before  # as `xv step` does: a refused red is not kept, and red_joined_unsafely is set
         if not has_build(data):  # no landing on a slice not from a build, so it is set here
-            scenario = data.setdefault("checks", {}).setdefault("scenario", {})
+            scenario = data.setdefault("checks", {}).setdefault("test-writer", {})
             scenario["red_fails"] = None
             scenario["red_joined_unsafely"] = reported
     save(path, data, body)
-    if a.agent == "scenario" and has_build(data):
-        # a session-mode scenario step left a checkout at the base: land the red written there, as `xv step` does
+    if a.agent == "test-writer" and has_build(data):
+        # a session-mode test-writer step left a checkout at the base: land the red written there, as `xv step` does
         # (record does not import run: the landing runs there, with the whole report on its stdin)
         p = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "run.py"),
                             "land-scenario", a.id], cwd=slice_root(path), input=json.dumps(report or {}),
                            capture_output=True, text=True)
         if p.returncode != 0:
-            raise XVError(p.stderr.strip() or "landing the scenario agent's red failed")
+            raise XVError(p.stderr.strip() or "landing the test writer's red failed")
     if a.agent in ("maker", "cleaner"):
         # the same move checks `xv step` runs after these agents; the wall reads the record from disk
         root = repo_root()
@@ -1028,7 +1033,7 @@ def cmd_report(a):
         data["checks"].setdefault(a.agent, {})["wall"] = wall_for_build(
             root, data, wall.check_or_note(root, data["id"], config))
         save(path, data, body)
-    if a.agent != "scenario" or not has_build(data):
+    if a.agent != "test-writer" or not has_build(data):
         # as `xv step` does after every step: a removal the record names, still in the tree
         data["checks"].setdefault(a.agent, {})["removal_not_made"] = removals_not_made(
             slice_root(path), data, a.agent, report)
@@ -1062,29 +1067,29 @@ def record_sendback(data, body, agent, order, keys, summary, target):
 
 
 def cmd_packet(a):
-    """Attach the guardian's packet and copy its two fixed fields."""
+    """Attach the inspection report and copy its two fixed fields."""
     root = repo_root()
     path, data, body = load(root, a.id)
     pdata, _ = read_doc(a.file)
     for field, allowed in packetlib.ALLOWED.items():
         if pdata.get(field) not in allowed:
             raise XVError(f"the packet's {field} must be {' or '.join(allowed)}, found {pdata.get(field)!r}")
-    checks = data.setdefault("checks", {}).setdefault("guardian", {})
+    checks = data.setdefault("checks", {}).setdefault("inspector", {})
     # the packet checks `xv step` runs: the lint, and the packet's count of expected moves
     try:
         checks.update(packetlib.packet_checks(a.file, data, slice_root(path)))
     except XVError as e:
         checks["packet_problems"] = [str(e)]
-    guardian_facts(slice_root(path), data, checks, os.path.abspath(a.file))
-    body = log_line(body, "guardian", f"packet: shape_change={data['shape_change']}, "
+    inspector_facts(slice_root(path), data, checks, os.path.abspath(a.file))
+    body = log_line(body, "inspector", f"packet: shape_change={data['shape_change']}, "
                                       f"pitch_contradiction={data['pitch_contradiction']}")
-    v = orders.verdict(data, "guardian", load_config(slice_root(path)))
-    body = apply_verdict(data, body, "guardian", v)
+    v = orders.verdict(data, "inspector", load_config(slice_root(path)))
+    body = apply_verdict(data, body, "inspector", v)
     save(path, data, body)
 
 
-def guardian_facts(root, data, checks, packet_file):
-    """The guardian's packet, as facts in the record: the fields the watch reads, and the checks orders reads."""
+def inspector_facts(root, data, checks, packet_file):
+    """The inspection report, as facts in the record: the fields the watch reads, and the checks orders reads."""
     pdata, pbody = read_doc(packet_file)
     for field in packetlib.ALLOWED:
         v = pdata.get(field)
@@ -1097,7 +1102,7 @@ def guardian_facts(root, data, checks, packet_file):
     data["change_misses_scenario"] = "yes" if found else "no"
     # a miss listed under a front matter that says no: the packet disagrees with itself, and a person settles it
     checks["miss_disagreement"] = packetlib.misses(pbody) if pdata.get("change_misses_scenario") == "no" else []
-    report = orders.last_report(data, "guardian") or {}
+    report = orders.last_report(data, "inspector") or {}
     checks["misses"] = found
     checks["miss_amend"] = any(m["amend"] for m in found)
     checks["picture_change"] = pdata.get("picture_change") or report.get("picture_change")
@@ -1146,7 +1151,7 @@ def cmd_export(a):
     if data.get("packet"):
         ppath = os.path.join(slice_root(path), data["packet"])
         if os.path.exists(ppath):
-            out += ["<details><summary>Guardian packet</summary>", "",
+            out += ["<details><summary>Inspection report</summary>", "",
                     read_doc(ppath)[1].strip(), "", "</details>", ""]
     out += ["<details><summary>Slice record</summary>", "", "```", open(path).read(), "```",
             "", "</details>"]
@@ -1325,7 +1330,7 @@ def main(argv=None):
     s.add_argument("--order", required=True)
     s.add_argument("--seat", required=True)
     s.add_argument("--question", required=True)
-    s.add_argument("--step", help="the step the stop was raised at")
+    s.add_argument("--step", type=agent_name, help="the step the stop was raised at")
     s.set_defaults(fn=cmd_stop)
 
     s = sub.add_parser("offer", help="put the choices to the person on the open stop")
@@ -1342,7 +1347,7 @@ def main(argv=None):
     s.add_argument("id")
     s.add_argument("--by", required=True, help="comma-separated names")
     s.add_argument("--answer", required=True)
-    s.add_argument("--next", choices=STEPS + ["prototype"])
+    s.add_argument("--next", type=agent_name, choices=STEPS + ["prototype"])
     s.add_argument("--resume", action="store_true")
     s.add_argument("--decision", action="store_true", help="write a decision record")
     s.add_argument("--pick", help="the number of the offered option, or other")
@@ -1360,11 +1365,11 @@ def main(argv=None):
 
     s = sub.add_parser("report", help="apply a worker's xv-report block")
     s.add_argument("id")
-    s.add_argument("agent")
+    s.add_argument("agent", type=agent_name)
     s.add_argument("file", help="the worker's output, or - for stdin")
     s.set_defaults(fn=cmd_report)
 
-    s = sub.add_parser("packet", help="attach the guardian's packet")
+    s = sub.add_parser("packet", help="attach the inspection report (its packet file)")
     s.add_argument("id")
     s.add_argument("file")
     s.set_defaults(fn=cmd_packet)

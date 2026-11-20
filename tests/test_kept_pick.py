@@ -74,7 +74,7 @@ class KeptPickBase(RepoCase):
     def scenario_step(self, **more):
         p = self.step("forecaster")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        return self.step("scenario", **more)
+        return self.step("test-writer", **more)
 
     def ran(self, title):
         if not os.path.exists(self.cwds):
@@ -209,10 +209,10 @@ class RedOnTheKeptPickTest(KeptPickBase):
     def test_the_scenario_agent_is_not_told_where_the_kept_build_is(self):
         self.pick("--keep", check=True)
         self.scenario_step()
-        prompt = self.prompt_of("# The scenario agent")
+        prompt = self.prompt_of("# The test writer")
         self.assertTrue(prompt, "the scenario agent did not run")
         self.assertNotIn("proto-b", prompt)
-        copy = self.copy_of("# The scenario agent")
+        copy = self.copy_of("# The test writer")
         self.assertIsNotNone(copy, "the scenario agent had no record copy")
         self.assertNotIn("proto-b", copy, "the record copy names the kept branch")
         self.assertNotIn("kept_pick", copy)
@@ -221,7 +221,7 @@ class RedOnTheKeptPickTest(KeptPickBase):
     def test_a_shared_kept_pick_is_named_to_the_scenario_agent_as_a_reference_only(self):
         self.pick("--keep", "--share-build", check=True)
         self.scenario_step()
-        prompt = self.prompt_of("# The scenario agent")
+        prompt = self.prompt_of("# The test writer")
         self.assertIn("xv/p1-proto-b", prompt)
         self.assertRegex(prompt, r"(?i)reference only")
 
@@ -230,8 +230,8 @@ class RedOnTheKeptPickTest(KeptPickBase):
         p = self.scenario_step()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         data = self.record()
-        self.assertIs(data["checks"]["scenario"].get("red_fails"), True, "the red did not fail on the base")
-        self.assertIs(data["checks"]["scenario"]["red_on_build"]["passes"], False)
+        self.assertIs(data["checks"]["test-writer"].get("red_fails"), True, "the red did not fail on the base")
+        self.assertIs(data["checks"]["test-writer"]["red_on_build"]["passes"], False)
         self.assertEqual(data["next"], "maker")
         self.assertTrue(os.path.exists(os.path.join(self.wt, "tests", "test_red.py")),
                         "the red is not on the slice branch")

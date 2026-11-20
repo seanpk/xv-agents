@@ -385,7 +385,7 @@ def main(argv=None):
     k.add_argument("--scenario-file")
     k.add_argument("--keep", action="store_true", help="keep the pick's branch as the build this slice starts from")
     k.add_argument("--share-build", action="store_true",
-                   help="with --keep: name the kept build to the scenario agent, as a reference only")
+                   help="with --keep: name the kept build to the test writer, as a reference only")
     a = p.parse_args(argv)
     try:
         if a.cmd == "start":

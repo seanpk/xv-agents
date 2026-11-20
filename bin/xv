@@ -17,13 +17,13 @@
   xv orders <id> --after <step> the standing orders (exit 10 on a stop)
   xv wall ...                   the test wall: baseline, diff, check
   xv spend ...                  actual spend from a harness's logs
-  xv boundary ...               the boundary picture of a change
-  xv packet lint <file>         the guardian's packet: fixed fields, and the evidence rule
-  xv guard --base <ref>         the guardian on a pull request, for CI
+  xv boundary ...               the boundary diagram of a change
+  xv packet lint <file>         the inspection report: fixed fields, and the evidence rule
+  xv inspect --base <ref>       the inspector on a pull request, for CI (`xv guard`: the old name)
   xv check ...                  what the project layer overrode, relaxed, or drifted
   xv retro ...                  fire and override counts, candidates for the retro
   xv promote ...                share a learning, adopt one, promote one seen twice
-  xv listen ...                 the packet from production: gather, run the listener, refuse a ranking
+  xv listen ...                 the field report: gather, run the field listener, refuse a ranking
   xv prototype ...              three prototypes on one named axis
   xv pairing start|end <id> ... the person who set the work going pairs with the watch's session
   xv adapt ...                  generate harness files from the skills (optional)
@@ -46,9 +46,9 @@ COMMANDS = {
     "playwright": "playwright_agents.py", "packet": "packet.py", "decisions": "decisions.py",
     "pairing": "pairing.py",
     "init": "run.py", "slice": "run.py", "run": "run.py", "step": "run.py", "close": "run.py",
-    "guard": "run.py", "install": "install.py",
+    "inspect": "run.py", "guard": "run.py", "install": "install.py",
 }
-PASS_NAME = {"init", "slice", "run", "step", "close", "guard"}
+PASS_NAME = {"init", "slice", "run", "step", "close", "inspect", "guard"}
 
 
 def main():

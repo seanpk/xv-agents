@@ -36,13 +36,13 @@ from xvlib import names_test  # noqa: E402
 import record  # noqa: E402
 import spend as spendlib  # noqa: E402
 from suite import failing_tests, in_own_red, own_red_names, run_suite, shell, tests_timeout  # noqa: E402
-from xvlib import (XV_DIR, XVError, die, drop_layer_edits, dropped_line, git, load_config, match_any, now,  # noqa: E402
-                   join_front_matter, main_root, record_path, repo_root, slice_root, split_front_matter, today,
+from xvlib import (XV_DIR, XVError, agent_name, die, drop_layer_edits, dropped_line, git, load_config, match_any,  # noqa: E402
+                   now, warn_old_name, join_front_matter, main_root, record_path, repo_root, slice_root, split_front_matter, today,
                    worktrees_config, worktrees_dir)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 XV_HOME = os.path.dirname(HERE)
-STEPS = ["forecaster", "scenario", "maker", "cleaner", "guardian", "close"]
+STEPS = ["forecaster", "test-writer", "maker", "cleaner", "inspector", "close"]
 EXIT_STOP = 10
 
 
@@ -209,7 +209,7 @@ def cmd_slice_new(a):
         raise XVError("no .xv/config.yml here; run xv-init first")
     from xvlib import pitch_status
     if pitch_status(root) in ("missing", "unreadable", "not written"):
-        raise XVError("the pitch comes first: .xv/pitch.md is not written. The guardian checks every change "
+        raise XVError("the pitch comes first: .xv/pitch.md is not written. The inspector checks every change "
                       "against it. Write it with the xv-init skill, or by hand and set `status: written` in its "
                       "front matter; commit it, then start the slice")
     if not is_trial(root) and git(["status", "--porcelain", "--", XV_DIR], root).strip():
@@ -309,7 +309,7 @@ def cmd_slice_amend(a):
     note = f"\n\n### Amended {today()} by {a.by}\n\n{text}\n"
     body = body[:at].rstrip("\n") + note + body[at:]
     data["red"] = None
-    data["next"] = "scenario"
+    data["next"] = "test-writer"
     data["reports_before_amend"] = len((data.get("checks") or {}).get("reports") or [])
     body = record.log_line(body, a.by, "amended the scenario")
     record.save(path, data, body)
@@ -815,14 +815,14 @@ def step(agent, slice_id, review_again=False):
               "pre_step": True, "budget_seen": data.get("budget")}
         return step_stop(path, root, config, data, body, slice_id, agent, st, [budget_stop])
 
-    if agent == "scenario" and data.get("kind") == "refactor" and "\n### Amended " not in body:
+    if agent == "test-writer" and data.get("kind") == "refactor" and "\n### Amended " not in body:
         return refactor_scenario(path, root, config, data, body, slice_id)
 
     if (config.get("agents") or {}).get(agent) == "session":
         if data.pop("step_start", None):
             record.save(path, data, body)  # a session step has none: a move reads HEAD
         where = ""
-        if agent == "scenario" and record.has_build(data):
+        if agent == "test-writer" and record.has_build(data):
             drop_session_scratch(root, slice_id)  # an earlier, unreported checkout
             scratch = scenario_scratch(root, data, config)
             session_scratch_state(root, slice_id, {"scratch": scratch, "head_before": git(["rev-parse", "HEAD"], root).strip()})
@@ -832,12 +832,12 @@ def step(agent, slice_id, review_again=False):
                       f"`xv record report {slice_id} {agent} -` and `xv orders {slice_id} --after {agent}`")
 
     repass = ""  # the re-pass section, built once: it picks the prompt and the command
-    if agent == "guardian" and not review_again:
+    if agent == "inspector" and not review_again:
         try:
             repass = promptlib.repass_section(root, data)
         except XVError as e:
-            question = (f"The guardian's re-pass diff cannot run, so no agent ran: {e}. Fix the packet head or the "
-                        "branch, then run the guardian again.")
+            question = (f"The inspector's re-pass diff cannot run, so no agent ran: {e}. Fix the packet head or the "
+                        "branch, then run the inspector again.")
             st = {"at": now(), "step": agent, "order": "repass_diff_failed", "seat": "originator",
                   "question": question, "answered_by": [], "answer": None, "also": []}
             return step_stop(path, root, config, data, body, slice_id, agent, st, [])
@@ -846,7 +846,7 @@ def step(agent, slice_id, review_again=False):
     pre = pre_step(agent, root, data, config)
     data["step_start"] = {"agent": agent, "commit": head_before}
     record.save(path, data, body)  # a slice-only move reads its line from here
-    scratch = scenario_scratch(root, data, config) if agent == "scenario" and record.has_build(data) else None
+    scratch = scenario_scratch(root, data, config) if agent == "test-writer" and record.has_build(data) else None
     extra = None
     if scratch and data.get("build_shared") == "yes":
         extra = [f"The build is at `{data['build']['ref']}`, a reference only: the red tests what the scenario says, "
@@ -878,9 +878,9 @@ def step(agent, slice_id, review_again=False):
         data["checks"].setdefault("reports", []).append(
             {"agent": agent, "status": "no-report", "summary": f"the report could not be applied: {e}", "at": now()})
         body = record.log_line(body, agent, f"the report could not be applied: {e}")
-    if agent == "scenario":
+    if agent == "test-writer":
         body = accept_listed_marks(data, body, config)
-    reported = ((report or {}).get("red") or {}).get("command") if agent == "scenario" else None
+    reported = ((report or {}).get("red") or {}).get("command") if agent == "test-writer" else None
     if reported and joined_unsafely(reported):
         data["red"] = red_before  # a refused red is not kept: the maker is never handed it
     record.save(path, data, body)  # the wall reads moved_tests from disk: the report's moves must be there
@@ -890,7 +890,7 @@ def step(agent, slice_id, review_again=False):
     if isinstance(data.get("step_start"), dict):
         data["step_start"]["ended"] = True  # a move between steps reads HEAD, not this step's start
     data["status"] = "working"
-    data["next"] = "scenario" if checks.get("red_joined_unsafely") else STEPS[STEPS.index(agent) + 1]
+    data["next"] = "test-writer" if checks.get("red_joined_unsafely") else STEPS[STEPS.index(agent) + 1]
     record.save(path, data, body)
 
     v = orders.verdict(data, agent, config)
@@ -946,7 +946,7 @@ def drop_session_scratch(root, slice_id):
 def land_session_scenario(root, slice_id, report):
     """`xv record report <id> scenario -` after a session-mode scenario step on a slice from a build: land the
     red written in the checkout and run it as the agent path does, record the scenario checks, drop the checkout.
-    `report` is the scenario agent's whole report. False when no such checkout is waiting."""
+    `report` is the test writer's whole report. False when no such checkout is waiting."""
     state = session_scratch_state(root, slice_id)
     if not state:
         return False
@@ -954,10 +954,10 @@ def land_session_scenario(root, slice_id, report):
     path, data, body = record.load(root, slice_id)
     config = load_config(root)
     if not os.path.isdir(state["scratch"]):
-        raise XVError(f"the scenario agent's checkout {state['scratch']} is gone, so its red cannot be landed: "
+        raise XVError(f"the test writer's checkout {state['scratch']} is gone, so its red cannot be landed: "
                       f"run `xv step scenario {slice_id}` again")
     landed = land_scratch(root, state["scratch"], data, config, report)
-    data["checks"]["scenario"] = post_step("scenario", root, data, config, state["head_before"], {}, report, landed)
+    data["checks"]["test-writer"] = post_step("test-writer", root, data, config, state["head_before"], {}, report, landed)
     record.save(path, data, body)
     return True
 
@@ -968,7 +968,7 @@ def drop_scratch(root, scratch):
 
 
 def scenario_scratch(root, data, config):
-    """A checkout at the base, outside the slice worktree, where the scenario agent writes the red without the build."""
+    """A checkout at the base, outside the slice worktree, where the test writer writes the red without the build."""
     scratch = tempfile.mkdtemp(prefix="xv-scenario-")
     start = red_held(root, data, data["base"]) or data["base"]  # the red from earlier passes, without the build
     git(["worktree", "add", "-q", "--detach", scratch, start], root)
@@ -977,7 +977,7 @@ def scenario_scratch(root, data, config):
     failed = run_worktree_command(worktrees_config(config).get("setup"), scratch, config)
     if failed:
         drop_scratch(root, scratch)
-        raise XVError(f"the worktree setup `{failed[0]}` failed ({failed[1]}) in the scenario agent's checkout; "
+        raise XVError(f"the worktree setup `{failed[0]}` failed ({failed[1]}) in the test writer's checkout; "
                       f"its last output:\n{failed[2]}")
     scratch_record = data
     unshared = data.get("build_shared") != "yes"
@@ -1076,19 +1076,19 @@ def refactor_scenario(path, root, config, data, body, slice_id):
               "failing_step": orders.first_failing_step(out) if suite == "red" else ""}
     summary = ("refactor slice: no new red; the suite is green at the start, and it is the oracle" if suite == "green"
                else "refactor slice: the suite is not green at the start, so there is no oracle")
-    data["checks"].setdefault("reports", []).append({"agent": "scenario", "status": "done", "summary": summary,
+    data["checks"].setdefault("reports", []).append({"agent": "test-writer", "status": "done", "summary": summary,
                                                      "at": now()})
-    body = record.log_line(body, "scenario", f"done: {summary}")
+    body = record.log_line(body, "test-writer", f"done: {summary}")
     if suite == "green":
         data["wall_baseline"] = wall_baseline(root, data, config)
     data["suite"] = suite
-    data["checks"]["scenario"] = checks
+    data["checks"]["test-writer"] = checks
     data["status"], data["next"] = "working", "maker"
     record.save(path, data, body)
-    v = orders.verdict(data, "scenario", config)
-    body = record.apply_verdict(data, body, "scenario", v)
+    v = orders.verdict(data, "test-writer", config)
+    body = record.apply_verdict(data, body, "test-writer", v)
     record.save(path, data, body)
-    commit_step("scenario", root, slice_id, checks)
+    commit_step("test-writer", root, slice_id, checks)
     v["record"] = os.path.relpath(path, root)
     v["worktree"] = root
     if v["stop"]:
@@ -1103,7 +1103,7 @@ def pre_step(agent, root, data, config):
     if agent == "cleaner":
         sp = os.path.join(root, XV_DIR, "standards.md")
         pre["standards"] = open(sp).read() if os.path.exists(sp) else None
-    if agent == "guardian":
+    if agent == "inspector":
         boundary(root, data)
     return pre
 
@@ -1112,14 +1112,14 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
     """The mechanical checks after a step. Results go in the record; orders.py reads them."""
     checks = {"at": now()}
     tests = (config.get("tests") or {}).get("paths") or []
-    if agent in ("forecaster", "guardian"):
+    if agent in ("forecaster", "inspector"):
         # read-only agents: anything they changed besides their own output is a stop
         own = {f"{XV_DIR}/slices/{data['id']}.packet.md", f"{XV_DIR}/slices/{data['id']}.boundary.md",
                f"{XV_DIR}/slices/{data['id']}.md"}
         checks["wrote"] = [f for f in changed_files(root, head_before) if f not in own]
     protected = [f"{XV_DIR}/config.yml", f"{XV_DIR}/slices/{data['id']}.wall.json", f"{XV_DIR}/pitch.md",
                  f"{XV_DIR}/picture.md", f"{XV_DIR}/estimation.md", f"{XV_DIR}/rules.md"]
-    if agent in ("scenario", "maker", "cleaner"):
+    if agent in ("test-writer", "maker", "cleaner"):
         changed = changed_files(root, head_before)
         named = set()
         if agent == "maker":
@@ -1127,7 +1127,7 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
             named = {e["file"] for e in data.get("may_not_files_needed") or []
                      if isinstance(e, dict) and e.get("file") == f"{XV_DIR}/picture.md" and e.get("why")}
         checks["protected_changed"] = [f for f in protected if f in changed and f not in named]
-    if agent == "scenario":
+    if agent == "test-writer":
         files = changed_files(root, head_before)
         files = [f for f in files if not f.startswith(XV_DIR + "/")]
         checks["outside_tests"] = [f for f in files if not match_any(f, tests)]
@@ -1161,7 +1161,7 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
                                            "the record has no base, or the wall module did not load.")
         checks["red_gaps"] = scenario_red_gaps(root, data, red)
         # coverage stays across a send-back; a pass that went on to the maker ended the run, so it starts again
-        earlier = data.get("checks", {}).get("scenario") or {}
+        earlier = data.get("checks", {}).get("test-writer") or {}
         # a record written before the rename keeps its outcomes under `covers_kept`
         report = with_kept_covered(report, (earlier.get("covered_kept") or earlier.get("covers_kept"))
                                    if data.get("next") != "maker" else None)
@@ -1210,7 +1210,7 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         checks["committed"] = head != head_before
         if head != head_before and not data.get("cleaner_commit"):
             data["cleaner_commit"] = head
-    if agent == "guardian":
+    if agent == "inspector":
         packet = os.path.join(root, XV_DIR, "slices", f"{data['id']}.packet.md")
         checks["packet"] = os.path.exists(packet)
         if os.path.exists(packet):
@@ -1220,7 +1220,7 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
             except XVError as e:
                 checks["packet_problems"] = [str(e)]
             append_cleaner_proposals(packet, data)
-            record.guardian_facts(root, data, checks, packet)
+            record.inspector_facts(root, data, checks, packet)
         else:
             data["shape_change"] = data["pitch_contradiction"] = "yes"
             checks["missing_packet"] = True
@@ -1403,13 +1403,13 @@ def append_cleaner_proposals(packet, data):
 
 def commit_step(agent, root, slice_id, checks):
     messages = {
-        "forecaster": "forecast", "scenario": "red", "maker": "make it work",
-        "cleaner": "record the cleaner's pass", "guardian": "packet",
+        "forecaster": "forecast", "test-writer": "red", "maker": "make it work",
+        "cleaner": "record the cleaner's pass", "inspector": "packet",
     }
     commit(root, f"xv({slice_id}): {messages[agent]}")
 
 
-# The wall and the boundary picture arrive with their own scripts; until a repo
+# The wall and the boundary diagram arrive with their own scripts; until a repo
 # has them, these steps are no-ops so the loop still runs and a person reads.
 
 def red_run(root, data, red, config):
@@ -1561,18 +1561,20 @@ def close(slice_id, why=None, shape=None):
     return 0
 
 
-# ---------------------------------------------------------------- guard (CI)
+# ---------------------------------------------------------------- inspect (CI)
 
-def cmd_guard(a):
-    """The guardian on a pull request. With a slice record in the change, it is that
-    slice's guardian step. Without one, it reviews the diff against the base."""
+def cmd_inspect(a):
+    """The inspector on a pull request. With a slice record in the change, it is that
+    slice's inspector step. Without one, it reviews the diff against the base."""
+    if getattr(a, "old_name", False):
+        warn_old_name("`xv guard`", "`xv inspect`")
     root = repo_root()
     config = load_config(root)
     changed = git(["diff", "--name-only", f"{a.base}...HEAD"], root).split()
     slices = [os.path.basename(f)[:-3] for f in changed if is_record_path(f)]
     if len(slices) == 1:
         os.environ["XV_NO_COMMIT"] = "1"
-        code, v = step("guardian", slices[0], review_again=True)
+        code, v = step("inspector", slices[0], review_again=True)
         print(json.dumps(v, indent=2))
         path = record_path(root, slices[0])
         packet = os.path.join(slice_root(path), XV_DIR, "slices", f"{slices[0]}.packet.md")
@@ -1589,12 +1591,12 @@ def cmd_guard(a):
     except ImportError:
         pass
     extra = [f"No slice record: review the pull request's diff, `git diff {a.base}...HEAD`.",
-             f"Packet template: `{os.path.join(promptlib.SKILLS, 'guardian', 'packet.md')}`. "
+             f"Packet template: `{os.path.join(promptlib.SKILLS, 'inspector', 'packet.md')}`. "
              f"Write the packet to `{rel}`.",
-             f"Boundary picture: `{XV_DIR}/slices/pr-boundary.md`.",
+             f"Boundary diagram: `{XV_DIR}/slices/pr-boundary.md`.",
              f"Test files changed since the base: `xv wall check --base {a.base} --json`."]
-    text = promptlib.brief("guardian") + "\n" + promptlib.pointers("guardian", root, config, None, extra)
-    result = agentcli.run(agentcli.argv_for(config, "guardian"), text, root, None,
+    text = promptlib.brief("inspector") + "\n" + promptlib.pointers("inspector", root, config, None, extra)
+    result = agentcli.run(agentcli.argv_for(config, "inspector"), text, root, None,
                           int(config.get("step_timeout") or 3600))
     full = os.path.join(root, rel)
     data = {"id": "pull-request", "kind": "feature", "moved_tests": [], "checks": {"reports": []}}
@@ -1604,7 +1606,7 @@ def cmd_guard(a):
         pdata, _ = record.read_doc(full)
         for field in packetlib.ALLOWED:
             data[field] = pdata.get(field) if pdata.get(field) in packetlib.YES_NO else "yes"
-        data["checks"]["guardian"] = {"picture_change": pdata.get("picture_change")}
+        data["checks"]["inspector"] = {"picture_change": pdata.get("picture_change")}
         if pdata.get("moved_tests_count"):
             data["moved_tests"] = [{"file": "see the packet"}] * int(pdata.get("moved_tests_count") or 0)
         if a.out:
@@ -1613,9 +1615,9 @@ def cmd_guard(a):
         data["shape_change"] = data["pitch_contradiction"] = "yes"
         if a.out:
             with open(a.out, "w") as f:
-                f.write("The guardian wrote no packet. The change waits for two people.\n")
-    data["checks"]["reports"].append({"agent": "guardian", "status": "done"})
-    v = orders.verdict(data, "guardian", config)
+                f.write("The inspector wrote no inspection report. The change waits for two people.\n")
+    data["checks"]["reports"].append({"agent": "inspector", "status": "done"})
+    v = orders.verdict(data, "inspector", config)
     v["exit"] = result["code"]
     print(json.dumps(v, indent=2))
     sys.exit(EXIT_STOP if v["stop"] else 0)
@@ -1756,7 +1758,7 @@ def try_test_command(root, tests):
 READ_ONLY_TOOLS = ["cat", "head", "tail", "ls", "grep", "git diff", "git log", "git status", "git show",
                    "rg", "wc", "sed -n", "diff", "git ls-files", "git grep", "git rev-parse"]
 MAKER_TOOLS = ["git rm", "git mv", "xv record move"]
-GUARDIAN_TOOLS = ["xv wall diff", "xv boundary", "xv packet lint"]
+INSPECTOR_TOOLS = ["xv wall diff", "xv boundary", "xv packet lint"]
 
 
 def test_rules(command):
@@ -1783,7 +1785,7 @@ def allow_lists(text, command):
     """Give each Claude Code agent line a starter --allowedTools list; the forecaster's is read-only."""
     test = test_rules(command)
     seats = {"default": READ_ONLY_TOOLS + MAKER_TOOLS + test, "forecaster": READ_ONLY_TOOLS,
-             "guardian": READ_ONLY_TOOLS + GUARDIAN_TOOLS + test}
+             "inspector": READ_ONLY_TOOLS + INSPECTOR_TOOLS + test}
     out = []
     for line in text.split("\n"):
         seat = line.split(":", 1)[0].strip()
@@ -1900,7 +1902,7 @@ def main(argv=None):
     n.add_argument("--base", help="the ref the slice branch starts from (default: worktrees.base, then origin/HEAD, then HEAD)")
     n.add_argument("--from", dest="from_ref", help="a build that already exists: the slice branch starts at this ref")
     n.add_argument("--share-build", action="store_true",
-                   help="name the build to the scenario agent as a reference (needs --from)")
+                   help="name the build to the test writer as a reference (needs --from)")
     n.add_argument("--axis", help="for a prototype slice: the one axis the three differ on")
     n.set_defaults(fn=cmd_slice_new)
     m = ss.add_parser("amend")
@@ -1917,7 +1919,7 @@ def main(argv=None):
     rb.set_defaults(fn=cmd_slice_rebase)
 
     s = sub.add_parser("step")
-    s.add_argument("agent")
+    s.add_argument("agent", type=agent_name)
     s.add_argument("id", nargs="?")
     s.add_argument("--init", action="store_true")
     s.set_defaults(fn=cmd_step)
@@ -1926,7 +1928,7 @@ def main(argv=None):
     s.add_argument("id")
     s.set_defaults(fn=cmd_run)
 
-    s = sub.add_parser("land-scenario", help="what `xv record report <id> scenario` runs after a session-mode "
+    s = sub.add_parser("land-scenario", help="what `xv record report <id> test-writer` runs after a session-mode "
                                              "scenario step on a slice from a build (the report is on stdin)")
     s.add_argument("id")
     s.set_defaults(fn=lambda a: land_session_scenario(
@@ -1949,10 +1951,12 @@ def main(argv=None):
                    help="end a trial: let git see .xv/ again; a nested .xv/.git moves to <git dir>/xv-trial.git")
     s.set_defaults(fn=cmd_init)
 
-    s = sub.add_parser("guard", help="the guardian on a pull request, for CI")
-    s.add_argument("--base", required=True)
-    s.add_argument("--out")
-    s.set_defaults(fn=cmd_guard)
+    for name in ("inspect", "guard"):  # guard: the old name, until #204
+        s = sub.add_parser(name, help="the inspector on a pull request, for CI" if name == "inspect"
+                           else "the old name for `xv inspect`")
+        s.add_argument("--base", required=True)
+        s.add_argument("--out")
+        s.set_defaults(fn=cmd_inspect, old_name=name == "guard")
 
     a = p.parse_args(argv)
     try:

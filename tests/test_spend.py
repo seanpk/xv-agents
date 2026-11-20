@@ -43,7 +43,7 @@ class SpendTest(unittest.TestCase):
     def test_the_budget_counts_every_steps_spend_the_guardians_too(self):
         data = {"budget": {"usd": 1, "tokens": 5000},
                 "spend": [{"step": "maker", "usd": 0.6, "tokens": 3000}, {"step": "maker", "usd": 0.5, "tokens": 1000},
-                          {"step": "guardian", "usd": 9, "tokens": 99999}]}
+                          {"step": "inspector", "usd": 9, "tokens": 99999}]}
         state = spend.budget_state(data)
         self.assertEqual((state["over"], state["spent"]["tokens"]), (["tokens", "usd"], 103999))
 

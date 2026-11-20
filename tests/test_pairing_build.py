@@ -70,7 +70,7 @@ class PairingCase(RepoCase):
         return self.ok("pairing", "start", "s1", "--by", "pat", "--why", why,
                        "--session", f"claude-session:{self.transcript}", *extra)
 
-    def end(self, nxt="guardian"):
+    def end(self, nxt="inspector"):
         return self.ok("pairing", "end", "s1", "--next", nxt)
 
     def write(self, rel, text, mode="w"):
@@ -137,8 +137,8 @@ class StartTest(PairingCase):
 
     def test_start_opens_at_a_send_back(self):
         path, data, body = record.load(self.wt, "s1")
-        data["checks"] = {"reports": [{"agent": "guardian", "status": "done", "summary": "s", "at": "t"}]}
-        body = record.record_sendback(data, body, "guardian", "change_misses_scenario", ["2"], "point 2 is missed", "maker")
+        data["checks"] = {"reports": [{"agent": "inspector", "status": "done", "summary": "s", "at": "t"}]}
+        body = record.record_sendback(data, body, "inspector", "change_misses_scenario", ["2"], "point 2 is missed", "maker")
         record.save(path, data, body)
         self.start("too small for another pass")
         data = self.show()
@@ -147,8 +147,8 @@ class StartTest(PairingCase):
 
     def test_start_refuses_a_send_back_a_step_has_reported_after(self):
         path, data, body = record.load(self.wt, "s1")
-        data["checks"] = {"reports": [{"agent": "guardian", "status": "done", "summary": "s", "at": "t"}]}
-        body = record.record_sendback(data, body, "guardian", "change_misses_scenario", ["2"], "point 2 is missed", "maker")
+        data["checks"] = {"reports": [{"agent": "inspector", "status": "done", "summary": "s", "at": "t"}]}
+        body = record.record_sendback(data, body, "inspector", "change_misses_scenario", ["2"], "point 2 is missed", "maker")
         data["checks"]["reports"].append({"agent": "maker", "status": "done", "summary": "s", "at": "t2"})
         record.save(path, data, body)
         self.refused("pairing", "start", "s1", "--by", "pat", "--why", "help")
@@ -185,7 +185,7 @@ class WhileOpenTest(PairingCase):
         self.start()
 
     def test_step_refuses_and_names_the_open_pairing(self):
-        for agent in ("maker", "cleaner", "guardian", "scenario"):
+        for agent in ("maker", "cleaner", "inspector", "test-writer"):
             with self.subTest(agent=agent):
                 p = self.refused("step", agent, "s1")
                 self.assertIn("pairing 1 is open", p.stderr)
@@ -250,7 +250,7 @@ class EndTest(PairingCase):
 
     def test_end_at_close_is_refused(self):
         p = self.refused("pairing", "end", "s1", "--next", "close")
-        self.assertIn("guardian", p.stderr)
+        self.assertIn("inspector", p.stderr)
         self.assertTrue(record.open_pairing(self.show()))
 
     def test_end_at_another_step_is_refused(self):
@@ -259,17 +259,17 @@ class EndTest(PairingCase):
                 self.refused("pairing", "end", "s1", "--next", nxt)
 
     def test_end_at_scenario_needs_an_amendment_made_since_the_pairing_opened(self):
-        p = self.refused("pairing", "end", "s1", "--next", "scenario")
+        p = self.refused("pairing", "end", "s1", "--next", "test-writer")
         self.assertIn("xv slice amend", p.stderr)
         self.write("amend.md", "1. The household also sees Y.\n")
         self.ok("slice", "amend", "s1", "--by", "pat", "--scenario-file", os.path.join(self.wt, "amend.md"))
         os.remove(os.path.join(self.wt, "amend.md"))
-        self.end("scenario")
-        self.assertEqual(self.show()["next"], "scenario")
+        self.end("test-writer")
+        self.assertEqual(self.show()["next"], "test-writer")
 
     def test_end_refuses_work_that_is_not_committed(self):
         self.write("pantry/extra.py", "X = 1\n")
-        p = self.refused("pairing", "end", "s1", "--next", "guardian")
+        p = self.refused("pairing", "end", "s1", "--next", "inspector")
         self.assertIn("pantry/extra.py", p.stderr)
 
     def test_the_spend_is_the_pair_sessions_turns_while_the_pairing_was_open(self):
@@ -316,7 +316,7 @@ class EndTest(PairingCase):
 
     def test_end_refuses_with_no_open_pairing(self):
         self.end()
-        self.assertIn("no pairing is open", self.refused("pairing", "end", "s1", "--next", "guardian").stderr)
+        self.assertIn("no pairing is open", self.refused("pairing", "end", "s1", "--next", "inspector").stderr)
 
 
 class NotBlindTest(PairingCase):
@@ -341,7 +341,7 @@ class NotBlindTest(PairingCase):
         self.add_test()
         self.commit(f"{PREFIX} a test")
         self.end()
-        text = self.ok("prompt", "guardian", "s1").stdout
+        text = self.ok("prompt", "inspector", "s1").stdout
         self.assertIn("not blind: tests/test_store.py", text)
         self.assertNotIn("not blind", self.ok("prompt", "maker", "s1").stdout)
 
@@ -353,12 +353,12 @@ class NotBlindTest(PairingCase):
         self.write("tests/test_store.py", text.replace("qty, 4)", "qty, 5)"))
         os.remove(api)
         self.commit(f"{PREFIX} two old tests")
-        p = self.refused("pairing", "end", "s1", "--next", "guardian")
+        p = self.refused("pairing", "end", "s1", "--next", "inspector")
         self.assertIn("tests/test_store.py", p.stderr)
         self.assertIn("tests/test_api.py", p.stderr)
         self.assertTrue(record.open_pairing(self.show()))
         self.ok("record", "move", "s1", "--file", "tests/test_store.py", "--assertion", "was: 4; now: 5", "--why", "w")
-        p = self.refused("pairing", "end", "s1", "--next", "guardian")
+        p = self.refused("pairing", "end", "s1", "--next", "inspector")
         self.assertNotIn("tests/test_store.py", p.stderr)
         self.ok("record", "move", "s1", "--file", "tests/test_api.py", "--assertion", "removed", "--why", "w")
         self.commit(f"{PREFIX} the moves")
@@ -373,7 +373,7 @@ class NotBlindTest(PairingCase):
             text = f.read()
         self.write("tests/test_store.py", text.replace("qty, 4)", "qty, 5)"))
         self.commit(f"{PREFIX} an old test")
-        self.assertIn("tests/test_store.py", self.refused("pairing", "end", "s1", "--next", "guardian").stderr)
+        self.assertIn("tests/test_store.py", self.refused("pairing", "end", "s1", "--next", "inspector").stderr)
 
     def test_a_test_added_to_an_old_file_needs_no_move_and_the_wall_does_not_stop_on_it(self):
         self.add_test()
@@ -404,7 +404,7 @@ class PacketTest(PairingCase):
         path, data, body = record.load(self.wt, "s1")
         data["packet"] = ".xv/slices/s1.packet.md"
         record.save(path, data, body)
-        self.stop(order="ready_to_merge", step="guardian")
+        self.stop(order="ready_to_merge", step="inspector")
         self.start("the last fix is too small for a pass through the loop")
 
     def packet(self):
@@ -420,7 +420,7 @@ class PacketTest(PairingCase):
         section = text.split("## Pairings\n\n", 1)[1]
         [line] = [ln for ln in section.splitlines() if ln.startswith("- ")]
         for words in ("pat with Claude", SID, "the last fix is too small for a pass through the loop", work[:10],
-                      "Resumed at guardian", "160 tokens", "Not blind", "tests/test_store.py"):
+                      "Resumed at inspector", "160 tokens", "Not blind", "tests/test_store.py"):
             self.assertIn(words, line)
         self.assertIn(".xv/slices/s1.packet.md", sh(["git", "show", "--name-only", "--format=", "HEAD"], self.wt).stdout)
 
@@ -431,7 +431,7 @@ class PacketTest(PairingCase):
 
     def test_a_second_pairing_adds_a_line_and_a_rewrite_keeps_one_section(self):
         self.end()
-        self.stop(order="ready_to_merge", step="guardian")
+        self.stop(order="ready_to_merge", step="inspector")
         self.start("a second small fix")
         self.end()
         data = self.show()

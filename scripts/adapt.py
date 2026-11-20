@@ -9,7 +9,10 @@ any other file with an agent's name as an override. Re-run after an upgrade.
 A team needs these only to run a step as a subagent in the person's own
 session (`agents.<step>: session`). `xv step` does not use them.
 
-Usage: xv adapt claude|opencode [--agents maker,guardian,...]
+Generated files under an agent's name before #168 (`xv-guardian.md`, `xv-scenario.md`, `xv-listener.md`)
+are removed when the file under the new name is written.
+
+Usage: xv adapt claude|opencode [--agents maker,inspector,...]
 """
 
 import argparse
@@ -18,8 +21,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from check import AGENTS, skill_digest  # noqa: E402
-from xvlib import XVError, die, repo_root, split_front_matter  # noqa: E402
+from check import AGENTS, GENERATED, skill_digest  # noqa: E402
+from xvlib import OLD_AGENTS, XVError, agent_name, die, repo_root, split_front_matter  # noqa: E402
 
 HOME = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -34,9 +37,21 @@ def marker(name):
             "Do not edit: change the skill, or copy it under a new name and record why in .xv/decisions/. -->")
 
 
+def drop_old(folder, name):
+    """Remove the file this command generated under the agent's name before #168, if there is one."""
+    for old, new in OLD_AGENTS.items():
+        path = os.path.join(folder, f"xv-{old}.md")
+        if new == name and os.path.isfile(path):
+            with open(path, encoding="utf-8", errors="replace") as f:
+                m = GENERATED.search(f.read())
+            if m and m.group(1) == old:
+                os.remove(path)
+
+
 def write_claude(root, name):
     meta, body = skill(name)
     path = os.path.join(root, ".claude", "agents", f"xv-{name}.md")
+    drop_old(os.path.dirname(path), name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         f.write(f"---\nname: xv-{name}\ndescription: {json.dumps(meta.get('description', ''))}\n---\n\n"
@@ -47,6 +62,7 @@ def write_claude(root, name):
 def write_opencode(root, name):
     meta, body = skill(name)
     path = os.path.join(root, ".opencode", "agent", f"xv-{name}.md")
+    drop_old(os.path.dirname(path), name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         f.write(f"---\ndescription: {json.dumps(meta.get('description', ''))}\nmode: subagent\n---\n\n"
@@ -61,7 +77,7 @@ def main(argv=None):
     a = p.parse_args(argv)
     try:
         root = repo_root()
-        names = [n.strip() for n in a.agents.split(",") if n.strip()]
+        names = [agent_name(n.strip(), "the agent") for n in a.agents.split(",") if n.strip()]
         unknown = [n for n in names if n not in AGENTS]
         if unknown:
             raise XVError(f"no agent skill {unknown}; one of {AGENTS}")

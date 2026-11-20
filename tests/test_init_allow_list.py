@@ -67,7 +67,7 @@ class InitAllowListTest(RepoCase):
     def test_the_guardian_gets_the_read_only_part_and_the_test_command(self):
         self.xv("init")
         config = load_config(self.repo)
-        entries = allowed(config, "guardian")
+        entries = allowed(config, "inspector")
         self.assertIsNotNone(entries, "the guardian line has no --allowedTools")
         for prefix in READ_ONLY:
             self.assertTrue(has(entries, prefix), prefix)
@@ -81,7 +81,7 @@ class InitAllowListTest(RepoCase):
         self.xv("init")
         config = load_config(self.repo)
         self.assertEqual(config["tests"]["command"], "bundle exec rspec")
-        for seat in ("default", "guardian"):
+        for seat in ("default", "inspector"):
             self.assertTrue(covers(allowed(config, seat) or [], "bundle exec rspec"), seat)
 
     def test_commented_out_non_claude_examples_get_no_allow_list(self):

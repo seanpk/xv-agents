@@ -1,8 +1,8 @@
 {
   "name": "guardian-moves",
   "increment": 4,
-  "agent": "guardian",
-  "what": "the guardian lists two recorded test moves for a changed message, finds no shape change and no pitch contradiction, and hands the merge to the person",
+  "agent": "inspector",
+  "what": "the inspector lists two recorded test moves for a changed message, finds no shape change and no pitch contradiction, and hands the merge to the person",
   "slice": {
     "id": "message-wording",
     "kind": "feature",
@@ -66,7 +66,7 @@
   ],
   "skill_cmd": [
     "step",
-    "guardian",
+    "inspector",
     "{id}"
   ],
   "baseline_prompt": "Review the change on this branch before it is merged (`git diff main..HEAD`). Write your review to review.md. Do not change any other file.",

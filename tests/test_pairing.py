@@ -120,7 +120,7 @@ class PairingStartTest(PairingCase):
         report = os.path.join(self.tmp, "report.txt")
         with open(report, "w") as f:
             f.write('```xv-report\n{"agent": "forecaster", "status": "done", "summary": "x"}\n```\n')
-        for args in (("step", "scenario", "s1"), ("run", "s1"), ("slice", "rebase", "s1"),
+        for args in (("step", "test-writer", "s1"), ("run", "s1"), ("slice", "rebase", "s1"),
                      ("record", "report", "s1", "forecaster", report)):
             p = self.xv(*args, cwd=self.wt, check=False)
             self.assertNotEqual(p.returncode, 0, args)
@@ -168,7 +168,7 @@ class PairingEndTest(PairingCase):
         self.assertIn("pairing", (q.stdout + q.stderr).lower())
 
     def test_end_next_scenario_needs_an_amendment_made_since_it_opened(self):
-        p = self.end("--next", "scenario", check=False)
+        p = self.end("--next", "test-writer", check=False)
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("amend", (p.stdout + p.stderr).lower())
 
@@ -177,7 +177,7 @@ class PairingEndTest(PairingCase):
         with open(path, "w") as f:
             f.write("The list also shows the day.")
         self.xv("slice", "amend", "s1", "--scenario-file", path, "--by", "pat", cwd=self.wt)
-        p = self.end("--next", "scenario", check=False)
+        p = self.end("--next", "test-writer", check=False)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
 
     def test_end_when_the_spend_cannot_be_read_says_so_in_the_log(self):
@@ -317,13 +317,13 @@ class PairingFieldsTest(PairingCase):
         self.start()
         self.commit("tests/test_pairing_made.py", "import unittest\n", "pairing (pat with agent): a test")
         self.commit("pantry/note.txt", "x\n", "pairing (pat with agent): a note")
-        self.end("--next", "guardian")
+        self.end("--next", "inspector")
         entry = self.pairings()[0]
         self.assertEqual(entry["not_blind"], ["tests/test_pairing_made.py"])
-        guardian = self.xv("prompt", "guardian", "s1", cwd=self.wt).stdout
+        guardian = self.xv("prompt", "inspector", "s1", cwd=self.wt).stdout
         self.assertIn("tests/test_pairing_made.py", guardian)
         self.assertIn("not blind", guardian.lower())
-        for seat in ("scenario", "maker", "cleaner"):
+        for seat in ("test-writer", "maker", "cleaner"):
             self.assertNotIn("tests/test_pairing_made.py", self.xv("prompt", seat, "s1", cwd=self.wt).stdout, seat)
 
     # -- 8, 10
@@ -356,7 +356,7 @@ class PairingPacketTest(PairingCase):
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)  # the merge stop is open
         self.start(why="check the wording with the agent")
         self.commit("pantry/note.txt", "x\n", "pairing (pat with claude): a note")
-        self.end("--next", "guardian")
+        self.end("--next", "inspector")
         q = self.xv("run", "s1", cwd=self.wt, check=False)
         self.assertEqual(q.returncode, 10, q.stdout + q.stderr)
         packet = open(os.path.join(self.wt, ".xv", "slices", "s1.packet.md")).read()
@@ -366,7 +366,7 @@ class PairingPacketTest(PairingCase):
         self.assertEqual(len(lines), 1)
         self.assertIn("pat", lines[0])
         self.assertIn("check the wording with the agent", lines[0])
-        self.assertIn("guardian", lines[0])
+        self.assertIn("inspector", lines[0])
 
 
 if __name__ == "__main__":

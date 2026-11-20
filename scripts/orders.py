@@ -18,7 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from spend import budget_state  # noqa: E402
-from xvlib import XVError, die, emit, load_config, read_doc, record_path, repo_root, slice_root  # noqa: E402
+from xvlib import XVError, agent_name, die, emit, load_config, read_doc, record_path, repo_root, slice_root  # noqa: E402
 
 SEAT_RANK = {"chief_engineer": 0, "originator": 1, "two_people": 2}
 BREADTH = {"none": 0, "narrow": 1, "wide": 2}
@@ -92,6 +92,11 @@ def failing_clause(checks):
     return f" Failing: {step}" if step else ""
 
 
+def said(step):
+    """A step as it reads in a sentence: the test-writer step is the test writer."""
+    return str(step).replace("-", " ")
+
+
 def last_report(data, step):
     for r in reversed((data.get("checks") or {}).get("reports", [])):
         if r.get("agent") == step:
@@ -129,44 +134,44 @@ def evaluate(data, after, config):
     report = last_report(data, after)
     owner = data.get("originator") or "the person who set the work going"
 
-    if after in ("forecaster", "scenario", "maker", "cleaner", "guardian") and \
+    if after in ("forecaster", "test-writer", "maker", "cleaner", "inspector") and \
             (report is None or report.get("status") == "no-report"):
         out.append(fire("no_report", "originator",
-                        f"The {after} ended without a report. Read its log and decide whether to re-run it."))
+                        f"The {said(after)} ended without a report. Read its log and decide whether to re-run it."))
     elif report and report.get("status") == "stopped":
         stop = report.get("stop") or {}
         reason = stop.get("reason") or report.get("status")
         seat = "two_people" if reason == "shape" else "originator"
         if reason in ("repeated_failure", "growing_diff"):
-            q = f"The {after} stopped: {reason.replace('_', ' ')}. {STALL_CHOICES}"
+            q = f"The {said(after)} stopped: {reason.replace('_', ' ')}. {STALL_CHOICES}"
         else:
-            q = f"The {after} stopped ({reason}): {stop.get('question') or report.get('summary', '')}"
-        out.append(fire(f"{after}_stopped", seat, q))
+            q = f"The {said(after)} stopped ({reason}): {stop.get('question') or report.get('summary', '')}"
+        out.append(fire(f"{after.replace('-', '_')}_stopped", seat, q))
 
-    if after in ("forecaster", "guardian") and checks.get("wrote"):
+    if after in ("forecaster", "inspector") and checks.get("wrote"):
         out.append(fire("read_only_changed", "originator",
-                        f"The {after} is read-only and changed: {', '.join(checks['wrote'])}. "
+                        f"The {said(after)} is read-only and changed: {', '.join(checks['wrote'])}. "
                         "Revert it before going on."))
 
     if after == "forecaster" and not data.get("budget"):
         out.append(fire("budget_not_set", "originator",
                         f"{owner}: set the budget from the forecast (`xv record set {data['id']} budget ... --by <name>`)."))
 
-    if after == "scenario" and data.get("kind") == "refactor" and checks.get("suite", "green") != "green":
+    if after == "test-writer" and data.get("kind") == "refactor" and checks.get("suite", "green") != "green":
         out.append(fire("suite_not_green_at_start", "originator",
                         "A refactor slice needs a green suite at the start: it is the oracle, and the scenario step "
                         "writes no red. The suite is not green." + failing_clause(checks)
                         + " Fix it on its own slice, or set this one aside."))
 
-    if after == "scenario":
+    if after == "test-writer":
         if checks.get("outside_tests"):
             out.append(fire("scenario_touched_source", "originator",
-                            "The scenario agent changed files outside the test paths: "
+                            "The test writer changed files outside the test paths: "
                             + ", ".join(checks["outside_tests"])))
         if checks.get("red_joined_unsafely"):
             out.append(fire("red_command_joined", "originator",
                             f"The red command `{checks['red_joined_unsafely']}` joins its runners with something other than `&&`, "
-                            "so only the last one's exit code counts. The scenario agent will rewrite it, joining the runners with `&&`."))
+                            "so only the last one's exit code counts. The test writer will rewrite it, joining the runners with `&&`."))
         if checks.get("red_cannot_run"):
             out.append(fire("red_cannot_run", "originator",
                             "The red command cannot run: it failed before any test ran (" + checks["red_cannot_run"]
@@ -175,14 +180,14 @@ def evaluate(data, after, config):
                             "then run the scenario step again."))
         if checks.get("cherry_pick_conflict"):
             out.append(fire("red_conflicts_with_build", "originator",
-                            "The scenario agent wrote its red at the base, and it does not apply to the build the slice "
+                            "The test writer wrote its red at the base, and it does not apply to the build the slice "
                             "starts from: " + checks["cherry_pick_conflict"]
                             + f" The red is kept on `refs/xv/{data.get('id')}/red` at the base, and a later scenario "
                             "pass starts from it whatever you land by hand, so a hand-landed red under another "
                             "commit subject is not lost. Resolve it by hand, or change the red so it fits the build."))
         if checks.get("old_red_changed"):
             out.append(fire("unrecorded_move", "originator",
-                            "The scenario agent changed or removed old tests or assertions in old test files that existed at the base: "
+                            "The test writer changed or removed old tests or assertions in old test files that existed at the base: "
                             + ", ".join(checks["old_red_changed"]) + ". Revert them, or record why the scenario forces it."))
         if checks.get("old_red_unchecked"):
             out.append(fire("setup_failed", "originator", checks["old_red_unchecked"]))
@@ -197,7 +202,7 @@ def evaluate(data, after, config):
                             + ". Add a test that reaches each, or amend the scenario."))
         for n in checks.get("not_covered") or []:
             out.append(fire("red_misses_scenario", "originator",
-                            f"The scenario agent did not cover {n.get('outcome')}: {n.get('why')}"))
+                            f"The test writer did not cover {n.get('outcome')}: {n.get('why')}"))
         outcomes = [str(p) for p in checks.get("missed_outcomes") or []]
         run = miss_run(data, "report_misses_outcome", after)
         if any(run.get(p, 0) >= 2 for p in outcomes):
@@ -212,7 +217,7 @@ def evaluate(data, after, config):
         if marks:
             listed = "; ".join(f"{m.get('test')} in {m.get('file')} ({m.get('why')})" for m in marks)
             out.append(fire("slice_only_marks", "originator",
-                            f"{owner}: the scenario agent marked {len(marks)} test(s) slice-only, so the cleaner may "
+                            f"{owner}: the test writer marked {len(marks)} test(s) slice-only, so the cleaner may "
                             f"remove them and they do not join the wall: {listed}. Accept the marks, or unmark a "
                             "test so it joins the wall and the cleaner keeps it."))
 
@@ -249,18 +254,18 @@ def evaluate(data, after, config):
     wall = checks.get("wall") or {}
     if wall.get("unrecorded"):
         out.append(fire("unrecorded_move", "originator",
-                        f"Test files changed with no record after the {after}: "
+                        f"Test files changed with no record after the {said(after)}: "
                         + ", ".join(wall["unrecorded"]) + ". Revert them, or record why the scenario forces it."))
 
     if checks.get("removal_not_made"):
         out.append(fire("removal_not_made", "originator",
-                        f"{owner}: a removal the record names is not in the tree after the {after}: "
+                        f"{owner}: a removal the record names is not in the tree after the {said(after)}: "
                         + "; ".join(checks["removal_not_made"])
                         + ". Remove it, or say why the test stays."))
 
     if checks.get("protected_changed"):
         out.append(fire("protected_changed", "originator",
-                        f"The {after} changed files only people change: {', '.join(checks['protected_changed'])}. "
+                        f"The {said(after)} changed files only people change: {', '.join(checks['protected_changed'])}. "
                         "Revert them before going on."))
 
     if after == "maker" and checks.get("reused_prototype_context"):
@@ -310,7 +315,7 @@ def evaluate(data, after, config):
             out.append(fire("cleaner_touched_standards", "originator",
                             "The cleaner edited .xv/standards.md. A standard enters only when a person accepts it."))
 
-    if after == "guardian":
+    if after == "inspector":
         wrong = [p for p in checks.get("packet_problems") or [] if "expected_moves" in p]
         if wrong:
             out.append(fire("expected_moves_wrong", "originator",
@@ -318,9 +323,9 @@ def evaluate(data, after, config):
         if data.get("shape_change") == "yes" or data.get("pitch_contradiction") == "yes":
             what = [n for n in ("shape_change", "pitch_contradiction") if data.get(n) == "yes"]
             out.append(fire("shape_or_pitch", "two_people",
-                            f"The guardian's packet says {' and '.join(what)}. Two people decide from the packet."))
+                            f"The inspection report says {' and '.join(what)}. Two people decide from the packet."))
         fc = (data.get("forecast") or {}).get("shape_breadth")
-        actual = (data.get("checks") or {}).get("guardian", {}).get("shape_breadth")
+        actual = (data.get("checks") or {}).get("inspector", {}).get("shape_breadth")
         # a shape stays accepted at the breadth it was accepted at; a stop from before the breadth was kept covers any
         accepted_shape = data.get("shape_change") == "accepted" or any(
             s.get("order") == "shape_wider_than_forecast" and s.get("answer") and not s.get("sendback")
@@ -361,9 +366,9 @@ def evaluate(data, after, config):
             if moved:
                 parts.append(f"{len(moved)} old test(s) moved with a record")
             if recs:
-                parts.append(f"{len(recs)} wall recommendation(s) from the guardian")
+                parts.append(f"{len(recs)} wall recommendation(s) from the inspector")
             if picture:
-                parts.append("the guardian proposes a change to the picture")
+                parts.append("the inspector proposes a change to the picture")
             out.append(fire("moves_to_accept", "originator",
                             f"{' and '.join(parts).capitalize()}; the shape did not. Accept them from the packet, "
                             "talk it through with someone, or send it back. The merge is yours."))
@@ -376,7 +381,7 @@ def evaluate(data, after, config):
                 if f["order"] in ("ready_to_merge", "moves_to_accept"):
                     f["question"] += (f" Before you merge, watch the first green run: {watch} If you see a case "
                                       "nobody wrote down, add it to the scenario and send the slice back to the "
-                                      "scenario agent (--next scenario).")
+                                      "test writer (--next test-writer).")
 
     if after == "prototype" and data.get("kind") == "prototype" and \
             not all((data.get("prototype_budgets") or {}).get(n) for n in "abc"):
@@ -409,18 +414,18 @@ def evaluate(data, after, config):
                         + unfinished(data)))
 
     if not any(f["blocking"] for f in out):
-        if after == "scenario" and checks.get("missed_outcomes"):
+        if after == "test-writer" and checks.get("missed_outcomes"):
             outcomes = sorted({str(p) for p in checks["missed_outcomes"]})
             out.append(fire("report_misses_outcome", "watch",
                             "These outcomes are in neither covered nor not_covered; put each in `covered` or `not_covered` "
                             "as the outcome shown: " + "; ".join(outcomes) + ". Every outcome of the scenario and its "
                             "amendments goes in `covered` or `not_covered` on each pass, not only the outcomes of the "
                             "newest amendment.",
-                            blocking=False, sendback={"to": "scenario", "misses": outcomes}))
-        elif after == "guardian" and data.get("change_misses_scenario") == "yes" and checks.get("misses"):
+                            blocking=False, sendback={"to": "test-writer", "misses": outcomes}))
+        elif after == "inspector" and data.get("change_misses_scenario") == "yes" and checks.get("misses"):
             found = checks["misses"]
             out.append(fire("change_misses_scenario", "watch", "; ".join(m["text"] for m in found), blocking=False,
-                            sendback={"to": "scenario" if any(m["to"] == "scenario" for m in found) else "maker",
+                            sendback={"to": "test-writer" if any(m["to"] == "test-writer" for m in found) else "maker",
                                        "misses": sorted({m["ref"] for m in found})}))
 
     return out
@@ -430,13 +435,13 @@ def next_step(data, after, stop, fired):
     """Where `next` goes after this step, or None when it stays where the step left it."""
     if stop:
         if ((data.get("checks") or {}).get(after) or {}).get("red_joined_unsafely"):
-            return "scenario"
+            return "test-writer"
         return None if stop["order"] == "ready_to_merge" else after
     back = [f for f in fired if f.get("sendback")]
     if back:
         return back[-1]["sendback"]["to"]
     checks = (data.get("checks") or {}).get(after) or {}
-    if after == "scenario" and checks.get("red_fails") is True and (checks.get("red_on_build") or {}).get("passes"):
+    if after == "test-writer" and checks.get("red_fails") is True and (checks.get("red_on_build") or {}).get("passes"):
         return "cleaner"  # the build already passes the red: nothing for the maker to make
     return None
 
@@ -471,7 +476,7 @@ def verdict(data, after, config, closed=()):
 def main(argv=None):
     p = argparse.ArgumentParser(prog="xv orders", description=__doc__.split("\n")[0])
     p.add_argument("id")
-    p.add_argument("--after", required=True)
+    p.add_argument("--after", required=True, type=agent_name)
     a = p.parse_args(argv)
     try:
         path = record_path(repo_root(), a.id)

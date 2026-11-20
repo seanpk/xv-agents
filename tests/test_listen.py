@@ -57,7 +57,7 @@ class GatherTest(RepoCase):
             with open(os.path.join(src, name)) as a, open(os.path.join(self.repo, "support", name), "w") as b:
                 b.write(a.read())
         with open(os.path.join(self.repo, ".xv", "config.yml"), "a") as f:
-            f.write('listener:\n  feedback: ["support/*.txt"]\n  sentry:\n    org: o\n    project: p\n'
+            f.write('field_listener:\n  feedback: ["support/*.txt"]\n  sentry:\n    org: o\n    project: p\n'
                     '    token_env: XV_TEST_NO_SUCH_TOKEN\n')
         out, notes = listen.gather(self.repo)
         self.assertEqual(len(os.listdir(os.path.join(out, "feedback"))), 5)

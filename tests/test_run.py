@@ -185,10 +185,10 @@ class WatchLoopTest(WatchLoopSetup):
         self.assertEqual(verdict["stop"]["order"], "ready_to_merge")
         data = self.record()
         self.assertEqual(data["wall_baseline"]["count"], 4)  # three test modules and __init__
-        self.assertTrue(data["checks"]["scenario"]["red_fails"])
+        self.assertTrue(data["checks"]["test-writer"]["red_fails"])
         self.assertEqual(data["suite"], "green")
         self.assertEqual((data["shape_change"], data["pitch_contradiction"]), ("no", "no"))
-        self.assertEqual([s["step"] for s in data["spend"]], ["forecaster", "scenario", "maker", "cleaner", "guardian"])
+        self.assertEqual([s["step"] for s in data["spend"]], ["forecaster", "test-writer", "maker", "cleaner", "inspector"])
         self.assertEqual(data["status"], "ready")
         self.assertEqual(sh(["git", "rev-list", "--count", "main"], self.repo).stdout.strip(), "2")
 
@@ -196,7 +196,7 @@ class WatchLoopTest(WatchLoopSetup):
         os.environ["FAKE_RED_COMMAND"] = command
         try:
             self.xv("step", "forecaster", "s1", cwd=self.wt)
-            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+            return self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
         finally:
             del os.environ["FAKE_RED_COMMAND"]
 
@@ -209,7 +209,7 @@ class WatchLoopTest(WatchLoopSetup):
         self.assertEqual(stop["seat"], "originator")
         self.assertIn(command, stop["question"])
         self.assertIn("&&", stop["question"])
-        self.assertIsNot(self.record()["checks"]["scenario"].get("red_fails"), True)
+        self.assertIsNot(self.record()["checks"]["test-writer"].get("red_fails"), True)
 
     def test_an_old_assertion_changed_in_a_red_file_stops_before_the_maker(self):
         os.environ["FAKE_SCENARIO_EDITS_OLD"] = "1"
@@ -239,7 +239,7 @@ class WatchLoopTest(WatchLoopSetup):
     def test_a_scenario_step_whose_old_red_check_cannot_run_stops_before_the_maker(self):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.xv("record", "set", "s1", "base", "", cwd=self.wt)
-        p = self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        p = self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         stop = json.loads(p.stdout)["stop"]
         self.assertEqual(stop["seat"], "originator")
@@ -255,15 +255,15 @@ class WatchLoopTest(WatchLoopSetup):
         self.assertIn("xv_no_such_module", stop["question"])
         self.assertIn("cannot run", stop["question"])
         data = self.record()
-        self.assertIsNot(data["checks"]["scenario"].get("red_fails"), True)
-        self.assertEqual(data["next"], "scenario")
+        self.assertIsNot(data["checks"]["test-writer"].get("red_fails"), True)
+        self.assertEqual(data["next"], "test-writer")
         self.assertNotIn("maker", [s["step"] for s in data["spend"]])
 
     def test_a_red_that_runs_its_tests_and_some_fail_is_still_a_failing_red(self):
         p = self.scenario_with_red("echo 'FAIL: test_x (t.A.test_x)' && echo 'Ran 1 test' && false")
         self.assertNotIn("red_command_joined", p.stdout)
         self.assertNotIn("red_cannot_run", p.stdout)
-        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
+        self.assertIs(self.record()["checks"]["test-writer"]["red_fails"], True)
 
     def test_a_red_joined_with_or_is_refused(self):
         p = self.scenario_with_red("false || true")
@@ -272,7 +272,7 @@ class WatchLoopTest(WatchLoopSetup):
     def test_a_red_joined_with_and_is_not_refused_and_fails_when_the_first_runner_fails(self):
         p = self.scenario_with_red("false && true")
         self.assertNotIn("red_command_joined", p.stdout)
-        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
+        self.assertIs(self.record()["checks"]["test-writer"]["red_fails"], True)
 
     def test_a_refused_red_is_not_kept_as_the_slice_red(self):
         before = self.record().get("red")
@@ -284,10 +284,10 @@ class WatchLoopTest(WatchLoopSetup):
         p = self.scenario_with_red("false ; false ; true")
         stop = json.loads(p.stdout)["stop"]
         self.assertEqual(stop["order"], "red_command_joined")
-        self.assertIn("scenario agent", stop["question"])
+        self.assertIn("test writer", stop["question"])
         self.assertIn("rewrite", stop["question"])
         data = self.record()
-        self.assertEqual(data["next"], "scenario")
+        self.assertEqual(data["next"], "test-writer")
         self.assertNotIn("maker", [s["step"] for s in data["spend"]])
 
     def test_a_red_joined_with_and_goes_on_to_the_maker(self):
@@ -304,7 +304,7 @@ class WatchLoopTest(WatchLoopSetup):
         from unittest import mock
         with mock.patch.dict(os.environ, env):
             self.xv("step", "forecaster", "s1", cwd=self.wt)
-            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+            return self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
 
     def assert_stopped_before_the_maker(self, p, *named):
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
@@ -514,7 +514,7 @@ class WatchLoopTest(WatchLoopSetup):
         stop = json.loads(p.stdout)["stop"]
         self.assertEqual(stop["order"], "red_command_joined")
         self.assertIn("&&", stop["question"])
-        self.assertIsNot(self.record()["checks"]["scenario"].get("red_fails"), True)
+        self.assertIsNot(self.record()["checks"]["test-writer"].get("red_fails"), True)
 
     def test_a_red_joined_with_a_newline_is_refused(self):
         self.assert_refused("false\ntrue")
@@ -528,17 +528,17 @@ class WatchLoopTest(WatchLoopSetup):
     def test_a_newline_inside_quotes_is_not_a_join(self):
         p = self.scenario_with_red("python3 -c 'import sys\nsys.exit(1)'")
         self.assertNotIn("red_command_joined", p.stdout)
-        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
+        self.assertIs(self.record()["checks"]["test-writer"]["red_fails"], True)
 
     def test_a_pipe_inside_quotes_is_not_a_join(self):
         p = self.scenario_with_red("python3 -c 'import sys; a = 1 | 0; sys.exit(1)'")
         self.assertNotIn("red_command_joined", p.stdout)
-        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
+        self.assertIs(self.record()["checks"]["test-writer"]["red_fails"], True)
 
     def test_a_semicolon_inside_quotes_is_not_a_join(self):
         p = self.scenario_with_red("python3 -c 'import sys; sys.exit(1)'")
         self.assertNotIn("red_command_joined", p.stdout)
-        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
+        self.assertIs(self.record()["checks"]["test-writer"]["red_fails"], True)
 
     P1 = "1. A household sees milk running out soon."
     P2 = "2. A household sees nothing for bread that is fresh."
@@ -556,7 +556,7 @@ class WatchLoopTest(WatchLoopSetup):
         extra = {"covered": [{"outcome":c, "test": "test_milk_today"} for c in covered],
                  "not_covered": [{"outcome":n, "why": "no seam to start the app"} for n in not_covered]}
         with mock.patch.dict(os.environ, {"FAKE_REPORT_EXTRA": json.dumps(extra)}):
-            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+            return self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
 
     def test_a_numbered_point_in_neither_covers_nor_not_covered_goes_back_without_a_stop(self):
         self.amend(f"{self.P1}\n{self.P2}")
@@ -564,7 +564,7 @@ class WatchLoopTest(WatchLoopSetup):
         p = self.scenario_covering(covered=[self.P1])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.open_stops(), [])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "test-writer")
         self.assertNotIn("maker", [s["step"] for s in self.record()["spend"]])
         watch_lines = [ln for ln in self.record_text().splitlines() if " watch: " in ln and self.P2 in ln]
         self.assertTrue(watch_lines, "the watch records the send-back with the missed point")
@@ -573,7 +573,7 @@ class WatchLoopTest(WatchLoopSetup):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.scenario_covering(covered=[self.P1])
-        prompt = self.xv("prompt", "scenario", "s1", cwd=self.wt).stdout
+        prompt = self.xv("prompt", "test-writer", "s1", cwd=self.wt).stdout
         self.assertIn(self.P2, prompt)
 
     def test_a_numbered_point_in_not_covered_still_stops_for_the_person(self):
@@ -632,14 +632,14 @@ class WatchLoopTest(WatchLoopSetup):
         self.amend("2. A household sees a restock hint.")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.scenario_covering(covered=["1", "2"])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "test-writer")
 
     def test_a_repeated_number_covers_only_the_first_outcome_with_that_number(self):
         self.in_the_scenario(self.P1)
         self.amend("1. A household sees a restock hint.")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.scenario_covering(covered=["1"])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "test-writer")
         self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and "A household sees a restock hint." in l])
 
     def test_a_covers_item_that_is_a_points_number_covers_it(self):
@@ -654,13 +654,13 @@ class WatchLoopTest(WatchLoopSetup):
 
     def test_a_number_covers_only_its_own_point(self):
         self.covered_by_number(f"{self.P1}\n{self.P2}", ["1"])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "test-writer")
         self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and self.P2 in l])
 
     def test_the_number_one_does_not_cover_point_ten(self):
         ten = "10. A household sees the pantry list in order."
         self.covered_by_number(f"{self.P1}\n{ten}", ["1"])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "test-writer")
         self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and ten in l])
 
     def test_an_amendments_outcome_named_by_number_in_not_covered_still_stops_for_the_person(self):
@@ -675,7 +675,7 @@ class WatchLoopTest(WatchLoopSetup):
         self.amend(self.P3)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.scenario_covering(covered=["1", "2"])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "test-writer")
         self.assertTrue([l for l in self.record_text().splitlines() if " watch: " in l and self.P3 in l])
 
     def test_the_number_one_does_not_cover_an_amendments_outcome_ten(self):
@@ -684,7 +684,7 @@ class WatchLoopTest(WatchLoopSetup):
         self.amend(ten)
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.scenario_covering(covered=["1"])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "test-writer")
 
     def test_a_number_item_in_not_covered_still_stops_for_the_person(self):
         self.in_the_scenario(f"{self.P1}\n{self.P2}")
@@ -699,7 +699,7 @@ class WatchLoopTest(WatchLoopSetup):
         p = self.scenario_covering(covered=[self.P1])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.open_stops(), [])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "test-writer")
 
     def test_the_third_miss_in_a_row_of_the_same_point_stops_for_the_person(self):
         self.amend(f"{self.P1}\n{self.P2}")
@@ -721,7 +721,7 @@ class WatchLoopTest(WatchLoopSetup):
         p = self.scenario_covering(covered=[self.P1])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.open_stops(), [])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "test-writer")
 
     def test_send_backs_from_before_an_amendment_do_not_count_toward_the_stop(self):
         self.amend(f"{self.P1}\n{self.P2}")
@@ -732,19 +732,19 @@ class WatchLoopTest(WatchLoopSetup):
         p = self.scenario_covering(covered=[self.P1])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.open_stops(), [])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "test-writer")
 
     def test_send_backs_from_before_a_persons_answer_do_not_count_toward_the_stop(self):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         for _ in range(3):
             self.scenario_covering(covered=[self.P1])
-        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "again", "--next", "scenario",
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "again", "--next", "test-writer",
                 "--settled", "Pat wants every point covered.", cwd=self.wt)
         p = self.scenario_covering(covered=[self.P1])
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(self.open_stops(), [])
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "test-writer")
 
     PM = "1. The `doc` kind refuses a file under `.xv/` and any file named `SKILL.md`."
 
@@ -777,14 +777,14 @@ class WatchLoopTest(WatchLoopSetup):
         self.amend(f"{self.PM}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.scenario_covering(covered=[self.P2])
-        prompt = self.xv("prompt", "scenario", "s1", cwd=self.wt).stdout
+        prompt = self.xv("prompt", "test-writer", "s1", cwd=self.wt).stdout
         self.assertIn(self.PM, prompt)
 
     def test_the_send_back_says_every_point_goes_in_covers_or_not_covered_each_pass(self):
         self.amend(f"{self.P1}\n{self.P2}")
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.scenario_covering(covered=[self.P1])
-        said = " ".join(self.xv("prompt", "scenario", "s1", cwd=self.wt).stdout.lower().split())
+        said = " ".join(self.xv("prompt", "test-writer", "s1", cwd=self.wt).stdout.lower().split())
         self.assertIn("every outcome", said)
         self.assertIn("each pass", said)
         self.assertIn("amendments", said)
@@ -794,10 +794,10 @@ class WatchLoopTest(WatchLoopSetup):
                            **env):
         from unittest import mock
         with mock.patch.dict(os.environ, dict(env, FAKE_SCENARIO_MISS=miss)):
-            return self.xv("step", "guardian", "s1", cwd=self.wt, check=False)
+            return self.xv("step", "inspector", "s1", cwd=self.wt, check=False)
 
     def to_the_guardian(self):
-        for agent in ("forecaster", "scenario", "maker", "cleaner"):
+        for agent in ("forecaster", "test-writer", "maker", "cleaner"):
             self.xv("step", agent, "s1", cwd=self.wt)
 
     def test_a_change_misses_scenario_in_the_packet_sends_the_slice_to_the_maker_without_a_stop(self):
@@ -856,7 +856,7 @@ class WatchLoopTest(WatchLoopSetup):
 
     def test_a_packet_with_no_miss_still_ends_in_the_merge_stop(self):
         self.to_the_guardian()
-        p = self.xv("step", "guardian", "s1", cwd=self.wt, check=False)
+        p = self.xv("step", "inspector", "s1", cwd=self.wt, check=False)
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "ready_to_merge")
         self.assertEqual(self.record()["change_misses_scenario"], "no")
 
@@ -874,7 +874,7 @@ class WatchLoopTest(WatchLoopSetup):
     def maker_with(self, env):
         os.environ[env] = "1"
         try:
-            for agent in ("forecaster", "scenario"):
+            for agent in ("forecaster", "test-writer"):
                 self.xv("step", agent, "s1", cwd=self.wt)
             return self.xv("step", "maker", "s1", cwd=self.wt, check=False)
         finally:
@@ -892,7 +892,7 @@ class WatchLoopTest(WatchLoopSetup):
     def test_an_unrecorded_move_by_the_maker_stops_the_slice(self):
         os.environ["FAKE_MAKER_CHEATS"] = "1"
         try:
-            for agent in ("forecaster", "scenario"):
+            for agent in ("forecaster", "test-writer"):
                 self.xv("step", agent, "s1", cwd=self.wt)
             p = self.xv("step", "maker", "s1", cwd=self.wt, check=False)
         finally:
@@ -905,7 +905,7 @@ class WatchLoopTest(WatchLoopSetup):
     def test_a_step_that_stops_keeps_next_on_that_step(self):
         os.environ["FAKE_MAKER_CHEATS"] = "1"
         try:
-            for agent in ("forecaster", "scenario"):
+            for agent in ("forecaster", "test-writer"):
                 self.xv("step", agent, "s1", cwd=self.wt)
             p = self.xv("step", "maker", "s1", cwd=self.wt, check=False)
         finally:
@@ -917,18 +917,18 @@ class WatchLoopTest(WatchLoopSetup):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         os.environ["FAKE_NO_REPORT"] = "1"
         try:
-            p = self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+            p = self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
         finally:
             del os.environ["FAKE_NO_REPORT"]
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "no_report")
-        self.assertEqual(self.record()["next"], "scenario")
+        self.assertEqual(self.record()["next"], "test-writer")
 
     def test_a_stop_raised_by_a_step_keeps_the_budget_it_was_raised_under(self):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         os.environ["FAKE_NO_REPORT"] = "1"
         try:
-            self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+            self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
         finally:
             del os.environ["FAKE_NO_REPORT"]
         self.xv("record", "set", "s1", "budget", '{"usd": 777}', "--by", "pat", cwd=self.wt)
@@ -956,7 +956,7 @@ class RedFailsAfterTheMakerTest(RepoCase):
                 "spend": [{"step": "maker"}] if through_maker else [],
                 "checks": {"reports": [{"agent": "maker", "status": "done"}] if through_maker else []}}
         config = {"tests": {"paths": ["tests/**"]}}
-        return post_step("scenario", self.wt, data, config, self.head, {}, {})["red_fails"]
+        return post_step("test-writer", self.wt, data, config, self.head, {}, {})["red_fails"]
 
     def test_a_red_that_fails_before_the_fix_and_passes_at_head_is_red(self):
         self.assertIs(self.red_fails("test -f fix.txt"), True)
@@ -969,7 +969,7 @@ class RedFailsAfterTheMakerTest(RepoCase):
 
     def rerun(self, data, config, head):
         from run import post_step
-        return post_step("scenario", self.wt, data, config, head, {}, {})
+        return post_step("test-writer", self.wt, data, config, head, {}, {})
 
     def commit_file(self, name):
         with open(os.path.join(self.wt, name), "w") as f:
@@ -1018,8 +1018,8 @@ class RedFailsAfterTheMakerTest(RepoCase):
         import orders
         checks = self.after_maker("false", "echo SETUP-BOOM; exit 3")
         data = {"id": "s1", "originator": "pat", "budget": {"usd": 2}, "spend": [{"step": "maker"}], "stops": [],
-                "checks": {"reports": [{"agent": "scenario", "status": "red"}], "scenario": checks}}
-        verdict = orders.verdict(data, "scenario", {"tests": {"paths": ["tests/**"]}})
+                "checks": {"reports": [{"agent": "test-writer", "status": "red"}], "test-writer": checks}}
+        verdict = orders.verdict(data, "test-writer", {"tests": {"paths": ["tests/**"]}})
         fired = {f["order"]: f for f in verdict["fired"]}
         self.assertIn("setup_failed", fired)
         self.assertEqual(fired["setup_failed"]["seat"], "originator")
@@ -1082,7 +1082,7 @@ class AcceptedShapeChangeTest(WatchLoopSetup):
         self.assertEqual(data["shape_change"], "yes")
         self.assertEqual(order, "shape_or_pitch")
 
-    def test_xv_guard_with_no_slice_record_reads_accepted_as_yes(self):
+    def test_xv_inspect_with_no_slice_record_reads_accepted_as_yes(self):
         rel = self.decide()
         sh(["git", "checkout", "-q", "-b", "pr"], self.repo)
         with open(os.path.join(self.repo, "change.txt"), "w") as f:
@@ -1092,7 +1092,7 @@ class AcceptedShapeChangeTest(WatchLoopSetup):
         os.environ["FAKE_SHAPE_CHANGE"] = "accepted"
         os.environ["FAKE_PACKET_EXTRA"] = f"accepted_by: {rel}\n"
         try:
-            p = self.xv("guard", "--base", "main", cwd=self.repo, check=False)
+            p = self.xv("inspect", "--base", "main", cwd=self.repo, check=False)
         finally:
             del os.environ["FAKE_SHAPE_CHANGE"], os.environ["FAKE_PACKET_EXTRA"]
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "shape_or_pitch", p.stdout + p.stderr)
@@ -1126,7 +1126,7 @@ class AcceptedShapeChangeTest(WatchLoopSetup):
         self.assertEqual(self.record_packet("accepted", rel), "yes")
 
     def test_the_guardian_brief_allows_accepted_and_names_accepted_by(self):
-        text = open(os.path.join(HOME, "skills", "guardian", "SKILL.md")).read()
+        text = open(os.path.join(HOME, "skills", "inspector", "SKILL.md")).read()
         may_not = text[text.index("## May not"):text.index("## Writes to the slice record")]
         self.assertNotIn("anything but `yes` or `no`", may_not)
         self.assertIn("accepted", may_not)
@@ -1152,16 +1152,16 @@ class EveryPathOneVerdictTest(WatchLoopSetup):
 
     def test_a_repeated_change_misses_scenario_gets_the_same_verdict_on_every_path(self):
         from unittest import mock
-        for agent in ("forecaster", "scenario", "maker", "cleaner"):
+        for agent in ("forecaster", "test-writer", "maker", "cleaner"):
             self.xv("step", agent, "s1", cwd=self.wt)
         with mock.patch.dict(os.environ, {"FAKE_SCENARIO_MISS": self.MISS}):
-            self.xv("step", "guardian", "s1", cwd=self.wt, check=False)  # the first miss: sent back
+            self.xv("step", "inspector", "s1", cwd=self.wt, check=False)  # the first miss: sent back
         for agent in ("maker", "cleaner"):
             self.xv("step", agent, "s1", cwd=self.wt)
         before = open(self.record_file()).read()
 
         with mock.patch.dict(os.environ, {"FAKE_SCENARIO_MISS": self.MISS}):
-            self.xv("step", "guardian", "s1", cwd=self.wt, check=False)
+            self.xv("step", "inspector", "s1", cwd=self.wt, check=False)
         by_step = self.view()
         self.assertEqual(by_step["open"], [("change_misses_scenario", "originator")], by_step)
 
@@ -1175,13 +1175,13 @@ class EveryPathOneVerdictTest(WatchLoopSetup):
             f.write(before)
         report = os.path.join(self.wt, "g.json")
         with open(report, "w") as f:
-            f.write("```xv-report\n" + json.dumps({"agent": "guardian", "status": "done", "summary": "done"})
+            f.write("```xv-report\n" + json.dumps({"agent": "inspector", "status": "done", "summary": "done"})
                     + "\n```\n")
         packet = os.path.join(self.wt, "hand-packet.md")
         with open(packet, "w") as f:
             f.write("---\nslice: s1\nshape_change: no\npitch_contradiction: no\nchange_misses_scenario: yes\nexpected_moves: 0\n---\n\n# Packet\n\n"
                     "## Scenario misses\n\n- %s (evidence: tests/test_red.py:7)\n" % self.MISS)
-        self.xv("record", "report", "s1", "guardian", report, cwd=self.wt)
+        self.xv("record", "report", "s1", "inspector", report, cwd=self.wt)
         self.xv("record", "packet", "s1", packet, cwd=self.wt)
         self.assertEqual(self.view(), by_step)
 
@@ -1190,10 +1190,10 @@ class PreStepBudgetStopTest(WatchLoopSetup):
     def test_the_stop_xv_step_raises_before_a_step_is_answered_without_settled_once_the_budget_is_raised(self):
         self.xv("record", "add", "s1", "spend", json.dumps({"step": "forecaster", "usd": 5, "tokens": 1}),
                 cwd=self.wt)
-        p = self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        p = self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "budget_spent", p.stdout + p.stderr)
         self.xv("record", "set", "s1", "budget", '{"usd": 20}', "--by", "pat", cwd=self.wt)
-        a = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "more", "--next", "scenario",
+        a = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "more", "--next", "test-writer",
                     cwd=self.wt, check=False)
         self.assertEqual(a.returncode, 0, a.stderr)
 
@@ -1217,22 +1217,22 @@ class NamedByTheScenarioReachTheMakerTest(RepoCase):
         return data
 
     def test_the_record_keeps_the_old_tests_the_scenario_report_names(self):
-        data = self.report("scenario", old_tests_to_move=[self.OLD], may_not_files_needed=[self.FILE])
+        data = self.report("test-writer", old_tests_to_move=[self.OLD], may_not_files_needed=[self.FILE])
         self.assertEqual(data.get("old_tests_to_move"), [self.OLD])
 
     def test_the_record_keeps_the_may_not_files_needed_the_scenario_report_names(self):
-        data = self.report("scenario", old_tests_to_move=[self.OLD], may_not_files_needed=[self.FILE])
+        data = self.report("test-writer", old_tests_to_move=[self.OLD], may_not_files_needed=[self.FILE])
         self.assertEqual(data.get("may_not_files_needed"), [self.FILE])
 
     def test_an_entry_missing_its_file_or_why_is_not_kept(self):
         bad = [{"why": "no file"}, {"file": ".xv/picture.md"}, {"file": "", "why": "empty"},
                {"file": 7, "why": "wrong type"}, "just a string", None]
-        data = self.report("scenario", old_tests_to_move=bad, may_not_files_needed=bad)
+        data = self.report("test-writer", old_tests_to_move=bad, may_not_files_needed=bad)
         self.assertEqual(data.get("may_not_files_needed") or [], [])
         self.assertEqual(data.get("old_tests_to_move") or [], [])
 
     def test_a_value_that_is_not_a_list_is_not_kept(self):
-        data = self.report("scenario", old_tests_to_move="tests/test_api.py", may_not_files_needed=dict(file=".xv/picture.md"))
+        data = self.report("test-writer", old_tests_to_move="tests/test_api.py", may_not_files_needed=dict(file=".xv/picture.md"))
         self.assertEqual(data.get("may_not_files_needed") or [], [])
         self.assertEqual(data.get("old_tests_to_move") or [], [])
 
@@ -1310,23 +1310,23 @@ class NamedByTheScenarioReachTheMakerTest(RepoCase):
 
     def second_report(self, data, **keys):
         import record
-        text = "```xv-report\n" + json.dumps({"agent": "scenario", "status": "red", "summary": "s", **keys}) + "\n```\n"
-        record.apply_report(data, "", "scenario", text)
+        text = "```xv-report\n" + json.dumps({"agent": "test-writer", "status": "red", "summary": "s", **keys}) + "\n```\n"
+        record.apply_report(data, "", "test-writer", text)
 
     def test_a_scenario_report_that_leaves_the_lists_out_clears_the_earlier_ones(self):
-        data = self.report("scenario", old_tests_to_move=[self.OLD], may_not_files_needed=[self.FILE])
+        data = self.report("test-writer", old_tests_to_move=[self.OLD], may_not_files_needed=[self.FILE])
         self.second_report(data)
         self.assertEqual(data.get("may_not_files_needed") or [], [])
         self.assertEqual(data.get("old_tests_to_move") or [], [])
 
     def test_a_report_that_leaves_out_only_one_list_clears_only_that_one(self):
-        data = self.report("scenario", old_tests_to_move=[self.OLD], may_not_files_needed=[self.FILE])
+        data = self.report("test-writer", old_tests_to_move=[self.OLD], may_not_files_needed=[self.FILE])
         self.second_report(data, may_not_files_needed=[self.FILE])
         self.assertEqual(data.get("old_tests_to_move") or [], [])
         self.assertEqual(data.get("may_not_files_needed"), [self.FILE])
 
     def test_a_report_with_a_value_that_is_not_a_list_clears_the_earlier_lists(self):
-        data = self.report("scenario", old_tests_to_move=[self.OLD], may_not_files_needed=[self.FILE])
+        data = self.report("test-writer", old_tests_to_move=[self.OLD], may_not_files_needed=[self.FILE])
         self.second_report(data, old_tests_to_move="none", may_not_files_needed=None)
         self.assertEqual(data.get("may_not_files_needed") or [], [])
         self.assertEqual(data.get("old_tests_to_move") or [], [])
@@ -1344,7 +1344,7 @@ class ScenarioChecksTest(WatchLoopSetup):
     def scenario(self, **env):
         from unittest import mock
         with mock.patch.dict(os.environ, env):
-            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+            return self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
 
     def covers_with(self, test, **env):
         extra = json.dumps({"covered": [{"outcome":"milk today", "test": test}]})
@@ -1418,7 +1418,7 @@ class ScenarioChecksTest(WatchLoopSetup):
         """Pass one stops on a not_covered item; a person sends the slice back to the scenario agent."""
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.scenario(FAKE_NOT_COVERED='[{"outcome":"the grocer share", "why": "no seam"}]', **self.first)
-        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go again", "--next", "scenario",
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go again", "--next", "test-writer",
                 "--settled", "Pat said to cover the grocer share.", cwd=self.wt)
 
     def test_an_empty_covers_on_a_pass_after_a_send_back_does_not_stop(self):
@@ -1488,7 +1488,7 @@ class ScenarioChecksTest(WatchLoopSetup):
     def test_an_empty_covers_after_a_send_back_still_stops_when_nothing_was_kept(self):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.scenario(FAKE_REPORT_EXTRA='{"covered": []}')
-        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "again", "--next", "scenario",
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "again", "--next", "test-writer",
                 "--settled", "Pat wants a covers list.", cwd=self.wt)
         self.assert_stops(self.scenario(FAKE_REPORT_EXTRA='{"covered": []}'), "`covered`")
 
@@ -1764,7 +1764,7 @@ class SliceOnlyFilesTest(WatchLoopSetup):
         extra = {"slice_only": [{"file": "tests/test_red.py", "test": "Red.test_note", "why": "a note",
                                  "checks": "docs/NOTES.md"}]}
         with mock.patch.dict(os.environ, {"FAKE_REPORT_EXTRA": json.dumps(extra)}):
-            p = self.xv("step", "scenario", "s2", cwd=wt, check=False)
+            p = self.xv("step", "test-writer", "s2", cwd=wt, check=False)
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
 
 
@@ -1789,7 +1789,7 @@ class RemovedSliceOnlyTestInCoversTest(WatchLoopSetup):
                 "slice_only": True}
         move.update(moved)
         self.xv("record", "add", "s1", "moved_tests", json.dumps(move), cwd=self.wt)
-        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "again", "--next", "scenario",
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "again", "--next", "test-writer",
                 "--settled", "Pat sent it back.", cwd=self.wt)
 
     def milk_only(self):
@@ -1853,7 +1853,7 @@ class ScenarioPointsAfterAmendTest(WatchLoopSetup):
         from unittest import mock
         extra = {"covered": [{"outcome":c, "test": "test_milk_today"} for c in covered], "not_covered": []}
         with mock.patch.dict(os.environ, {"FAKE_REPORT_EXTRA": json.dumps(extra)}):
-            p = self.xv("step", "scenario", "s2", cwd=self.wt, check=False)
+            p = self.xv("step", "test-writer", "s2", cwd=self.wt, check=False)
         return p, json.loads(self.xv("record", "show", "s2", "--json", cwd=self.wt).stdout)
 
     def test_a_refactor_slice_with_an_amendment_needs_only_the_amendments_point(self):
@@ -1865,13 +1865,13 @@ class ScenarioPointsAfterAmendTest(WatchLoopSetup):
     def test_a_refactor_slice_still_sends_back_an_amendment_point_that_is_not_covered(self):
         self.open_kind("refactor")
         p, data = self.run_scenario(["1", "2"])
-        self.assertEqual(data["next"], "scenario")
+        self.assertEqual(data["next"], "test-writer")
         self.assertNotIn("maker", [s["step"] for s in data["spend"]])
 
     def test_a_feature_slice_with_an_amendment_still_needs_the_scenarios_own_points(self):
         self.open_kind("feature")
         p, data = self.run_scenario(["3. The tally also shows milk."])
-        self.assertEqual(data["next"], "scenario")
+        self.assertEqual(data["next"], "test-writer")
 
 
 def _red_command(lines, code=1):
@@ -1908,7 +1908,7 @@ class RedCannotRunTest(WatchLoopSetup):
         from unittest import mock
         with mock.patch.dict(os.environ, {"FAKE_RED_COMMAND": command}):
             self.xv("step", "forecaster", "s1", cwd=self.wt)
-            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+            return self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
 
     def assert_cannot_run(self, command, *named):
         p = self.scenario(command)
@@ -1919,14 +1919,14 @@ class RedCannotRunTest(WatchLoopSetup):
         for n in named:
             self.assertIn(n, stop["question"])
         data = self.record()
-        self.assertEqual(data["next"], "scenario")
-        self.assertIsNot(data["checks"]["scenario"].get("red_fails"), True)
+        self.assertEqual(data["next"], "test-writer")
+        self.assertIsNot(data["checks"]["test-writer"].get("red_fails"), True)
         self.assertNotIn("maker", [s["step"] for s in data["spend"]])
 
     def assert_failing_red(self, command):
         p = self.scenario(command)
         self.assertNotIn("red_cannot_run", p.stdout + p.stderr)
-        self.assertIs(self.record()["checks"]["scenario"]["red_fails"], True)
+        self.assertIs(self.record()["checks"]["test-writer"]["red_fails"], True)
         self.assertEqual(self.record()["next"], "maker")
 
     # 1. exit codes 126 and 127
@@ -2035,7 +2035,7 @@ class AnsweredStopStaysAnsweredTest(WatchLoopSetup):
         env = {"FAKE_NOT_COVERED": '[{"outcome":"the grocer share", "why": "no seam"}]'}
         with mock.patch.dict(os.environ, env):
             self.xv("step", "forecaster", "s1", cwd=self.wt)
-            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+            return self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
 
     def open_stops(self):
         return [s for s in self.record()["stops"] if s.get("answer") is None]
@@ -2149,7 +2149,7 @@ class RemovalNotMadeTest(WatchLoopSetup):
     def to_the_maker(self, mark=None):
         """Forecast and scenario; the scenario marks its one test slice-only, accepted because it checks CHANGELOG.md."""
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.step("scenario", FAKE_REPORT_EXTRA=json.dumps({"slice_only": [mark or self.MARK]}), check=True)
+        self.step("test-writer", FAKE_REPORT_EXTRA=json.dumps({"slice_only": [mark or self.MARK]}), check=True)
         self.assertEqual([m.get("accepted") for m in self.record()["slice_only"]], [True])
 
     def step(self, agent, check=False, **env):
@@ -2215,13 +2215,13 @@ class RemovalNotMadeTest(WatchLoopSetup):
     def test_a_slice_only_move_for_a_test_that_is_gone_does_not_stop_a_later_step(self):
         self.to_the_cleaner()
         self.assert_no_removal_stop(self.step("cleaner", FAKE_CLEANER_REMOVES="test_milk_today"))
-        p = self.step("guardian")  # it ends at ready_to_merge, a stop for the merge, so only the order is checked
+        p = self.step("inspector")  # it ends at ready_to_merge, a stop for the merge, so only the order is checked
         self.assertNotIn("removal_not_made", p.stdout, p.stdout + p.stderr)
 
     # 3. the whole run's last report
     def test_a_report_in_an_earlier_message_is_read_when_the_last_has_none(self):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.step("scenario", FAKE_EARLIER_REPORT="1")
+        p = self.step("test-writer", FAKE_EARLIER_REPORT="1")
         self.assertNotIn("no_report", p.stdout, p.stdout + p.stderr)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertEqual(self.record()["red"]["files"], ["tests/test_red.py"])
@@ -2229,8 +2229,8 @@ class RemovalNotMadeTest(WatchLoopSetup):
     def test_a_run_with_no_report_block_in_any_message_still_stops_with_no_report(self):
         # a run that shows every message, and none of them holds a block
         self.xv("step", "forecaster", "s1", cwd=self.wt)
-        p = self.step("scenario", FAKE_NO_REPORT="1", FAKE_EARLIER_REPORT="1")
-        log = open(self.run_log("scenario")).read()
+        p = self.step("test-writer", FAKE_NO_REPORT="1", FAKE_EARLIER_REPORT="1")
+        log = open(self.run_log("test-writer")).read()
         self.assertEqual(log.count('"agent_message"'), 2)
         self.assertNotIn("xv-report", log)
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "no_report")
@@ -2448,7 +2448,7 @@ class ClaudeWholeRunReportTest(RepoCase):
         with mock.patch.dict(os.environ, {"WRAP_MODE": "report-last"}):  # the forecaster reports in its last message
             self.xv("step", "forecaster", "s1", cwd=self.wt)
         with mock.patch.dict(os.environ, {"WRAP_MODE": mode}):
-            return self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+            return self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
 
     def test_a_report_in_an_earlier_message_of_the_session_is_read_when_the_last_has_none(self):
         p = self.run_scenario("report-earlier")

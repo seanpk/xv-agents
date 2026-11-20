@@ -43,7 +43,7 @@ class RepassCase(RepoCase):
         self.xv("record", "packet", "s1", packet, cwd=self.wt)
 
     def prompt(self):
-        return self.xv("prompt", "guardian", "s1", cwd=self.wt).stdout
+        return self.xv("prompt", "inspector", "s1", cwd=self.wt).stdout
 
 
 class RepassPromptTest(RepassCase):
@@ -79,7 +79,7 @@ class RepassPromptTest(RepassCase):
     def test_a_repass_after_a_send_back_gets_the_same_two_things(self):
         self.first_pass()
         self.commit("pantry/later.py", AFTER + "\n", "xv(s1): make it work again")
-        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+        self.xv("record", "stop", "s1", "--order", "test_writer_stopped", "--seat", "originator",
                 "--question", "Which line?", cwd=self.wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "2 ok", "--next", "maker",
                 "--settled", "the line is as the maker wrote it", cwd=self.wt)
@@ -99,7 +99,7 @@ class RepassPromptTest(RepassCase):
         self.assertIn(f'"packet_head": "{real}"', text)  # the record holds the packet's head, so the swap bites
         with open(rec, "w", encoding="utf-8") as f:
             f.write(text.replace(real, "deadbeef" * 5))
-        p = self.xv("prompt", "guardian", "s1", cwd=self.wt, check=False)
+        p = self.xv("prompt", "inspector", "s1", cwd=self.wt, check=False)
         self.assertNotEqual(p.returncode, 0, "the prompt came out although the diff could not run")
         self.assertNotIn("The diff after that commit follows", p.stdout)
 
@@ -140,7 +140,7 @@ class RepassCommandTest(RepassCase):
             return f.read().split()
 
     def step(self):
-        p = self.xv("step", "guardian", "s1", cwd=self.wt, check=False)
+        p = self.xv("step", "inspector", "s1", cwd=self.wt, check=False)
         self.out = (p.stdout + p.stderr)[-600:]
 
     def repass(self):
@@ -151,13 +151,13 @@ class RepassCommandTest(RepassCase):
         self.commit("pantry/later.py", AFTER + "\n", "xv(s1): make it work again")
 
     def test_a_first_pass_never_runs_the_guardian_repass_command(self):
-        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.agents(default="default", inspector="first", inspector_repass="second")
         self.commit("pantry/earlier.py", BEFORE + "\n", "xv(s1): make it work")
         self.step()
         self.assertEqual(self.ran(), ["first"], self.out)
 
     def test_a_repass_without_the_key_runs_the_guardian_command(self):
-        self.agents(default="default", guardian="first")
+        self.agents(default="default", inspector="first")
         self.repass()
         self.step()
         self.assertEqual(self.ran(), ["first"], self.out)
@@ -231,58 +231,58 @@ class RepassAmendmentsTest(RepassCase):
 
     # 9
     def test_xv_guard_runs_a_first_pass_with_the_guardian_command_though_the_record_names_a_packet(self):
-        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.agents(default="default", inspector="first", inspector_repass="second")
         self.repass()
-        self.run_xv("guard", "--base", "main")
+        self.run_xv("inspect", "--base", "main")
         self.assertEqual(self.ran(), ["first:first"], self.out)
 
     def test_xv_guard_falls_back_to_the_default_command_never_the_repass_one(self):
-        self.agents(default="default", guardian_repass="second")
+        self.agents(default="default", inspector_repass="second")
         self.repass()
-        self.run_xv("guard", "--base", "main")
+        self.run_xv("inspect", "--base", "main")
         self.assertEqual(self.ran(), ["default:first"], self.out)
 
     def test_xv_step_guardian_still_runs_the_repass_command_with_the_repass_prompt(self):
-        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.agents(default="default", inspector="first", inspector_repass="second")
         self.repass()
-        self.run_xv("step", "guardian", "s1")
+        self.run_xv("step", "inspector", "s1")
         self.assertEqual(self.ran(), ["second:repass"], self.out)
 
     # 10
     def test_a_missing_packet_file_makes_the_step_a_first_pass_with_the_guardian_command(self):
-        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.agents(default="default", inspector="first", inspector_repass="second")
         self.repass()
         self.drop_the_packet_file()
-        self.run_xv("step", "guardian", "s1")
+        self.run_xv("step", "inspector", "s1")
         self.assertEqual(self.ran(), ["first:first"], self.out)
 
     def test_a_missing_packet_file_with_no_guardian_command_runs_the_default_as_a_first_pass(self):
-        self.agents(default="default", guardian_repass="second")
+        self.agents(default="default", inspector_repass="second")
         self.repass()
         self.drop_the_packet_file()
-        self.run_xv("step", "guardian", "s1")
+        self.run_xv("step", "inspector", "s1")
         self.assertEqual(self.ran(), ["default:first"], self.out)
 
     # 11
     def test_a_repass_diff_that_cannot_run_writes_a_repass_diff_failed_stop_for_the_originator(self):
-        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.agents(default="default", inspector="first", inspector_repass="second")
         self.repass()
         self.break_the_diff()
-        self.run_xv("step", "guardian", "s1")
+        self.run_xv("step", "inspector", "s1")
         stops = [s for s in self.record()["stops"] if s["order"] == "repass_diff_failed"]
         self.assertEqual(len(stops), 1, self.out)
         self.assertEqual(stops[0]["seat"], "originator")
 
     def test_a_repass_diff_that_cannot_run_runs_no_agent_and_exits_10(self):
-        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.agents(default="default", inspector="first", inspector_repass="second")
         self.repass()
         self.break_the_diff()
-        p = self.run_xv("step", "guardian", "s1")
+        p = self.run_xv("step", "inspector", "s1")
         self.assertEqual(self.ran(), [])
         self.assertEqual(p.returncode, 10, self.out)
 
     def test_a_repass_step_runs_the_repass_diff_once_for_both_the_prompt_and_the_command(self):
-        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.agents(default="default", inspector="first", inspector_repass="second")
         self.repass()
         real, bin_dir = shutil.which("git"), os.path.join(self.tmp, "bin")
         diffs = os.path.join(self.tmp, "diffs.log")
@@ -294,16 +294,16 @@ class RepassAmendmentsTest(RepassCase):
         path = os.environ["PATH"]
         os.environ["PATH"] = bin_dir + os.pathsep + path
         self.addCleanup(os.environ.__setitem__, "PATH", path)
-        self.run_xv("step", "guardian", "s1")
+        self.run_xv("step", "inspector", "s1")
         self.assertEqual(self.ran(), ["second:repass"], self.out)
         with open(diffs) as f:
             self.assertEqual(len(f.read().splitlines()), 1, self.out)
 
     def test_xv_prompt_guardian_with_a_failed_repass_diff_exits_2_and_writes_no_stop(self):
-        self.agents(default="default", guardian="first", guardian_repass="second")
+        self.agents(default="default", inspector="first", inspector_repass="second")
         self.repass()
         self.break_the_diff()
-        p = self.run_xv("prompt", "guardian", "s1")
+        p = self.run_xv("prompt", "inspector", "s1")
         self.assertEqual(p.returncode, 2, self.out)
         self.assertEqual([s for s in self.record()["stops"] if s["order"] == "repass_diff_failed"], [])
 
@@ -325,7 +325,7 @@ class PacketFromMainCheckoutTest(RepassCase):
 
     def test_the_packet_head_is_the_head_of_the_slices_worktree(self):
         self.packet_from_main()
-        guardian = self.record()["checks"]["guardian"]
+        guardian = self.record()["checks"]["inspector"]
         self.assertEqual(guardian["packet_head"], self.wt_head)
 
     def test_the_packet_path_is_relative_to_the_slices_worktree(self):
@@ -347,11 +347,11 @@ class AcceptedWallRecommendationTest(RepassCase):
 
     def report(self, recs):
         out = ("done\n```xv-report\n" + json.dumps(
-            {"agent": "guardian", "status": "done", "summary": "ok", "wall_recommendations": recs}) + "\n```\n")
+            {"agent": "inspector", "status": "done", "summary": "ok", "wall_recommendations": recs}) + "\n```\n")
         path = os.path.join(self.tmp, "guardian-out.txt")
         with open(path, "w") as f:
             f.write(json.dumps({"result": out}))
-        self.xv("record", "report", "s1", "guardian", path, cwd=self.wt)
+        self.xv("record", "report", "s1", "inspector", path, cwd=self.wt)
 
     def accepted_tests(self):
         return [r["test"] for r in self.record()["wall_recommendations"] if r.get("accepted")]

@@ -6,11 +6,12 @@ slice back to the loop at a step.
 
 The watch's session is the person's pair. At the person's direction it writes and changes tests and code. While the
 pairing is open, `xv step`, `xv run`, `xv close`, `xv slice rebase` and `xv record report` refuse on the slice. A test
-written or changed in a pairing is not blind: the record and the packet say so, and the guardian runs fresh after.
+written or changed in a pairing is not blind: the record and the inspection report say so, and the inspector runs fresh
+after.
 
 Usage:
   xv pairing start <id> --by <name> --why "<why>" [--session <reader>:<id or file>] [--agent <name>]
-  xv pairing end <id> --next maker|cleaner|guardian|scenario
+  xv pairing end <id> --next maker|cleaner|inspector|test-writer
 """
 
 import argparse
@@ -24,9 +25,9 @@ import packet as packetlib  # noqa: E402
 import record  # noqa: E402
 import spend as spendlib  # noqa: E402
 import wall  # noqa: E402
-from xvlib import XVError, die, emit, git, load_config, match_any, now, record_path, repo_root, slice_root, solo  # noqa: E402
+from xvlib import XVError, agent_name, die, emit, git, load_config, match_any, now, record_path, repo_root, slice_root, solo  # noqa: E402
 
-RESUME = ("maker", "cleaner", "guardian", "scenario")
+RESUME = ("maker", "cleaner", "inspector", "test-writer")
 AMENDED = "\n### Amended "
 
 
@@ -185,13 +186,13 @@ def cmd_end(a):
     if not p:
         raise XVError(f"no pairing is open on {a.id}")
     if a.next == "close":
-        raise XVError("a pairing does not end at close: the guardian checks the pairing's work in a fresh context "
-                      "first; end it with --next guardian")
+        raise XVError("a pairing does not end at close: the inspector checks the pairing's work in a fresh context "
+                      "first; end it with --next inspector")
     if a.next not in RESUME:
         raise XVError(f"--next is one of {', '.join(RESUME)}")
-    if a.next == "scenario" and body.count(AMENDED) <= p.get("amendments_at_start", 0):
-        raise XVError("--next scenario needs an amendment made since the pairing opened (`xv slice amend`): the "
-                      "scenario agent writes a red for a scenario that changed, not for the pairing's code")
+    if a.next == "test-writer" and body.count(AMENDED) <= p.get("amendments_at_start", 0):
+        raise XVError("--next test-writer needs an amendment made since the pairing opened (`xv slice amend`): the "
+                      "test writer writes a red for a scenario that changed, not for the pairing's code")
     rel = os.path.relpath(path, root)
     own = f".xv/slices/{a.id}."
     dirty = [line[3:] for line in git(["status", "--porcelain", "--untracked-files=all"], root).splitlines()
@@ -236,7 +237,7 @@ def cmd_end(a):
                                           f"{len(work)} commit(s); resumes at {a.next}; spend: {packetlib.spend_words(p)}")
     if p["not_blind"]:
         body = record.log_line(body, "watch", f"pairing {p['n']}: these tests were written or changed in the pairing "
-                                              f"and are not blind: {', '.join(p['not_blind'])}. The guardian checks them "
+                                              f"and are not blind: {', '.join(p['not_blind'])}. The inspector checks them "
                                               "in a fresh context")
     if p["unprefixed"]:
         body = record.log_line(body, "watch", f"pairing {p['n']}: commits without \"{p['prefix']}\": "
@@ -272,7 +273,8 @@ def main(argv=None):
     s.set_defaults(fn=cmd_start)
     s = sub.add_parser("end", help="close the pairing and say where the slice resumes")
     s.add_argument("id")
-    s.add_argument("--next", required=True, help="maker, cleaner, guardian, or scenario after an amendment")
+    s.add_argument("--next", required=True, type=agent_name,
+                   help="maker, cleaner, inspector, or test-writer after an amendment")
     s.set_defaults(fn=cmd_end)
     a = p.parse_args(argv)
     try:

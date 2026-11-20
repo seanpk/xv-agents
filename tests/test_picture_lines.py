@@ -64,7 +64,7 @@ class TheBriefsStateTheRuleTest(RepoCase):
         self.assertRegex(text, r"(?i)line[sd]? up with the item's text")
 
     def test_the_guardian_brief_states_it(self):
-        self.rule("skills", "guardian", "SKILL.md")
+        self.rule("skills", "inspector", "SKILL.md")
 
     def test_the_maker_brief_states_it(self):
         self.rule("skills", "maker", "SKILL.md")

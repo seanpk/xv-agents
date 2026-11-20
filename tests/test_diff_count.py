@@ -29,13 +29,13 @@ class DiffCountTest(RepoCase):
         return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
 
     def test_diff_lines_leaves_out_what_the_record_writes_under_xv(self):
-        for agent in ("forecaster", "scenario", "maker"):
+        for agent in ("forecaster", "test-writer", "maker"):
             self.xv("step", agent, "s1", cwd=self.wt)
         # the slice record under .xv/ has changed since the base; it must not count
         self.assertEqual(self.record()["checks"]["maker"]["diff_lines"], OUTSIDE_XV)
 
     def test_a_file_under_xv_added_before_the_cleaner_does_not_grow_the_count(self):
-        for agent in ("forecaster", "scenario", "maker"):
+        for agent in ("forecaster", "test-writer", "maker"):
             self.xv("step", agent, "s1", cwd=self.wt)
         packet = os.path.join(self.wt, ".xv", "slices", "s1.packet.md")
         with open(packet, "w") as f:

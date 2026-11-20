@@ -15,7 +15,7 @@ import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from xvlib import (XVError, die, git, load_config, read_doc, record_path,  # noqa: E402
+from xvlib import (XVError, agent_name, die, git, load_config, read_doc, record_path,  # noqa: E402
                    repo_root, slice_root, split_front_matter)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -24,12 +24,12 @@ SKILLS = os.path.join(XV_HOME, "skills")
 
 AGENTS = {
     "forecaster": "forecaster/SKILL.md",
-    "scenario": "scenario/SKILL.md",
+    "test-writer": "test-writer/SKILL.md",
     "maker": "maker/SKILL.md",
     "prototype": "maker/prototype.md",
     "cleaner": "cleaner/SKILL.md",
-    "guardian": "guardian/SKILL.md",
-    "listener": "listener/SKILL.md",
+    "inspector": "inspector/SKILL.md",
+    "field-listener": "field-listener/SKILL.md",
     "outsider": "xv-init/outsider-read.md",
     "retro": "xv-retro/retro-brief.md",
 }
@@ -113,7 +113,7 @@ def pointers(agent, root, config, data=None, extra=None):
             b = data["budget"]
             parts = [f"{k} {b[k]}" for k in ("tokens", "usd", "turns") if b.get(k)]
             lines.append(f"- Budget: {', '.join(parts)}. Stop when it is spent.")
-        red_on_build = (((data.get("checks") or {}).get("scenario") or {}).get("red_on_build") or {})
+        red_on_build = (((data.get("checks") or {}).get("test-writer") or {}).get("red_on_build") or {})
         if agent == "maker" and isinstance(data.get("build"), dict) and red_on_build and not red_on_build.get("passes"):
             names = ", ".join(red_on_build.get("failing") or []) or "the red command"
             lines.append(f"The slice starts from the build at `{data['build']['ref']}`. These red tests fail on it, "
@@ -132,7 +132,7 @@ def pointers(agent, root, config, data=None, extra=None):
         lines.append(f"- Test paths (the wall): {', '.join(tests['paths'])}.")
     if agent == "forecaster":
         keys = [f"{a} on {'/'.join(agent_key(config, a))}"
-                for a in ("forecaster", "scenario", "maker", "cleaner", "guardian")]
+                for a in ("forecaster", "test-writer", "maker", "cleaner", "inspector")]
         lines.append(f"- Agents on this slice: {'; '.join(keys)}.")
     xv = "xv" if shutil.which("xv") else os.path.join(XV_HOME, "bin", "xv")
     lines.append(f"- The `xv` command: `{xv}`.")
@@ -203,12 +203,12 @@ def refactor_section(agent, data):
 
 
 def repass_section(root, data):
-    """A guardian re-pass: its earlier packet and the diff made after that packet's commit. A first pass has neither."""
+    """An inspector re-pass: its earlier inspection report and the diff made after that packet's commit. A first pass has neither."""
     packet = (data or {}).get("packet")
     full = os.path.join(root, packet) if packet else None
     if not full or not os.path.isfile(full):
         return ""
-    head = (((data.get("checks") or {}).get("guardian") or {}).get("packet_head")
+    head = (((data.get("checks") or {}).get("inspector") or {}).get("packet_head")
             or git(["log", "-1", "--format=%H", "--", packet], root, check=False).strip())
     if not head:
         return ""
@@ -234,12 +234,12 @@ def build(agent, slice_id=None, root=None, close=False, init=False, extra=None, 
     extra = list(extra or [])
     if close:
         extra.insert(0, "Mode: close. The slice is done; write the one line on the gap.")
-    if agent == "guardian" and data:
-        extra.insert(0, f"Packet template: `{os.path.join(SKILLS, 'guardian', 'packet.md')}`. "
+    if agent == "inspector" and data:
+        extra.insert(0, f"Packet template: `{os.path.join(SKILLS, 'inspector', 'packet.md')}`. "
                         f"Write the packet to `.xv/slices/{data['id']}.packet.md`.")
         bpath = os.path.join(root, ".xv", "slices", f"{data['id']}.boundary.md")
         if os.path.exists(bpath):
-            extra.insert(1, f"Boundary picture: `.xv/slices/{data['id']}.boundary.md`.")
+            extra.insert(1, f"Boundary diagram: `.xv/slices/{data['id']}.boundary.md`.")
         paired = sorted({f for p in data.get("pairings") or [] if isinstance(p, dict) for f in p.get("not_blind") or []})
         if paired:
             extra.append("These tests were written or changed in a pairing, by the session that also wrote the code, "
@@ -258,14 +258,14 @@ def build(agent, slice_id=None, root=None, close=False, init=False, extra=None, 
     if agent == "maker" and (data or {}).get("kind") != "refactor":
         text = "\n".join(l for l in text.splitlines() if not l.startswith(REFACTOR_POINT))
     return (text + ("\n\n" + part.strip() if part else "") + "\n" + refactor_section(agent, data) + answer_section(data, body)
-            + ((repass if isinstance(repass, str) else repass_section(root, data)) if agent == "guardian" and repass else "")
+            + ((repass if isinstance(repass, str) else repass_section(root, data)) if agent == "inspector" and repass else "")
             + commands_section(config, agent)
             + pointers(agent, root, config, data, extra) + "\n")
 
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="xv prompt", description=__doc__.split("\n")[0])
-    p.add_argument("agent")
+    p.add_argument("agent", type=agent_name)
     p.add_argument("id", nargs="?")
     p.add_argument("--close", action="store_true")
     p.add_argument("--init", action="store_true")

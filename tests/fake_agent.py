@@ -101,7 +101,7 @@ if title.startswith("# The forecaster"):
         report(agent="forecaster", status="done", summary="forecast",
                forecast={"keys": [{"harness": "sh", "model": "default", "tokens": 1000, "basis": []}],
                          "wall_s": 10, "shape": "none", "breadth": "one comparison"})
-elif title.startswith("# The scenario agent"):
+elif title.startswith(("# The test writer", "# The scenario agent")):
     with open("tests/test_red.py", "w") as f:
         f.write("import unittest\nfrom datetime import date\nfrom pantry.store import Store\n\n\n"
                 "class Red(unittest.TestCase):\n    def test_milk_today(self):\n        s = Store()\n"
@@ -141,7 +141,7 @@ elif title.startswith("# The scenario agent"):
     extra.update(json.loads(os.environ.get("FAKE_REPORT_EXTRA") or "{}"))
     for key in (os.environ.get("FAKE_REPORT_DROP") or "").split():
         extra.pop(key, None)
-    report(agent="scenario", status="red", summary="red",
+    report(agent="test-writer", status="red", summary="red",
            red={"files": red_files, "command": os.environ.get("FAKE_RED_COMMAND") or "python3 -m unittest tests.test_red",
                 "failure": "Lists differ", "watch_before_merge": None}, **extra)
 elif title.startswith("# The maker") and "prototype" not in title:
@@ -220,7 +220,7 @@ elif title.startswith("# The cleaner"):
                         "--by", "cleaner"], check=True)
     extra = json.loads(os.environ.get("FAKE_CLEANER_REPORT_EXTRA") or "{}")
     report(agent="cleaner", status="done", summary="nothing to fix", commit=None, applied=[], **extra)
-elif title.startswith("# The guardian"):
+elif title.startswith(("# The inspector", "# The guardian")):
     packet_path = ".xv/slices/pr-packet.md" if sid == "pr-packet" else f".xv/slices/{sid}.packet.md"
     miss = os.environ.get("FAKE_SCENARIO_MISS")
     expected = os.environ.get("FAKE_PACKET_EXPECTED_MOVES", "0")
@@ -233,7 +233,7 @@ elif title.startswith("# The guardian"):
                    os.environ.get("FAKE_PACKET_EXTRA", "")))
         if miss:
             f.write("\n## Scenario misses\n\n- %s (evidence: tests/test_red.py:7)\n" % miss)
-    report(agent="guardian", status="done", summary="no stop", packet=f".xv/slices/{sid}.packet.md",
+    report(agent="inspector", status="done", summary="no stop", packet=f".xv/slices/{sid}.packet.md",
            shape_change="no", pitch_contradiction="no")
 elif not title.startswith("# The maker, with a prototype brief"):
     print("no brief I know")

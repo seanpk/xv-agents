@@ -65,7 +65,7 @@ class PacketTest(unittest.TestCase):
         self.assertFalse(any("change_misses_scenario" in p for p in problems))
 
     def test_the_packet_template_shows_the_fields_and_a_misses_section(self):
-        text = open(os.path.join(HOME, "skills", "guardian", "packet.md")).read()
+        text = open(os.path.join(HOME, "skills", "inspector", "packet.md")).read()
         front = text.split("---")[1]
         self.assertRegex(front, r"(?m)^change_misses_scenario: ")
         self.assertRegex(front, r"(?m)^shape_change: .*accepted")
@@ -73,7 +73,7 @@ class PacketTest(unittest.TestCase):
         self.assertRegex(text, r"(?im)^## .*miss")
 
     def test_the_guardian_brief_names_change_misses_scenario_and_what_a_miss_cites(self):
-        text = open(os.path.join(HOME, "skills", "guardian", "SKILL.md")).read()
+        text = open(os.path.join(HOME, "skills", "inspector", "SKILL.md")).read()
         self.assertIn("change_misses_scenario", text)
         self.assertRegex(text, r"(?i)binding decision")
 
@@ -156,7 +156,7 @@ class PacketFieldDocsTest(unittest.TestCase):
         self.assertEqual(self.allowed("pitch_contradiction"), ["yes", "no"])
 
     def test_the_packet_template_names_every_allowed_value(self):
-        self.check(self.read("skills", "guardian", "packet.md"), "skills/guardian/packet.md")
+        self.check(self.read("skills", "inspector", "packet.md"), "skills/guardian/packet.md")
 
     def test_the_readme_names_every_allowed_value(self):
         self.check(self.read("README.md"), "README.md")

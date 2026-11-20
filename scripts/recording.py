@@ -6,7 +6,7 @@ wrong result. This reads one and writes a test skeleton that replays the same
 requests. Expected values come from the recording's `expected` field, which a
 person states, never from running the code. Where a recording has no expected
 value for the step that went wrong, the skeleton fails on purpose and says so;
-the scenario agent fills it in from the scenario's words.
+the test writer fills it in from the scenario's words.
 
 Reads:
   - an API sequence, JSON: {"steps": [{"request": {...}, "response": {...}, "expected": ...}]}

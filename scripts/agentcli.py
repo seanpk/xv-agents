@@ -31,7 +31,7 @@ def gone(cwd):
 
 def argv_for(config, agent, repass=False):
     agents = config.get("agents") or {}
-    repass_argv = agents.get("guardian_repass") if repass and agent == "guardian" else None
+    repass_argv = agents.get("inspector_repass") if repass and agent == "inspector" else None
     argv = repass_argv or agents.get(agent) or agents.get("default")
     if argv == "session" or argv == ["session"]:
         raise XVError(f"the {agent} is set to run in the person's session: give a subagent the text of "

@@ -10,7 +10,7 @@ class ByNameTest(RepoCase):
         return self.xv("prompt", seat, "s1", cwd=wt).stdout
 
     def test_the_scenario_brief_does_not_tell_the_agent_to_record_a_move_itself(self):
-        self.assertNotIn("--by scenario", self.brief("scenario"))
+        self.assertNotIn("--by scenario", self.brief("test-writer"))
 
     def test_the_maker_brief_says_to_record_a_move_with_by_maker(self):
         out = self.brief("maker")
@@ -22,14 +22,14 @@ class ByNameTest(RepoCase):
 
     def test_no_agent_brief_tells_the_agent_to_sign_a_move_with_a_person(self):
         wt = self.new_slice("s1")
-        for seat in ("scenario", "maker", "cleaner"):
+        for seat in ("test-writer", "maker", "cleaner"):
             out = self.brief(seat, wt)
             for line in re.findall(r"xv record move[^\n]*", out):
                 self.assertNotIn("--by <name>", line, seat)
                 self.assertNotIn("--by pat", line, seat)
 
     def test_the_scenario_brief_says_when_an_old_assertion_may_change(self):
-        out = self.brief("scenario")
+        out = self.brief("test-writer")
         step6 = re.search(r"(?m)^6\. .*$", out).group(0)
         may_not = next(l for l in out.splitlines()
                        if l.startswith("- ") and "existing assertion" in l)
@@ -38,7 +38,7 @@ class ByNameTest(RepoCase):
             self.assertNotIn("--by scenario", line)
 
     def test_the_scenario_may_not_list_forbids_recording_a_move_itself(self):
-        out = self.brief("scenario")
+        out = self.brief("test-writer")
         section = out.split("## May not", 1)[1].split("\n## ", 1)[0]
         bullets = [l for l in section.splitlines() if l.startswith("- ")]
         self.assertTrue(any(re.search(r"\b(never|not)\b", b, re.I)
@@ -46,7 +46,7 @@ class ByNameTest(RepoCase):
                             for b in bullets), bullets)
 
     def test_the_scenario_brief_numbers_its_steps_in_order(self):
-        out = self.brief("scenario")
+        out = self.brief("test-writer")
         start = out.index("## Make it red")
         end = out.index("### With Playwright")
         labels = re.findall(r"(?m)^(\d+)([a-z]?)\. ", out[start:end])
@@ -56,7 +56,7 @@ class ByNameTest(RepoCase):
 
     # 6. the brief says each red test sets every stand-in setting it depends on
     def test_the_scenario_brief_says_a_red_test_sets_every_stand_in_setting_its_result_depends_on(self):
-        out = " ".join(self.brief("scenario").split())
+        out = " ".join(self.brief("test-writer").split())
         sentences = re.split(r"(?<=[.!?])\s+", out)
         self.assertTrue(any("stand-in" in s and "every" in s and "setting" in s
                             and re.search(r"\bdefault\b", s) and re.search(r"\b(not|never)\b", s)
@@ -65,7 +65,7 @@ class ByNameTest(RepoCase):
 
     # 10. the scenario brief says the report names the file each slice-only test checks
     def test_the_scenario_brief_says_the_report_names_the_file_each_slice_only_test_checks(self):
-        out = " ".join(self.brief("scenario").split())
+        out = " ".join(self.brief("test-writer").split())
         sentences = re.split(r"(?<=[.!?])\s+", out)
         self.assertTrue(any("slice-only" in s.lower().replace("slice_only", "slice-only")
                             and "checks" in s and re.search(r"\bfile\b", s) for s in sentences),

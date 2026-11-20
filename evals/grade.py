@@ -256,7 +256,7 @@ def packet_text(ctx):
 
 
 def packet_field(ctx, field):
-    """A fixed field as the guardian wrote it in the packet. The record's copy is
+    """A fixed field as the inspector wrote it in the packet. The record's copy is
     set to yes when the packet is missing, so it cannot tell a review from none."""
     p = packet_path(ctx)
     if not p:
@@ -351,7 +351,7 @@ def stop_accept_moves(ctx):
 def boundary_in_packet(ctx):
     t = packet_text(ctx)
     ok = bool(re.search(r"(?i)boundary", t)) and ("mermaid" in t or re.search(r"\bapi\b.*\bstore\b|\bstore\b.*\bapi\b", t, re.S))
-    return bool(ok), "the boundary picture is in the packet" if ok else "no boundary picture"
+    return bool(ok), "the boundary diagram is in the inspection report" if ok else "no boundary diagram"
 
 
 def findings_cited(ctx):
@@ -576,7 +576,7 @@ def defect_fixed(ctx):
 def steps_ran(ctx):
     reports = (record(ctx).get("checks") or {}).get("reports", [])
     agents = [r.get("agent") for r in reports]
-    want = ["forecaster", "scenario", "maker", "cleaner", "guardian"]
+    want = ["forecaster", "test-writer", "maker", "cleaner", "inspector"]
     missing = [a for a in want if a not in agents]
     return not missing, f"ran: {agents}" if not missing else f"missing: {missing}; ran: {agents}"
 

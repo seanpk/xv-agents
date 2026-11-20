@@ -84,9 +84,102 @@ OLD_FIELDS = {"set_by": "originator", "scenario_miss": "change_misses_scenario",
               "amended_at_report": "reports_before_amend"}
 OLD_STOP_FIELDS = {"send_back": "sendback", "sent_back": "sendback", "sent_back_to": "sendback_to"}
 OLD_ORDERS = {"red_misses_point": "report_misses_outcome", "scenario_miss": "change_misses_scenario",
-              "accept_moves": "moves_to_accept", "read_only_broken": "read_only_changed"}
+              "accept_moves": "moves_to_accept", "read_only_broken": "read_only_changed",
+              "scenario_stopped": "test_writer_stopped", "guardian_stopped": "inspector_stopped"}
 OLD_FORECAST = {"keys": "rows", "shape": "shape_breadth", "breadth": "shape_note"}
 OLD_CHECKS = {"missed_points": "missed_outcomes", "red_joined": "red_joined_unsafely"}
+
+
+# The agents' names before #168. Each old name still reads as the new one, with a warning, until #204 drops it.
+OLD_AGENTS = {"scenario": "test-writer", "guardian": "inspector", "listener": "field-listener"}
+OLD_AGENT_KEYS = {"scenario": "test-writer", "guardian": "inspector", "guardian_repass": "inspector_repass",
+                  "listener": "field-listener"}
+OLD_CONFIG_KEYS = {"listener": "field_listener"}
+DROP_ISSUE = "#204 (Drop the old agent names kept after the #168 rename)"
+_warned = set()
+
+
+def warn_old_name(old, new):
+    """One line on stderr, once per process for each old name: it names the new name and the issue that drops it."""
+    if (old, new) in _warned:
+        return
+    _warned.add((old, new))
+    print(f"xv: {old} is an old name; use {new}. The old name still works until {DROP_ISSUE}.", file=sys.stderr)
+
+
+def agent_name(name, what="the step"):
+    """The new name for an agent or step a person or a script gave by its old name, with a warning; else `name`."""
+    if name in OLD_AGENTS:
+        warn_old_name(f"{what} {name!r}", repr(OLD_AGENTS[name]))
+        return OLD_AGENTS[name]
+    return name
+
+
+def _stored_name(value, where):
+    """A step name stored in a record: the old one reads as the new one, with a warning."""
+    if isinstance(value, str) and value in OLD_AGENTS:
+        warn_old_name(f"{value!r} in a slice record's {where}", f"{OLD_AGENTS[value]!r} (the next `xv` write saves it)")
+        return OLD_AGENTS[value]
+    return value
+
+
+def _upgrade_steps(data):
+    """Old step names stored as values or keys: next, step_start, checks and its reports, stops, spend, pairings,
+    moved_tests. Returns a new dict; `data` is not changed."""
+    data = dict(data)
+    if "next" in data:
+        data["next"] = _stored_name(data["next"], "next")
+    if isinstance(data.get("step_start"), dict):
+        data["step_start"] = {**data["step_start"], "agent": _stored_name(data["step_start"].get("agent"), "step_start")}
+    if isinstance(data.get("checks"), dict):
+        checks = {}
+        for k, v in data["checks"].items():
+            if k == "reports" and isinstance(v, list):
+                v = [{**r, "agent": _stored_name(r.get("agent"), "reports")} if isinstance(r, dict) else r for r in v]
+            new = _stored_name(k, "checks")
+            if new != k and new in data["checks"]:
+                continue  # the new key is there already: it wins
+            checks[new] = v
+        data["checks"] = checks
+    if isinstance(data.get("stops"), list):
+        stops = []
+        for s in data["stops"]:
+            if isinstance(s, dict):
+                s = dict(s)
+                for k in ("step", "sendback_to"):
+                    if k in s:
+                        s[k] = _stored_name(s[k], f"stops {k}")
+                if isinstance(s.get("sendback"), dict) and "to" in s["sendback"]:
+                    s["sendback"] = {**s["sendback"], "to": _stored_name(s["sendback"]["to"], "stops sendback")}
+            stops.append(s)
+        data["stops"] = stops
+    for field, keys in (("spend", ("step",)), ("pairings", ("step", "next")), ("moved_tests", ("by",))):
+        if isinstance(data.get(field), list):
+            data[field] = [{**r, **{k: _stored_name(r[k], f"{field} {k}") for k in keys if k in r}}
+                           if isinstance(r, dict) else r for r in data[field]]
+    return data
+
+
+def upgrade_config(config):
+    """Read a config written before #168 as if it used the new names: agents.guardian, agents.guardian_repass,
+    agents.scenario and agents.listener, and the top-level listener. A new key already there wins. Pure."""
+    config = dict(config)
+    for old, new in OLD_CONFIG_KEYS.items():
+        if old in config:
+            warn_old_name(f"{old}: in .xv/config.yml", f"{new}:")
+            value = config.pop(old)
+            config.setdefault(new, value)
+    if isinstance(config.get("agents"), dict):
+        agents = {}
+        for k, v in config["agents"].items():
+            if k in OLD_AGENT_KEYS:
+                warn_old_name(f"agents.{k} in .xv/config.yml", f"agents.{OLD_AGENT_KEYS[k]}")
+                if OLD_AGENT_KEYS[k] in config["agents"]:
+                    continue
+                k = OLD_AGENT_KEYS[k]
+            agents[k] = v
+        config["agents"] = agents
+    return config
 
 
 def _renamed(d, names):
@@ -109,7 +202,7 @@ def _renamed_stop(stop):
 
 def upgrade_names(data):
     """Read a record or packet written before the rename as if it used the new names. Pure; returns a new dict."""
-    data = _renamed(data, OLD_FIELDS)
+    data = _upgrade_steps(_renamed(data, OLD_FIELDS))
     if isinstance(data.get("moved_tests"), int) and not isinstance(data.get("moved_tests"), bool):
         data = {("moved_tests_count" if k == "moved_tests" else k): v for k, v in data.items()}
     if isinstance(data.get("forecast"), dict):
@@ -324,7 +417,7 @@ def load_config(root):
     if not os.path.exists(path):
         return json.loads(json.dumps(DEFAULT_CONFIG))
     with open(path, encoding="utf-8") as f:
-        return deep_merge(DEFAULT_CONFIG, parse_config_text(f.read()))
+        return deep_merge(DEFAULT_CONFIG, upgrade_config(parse_config_text(f.read())))
 
 
 # ---------------------------------------------------------------- git and paths

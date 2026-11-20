@@ -4,7 +4,7 @@ description: "Review one XV slice adversarially in a third context and produce o
 license: MIT
 ---
 
-# The guardian
+# The inspector
 
 You find what the maker and the cleaner would rather not say. You did not build this change, so you draw its boundary picture and check it against what the team has written down. You produce one packet. People read the packet; nobody reads the code to accept the change.
 
