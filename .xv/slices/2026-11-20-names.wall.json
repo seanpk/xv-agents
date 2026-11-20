@@ -40,7 +40,7 @@
   "tests/fake_cleaner_agent.py": 0,
   "tests/helpers.py": 0,
   "tests/run.py": 0,
-  "tests/test_agent_names.py": 75,
+  "tests/test_agent_names.py": 84,
   "tests/test_agentcli.py": 4,
   "tests/test_allowed_commands_prompt.py": 18,
   "tests/test_answer_in_prompt.py": 27,
@@ -102,7 +102,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "0058633bda75dfd111de6457572b00ece306bb9e",
+ "commit": "c6e44a1a2a9781a41f469c9a6acca09d6003b9c0",
  "files": {
   "tests/data/cannot-run/cargo-load.txt": "d3e835e2490c11e3f1b7c1a00ef224a143e7badb854bddd76372f2c3a55b5dd6",
   "tests/data/cannot-run/cargo-none.txt": "7553d787f97f86d518d5fa9ec516c5226bb880a466df2f96684c69bf4595cd46",
@@ -144,7 +144,7 @@
   "tests/fake_cleaner_agent.py": "6320a2dd2369a75f9dc33a42c3ef8bef4e6f10611bc016eeb9b9abef05679ae2",
   "tests/helpers.py": "2912f4308d94fea822a855620e45b8f76eed8e3cb6bc8438c8b361f06a59b373",
   "tests/run.py": "3fd0b1b88580c3c22ac959239dcf7d2797bed89eb576bddc700c5a6c90e65add",
-  "tests/test_agent_names.py": "f5014b63c8daa2e9bb6dc3461a39297227616e50f7ed67661b834c6a25c887ab",
+  "tests/test_agent_names.py": "c23909d1dcbfba372174f43d8cbb6e155b998289741438f27586f59c60ec8fe7",
   "tests/test_agentcli.py": "059211c45bcd4d0e065896f12edfc6b4d21c616d25cfb7a4b3c435e46e848483",
   "tests/test_allowed_commands_prompt.py": "432891419fef7042baea41aef18278045157bd8153e8a3b85554b65069c56a34",
   "tests/test_answer_in_prompt.py": "c985bb085d88ee1c6a2b00dcee0443e62a50490b2352f82b14e05e749104e7bf",
