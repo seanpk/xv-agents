@@ -1,5 +1,5 @@
 {
-  "name": "scenario-har",
+  "name": "test-writer-har",
   "increment": 3,
   "agent": "test-writer",
   "what": "the test writer turns a browser's HAR export of the defect into a red that replays it",

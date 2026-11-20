@@ -1,5 +1,5 @@
 {
-  "name": "guardian-pitch",
+  "name": "inspector-pitch",
   "increment": 1,
   "agent": "inspector",
   "what": "the inspector finds a change that sends household data to a partner, against the pitch, and stops it for two people",

@@ -15,11 +15,20 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from spend import row_tokens  # noqa: E402
 
 
+# The eval ids before the #168 rename. A past result keeps its old id; it is read under the new one,
+# so past runs and new runs share a row.
+OLD_IDS = {"guardian-pitch": "inspector-pitch", "guardian-moves": "inspector-moves",
+           "listener-packet": "field-report", "scenario-defect": "test-writer-defect",
+           "scenario-feature": "test-writer-feature", "scenario-har": "test-writer-har"}
+
+
 def load(d):
     runs = []
     for path in sorted(glob.glob(os.path.join(d, "*.json"))):
         with open(path) as f:
-            runs.append(json.load(f))
+            run = json.load(f)
+        run["scenario"] = OLD_IDS.get(run.get("scenario"), run.get("scenario"))
+        runs.append(run)
     return runs
 
 

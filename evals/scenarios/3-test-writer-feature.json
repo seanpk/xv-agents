@@ -1,5 +1,5 @@
 {
-  "name": "scenario-feature",
+  "name": "test-writer-feature",
   "increment": 3,
   "agent": "test-writer",
   "what": "the test writer writes a feature's red from words, at the surface a user meets, with a note for the person who watches the first green",

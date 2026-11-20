@@ -1,5 +1,5 @@
 {
-  "name": "guardian-moves",
+  "name": "inspector-moves",
   "increment": 4,
   "agent": "inspector",
   "what": "the inspector lists two recorded test moves for a changed message, finds no shape change and no pitch contradiction, and hands the merge to the person",

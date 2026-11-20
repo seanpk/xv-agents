@@ -1,5 +1,5 @@
 {
-  "name": "scenario-defect",
+  "name": "test-writer-defect",
   "increment": 1,
   "agent": "test-writer",
   "what": "the test writer turns a recorded defect into a red test and touches nothing else",
