@@ -18,12 +18,36 @@ An entry with three or more sightings that still splits people is marked `(watch
 
 ## Open
 
+### 2026-11-19: A rebase puts a slice's CHANGELOG line under the newest release heading
+- added: 2026-11-19 by Sean Kennedy
+- from: 2026-11-19-wall-keep, `xv slice rebase` onto v0.5.1 (commit 07af240), then the watch's fix commit 745db5f ("Keep the slice's CHANGELOG line under Unreleased after the rebase")
+- miss: The release had renamed `## Unreleased` to `## 0.5.1, 2026-11-19` on main. The rebase kept the slice's line, but under the 0.5.1 heading, so it would have shipped listed as a 0.5.1 change. The watch moved it back by hand before the PR. Sean asked for it to be recorded to prioritize later.
+- rule: A rebase puts a slice's CHANGELOG line under the newest release heading
+- seen: [seanpk/xv-agents@2026-11-19]
+
+
+### 2026-11-19: The guardian counts a slice-only removal as an expected move
+- added: 2026-11-19 by Sean Kennedy
+- from: 2026-11-19-wall-keep, `expected_moves_wrong` at 23:57:43 (front matter `expected_moves` is 1, the record holds 0); the answer settled "the guardian counted a slice-only removal as an expected move"
+- miss: `packet_problems` caught the mismatch mechanically, which is the check doing its job. The guardian still wrote 1 where the record holds 0, and a person had to answer a stop to say so. One sighting. It is not a rule, because the existing check already holds the miss and the guardian's count rule is in its brief.
+- rule: The guardian counts a slice-only removal as an expected move
+- seen: [seanpk/xv-agents@2026-11-19]
+
+
+### 2026-11-19: A test-only slice, where the tests pass on the current code, has no path
+- added: 2026-11-19 by Sean Kennedy
+- from: 2026-11-19-pick-tests, `scenario_stopped` at 01:21:42 (cause "tool: XV has no path for a slice that only adds tests"; the stop bundled four `red_misses_scenario` firings); the forecaster's close says the maker never ran
+- miss: Both new tests passed on the current code, so no red was possible. The scenario agent had to stop, a person had to answer 1 ("keep as green pins"), and the slice went on to the cleaner with no maker. The stop, its answer and the missing path all concern a standing order, and the order table is not mine to change.
+- rule: A test-only slice, where the tests pass on the current code, has no path
+- seen: [seanpk/xv-agents@2026-11-19]
+
+
 ### 2026-11-18: A check that cannot read its input must stop, and each slice found one more input shape it passes
 - added: 2026-11-18 by Sean Kennedy
-- from: 2026-11-18-report-tree, `change_misses_scenario` at 04:29:34, 12:32:58, 13:10:41 and 18:24:04 and the guardian summary at 18:52:00 (`::`, `#`, hyphenated paths, prose assertions, a prose assertion ending in a plain word, each still passing unchecked in `test_names`, `scripts/record.py:892-909`); 2026-11-16-repass, `change_misses_scenario` at 20:23:50 (the re-pass `git` helper ignores the exit status, so a failed diff reads as an empty diff, `scripts/prompt.py:212`)
+- from: 2026-11-18-report-tree, `change_misses_scenario` at 04:29:34, 12:32:58, 13:10:41 and 18:24:04 and the guardian summary at 18:52:00 (`::`, `#`, hyphenated paths, prose assertions, a prose assertion ending in a plain word, each still passing unchecked in `test_names`, `scripts/record.py:892-909`); 2026-11-16-repass, `change_misses_scenario` at 20:23:50 (the re-pass `git` helper ignores the exit status, so a failed diff reads as an empty diff, `scripts/prompt.py:212`); 2026-11-19-removal-line, guardian `change_misses_scenario` at 03:21:44 (`scripts/run.py:1283-1285` still reads the slice-only `--assertion` that outcome 1 says nothing reads); 2026-11-18-move-names, guardian `change_misses_scenario` at 21:16:33 (the command checks form but never reads the file, `scripts/record.py:253`)
 - miss: Decision 12 says a check whose input cannot run "stops for a person; it never passes". On two slices the guardian found a check that passed when it could not read its input. On `report-tree` it was found four times, one input shape at a time, and the same stop fired as a stall. No lint can see it. A test over a table of input shapes, with the default being "stop", would hold it, but that is a design change to write once, not a check to bolt on. Evidence only.
 - rule: A check that cannot read its input must stop, and each slice found one more input shape it passes
-- seen: [seanpk/xv-agents@2026-11-18]
+- seen: [seanpk/xv-agents@2026-11-18, seanpk/xv-agents@2026-11-19]
 
 
 ### 2026-11-12: Renaming a test file a build added trips the wall hook as an unrecorded move
@@ -68,10 +92,10 @@ An entry with three or more sightings that still splits people is marked `(watch
 
 ### 2026-11-04: A slice whose original scenario points were missed twice shows the same two-pass spend as an overrun
 - added: 2026-11-04 by Sean Kennedy
-- from: 2026-11-04-scenario-catches, `overran its budget` flag and four `red_misses_point` stops; 2026-11-04-orders-home, stops 17:13:16 to 19:04:00; 2026-11-04-refactor-kind, the forecaster's close note ("one reopen became about six", sonnet +51% tokens) and the `shape_or_pitch` stop at 05:17:57 that added points 12-15; 2026-11-04-slice-rebase, 21 scenario points after eight guardian passes, with `scenario_miss` at 05:11, 06:12, 06:38, 07:04, 07:53, 08:13 and 09:10 and the budget raised; 2026-11-05-directed-edit, `spend` 1,692,933 tokens against a forecast of 700,000, with `scenario_stopped` x2, `red_misses_point` x4, `scenario_miss` and `maker_stopped`; 2026-11-05-scenario-checks and 2026-11-05-rework-signal, overran their budget
+- from: 2026-11-04-scenario-catches, `overran its budget` flag and four `red_misses_point` stops; 2026-11-04-orders-home, stops 17:13:16 to 19:04:00; 2026-11-04-refactor-kind, the forecaster's close note ("one reopen became about six", sonnet +51% tokens) and the `shape_or_pitch` stop at 05:17:57 that added points 12-15; 2026-11-04-slice-rebase, 21 scenario points after eight guardian passes, with `scenario_miss` at 05:11, 06:12, 06:38, 07:04, 07:53, 08:13 and 09:10 and the budget raised; 2026-11-05-directed-edit, `spend` 1,692,933 tokens against a forecast of 700,000, with `scenario_stopped` x2, `red_misses_point` x4, `scenario_miss` and `maker_stopped`; 2026-11-05-scenario-checks and 2026-11-05-rework-signal, overran their budget; 2026-11-19-removal-line, spend lines (scenario ran 5 times, maker 3, cleaner 2, guardian 2), the `budget_spent` stop at 03:26:37, and the forecaster's close at 04:17:06 ("the scenario ran five times, not once"); the forecast priced `rounds: 2`
 - miss: the scenario-catches overrun follows four answered stops that each sent the slice back for a full scenario pass. This repeats the existing rule on answered stops that add work; evidence only, no new rule. It would count as a sighting for that rule's entry.
 - rule: A slice whose original scenario points were missed twice shows the same two-pass spend as an overrun
-- seen: [seanpk/xv-agents@2026-11-04, seanpk/xv-agents@2026-11-05, seanpk/xv-agents@2026-11-06]
+- seen: [seanpk/xv-agents@2026-11-04, seanpk/xv-agents@2026-11-05, seanpk/xv-agents@2026-11-06, seanpk/xv-agents@2026-11-19]
 
 
 ### 2026-10-27: A test that asserts less can be found by a check, not only by judgement
