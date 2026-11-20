@@ -562,6 +562,44 @@ class KeptPickTest(PrototypesTest):
         self.assertFalse(os.path.exists(os.path.join(self.wt, self.BUILD_FILE)), "the pick was merged")
         self.assertIn(self.record().get("build"), (None, "none"))
 
+    def test_a_kept_pick_that_conflicts_with_the_slice_branch_is_refused_and_only_the_variant_tip_moves(self):
+        store = "pantry/store.py"
+        mine = os.path.join(self.wt, store)
+        text = open(mine).read()
+        open(mine, "w").write(text + "\n# the slice branch's own line\n")
+        sh(["git", "add", "-A"], self.wt)
+        sh(["git", "commit", "-q", "--no-verify", "-m", "slice moves store"], self.wt)
+        theirs = os.path.join(self.proto_wt("b"), store)  # the variant's work, left uncommitted
+        open(theirs, "w").write(text + "\n# the variant's different line\n")
+        tip_before = sh(["git", "rev-parse", "xv/p1-proto-b"], self.repo).stdout.strip()
+        self.snapshot()
+        p = self.pick("--keep", check=False)
+        self.assert_refused_and_nothing_changed(p)
+        self.assertNotIn("Traceback", p.stderr)
+        self.assertEqual(sorted(self.branches()), ["xv/p1-proto-a", "xv/p1-proto-b", "xv/p1-proto-c"])
+        self.assertIn(self.record().get("build"), (None, "none"))
+        self.assertEqual(self.record()["kind"], "prototype")
+        tip_after = sh(["git", "rev-parse", "xv/p1-proto-b"], self.repo).stdout.strip()
+        self.assertNotEqual(tip_after, tip_before, "the variant's uncommitted work was not committed before the refusal")
+        self.assertTrue(self.is_ancestor(tip_before, tip_after))
+        self.assertIn("the variant's different line",
+                      sh(["git", "show", f"{tip_after}:{store}"], self.repo).stdout)
+
+    def test_a_pick_without_keep_with_a_missing_scenario_file_is_refused_and_changes_nothing(self):
+        self.snapshot()
+        before_worktrees = self.worktrees()
+        gone = os.path.join(self.tmp, "no-such-scenario.md")
+        self.assertFalse(os.path.exists(gone))
+        p = self.xv("prototype", "pick", "p1", "--variant", "b", "--by", "pat,sam",
+                    "--scenario-file", gone, cwd=self.wt, check=False)
+        self.assert_refused_and_nothing_changed(p)
+        self.assertNotIn("Traceback", p.stderr)
+        self.assertEqual(sorted(self.branches()), ["xv/p1-proto-a", "xv/p1-proto-b", "xv/p1-proto-c"])
+        self.assertEqual(self.worktrees(), before_worktrees, "a refusal removed a prototype's worktree")
+        for n in "abc":
+            self.assertIn(f"p1-proto-{n}", self.worktrees())
+        self.assertEqual(self.record()["kind"], "prototype")
+
     # 3. a build's edits to .xv/ are dropped, and the log names each with the build commit that holds its copy
     def test_a_kept_pick_drops_its_edits_to_xv_and_the_log_names_each_with_the_build_commit(self):
         rules_before = open(os.path.join(self.wt, ".xv", "rules.md")).read()
