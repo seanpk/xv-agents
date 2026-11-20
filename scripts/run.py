@@ -845,7 +845,7 @@ def step(agent, slice_id, review_again=False):
     pre = pre_step(agent, root, data, config)
     data["step_start"] = {"agent": agent, "commit": head_before}
     record.save(path, data, body)  # a slice-only move reads its line from here
-    scratch =scenario_scratch(root, data, config) if agent == "scenario" and record.has_build(data) else None
+    scratch = scenario_scratch(root, data, config) if agent == "scenario" and record.has_build(data) else None
     extra = None
     if scratch and data.get("build_shared") == "yes":
         extra = [f"The build is at `{data['build']['ref']}`, a reference only: the red tests what the scenario says, "
