@@ -179,8 +179,8 @@ Sean Kennedy sits with them.
   `--share-build` needs `--from` on `xv slice new`, and `--keep` on `xv prototype pick`.
   A slice from a build also has a git ref, `refs/xv/<id>/red`, which holds its red at the base, and `xv close` deletes it.
   The record keeps the build's commit in `build.commit`, so the slice still finds the build when its ref is deleted.
-  In session mode, `xv record report <id> scenario -` runs `scripts/run.py land-scenario` in a subprocess, which lands the red, runs it at the base and on the build, takes the wall baseline at the base, and drops the checkout.
-  `bin/xv` does not route `land-scenario`.
+  In session mode, `xv record report <id> test-writer -` runs `scripts/run.py land-test-writer` in a subprocess, which lands the red, runs it at the base and on the build, takes the wall baseline at the base, and drops the checkout.
+  `bin/xv` does not route `land-test-writer`.
   `xv slice new` refuses a base without a committed `.xv/config.yml`, `pitch.md` and `picture.md`.
   The worktree's own config, from the base, gives `worktrees.setup`, which runs before the forecaster, and `worktrees.teardown`, which runs at close.
   Both run under `tests.timeout`, and a timed-out command keeps its output.
