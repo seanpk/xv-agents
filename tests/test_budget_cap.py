@@ -64,7 +64,7 @@ class BudgetCapTest(BudgetCapSetup):
     def test_a_claude_step_gets_the_dollars_left_not_the_whole_budget(self):
         self.budget(usd=1, tokens=10000000)
         self.spent("forecaster", 0.8)
-        self.xv("step", "scenario", "s1", cwd=self.wt, check=False)
+        self.xv("step", "test-writer", "s1", cwd=self.wt, check=False)
         self.assertAlmostEqual(self.cap_of(self.calls()[0]), 0.2, places=6)
 
     def test_with_no_dollars_left_the_step_does_not_run_though_the_suite_is_green(self):
@@ -72,7 +72,7 @@ class BudgetCapTest(BudgetCapSetup):
         self.spent("forecaster", 0.5)
         self.spent("maker", 0.55)
         self.xv("record", "set", "s1", "suite", '"green"', cwd=self.wt)
-        p = self.xv("step", "guardian", "s1", cwd=self.wt, check=False)
+        p = self.xv("step", "inspector", "s1", cwd=self.wt, check=False)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         stop = json.loads(p.stdout)["stop"]
         self.assertEqual((stop["order"], stop["seat"]), ("budget_spent", "originator"))
@@ -81,7 +81,7 @@ class BudgetCapTest(BudgetCapSetup):
 
     def test_the_token_cap_stops_the_step_before_it_runs(self):
         self.budget(usd=100, tokens=1000)
-        self.spent("scenario", 0.01, tokens=1000)
+        self.spent("test-writer", 0.01, tokens=1000)
         p = self.xv("step", "maker", "s1", cwd=self.wt, check=False)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "budget_spent")
@@ -90,11 +90,11 @@ class BudgetCapTest(BudgetCapSetup):
     def test_a_raised_budget_lets_the_slice_go_on_from_the_step_it_stopped_before(self):
         self.budget(usd=1, tokens=10000000)
         self.spent("maker", 1.05)
-        p = self.xv("step", "guardian", "s1", cwd=self.wt, check=False)
+        p = self.xv("step", "inspector", "s1", cwd=self.wt, check=False)
         self.assertEqual(json.loads(p.stdout)["stop"]["order"], "budget_spent")
         self.budget(usd=2, tokens=10000000)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "raised the budget", cwd=self.wt)
-        self.xv("step", "guardian", "s1", cwd=self.wt, check=False)
+        self.xv("step", "inspector", "s1", cwd=self.wt, check=False)
         self.assertAlmostEqual(self.cap_of(self.calls()[0]), 0.95, places=6)
 
 

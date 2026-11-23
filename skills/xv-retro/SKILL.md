@@ -1,6 +1,6 @@
 ---
 name: xv-retro
-description: "Run a retro on XV slices that stopped, overran their budget, or drew the same guardian finding twice: a guardian-kind context proposes checks and standards, each tied to a moment in a slice record, and a person picks. Also reports how often each standard fires and is overridden. Use when the watch says a retro is due, or a person asks for \"a retro\", \"what should become a check\", \"why do we keep missing this\", or \"which rules should we retire\"."
+description: "Run a retro on XV slices that stopped, overran their budget, or drew the same inspector finding twice: an inspector-kind context proposes checks and standards, each tied to a moment in a slice record, and a person picks. Also reports how often each standard fires and is overridden. Use when the watch says a retro is due, or a person asks for \"a retro\", \"what should become a check\", \"why do we keep missing this\", or \"which rules should we retire\"."
 license: MIT
 ---
 
@@ -8,11 +8,11 @@ license: MIT
 
 A miss turned into a check stops repeating. A miss turned into a sentence may not. This skill turns slice records into candidates a person picks from: checks first, a line in the standards file only for a judgement call.
 
-Own the result: even when agents write all of the code, a person is responsible for what it does. An agent may stop. It may not decide. The retro proposes. The person who set the work going picks. A standard enters `.xv/standards.md` only when they accept it.
+Own the result: even when agents write all of the code, a person is responsible for what it does. The retro proposes. The person who set the work going picks. A standard enters `.xv/standards.md` only when they accept it.
 
 ## When
 
-Not after every slice. After a slice that stopped, overran its budget, or drew the same guardian finding twice. `xv close` says when one is due. At the two standing moments of a burst, before it and as it ends, run `xv retro counts` even when no retro is due.
+Not after every slice. After a slice that stopped, overran its budget, or drew the same inspector finding twice. `xv close` says when one is due. At the two standing moments of a burst, before it and as it ends, run `xv retro counts` even when no retro is due.
 
 ## Run it
 

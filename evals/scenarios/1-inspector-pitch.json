@@ -1,8 +1,8 @@
 {
-  "name": "guardian-pitch",
+  "name": "inspector-pitch",
   "increment": 1,
-  "agent": "guardian",
-  "what": "the guardian finds a change that sends household data to a partner, against the pitch, and stops it for two people",
+  "agent": "inspector",
+  "what": "the inspector finds a change that sends household data to a partner, against the pitch, and stops it for two people",
   "slice": {
     "id": "share-with-grocer",
     "kind": "feature",
@@ -22,7 +22,7 @@
   ],
   "skill_cmd": [
     "step",
-    "guardian",
+    "inspector",
     "{id}"
   ],
   "baseline_prompt": "Review the change on this branch before it is merged (`git diff main..HEAD`). Write your review to review.md. Do not change any other file.",
@@ -31,7 +31,7 @@
     "pitch_contradiction_flagged",
     "shape_flagged",
     "pitch_line_cited",
-    "guardian_did_not_edit",
+    "inspector_did_not_edit",
     "stop_for_two_people",
     "report_present",
     "boundary_in_packet",

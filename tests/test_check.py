@@ -13,7 +13,7 @@ class CheckTest(RepoCase):
     def test_a_relaxing_line_is_reported(self):
         with open(os.path.join(self.repo, ".xv", "rules.md"), "a") as f:
             f.write("\nThe maker may edit tests without a record when the suite is slow.\n"
-                    "Merge automatically when the guardian finds nothing.\n")
+                    "Merge automatically when the inspector finds nothing.\n")
         whys = [h["why"] for h in check.relaxations(self.repo)]
         self.assertIn("drops a guarded step", whys)
         self.assertIn("merges or approves without a person", whys)
@@ -29,10 +29,10 @@ class CheckTest(RepoCase):
         os.makedirs(os.path.join(self.repo, ".claude", "agents"))
         with open(os.path.join(self.repo, ".claude", "agents", "maker.md"), "w") as f:
             f.write("# my maker\n")
-        self.xv("adapt", "claude", "--agents", "guardian")
+        self.xv("adapt", "claude", "--agents", "inspector")
         kinds = {o["file"]: o["kind"] for o in check.overrides(self.repo)}
         self.assertTrue(kinds[".claude/agents/maker.md"].startswith("override with no decision record"))
-        self.assertEqual(kinds[".claude/agents/xv-guardian.md"], "generated, current")
+        self.assertEqual(kinds[".claude/agents/xv-inspector.md"], "generated, current")
 
     def test_entries_carry_their_miss_and_flag_two_repos(self):
         with open(os.path.join(self.repo, ".xv", "learnings.md"), "w") as f:
@@ -57,15 +57,15 @@ class CheckTest(RepoCase):
         self.assertGreaterEqual(len(check.drift(offline=True)), 8)
 
 
-class ScenarioBriefTest(unittest.TestCase):
+class TestWriterBriefTest(unittest.TestCase):
     def test_the_brief_asks_for_covers_and_not_covered_in_the_report(self):
-        with open(os.path.join(HOME, "skills", "scenario", "SKILL.md"), encoding="utf-8") as f:
+        with open(os.path.join(HOME, "skills", "test-writer", "SKILL.md"), encoding="utf-8") as f:
             text = f.read()
         self.assertIn("`covered`", text)
         self.assertIn("`not_covered`", text)
 
     def test_the_brief_report_example_shows_the_list_form_of_a_covers_test(self):
-        with open(os.path.join(HOME, "skills", "scenario", "SKILL.md"), encoding="utf-8") as f:
+        with open(os.path.join(HOME, "skills", "test-writer", "SKILL.md"), encoding="utf-8") as f:
             text = f.read()
         self.assertRegex(text, r'"test": \[\s*"[^"]+"(,\s*"[^"]+")+\s*\]')
 

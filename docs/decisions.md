@@ -2,6 +2,9 @@
 
 Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a two-way door unless it says otherwise: v0.2 can change it from what first use shows. Positions the plan marks as Sean's are not here; they are in [`docs/positions.md`](positions.md). "The dispositions" below are XV's method notes, which are not published with this repo.
 
+The entries keep the agents' names from when each choice was made.
+Since #168 the scenario agent is the test writer, the guardian is the inspector, and the listener is the field listener; what the inspector writes is the inspection report, and what the field listener writes is the field report.
+
 ## Increment 1: skeleton, briefs, record, the watch from a session
 
 1. **Front matter is YAML whose values are JSON.** One `key: value` per line; a value that starts with `[`, `{` or `"` is JSON, anything else is a bare scalar. Every file is valid YAML, and the scripts parse it with the standard library. Lists of objects (moved tests, spend, stops) are one JSON line each, which keeps a diff of the record readable line by line.
@@ -47,10 +50,10 @@ Choices the v0.1 plan left to whoever built it, and what was chosen. Each is a t
 35. **"Watch the first green" rides in the last stop of a feature slice.** The scenario agent's note goes into the question the person gets with the merge. A case they only notice by watching sends the slice back with `--next scenario`.
 36. **The fixture has no browser page in v0.1.** The Playwright output of the converter was checked once by hand: generated from the fixture's recording, run with `npx playwright test` against the fixture's API, it failed on the defect. The evals cover the API-sequence and HAR paths on both harnesses.
 
-## Increment 4: the guardian's packet
+## Increment 4: the inspection report
 
 37. **`xv boundary` parses imports itself**: Python's own parser for `.py`, a regex for JavaScript, TypeScript, Ruby and Go. A module is the first path component under a source root in `.xv/config.yml`; under a root other than `.`, the name includes the root (`app/controllers`), so two roots' `controllers` stay apart. The picture of a change runs the same parser on the base and the working tree, so the two sides compare. The whole-repo picture for `xv-init` uses dependency-cruiser's graph when it is installed in the repo, and never downloads it.
-38. **The boundary picture gives shape hints, not a verdict**: a module added or removed, an edge between modules added or removed, a module that now calls out of the process, a table or a surface path added or removed. The guardian says for each hint whether it changes the shape, and cites it.
+38. **The boundary diagram gives shape hints, not a verdict**: a module added or removed, an edge between modules added or removed, a module that now calls out of the process, a table or a surface path added or removed. The guardian says for each hint whether it changes the shape, and cites it.
 39. **Tables and surface paths come from the added and removed lines of the diff**, by regex: SQL statements and common migration calls, and string literals that look like paths. Cheap and wrong in checkable ways, which is the point.
 40. **The evidence rule is enforced by a script.** After the guardian stops, `xv packet lint --fix` moves any finding in the four check sections that cites no line, file, rule, quote or hunk to "Dropped by the evidence rule" at the end. It stays visible and does not count. A packet whose fixed fields are not `yes` or `no` sets both to `yes`.
 41. **The packet carries `door`, `shape_breadth` and `picture_change` in its front matter** beside the two fixed fields, so the standing orders can read the picture change and a shape wider than the forecast.

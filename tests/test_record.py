@@ -78,14 +78,14 @@ class SliceRecordTest(RepoCase):
         self.assertEqual(data["moved_tests"][0]["by"], "maker")
 
 
-class GuardianReportTest(RepoCase):
-    def test_the_guardians_count_of_moved_tests_is_not_a_record(self):
+class InspectorReportTest(RepoCase):
+    def test_the_inspectors_count_of_moved_tests_is_not_a_record(self):
         wt = self.new_slice("s1")
         path = os.path.join(self.tmp, "out.txt")
         with open(path, "w") as f:
-            f.write('```xv-report\n{"agent": "guardian", "status": "done", "moved_tests": 2, '
+            f.write('```xv-report\n{"agent": "inspector", "status": "done", "moved_tests": 2, '
                     '"shape_change": "no", "pitch_contradiction": "no"}\n```\n')
-        self.xv("record", "report", "s1", "guardian", path, cwd=wt)
+        self.xv("record", "report", "s1", "inspector", path, cwd=wt)
         data = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
         self.assertEqual(data["moved_tests"], [])
 
@@ -159,11 +159,11 @@ class MovedRedFilesTest(RepoCase):
         path = os.path.join(self.tmp, "out.txt")
         with open(path, "w") as f:
             f.write("done.\n```xv-report\n" + json.dumps(report) + "\n```\n")
-        self.xv("record", "report", "s1", "scenario", path, cwd=wt)
+        self.xv("record", "report", "s1", "test-writer", path, cwd=wt)
 
     def slice_with_red(self, red=RED):
         wt = self.new_slice("s1")
-        self.report(wt, {"agent": "scenario", "status": "red", "summary": "r", "red": red})
+        self.report(wt, {"agent": "test-writer", "status": "red", "summary": "r", "red": red})
         return wt
 
     def show(self, wt):
@@ -204,25 +204,25 @@ class MovedRedFilesTest(RepoCase):
 
 
 class SliceOnlyReportTest(RepoCase):
-    def test_the_scenario_reports_slice_only_tests_and_the_record_keeps_them(self):
+    def test_the_test_writer_reports_slice_only_tests_and_the_record_keeps_them(self):
         wt = self.new_slice("s1")
         slice_only = [{"file": "tests/test_x.py", "test": "test_file_is_ts",
                        "why": "only proves the file is .ts, not .js"}]
         path = os.path.join(self.tmp, "out.txt")
         with open(path, "w") as f:
             f.write("```xv-report\n" + json.dumps(
-                {"agent": "scenario", "status": "red", "summary": "r", "red": RED,
+                {"agent": "test-writer", "status": "red", "summary": "r", "red": RED,
                  "slice_only": slice_only}) + "\n```\n")
-        self.xv("record", "report", "s1", "scenario", path, cwd=wt)
+        self.xv("record", "report", "s1", "test-writer", path, cwd=wt)
         data = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
         self.assertEqual(data["slice_only"], slice_only)
 
 
-class ScenarioBriefRetroFixesTest(RepoCase):
+class TestWriterBriefRetroFixesTest(RepoCase):
     fixture = False
 
     def lines(self):
-        text = open(os.path.join(HOME, "skills", "scenario", "SKILL.md")).read()
+        text = open(os.path.join(HOME, "skills", "test-writer", "SKILL.md")).read()
         return [ln.lower() for ln in text.splitlines()]
 
     # #174 point 5
@@ -238,18 +238,18 @@ class ScenarioBriefRetroFixesTest(RepoCase):
         self.assertTrue(any("to its end" in ln and "before" in ln and "report" in ln for ln in found), found)
 
 
-class ScenarioBriefTest(RepoCase):
+class TestWriterBriefTest(RepoCase):
     fixture = False
 
     def test_the_brief_asks_for_the_existing_test_file_and_a_new_one_only_when_none_exists(self):
-        text = open(os.path.join(HOME, "skills", "scenario", "SKILL.md")).read()
+        text = open(os.path.join(HOME, "skills", "test-writer", "SKILL.md")).read()
         step6 = [ln for ln in text.splitlines() if ln.startswith("6.")][0]
         self.assertNotIn("new files where you can", step6)
         self.assertIn("existing test file", step6)
         self.assertIn("slice_only", text)
 
     def test_the_brief_asks_for_the_whole_red_after_the_maker(self):
-        text = open(os.path.join(HOME, "skills", "scenario", "SKILL.md")).read()
+        text = open(os.path.join(HOME, "skills", "test-writer", "SKILL.md")).read()
         self.assertIn("after the maker", text.lower())
         self.assertIn("every file in the record's `red.files`", text)
         self.assertIn("one command that runs all of them", text)
@@ -268,8 +268,8 @@ class BareModuleCommandTest(RepoCase):
         path = os.path.join(self.tmp, "out.txt")
         with open(path, "w") as f:
             f.write("```xv-report\n" + json.dumps(
-                {"agent": "scenario", "status": "red", "summary": "r", "red": red}) + "\n```\n")
-        self.xv("record", "report", "s1", "scenario", path, cwd=wt)
+                {"agent": "test-writer", "status": "red", "summary": "r", "red": red}) + "\n```\n")
+        self.xv("record", "report", "s1", "test-writer", path, cwd=wt)
         return wt
 
     def command(self, wt):
@@ -319,8 +319,8 @@ class SliceOnlyMoveTest(RepoCase):
         path = os.path.join(self.tmp, "out.txt")
         with open(path, "w") as f:
             f.write("```xv-report\n" + json.dumps(
-                {"agent": "scenario", "status": "red", "summary": "r", "red": RED}) + "\n```\n")
-        self.xv("record", "report", "s1", "scenario", path, cwd=wt)
+                {"agent": "test-writer", "status": "red", "summary": "r", "red": RED}) + "\n```\n")
+        self.xv("record", "report", "s1", "test-writer", path, cwd=wt)
         self.assertEqual(self.move("s1", wt, "--slice-only", "--line", "1")["red"], RED)
 
 
@@ -328,7 +328,7 @@ class PacketTemplateTest(RepoCase):
     fixture = False
 
     def test_the_packet_has_a_line_for_slice_only_tests(self):
-        text = open(os.path.join(HOME, "skills", "guardian", "packet.md")).read()
+        text = open(os.path.join(HOME, "skills", "inspector", "packet.md")).read()
         self.assertIn("slice-only", text)
 
 
@@ -338,8 +338,8 @@ class BriefsTest(RepoCase):
     def skill(self, name):
         return open(os.path.join(HOME, "skills", name, "SKILL.md")).read()
 
-    def test_the_scenario_report_example_shows_slice_only(self):
-        block = self.skill("scenario").split("```xv-report", 1)[1].split("```", 1)[0]
+    def test_the_test_writer_report_example_shows_slice_only(self):
+        block = self.skill("test-writer").split("```xv-report", 1)[1].split("```", 1)[0]
         self.assertIn("slice_only", block)
 
     def test_the_cleaner_is_told_to_remove_slice_only_tests_after_green_unless_it_finds_a_reason(self):
@@ -348,12 +348,12 @@ class BriefsTest(RepoCase):
         self.assertIn("slice-only", text)
         self.assertIn("--deleted", text)
 
-    def test_the_guardian_lists_removed_slice_only_tests_and_names_kept_ones_with_a_reason(self):
-        self.assertIn("slice-only", self.skill("guardian"))
+    def test_the_inspector_lists_removed_slice_only_tests_and_names_kept_ones_with_a_reason(self):
+        self.assertIn("slice-only", self.skill("inspector"))
 
 
-class ScenarioRerunMergeTest(RepoCase):
-    """A scenario run after the maker adds to the red; before the maker it replaces it."""
+class TestWriterRerunMergeTest(RepoCase):
+    """A test-writer run after the maker adds to the red; before the maker it replaces it."""
 
     def setUp(self):
         super().setUp()
@@ -363,8 +363,8 @@ class ScenarioRerunMergeTest(RepoCase):
         path = os.path.join(self.tmp, "out.txt")
         with open(path, "w") as f:
             f.write("```xv-report\n" + json.dumps(
-                {"agent": "scenario", "status": "red", "summary": "r", "red": red}) + "\n```\n")
-        self.xv("record", "report", "s1", "scenario", path, cwd=self.wt)
+                {"agent": "test-writer", "status": "red", "summary": "r", "red": red}) + "\n```\n")
+        self.xv("record", "report", "s1", "test-writer", path, cwd=self.wt)
 
     def show(self):
         return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
@@ -463,7 +463,7 @@ class OfferAndAnswerTest(RepoCase):
     def setUp(self):
         super().setUp()
         self.wt = self.new_slice("s1")
-        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+        self.xv("record", "stop", "s1", "--order", "test_writer_stopped", "--seat", "originator",
                 "--question", "Which line?", cwd=self.wt)
 
     def show(self):
@@ -532,9 +532,9 @@ class OfferAndAnswerTest(RepoCase):
 
     def test_an_answer_that_sends_work_back_needs_settled(self):
         self.offer()
-        self.xv("record", "set", "s1", "next", "guardian", "--by", "pat", cwd=self.wt)
+        self.xv("record", "set", "s1", "next", "inspector", "--by", "pat", cwd=self.wt)
         p =self.xv("record", "answer", "s1", "--by", "pat", "--answer", "redo it",
-                    "--next", "scenario", cwd=self.wt, check=False)
+                    "--next", "test-writer", cwd=self.wt, check=False)
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--settled", p.stderr)
 
@@ -582,10 +582,10 @@ class DecisionsReportTest(RepoCase):
         wt = self.new_slice("s1")
         self.xv("record", "stop", "s1", "--order", "old_order", "--seat", "originator", "--question", "Q?", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "old", cwd=wt)
-        self.answered(wt, "scenario_stopped", "1", "none")
-        self.answered(wt, "scenario_stopped", "other", "the grocer closes Sundays")
+        self.answered(wt, "test_writer_stopped", "1", "none")
+        self.answered(wt, "test_writer_stopped", "other", "the grocer closes Sundays")
         out = self.xv("decisions", cwd=wt).stdout
-        line = [ln for ln in out.splitlines() if "scenario_stopped" in ln]
+        line = [ln for ln in out.splitlines() if "test_writer_stopped" in ln]
         self.assertEqual(len(line), 1, out)
         self.assertIn("2", line[0])
         self.assertIn("decision", line[0])
@@ -593,18 +593,18 @@ class DecisionsReportTest(RepoCase):
 
     def test_xv_decisions_since_a_date_counts_only_stops_from_that_date_on(self):
         wt = self.new_slice("s1")
-        self.answered(wt, "scenario_stopped", "1", "none")
+        self.answered(wt, "test_writer_stopped", "1", "none")
         past = self.xv("decisions", "--since", "2000-01-01", cwd=wt).stdout
-        self.assertIn("scenario_stopped", past)
+        self.assertIn("test_writer_stopped", past)
         future = self.xv("decisions", "--since", "2999-01-01", cwd=wt).stdout
-        self.assertNotIn("scenario_stopped", future)
+        self.assertNotIn("test_writer_stopped", future)
 
 
 class ResumeNeedsNextTest(RepoCase):
     def setUp(self):
         super().setUp()
         self.wt = self.new_slice("s1")
-        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+        self.xv("record", "stop", "s1", "--order", "test_writer_stopped", "--seat", "originator",
                 "--question", "Which line?", cwd=self.wt)
 
     def test_an_answer_with_resume_and_no_next_is_refused(self):
@@ -617,9 +617,9 @@ class ResumeNeedsNextTest(RepoCase):
 
     def test_an_answer_with_resume_and_next_is_accepted_and_sets_next(self):
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go on", "--resume",
-                "--next", "scenario", "--settled", "Carry on from the scenario.", cwd=self.wt)
+                "--next", "test-writer", "--settled", "Carry on from the scenario.", cwd=self.wt)
         data = json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
-        self.assertEqual((data["status"], data["next"]), ("working", "scenario"))
+        self.assertEqual((data["status"], data["next"]), ("working", "test-writer"))
 
     def test_the_watch_brief_says_an_answer_with_resume_needs_next(self):
         text = open(os.path.join(HOME, "skills", "watch", "SKILL.md")).read()
@@ -687,7 +687,7 @@ class AnswerAmendmentsTest(RepoCase):
     def setUp(self):
         super().setUp()
         self.wt = self.new_slice("s1")
-        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+        self.xv("record", "stop", "s1", "--order", "test_writer_stopped", "--seat", "originator",
                 "--question", "Which line?", cwd=self.wt)
         self.xv("record", "offer", "s1", "--option", "Use the setting", "--settles", "It is a setting.",
                 "--recommend", "1", cwd=self.wt)
@@ -748,14 +748,14 @@ class FourthAmendmentTest(RepoCase):
                        "--resume", cwd=self.wt, check=False)
 
     def test_next_forward_needs_no_settled(self):
-        self.stop_at("guardian")
+        self.stop_at("inspector")
         p = self.answer("close")
         self.assertEqual(p.returncode, 0, p.stderr)
         data = self.show()
         self.assertEqual((data["status"], data["next"]), ("working", "close"))
 
     def test_next_to_a_later_step_than_the_one_that_stopped_needs_no_settled(self):
-        self.stop_at("scenario")
+        self.stop_at("test-writer")
         p = self.answer("maker")
         self.assertEqual(p.returncode, 0, p.stderr)
 
@@ -766,8 +766,8 @@ class FourthAmendmentTest(RepoCase):
         self.assertIn("--settled", p.stderr)
 
     def test_next_to_an_earlier_step_needs_settled(self):
-        self.stop_at("guardian")
-        p = self.answer("scenario")
+        self.stop_at("inspector")
+        p = self.answer("test-writer")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--settled", p.stderr)
         self.assertIsNone(self.show()["stops"][-1].get("answer"))
@@ -825,13 +825,13 @@ class FifthAmendmentTest(RepoCase):
                        "--resume", cwd=self.wt, check=False)
 
     def test_going_back_is_judged_against_the_step_on_the_stop_not_the_records_next(self):
-        self.stop_saved_at("guardian", "scenario")
+        self.stop_saved_at("inspector", "test-writer")
         p = self.answer("maker")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--settled", p.stderr)
 
     def test_going_forward_is_judged_against_the_step_on_the_stop_not_the_records_next(self):
-        self.stop_saved_at("scenario", "guardian")
+        self.stop_saved_at("test-writer", "inspector")
         p = self.answer("maker")
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertEqual(self.show()["next"], "maker")
@@ -885,7 +885,7 @@ class SettledForwardTest(RepoCase):
         self.assertEqual(self.show()["stops"][-1]["step"], "maker")
 
     def test_a_failed_setup_goes_to_any_step_without_settled(self):
-        for nxt in ("forecaster", "scenario"):
+        for nxt in ("forecaster", "test-writer"):
             self.stop("setup", "setup_failed")
             p = self.answer(nxt)
             self.assertEqual(p.returncode, 0, p.stderr)
@@ -893,7 +893,7 @@ class SettledForwardTest(RepoCase):
 
     def test_a_prototype_stop_goes_to_any_step_without_settled(self):
         self.stop("prototype", "axis_not_named")
-        p = self.answer("scenario")
+        p = self.answer("test-writer")
         self.assertEqual(p.returncode, 0, p.stderr)
 
     def stop_before_step(self, step):
@@ -914,7 +914,7 @@ class SettledForwardTest(RepoCase):
 
     def test_a_budget_stop_before_its_step_still_needs_settled_to_go_earlier(self):
         self.stop_before_step("maker")
-        p = self.answer("scenario")
+        p = self.answer("test-writer")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--settled", p.stderr)
 
@@ -924,15 +924,15 @@ class SettledForwardTest(RepoCase):
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--settled", p.stderr)
 
-    def test_a_setup_failed_stop_raised_after_the_scenario_step_needs_settled_to_return_to_it(self):
-        self.stop("scenario", "setup_failed")
-        p = self.answer("scenario")
+    def test_a_setup_failed_stop_raised_after_the_test_writer_step_needs_settled_to_return_to_it(self):
+        self.stop("test-writer", "setup_failed")
+        p = self.answer("test-writer")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--settled", p.stderr)
 
     def test_the_prototypes_ready_pick_needs_settled_to_send_the_work_back(self):
         self.stop("prototype", "prototypes_ready")
-        p = self.answer("scenario")
+        p = self.answer("test-writer")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--settled", p.stderr)
 
@@ -950,7 +950,7 @@ class SettledForwardTest(RepoCase):
                         "CHANGELOG.md has no line for the --settled exceptions")
 
     def test_another_stop_at_a_step_still_needs_settled_to_return_to_it(self):
-        self.stop("maker", "scenario_stopped")
+        self.stop("maker", "test_writer_stopped")
         p = self.answer("maker")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("--settled", p.stderr)
@@ -964,7 +964,7 @@ class SettledForwardTest(RepoCase):
         for old, new in (("<id>", "s1"), ("<name>", "pat"), ("<their words>", "go"), ("<step>", "maker")):
             self.assertIn(old, line)
             line = line.replace(old, new)
-        self.stop("scenario", "scenario_stopped")
+        self.stop("test-writer", "test_writer_stopped")
         p = self.xv(*shlex.split(line)[1:], cwd=self.wt, check=False)
         self.assertEqual(p.returncode, 0, line + "\n" + p.stderr)
 
@@ -982,13 +982,13 @@ class WallChoicesTest(RepoCase):
     def answer_moves_to_accept(self, text):
         wt = self.new_slice("s1")
         path = os.path.join(self.tmp, "g.txt")
-        report = {"agent": "guardian", "status": "done", "summary": "p", "shape_change": "no",
+        report = {"agent": "inspector", "status": "done", "summary": "p", "shape_change": "no",
                   "pitch_contradiction": "no", "wall_recommendations": self.RECS}
         with open(path, "w") as f:
             f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
-        self.xv("record", "report", "s1", "guardian", path, cwd=wt)
+        self.xv("record", "report", "s1", "inspector", path, cwd=wt)
         self.xv("record", "stop", "s1", "--order", "moves_to_accept", "--seat", "originator",
-                "--question", "accept?", "--step", "guardian", cwd=wt)
+                "--question", "accept?", "--step", "inspector", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", text, cwd=wt)
         return {r["test"]: r for r in self.show(wt)["wall_recommendations"]}
 
@@ -998,8 +998,8 @@ class WallChoicesTest(RepoCase):
         refused = dict(self.RECS[1], accepted=False, refused=True)
         d = {"id": "s1", "originator": "pat", "budget": {"usd": 2}, "moved_tests": [], "spend": [], "stops": [],
              "shape_change": "no", "pitch_contradiction": "no", "wall_recommendations": [refused],
-             "checks": {"reports": [{"agent": "guardian", "status": "done"}], "guardian": {}}}
-        self.assertEqual(orders.verdict(d, "guardian", DEFAULT_CONFIG)["stop"]["order"], "ready_to_merge")
+             "checks": {"reports": [{"agent": "inspector", "status": "done"}], "inspector": {}}}
+        self.assertEqual(orders.verdict(d, "inspector", DEFAULT_CONFIG)["stop"]["order"], "ready_to_merge")
 
     def test_unmark_takes_one_test_off_slice_only_and_keeps_the_rest(self):
         wt = self.new_slice("s1")
@@ -1042,13 +1042,13 @@ class WallAnswerByFileTest(RepoCase):
     def stopped_on_moves_to_accept(self):
         wt = self.new_slice("s1")
         path = os.path.join(self.tmp, "g.txt")
-        report = {"agent": "guardian", "status": "done", "summary": "p", "shape_change": "no",
+        report = {"agent": "inspector", "status": "done", "summary": "p", "shape_change": "no",
                   "pitch_contradiction": "no", "wall_recommendations": self.RECS}
         with open(path, "w") as f:
             f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
-        self.xv("record", "report", "s1", "guardian", path, cwd=wt)
+        self.xv("record", "report", "s1", "inspector", path, cwd=wt)
         self.xv("record", "stop", "s1", "--order", "moves_to_accept", "--seat", "originator",
-                "--question", "accept?", "--step", "guardian", cwd=wt)
+                "--question", "accept?", "--step", "inspector", cwd=wt)
         return wt
 
     def accepted(self, wt):
@@ -1131,24 +1131,24 @@ class AcceptWallFlagTest(RepoCase):
     def stopped_on_moves_to_accept(self):
         wt = self.new_slice("s1")
         path = os.path.join(self.tmp, "g.txt")
-        report = {"agent": "guardian", "status": "done", "summary": "p", "shape_change": "no",
+        report = {"agent": "inspector", "status": "done", "summary": "p", "shape_change": "no",
                   "pitch_contradiction": "no", "wall_recommendations": self.RECS}
         with open(path, "w") as f:
             f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
-        self.xv("record", "report", "s1", "guardian", path, cwd=wt)
+        self.xv("record", "report", "s1", "inspector", path, cwd=wt)
         self.xv("record", "stop", "s1", "--order", "moves_to_accept", "--seat", "originator",
-                "--question", "accept?", "--step", "guardian", cwd=wt)
+                "--question", "accept?", "--step", "inspector", cwd=wt)
         return wt
 
     def recs(self, wt):
         return {r["test"]: r for r in self.show(wt)["wall_recommendations"]}
 
-    def scenario_rerun(self, wt, slice_only):
+    def writer_rerun(self, wt, slice_only):
         path = os.path.join(self.tmp, "out.txt")
-        report = {"agent": "scenario", "status": "red", "summary": "r", "red": RED, "slice_only": slice_only}
+        report = {"agent": "test-writer", "status": "red", "summary": "r", "red": RED, "slice_only": slice_only}
         with open(path, "w") as f:
             f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
-        self.xv("record", "report", "s1", "scenario", path, cwd=wt)
+        self.xv("record", "report", "s1", "test-writer", path, cwd=wt)
 
     def test_accept_wall_accepts_the_named_test_and_refuses_the_rest(self):
         wt = self.stopped_on_moves_to_accept()
@@ -1193,41 +1193,41 @@ class AcceptWallFlagTest(RepoCase):
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("test_nope", p.stderr)
 
-    def guardian_report(self, wt, recs):
+    def inspector_report(self, wt, recs):
         path = os.path.join(self.tmp, "g2.txt")
-        report = {"agent": "guardian", "status": "done", "summary": "p", "shape_change": "no",
+        report = {"agent": "inspector", "status": "done", "summary": "p", "shape_change": "no",
                   "pitch_contradiction": "no", "wall_recommendations": recs}
         with open(path, "w") as f:
             f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
-        self.xv("record", "report", "s1", "guardian", path, cwd=wt)
+        self.xv("record", "report", "s1", "inspector", path, cwd=wt)
 
-    def test_a_guardian_report_cannot_mark_its_own_recommendation_accepted(self):
+    def test_a_inspector_report_cannot_mark_its_own_recommendation_accepted(self):
         wt = self.new_slice("s1")
-        self.guardian_report(wt, [dict(r, accepted=True) for r in self.RECS])
+        self.inspector_report(wt, [dict(r, accepted=True) for r in self.RECS])
         for r in self.recs(wt).values():
             self.assertIsNot(r.get("accepted"), True)
 
-    def test_a_guardian_rerun_keeps_what_the_person_accepted_with_the_flag(self):
+    def test_a_inspector_rerun_keeps_what_the_person_accepted_with_the_flag(self):
         wt = self.stopped_on_moves_to_accept()
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B: 1",
                 "--accept-wall", "test_keep_me", cwd=wt)
-        self.guardian_report(wt, self.RECS)
+        self.inspector_report(wt, self.RECS)
         recs = self.recs(wt)
         self.assertIs(recs["test_keep_me"]["accepted"], True)
         self.assertIsNot(recs["test_drop_me"].get("accepted"), True)
 
-    def test_a_guardian_rerun_cannot_accept_what_the_person_did_not(self):
+    def test_a_inspector_rerun_cannot_accept_what_the_person_did_not(self):
         wt = self.stopped_on_moves_to_accept()
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B: 1",
                 "--accept-wall", "test_keep_me", cwd=wt)
-        self.guardian_report(wt, [dict(r, accepted=True) for r in self.RECS])
+        self.inspector_report(wt, [dict(r, accepted=True) for r in self.RECS])
         recs = self.recs(wt)
         self.assertIs(recs["test_keep_me"]["accepted"], True)
         self.assertIsNot(recs["test_drop_me"].get("accepted"), True)
 
     def second_moves_to_accept(self, wt):
         self.xv("record", "stop", "s1", "--order", "moves_to_accept", "--seat", "originator",
-                "--question", "accept again?", "--step", "guardian", cwd=wt)
+                "--question", "accept again?", "--step", "inspector", cwd=wt)
 
     def test_a_later_answer_with_no_flag_keeps_what_an_earlier_stop_accepted(self):
         wt = self.stopped_on_moves_to_accept()
@@ -1332,25 +1332,25 @@ class AcceptWallFlagTest(RepoCase):
         self.assertEqual(sorted(first["accepted_wall"]), ["test_drop_me", "test_keep_me"])
         self.assertEqual(first["refused_wall"], [])
 
-    def test_a_guardian_report_cannot_mark_its_own_recommendation_refused(self):
+    def test_a_inspector_report_cannot_mark_its_own_recommendation_refused(self):
         wt = self.new_slice("s1")
-        self.guardian_report(wt, [dict(r, refused=True) for r in self.RECS])
+        self.inspector_report(wt, [dict(r, refused=True) for r in self.RECS])
         for r in self.recs(wt).values():
             self.assertIsNot(r.get("refused"), True)
 
-    def test_a_guardian_rerun_cannot_refuse_what_the_person_accepted(self):
+    def test_a_inspector_rerun_cannot_refuse_what_the_person_accepted(self):
         wt = self.stopped_on_moves_to_accept()
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "B: 1",
                 "--accept-wall", "test_keep_me", cwd=wt)
-        self.guardian_report(wt, [dict(r, accepted=False, refused=True) for r in self.RECS])
+        self.inspector_report(wt, [dict(r, accepted=False, refused=True) for r in self.RECS])
         recs = self.recs(wt)
         self.assertIs(recs["test_keep_me"]["accepted"], True)
         self.assertIsNot(recs["test_keep_me"].get("refused"), True)
 
     def other_stop(self):
         wt = self.new_slice("s1")
-        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
-                "--question", "q?", "--step", "scenario", cwd=wt)
+        self.xv("record", "stop", "s1", "--order", "test_writer_stopped", "--seat", "originator",
+                "--question", "q?", "--step", "test-writer", cwd=wt)
         return wt
 
     def test_accept_wall_on_a_stop_other_than_moves_to_accept_is_refused_with_an_error(self):
@@ -1389,24 +1389,24 @@ class AcceptWallFlagTest(RepoCase):
         self.assertNotIn(True, [r.get("accepted") for r in self.recs(wt).values()])
         self.assertFalse(self.answered_stops(wt)[0].get("answer"))
 
-    def test_a_scenario_rerun_keeps_the_marks_already_in_the_record(self):
+    def test_a_test_writer_rerun_keeps_the_marks_already_in_the_record(self):
         wt = self.new_slice("s1")
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
-        self.scenario_rerun(wt, [])
+        self.writer_rerun(wt, [])
         self.assertEqual(self.show(wt)["slice_only"], [self.MARK])
 
-    def test_a_scenario_rerun_adds_new_marks_beside_the_kept_ones(self):
+    def test_a_test_writer_rerun_adds_new_marks_beside_the_kept_ones(self):
         wt = self.new_slice("s1")
         new = {"file": "tests/test_y.py", "test": "test_old_flag_gone", "why": "dead"}
         self.xv("record", "add", "s1", "slice_only", json.dumps(self.MARK), cwd=wt)
-        self.scenario_rerun(wt, [new])
+        self.writer_rerun(wt, [new])
         self.assertEqual(sorted(m["test"] for m in self.show(wt)["slice_only"]),
                          ["test_file_is_ts", "test_old_flag_gone"])
 
     def test_a_merge_answer_is_recorded_as_a_decision(self):
         wt = self.new_slice("s1")
         self.xv("record", "stop", "s1", "--order", "ready_to_merge", "--seat", "originator",
-                "--question", "merge?", "--step", "guardian", cwd=wt)
+                "--question", "merge?", "--step", "inspector", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "merge it", cwd=wt)
         data = self.show(wt)
         self.assertEqual(len(data["decisions"]), 1)
@@ -1416,8 +1416,8 @@ class AcceptWallFlagTest(RepoCase):
 
     def test_a_plain_one_person_stop_still_writes_no_decision(self):
         wt = self.new_slice("s1")
-        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
-                "--question", "q?", "--step", "scenario", cwd=wt)
+        self.xv("record", "stop", "s1", "--order", "test_writer_stopped", "--seat", "originator",
+                "--question", "q?", "--step", "test-writer", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--next", "maker",
                 "--settled", "x", cwd=wt)
         self.assertEqual(self.show(wt)["decisions"], [])
@@ -1436,20 +1436,20 @@ class ScenarioMissStandingOrderTest(RepoCase):
                     "# Packet\n\n## Scenario misses\n\n- %s (evidence: tests/test_red.py:7)\n" % line)
         self.xv("record", "packet", "s1", path, cwd=wt)
 
-    def guardian_done(self, wt):
+    def inspector_done(self, wt):
         report = os.path.join(wt, "r.json")
         with open(report, "w") as f:
-            f.write("```xv-report\n" + json.dumps({"agent": "guardian", "status": "done", "summary": "done"})
+            f.write("```xv-report\n" + json.dumps({"agent": "inspector", "status": "done", "summary": "done"})
                     + "\n```\n")
-        self.xv("record", "report", "s1", "guardian", report, cwd=wt)
+        self.xv("record", "report", "s1", "inspector", report, cwd=wt)
 
     def orders(self, wt):
-        p = self.xv("orders", "s1", "--after", "guardian", cwd=wt, check=False)
+        p = self.xv("orders", "s1", "--after", "inspector", cwd=wt, check=False)
         return json.loads(p.stdout)
 
     def test_record_packet_sends_a_miss_back_to_the_maker_without_a_stop(self):
         wt = self.new_slice("s1")
-        self.guardian_done(wt)
+        self.inspector_done(wt)
         self.packet(wt, "Point 2: milk that runs out today is left out, to: maker")
         data = self.show(wt)
         self.assertEqual(data["change_misses_scenario"], "yes")
@@ -1462,7 +1462,7 @@ class ScenarioMissStandingOrderTest(RepoCase):
 
     def test_xv_orders_stops_for_a_miss_marked_amend_yes(self):
         wt = self.new_slice("s1")
-        self.guardian_done(wt)
+        self.inspector_done(wt)
         self.packet(wt, "Point 2: the scenario itself is wrong, to: maker, amend: yes")
         v = self.orders(wt)
         self.assertEqual((v["stop"] or {}).get("order"), "change_misses_scenario")
@@ -1470,7 +1470,7 @@ class ScenarioMissStandingOrderTest(RepoCase):
 
     def test_xv_orders_stops_when_the_same_point_comes_back_worded_differently(self):
         wt = self.new_slice("s1")
-        self.guardian_done(wt)
+        self.inspector_done(wt)
         self.packet(wt, "Point 2 is not met: milk that runs out today is left out, to: maker")
         self.packet(wt, "2: the list still skips milk, to: maker", name="p2.md")
         v = self.orders(wt)
@@ -1480,7 +1480,7 @@ class ScenarioMissStandingOrderTest(RepoCase):
     # 4. a miss listed under a front matter that says no is a disagreement a person settles
     def test_a_listed_miss_under_change_misses_scenario_no_stops_for_the_originator_naming_it(self):
         wt = self.new_slice("s1")
-        self.guardian_done(wt)
+        self.inspector_done(wt)
         path = os.path.join(wt, "p.md")
         with open(path, "w") as f:
             f.write("---\nslice: s1\nshape_change: no\npitch_contradiction: no\nchange_misses_scenario: no\nexpected_moves: 0\n---\n\n"
@@ -1496,7 +1496,7 @@ class ScenarioMissStandingOrderTest(RepoCase):
 
     def test_a_packet_that_lists_no_miss_and_says_no_does_not_stop_for_the_disagreement(self):
         wt = self.new_slice("s1")
-        self.guardian_done(wt)
+        self.inspector_done(wt)
         path = os.path.join(wt, "p.md")
         with open(path, "w") as f:
             f.write("---\nslice: s1\nshape_change: no\npitch_contradiction: no\nchange_misses_scenario: no\nexpected_moves: 0\n---\n\n"
@@ -1666,34 +1666,34 @@ class OneHomeRecordTest(RepoCase):
                     + "\n```\n")
         self.xv("record", "report", "s1", agent, path, cwd=wt)
 
-    def fired(self, wt, after="scenario"):
+    def fired(self, wt, after="test-writer"):
         p = self.xv("orders", "s1", "--after", after, cwd=wt, check=False)
         return json.loads(p.stdout)["fired"]
 
     def mark(self, test):
         return {"file": "tests/test_x.py", "test": test, "why": "only proves the slice did its job"}
 
-    def scenario_reports(self, wt, *marks, name="s.json"):
-        self.report(wt, "scenario", name=name, status="red", red=RED, slice_only=list(marks))
+    def writer_reports(self, wt, *marks, name="s.json"):
+        self.report(wt, "test-writer", name=name, status="red", red=RED, slice_only=list(marks))
 
-    def test_a_mark_the_person_accepted_is_not_asked_about_again_when_the_scenario_runs_again(self):
+    def test_a_mark_the_person_accepted_is_not_asked_about_again_when_the_test_writer_runs_again(self):
         wt = self.new_slice("s1")
-        self.scenario_reports(wt, self.mark("test_a"))
+        self.writer_reports(wt, self.mark("test_a"))
         self.assertEqual([f["order"] for f in self.fired(wt)], ["slice_only_marks"])
         self.xv("record", "stop", "s1", "--order", "slice_only_marks", "--seat", "originator",
-                "--question", "Accept the marks?", "--step", "scenario", cwd=wt)
+                "--question", "Accept the marks?", "--step", "test-writer", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "accepted", "--next", "maker", cwd=wt)
-        self.scenario_reports(wt, self.mark("test_a"), name="s2.json")
+        self.writer_reports(wt, self.mark("test_a"), name="s2.json")
         self.assertEqual([m["test"] for m in self.show(wt)["slice_only"]], ["test_a"])
         self.assertNotIn("slice_only_marks", [f["order"] for f in self.fired(wt)])
 
     def test_a_new_mark_beside_an_accepted_one_is_the_only_one_asked_about(self):
         wt = self.new_slice("s1")
-        self.scenario_reports(wt, self.mark("test_a"))
+        self.writer_reports(wt, self.mark("test_a"))
         self.xv("record", "stop", "s1", "--order", "slice_only_marks", "--seat", "originator",
-                "--question", "Accept the marks?", "--step", "scenario", cwd=wt)
+                "--question", "Accept the marks?", "--step", "test-writer", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "accepted", "--next", "maker", cwd=wt)
-        self.scenario_reports(wt, self.mark("test_a"), self.mark("test_b"), name="s2.json")
+        self.writer_reports(wt, self.mark("test_a"), self.mark("test_b"), name="s2.json")
         asked = [f for f in self.fired(wt) if f["order"] == "slice_only_marks"]
         self.assertEqual(len(asked), 1)
         self.assertIn("test_b", asked[0]["question"])
@@ -1722,7 +1722,7 @@ class OneHomeRecordTest(RepoCase):
     def test_a_shape_wider_answer_that_sends_the_work_back_is_marked_sent_back(self):
         wt = self.new_slice("s1")
         self.xv("record", "stop", "s1", "--order", "shape_wider_than_forecast", "--seat", "two_people",
-                "--question", "Wider than forecast?", "--step", "guardian", cwd=wt)
+                "--question", "Wider than forecast?", "--step", "inspector", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat,sam", "--answer", "narrow it", "--next", "maker",
                 "--settled", "the shape is narrowed to the forecast", cwd=wt)
         stop = self.show(wt)["stops"][0]
@@ -1731,30 +1731,30 @@ class OneHomeRecordTest(RepoCase):
     def test_a_shape_wider_answer_that_lets_the_work_go_on_is_not_marked_sent_back(self):
         wt = self.new_slice("s1")
         self.xv("record", "stop", "s1", "--order", "shape_wider_than_forecast", "--seat", "two_people",
-                "--question", "Wider than forecast?", "--step", "guardian", cwd=wt)
+                "--question", "Wider than forecast?", "--step", "inspector", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat,sam", "--answer", "go on", "--next", "close", cwd=wt)
         self.assertFalse(self.show(wt)["stops"][0].get("sendback"))
 
     def verdict(self, order="change_misses_scenario"):
-        return {"stop": {"order": order, "seat": "originator", "question": "Why?"}, "fired": [], "next": "guardian"}
+        return {"stop": {"order": order, "seat": "originator", "question": "Why?"}, "fired": [], "next": "inspector"}
 
     def test_applying_the_same_stop_twice_leaves_one_open_stop(self):
-        data = {"stops": [], "budget": None, "status": "working", "next": "guardian"}
-        body = record.apply_verdict(data, "", "guardian", self.verdict())
-        record.apply_verdict(data, body, "guardian", self.verdict())
+        data = {"stops": [], "budget": None, "status": "working", "next": "inspector"}
+        body = record.apply_verdict(data, "", "inspector", self.verdict())
+        record.apply_verdict(data, body, "inspector", self.verdict())
         self.assertEqual([s["order"] for s in data["stops"]], ["change_misses_scenario"])
         self.assertEqual(data["status"], "stopped")
 
     def test_a_stop_of_the_same_order_that_was_answered_may_open_again(self):
         data = {"stops": [{"order": "change_misses_scenario", "seat": "originator", "answer": "sent back"}],
-                "budget": None, "status": "working", "next": "guardian"}
-        record.apply_verdict(data, "", "guardian", self.verdict())
+                "budget": None, "status": "working", "next": "inspector"}
+        record.apply_verdict(data, "", "inspector", self.verdict())
         self.assertEqual([bool(s.get("answer")) for s in data["stops"]], [True, False])
 
     def test_a_stop_of_another_order_opens_beside_an_open_one(self):
         data = {"stops": [{"order": "change_misses_scenario", "seat": "originator", "answer": None}],
-                "budget": None, "status": "working", "next": "guardian"}
-        record.apply_verdict(data, "", "guardian", self.verdict("moves_to_accept"))
+                "budget": None, "status": "working", "next": "inspector"}
+        record.apply_verdict(data, "", "inspector", self.verdict("moves_to_accept"))
         self.assertEqual([s["order"] for s in data["stops"]], ["change_misses_scenario", "moves_to_accept"])
 
     def test_a_new_decision_writes_who_as_a_list(self):
@@ -1830,7 +1830,7 @@ class DirectedEditTest(RepoCase):
         sh(["git", "add", "-A"], self.wt)
         sh(["git", "commit", "-qm", message], self.wt)
 
-    def stop(self, order="scenario_stopped", step=None):
+    def stop(self, order="test_writer_stopped", step=None):
         self.xv("record", "stop", "s1", "--order", order, "--seat", "originator", "--question", "Which edit?",
                 *(("--step", step) if step else ()), cwd=self.wt)
 
@@ -1919,7 +1919,7 @@ class DirectedEditTest(RepoCase):
                 self.refused(*[x for flag, value in pairs if flag != missing for x in (flag, value)])
 
     def miss_stop_from_packet(self):
-        """A guardian packet that says change_misses_scenario: yes with an amend: yes miss, and the stop it raises."""
+        """An inspector packet that says change_misses_scenario: yes with an amend: yes miss, and the stop it raises."""
         path = os.path.join(self.wt, "p.md")
         with open(path, "w") as f:
             f.write("---\nslice: s1\nshape_change: no\npitch_contradiction: no\nchange_misses_scenario: yes\n"
@@ -1927,9 +1927,9 @@ class DirectedEditTest(RepoCase):
                     "- Point 2: the scenario itself is wrong, to: maker, amend: yes (evidence: tests/test_red.py:7)\n")
         report = os.path.join(self.wt, "r.json")
         with open(report, "w") as f:
-            f.write("```xv-report\n" + json.dumps({"agent": "guardian", "status": "done", "summary": "done"})
+            f.write("```xv-report\n" + json.dumps({"agent": "inspector", "status": "done", "summary": "done"})
                     + "\n```\n")
-        self.xv("record", "report", "s1", "guardian", report, cwd=self.wt)
+        self.xv("record", "report", "s1", "inspector", report, cwd=self.wt)
         self.xv("record", "packet", "s1", path, cwd=self.wt, check=False)  # the packet raises the stop itself
         self.assertEqual([s["order"] for s in self.show()["stops"] if s.get("answer") is None], ["change_misses_scenario"])
 
@@ -2087,35 +2087,35 @@ class DirectedEditTest(RepoCase):
         self.assertEqual(len(self.directed()), 1)
         self.assertEqual(self.show()["suite"], "red")
 
-    def guardian_ran(self):
-        report = os.path.join(self.tmp, "guardian.out")
+    def inspector_ran(self):
+        report = os.path.join(self.tmp, "inspector.out")
         with open(report, "w") as f:
-            f.write("```xv-report\n" + json.dumps({"agent": "guardian", "status": "done", "summary": "done"})
+            f.write("```xv-report\n" + json.dumps({"agent": "inspector", "status": "done", "summary": "done"})
                     + "\n```\n")
-        self.xv("record", "report", "s1", "guardian", report, cwd=self.wt)
+        self.xv("record", "report", "s1", "inspector", report, cwd=self.wt)
         self.write(".xv/slices/s1.packet.md", "---\nslice: s1\nshape_change: no\npitch_contradiction: no\nexpected_moves: 0\n---\n\n"
                                               "# Packet\n\nThe change does what the scenario says.\n")
         self.xv("record", "set", "s1", "next", "close", cwd=self.wt)
         self.xv("record", "packet", "s1", ".xv/slices/s1.packet.md", cwd=self.wt)
         if not [s for s in self.show()["stops"] if s.get("answer") is None]:
-            self.stop("ready_to_merge", step="guardian")
+            self.stop("ready_to_merge", step="inspector")
 
-    def test_after_the_guardian_the_packet_gets_a_line_and_next_does_not_go_back_to_the_guardian(self):
-        self.guardian_ran()
+    def test_after_the_inspector_the_packet_gets_a_line_and_next_does_not_go_back_to_the_inspector(self):
+        self.inspector_ran()
         self.offer(*self.CHANGELOG)
         self.answer("1")
         shas = self.directed()
         self.assertEqual(len(shas), 1)
         packet = self.read(".xv/slices/s1.packet.md")
-        self.assertIn("## Directed edits after the guardian", packet)
-        after = packet.split("## Directed edits after the guardian", 1)[1]
+        self.assertIn("## Directed edits after the inspector", packet)
+        after = packet.split("## Directed edits after the inspector", 1)[1]
         lines = [line for line in after.splitlines() if "CHANGELOG.md" in line]
         self.assertEqual(len(lines), 1, after)
         for word in ("changelog", "pat"):
             self.assertIn(word, lines[0])
-        self.assertNotEqual(self.show()["next"], "guardian")
+        self.assertNotEqual(self.show()["next"], "inspector")
 
-    def test_before_the_guardian_no_packet_is_written(self):
+    def test_before_the_inspector_no_packet_is_written(self):
         self.stop()
         self.offer(*self.CHANGELOG)
         self.answer("1")
@@ -2242,7 +2242,7 @@ class DirectedEditTest(RepoCase):
     def test_a_stop_after_the_edit_is_written_to_the_record_and_can_be_answered(self):
         # a rename adds a moved test with a record, so moves_to_accept is a stop this edit really causes (the answered
         # stop is the ready_to_merge the packet raised, and it does not come back)
-        self.guardian_ran()
+        self.inspector_ran()
         before = len(self.show()["stops"])
         logged = self.read(self.REC).count("stop (moves_to_accept)")
         self.offer(*self.RENAME)
@@ -2254,7 +2254,7 @@ class DirectedEditTest(RepoCase):
         data = self.show()
         self.assertEqual(len(data["stops"]), before + 1, "the stop after the edit is a new stop in the record")
         open_stops = [s for s in data["stops"] if s.get("answer") is None]
-        self.assertEqual([(s["order"], s["step"]) for s in open_stops], [("moves_to_accept", "guardian")])
+        self.assertEqual([(s["order"], s["step"]) for s in open_stops], [("moves_to_accept", "inspector")])
         self.assertEqual(self.read(self.REC).count("stop (moves_to_accept)"), logged + 1, "the log says the stop fired")
         self.xv("record", "offer", "s1", "--option", "Accept", "--settles", "The moves are accepted.",
                 "--option", "Wait", "--settles", "The slice waits.", cwd=self.wt)
@@ -2263,7 +2263,7 @@ class DirectedEditTest(RepoCase):
         self.assertEqual([s for s in self.show()["stops"] if s.get("answer") is None], [])
 
     def test_a_directed_edit_at_the_merge_stop_does_not_ask_again_and_the_next_stands(self):
-        self.guardian_ran()
+        self.inspector_ran()
         self.assertEqual([s["order"] for s in self.show()["stops"] if s.get("answer") is None], ["ready_to_merge"])
         before = len(self.show()["stops"])
         self.offer(*self.CHANGELOG)
@@ -2339,9 +2339,9 @@ class DirectedEditTest(RepoCase):
     def test_a_test_under_a_decorator_over_two_lines_is_removed_with_it(self):
         self.removes_the_decorated_test_whole(self.DECORATORS["a decorator over two lines"])
 
-    def test_after_the_guardian_the_packet_line_is_in_the_same_commit_as_the_edit_and_the_record(self):
-        self.guardian_ran()
-        self.commit_all("the guardian's packet")
+    def test_after_the_inspector_the_packet_line_is_in_the_same_commit_as_the_edit_and_the_record(self):
+        self.inspector_ran()
+        self.commit_all("the inspector's packet")
         packet = ".xv/slices/s1.packet.md"
         self.offer(*self.CHANGELOG)
         self.answer("1")
@@ -2349,7 +2349,7 @@ class DirectedEditTest(RepoCase):
         self.assertEqual(len(shas), 1)
         self.assertEqual(self.files_in(shas[0]), sorted(["CHANGELOG.md", self.REC, packet]))
         committed = sh(["git", "show", f"{shas[0]}:{packet}"], self.wt).stdout
-        self.assertIn("## Directed edits after the guardian", committed)
+        self.assertIn("## Directed edits after the inspector", committed)
         self.assertEqual(committed, self.read(packet), "the packet line is committed, not left in the worktree")
         self.assertNotIn(packet, sh(["git", "status", "--porcelain"], self.wt).stdout)
 
@@ -2376,13 +2376,13 @@ class DirectedEditTest(RepoCase):
     # ---- amended (fourth): no commit in the packet line, no rename onto a used name, the slice's worktree
 
     def test_the_packet_line_names_the_file_the_kind_and_the_person_and_no_commit(self):
-        self.guardian_ran()
-        self.commit_all("the guardian's packet")
+        self.inspector_ran()
+        self.commit_all("the inspector's packet")
         self.offer(*self.CHANGELOG)
         self.answer("1")
         shas = self.directed()
         self.assertEqual(len(shas), 1)
-        after = self.read(".xv/slices/s1.packet.md").split("## Directed edits after the guardian", 1)[1]
+        after = self.read(".xv/slices/s1.packet.md").split("## Directed edits after the inspector", 1)[1]
         lines = [line for line in after.splitlines() if line.startswith("- ")]
         self.assertEqual(len(lines), 1, after)
         self.assertEqual(lines[0], "- CHANGELOG.md (changelog): directed by pat")
@@ -2527,11 +2527,11 @@ class DirectedEditTest(RepoCase):
 
 # A person watching the first green: pick a directed test rename on a real stop and read the commit it makes
 # (`git show`): only the test file and the record, its message naming the person, and the packet line when the
-# guardian has run. Look for the case nobody wrote down, such as a rename whose old name is a prefix of another
+# inspector has run. Look for the case nobody wrote down, such as a rename whose old name is a prefix of another
 # test's name in slice_only or wall_recommendations. Then try a test-remove that stops one line short of a test's
 # end, and pick a CHANGELOG edit at ready_to_merge: no second merge stop, and the answer's --next stands.
 # Then remove a decorated test, decorators and all, and read the commit: the next test carries no decorator, and after
-# the guardian the packet line is in that same commit.
+# the inspector the packet line is in that same commit.
 
 
 PACKET = ("---\nslice: s1\nshape_change: no\npitch_contradiction: no\npicture_change: no\nshape_breadth: {breadth}\n"
@@ -2562,16 +2562,16 @@ class RecordStateTest(RepoCase):
         self.xv("record", "packet", "s1", path, cwd=wt)
         return path
 
-    def guardian_slice(self, forecast_shape="none"):
+    def inspector_slice(self, forecast_shape="none"):
         wt = self.new_slice("s1")
         self.xv("record", "set", "s1", "budget", '{"usd": 2}', "--by", "pat", cwd=wt)
         self.xv("record", "set", "s1", "forecast", json.dumps({"shape": forecast_shape}), cwd=wt)
-        self.report(wt, "guardian", shape_change="no", pitch_contradiction="no")
+        self.report(wt, "inspector", shape_change="no", pitch_contradiction="no")
         return wt
 
     # 1. the shape stop keeps the breadth it was accepted at
     def accepted_at_narrow(self):
-        wt = self.guardian_slice()
+        wt = self.inspector_slice()
         self.packet(wt, breadth="narrow")
         self.assertIn("shape_wider_than_forecast", self.open_stops(wt))
         self.xv("record", "answer", "s1", "--by", "pat,sam", "--answer", "narrow is fine, go on", cwd=wt)
@@ -2595,9 +2595,9 @@ class RecordStateTest(RepoCase):
 
     def stopped_on_moves_to_accept(self):
         wt = self.new_slice("s1")
-        self.report(wt, "guardian", shape_change="no", pitch_contradiction="no", wall_recommendations=self.RECS)
+        self.report(wt, "inspector", shape_change="no", pitch_contradiction="no", wall_recommendations=self.RECS)
         self.xv("record", "stop", "s1", "--order", "moves_to_accept", "--seat", "originator",
-                "--question", "accept?", "--step", "guardian", cwd=wt)
+                "--question", "accept?", "--step", "inspector", cwd=wt)
         return wt
 
     def slice_only(self, wt):
@@ -2619,9 +2619,9 @@ class RecordStateTest(RepoCase):
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--accept-wall", "test_keep_me", cwd=wt)
         self.assertEqual(self.slice_only(wt), [])
 
-    def test_a_guardian_that_marks_its_own_slice_only_recommendation_accepted_lists_nothing(self):
+    def test_a_inspector_that_marks_its_own_slice_only_recommendation_accepted_lists_nothing(self):
         wt = self.new_slice("s1")
-        self.report(wt, "guardian", shape_change="no", pitch_contradiction="no",
+        self.report(wt, "inspector", shape_change="no", pitch_contradiction="no",
                     wall_recommendations=[dict(r, accepted=True) for r in self.RECS])
         self.assertEqual(self.slice_only(wt), [])
 
@@ -2629,9 +2629,9 @@ class RecordStateTest(RepoCase):
         wt = self.new_slice("s1")
         recs = [{"file": "tests/test_a.py", "test": "test_no_kind", "why": "w"},
                 {"file": "tests/test_a.py", "test": "test_empty_kind", "recommend": "", "why": "w"}]
-        self.report(wt, "guardian", shape_change="no", pitch_contradiction="no", wall_recommendations=recs)
+        self.report(wt, "inspector", shape_change="no", pitch_contradiction="no", wall_recommendations=recs)
         self.xv("record", "stop", "s1", "--order", "moves_to_accept", "--seat", "originator",
-                "--question", "accept?", "--step", "guardian", cwd=wt)
+                "--question", "accept?", "--step", "inspector", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", "--accept-wall", "test_no_kind",
                 "--accept-wall", "test_empty_kind", cwd=wt)
         self.assertEqual(self.slice_only(wt), [])
@@ -2646,7 +2646,7 @@ class RecordStateTest(RepoCase):
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go",
                 "--accept-wall", "test_one_time_wording", cwd=wt)
         self.xv("record", "stop", "s1", "--order", "moves_to_accept", "--seat", "originator",
-                "--question", "accept again?", "--step", "guardian", cwd=wt)
+                "--question", "accept again?", "--step", "inspector", cwd=wt)
         return wt
 
     def test_refusing_a_mark_slice_only_recommendation_accepted_earlier_takes_it_out_of_slice_only(self):
@@ -2675,24 +2675,24 @@ class RecordStateTest(RepoCase):
 
     # 3. `xv record packet` runs the packet checks `xv step` runs
     def test_record_packet_stops_when_the_packets_expected_moves_differs_from_the_record(self):
-        wt = self.guardian_slice()
+        wt = self.inspector_slice()
         self.packet(wt, expected="2")
         self.assertIn("expected_moves_wrong", self.open_stops(wt))
 
     def test_record_packet_stops_when_the_packet_has_no_expected_moves(self):
-        wt = self.guardian_slice()
+        wt = self.inspector_slice()
         self.packet(wt, expected=None)
         self.assertIn("expected_moves_wrong", self.open_stops(wt))
 
     def test_record_packet_moves_a_finding_with_no_evidence_out_of_the_count(self):
-        wt = self.guardian_slice()
+        wt = self.inspector_slice()
         path = self.packet(wt, more="\n## 3. Moved tests\n\n- the maker weakened a test somewhere\n")
         with open(path) as f:
             text = f.read()
         self.assertIn("## Dropped by the evidence rule", text)
 
     def test_record_packet_with_the_right_expected_moves_does_not_stop_with_it(self):
-        wt = self.guardian_slice()
+        wt = self.inspector_slice()
         self.packet(wt, expected="0")
         self.assertNotIn("expected_moves_wrong", self.open_stops(wt))
 
@@ -2745,13 +2745,13 @@ class WallFlagFormsTest(RepoCase):
     def stopped(self):
         wt = self.new_slice("s1")
         path = os.path.join(self.tmp, "g.txt")
-        report = {"agent": "guardian", "status": "done", "summary": "p", "shape_change": "no",
+        report = {"agent": "inspector", "status": "done", "summary": "p", "shape_change": "no",
                   "pitch_contradiction": "no", "wall_recommendations": self.RECS}
         with open(path, "w") as f:
             f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
-        self.xv("record", "report", "s1", "guardian", path, cwd=wt)
+        self.xv("record", "report", "s1", "inspector", path, cwd=wt)
         self.xv("record", "stop", "s1", "--order", "moves_to_accept", "--seat", "originator",
-                "--question", "accept?", "--step", "guardian", cwd=wt)
+                "--question", "accept?", "--step", "inspector", cwd=wt)
         return wt
 
     def answer(self, wt, *flags):

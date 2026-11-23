@@ -5,10 +5,10 @@ changed and the slice record does not name it.
 The wall does not forbid a move. The maker may move an old test when the
 scenario forces it, with a record: the file, the assertion, why. An unrecorded
 change or deletion is the cheat, and this check fails on it. A person accepts
-the moves from the guardian's packet.
+the moves from the inspection report.
 
 Usage:
-  xv wall baseline <id>          hash the test files now; after the scenario agent's red
+  xv wall baseline <id>          hash the test files now; after the test writer's red
   xv wall diff <id>              what changed since the baseline, with assertion counts
   xv wall check <id>             exit 1 when a changed or deleted test file has no record
   xv wall check --base <ref>     the CI form: every slice record changed since <ref>
@@ -221,7 +221,7 @@ def old_red_changed(root, base, files, recorded=(), paths=()):
 
 def check_against_base(root, base, config=None):
     """The CI form. Test files that existed at `base` and changed must be either the
-    scenario agent's red (changed before the wall baseline) or a recorded move."""
+    test writer's red (changed before the wall baseline) or a recorded move."""
     config = config or load_config(root)
     paths = (config.get("tests") or {}).get("paths") or []
     changed = [line.split("\t") for line in

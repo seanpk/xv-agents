@@ -9,7 +9,7 @@ from xvlib import load_config
 # Programs that run anything given the right arguments: a rule must never stop at one of these.
 RUNS_ANYTHING = ["python3", "python", "go", "npm", "npx", "node", "bundle", "ruby", "cargo", "make",
                  "yarn", "pnpm", "sh", "bash"]
-SEATS = ("default", "forecaster", "guardian")
+SEATS = ("default", "forecaster", "inspector")
 
 
 def entries_of(config, seat):
@@ -82,7 +82,7 @@ class InitAllowListBareTest(RepoCase):
         rest = command.split("&&")[-1].strip()
         rest = " ".join(w for w in rest.split() if "=" not in w.split("/")[0])
         skill = open(os.path.join(HOME, "skills", "xv-init", "SKILL.md")).read()
-        for seat in ("default", "guardian"):
+        for seat in ("default", "inspector"):
             with self.subTest(seat=seat):
                 has_rule = any(rest == p or rest.startswith(p + " ") for p in prefixes(entries_of(config, seat))
                                if p not in RUNS_ANYTHING)

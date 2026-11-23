@@ -8,7 +8,7 @@ from helpers import RepoCase, sh
 HERE = os.path.dirname(os.path.abspath(__file__))
 FAKE = os.path.join(HERE, "fake_agent.py")
 
-# What the stand-in scenario and maker leave outside .xv/, counted by hand:
+# What the stand-in test writer and maker leave outside .xv/, counted by hand:
 # tests/test_red.py is 10 new lines; pantry/store.py changes one line (1 added, 1 deleted).
 OUTSIDE_XV = 10 + 2
 
@@ -29,19 +29,19 @@ class DiffCountTest(RepoCase):
         return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
 
     def test_diff_lines_leaves_out_what_the_record_writes_under_xv(self):
-        for agent in ("forecaster", "scenario", "maker"):
+        for agent in ("forecaster", "test-writer", "maker"):
             self.xv("step", agent, "s1", cwd=self.wt)
         # the slice record under .xv/ has changed since the base; it must not count
         self.assertEqual(self.record()["checks"]["maker"]["diff_lines"], OUTSIDE_XV)
 
     def test_a_file_under_xv_added_before_the_cleaner_does_not_grow_the_count(self):
-        for agent in ("forecaster", "scenario", "maker"):
+        for agent in ("forecaster", "test-writer", "maker"):
             self.xv("step", agent, "s1", cwd=self.wt)
         packet = os.path.join(self.wt, ".xv", "slices", "s1.packet.md")
         with open(packet, "w") as f:
             f.write("".join(f"line {i}\n" for i in range(200)))
         sh(["git", "add", "-A"], self.wt)
-        sh(["git", "commit", "-qm", "a packet the guardian wrote"], self.wt)
+        sh(["git", "commit", "-qm", "a packet the inspector wrote"], self.wt)
         self.xv("step", "cleaner", "s1", cwd=self.wt, check=False)
         self.assertEqual(self.record()["checks"]["cleaner"]["diff_lines"], OUTSIDE_XV)
 

@@ -11,7 +11,7 @@ ANSWER = "2 ok (the pick: a promote.attribution setting, empty by default)"
 class AnswerInPromptTest(RepoCase):
     def test_the_next_agents_prompt_carries_the_answer_word_for_word_under_its_own_heading(self):
         wt = self.new_slice("s1")
-        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+        self.xv("record", "stop", "s1", "--order", "test_writer_stopped", "--seat", "originator",
                 "--question", "Which attribution line?", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", ANSWER, cwd=wt)
         prompt = self.xv("prompt", "maker", "s1", cwd=wt).stdout
@@ -29,7 +29,7 @@ class AnswerInPromptTest(RepoCase):
 class AnswerReachesOnlyTheNextAgentTest(RepoCase):
     def test_the_agent_after_the_one_that_got_the_answer_does_not_get_it(self):
         wt = self.new_slice("s1")
-        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+        self.xv("record", "stop", "s1", "--order", "test_writer_stopped", "--seat", "originator",
                 "--question", "Which attribution line?", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", ANSWER, cwd=wt)
         self.assertIn(ANSWER, self.xv("prompt", "maker", "s1", cwd=wt).stdout)
@@ -48,7 +48,7 @@ class AnswerReachesOnlyTheNextAgentTest(RepoCase):
         with open(path, "w") as fh:
             fh.write(json.dumps({"result": out}))
         self.xv("record", "report", "s1", "forecaster", path, cwd=wt)
-        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+        self.xv("record", "stop", "s1", "--order", "test_writer_stopped", "--seat", "originator",
                 "--question", "Which attribution line?", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", ANSWER, cwd=wt)
         data = json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
@@ -76,7 +76,7 @@ class SliceAmendTest(RepoCase):
     def show(self, wt):
         return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
 
-    def test_amend_appends_with_date_and_who_clears_red_and_sends_it_back_to_the_scenario_agent(self):
+    def test_amend_appends_with_date_and_who_clears_red_and_sends_it_back_to_the_test_writer(self):
         wt = self.new_slice("s1", "The household sees X.")
         self.xv("record", "set", "s1", "red",
                 json.dumps({"files": ["tests/test_x.py"], "command": "true", "failure": "f"}), cwd=wt)
@@ -84,7 +84,7 @@ class SliceAmendTest(RepoCase):
         self.amend(wt, "The household also sees Y.", by="sam")
         data = self.show(wt)
         self.assertIsNone(data["red"])
-        self.assertEqual(data["next"], "scenario")
+        self.assertEqual(data["next"], "test-writer")
         text = open(os.path.join(wt, ".xv", "slices", "s1.md")).read()
         self.assertIn("The household sees X.", text)
         self.assertIn("The household also sees Y.", text)
@@ -117,7 +117,7 @@ class SliceAmendTest(RepoCase):
 class SettledInPromptTest(RepoCase):
     def test_the_next_agent_gets_settled_not_the_raw_answer(self):
         wt = self.new_slice("s1")
-        self.xv("record", "stop", "s1", "--order", "scenario_stopped", "--seat", "originator",
+        self.xv("record", "stop", "s1", "--order", "test_writer_stopped", "--seat", "originator",
                 "--question", "Which attribution line?", cwd=wt)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "2 ok", "--pick", "other",
                 "--settled", "Attribution is a promote.attribution setting, empty by default.", cwd=wt)
@@ -125,9 +125,9 @@ class SettledInPromptTest(RepoCase):
         self.assertIn("Attribution is a promote.attribution setting, empty by default.", prompt)
         self.assertNotIn("2 ok", prompt)
 
-    def test_the_scenario_brief_says_to_write_the_form_the_answer_names_or_stop(self):
+    def test_the_test_writer_brief_says_to_write_the_form_the_answer_names_or_stop(self):
         wt = self.new_slice("s1")
-        low = self.xv("prompt", "scenario", "s1", cwd=wt).stdout.lower()
+        low = self.xv("prompt", "test-writer", "s1", cwd=wt).stdout.lower()
         self.assertIn("settled", low)
         self.assertIn("lint rule", low)
         self.assertIn("does not swap in a test", low)

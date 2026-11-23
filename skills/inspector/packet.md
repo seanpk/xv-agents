@@ -24,7 +24,7 @@ blast_radius: <one word>
 
 <The recording for a defect, or the command that replays the red and the green. Before and after.>
 
-## The boundary picture
+## The boundary diagram
 
 <From `xv boundary`, as given: the modules touched, edges added and removed, tables, surfaces users meet. Mermaid is fine.>
 
@@ -57,7 +57,7 @@ Slice-only tests removed: <the tests, on one line, or none>. Kept: <each kept sl
 
 ## Scenario misses
 
-<Only with `change_misses_scenario: yes`. One line for each scenario line or binding decision the change misses: `- <outcome, such as 2 or amendment 1, outcome 3, or decision 4>: <what is missed> (evidence: <a test, a run, or a diff hunk>; to: maker|scenario)`. `to` is your call on whether the red covers the line. Add `amend: yes` when meeting the miss would change the scenario. Or leave the section out.>
+<Only with `change_misses_scenario: yes`. One line for each scenario line or binding decision the change misses: `- <outcome, such as 2 or amendment 1, outcome 3, or decision 4>: <what is missed> (evidence: <a test, a run, or a diff hunk>; to: maker|test-writer)`. `to` is your call on whether the red covers the line. Add `amend: yes` when meeting the miss would change the scenario. Or leave the section out.>
 
 ## Door
 

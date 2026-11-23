@@ -4,7 +4,7 @@ skill (through `xv step`, the real path) and without it (the baseline: the same
 task as a person would type it, no brief), on one or more harnesses.
 
   python3 evals/run.py --list
-  python3 evals/run.py --scenario scenario-defect --harness claude --arm skill
+  python3 evals/run.py --scenario test-writer-defect --harness claude --arm skill
   python3 evals/run.py --all --harness claude opencode --arm skill baseline
   python3 evals/run.py --increment 1 --harness claude
 

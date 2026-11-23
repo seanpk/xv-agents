@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the guardian's packet and enforce the evidence rule.
+"""Check the inspection report (the inspector's packet) and enforce the evidence rule.
 
 The packet's front matter must carry the two fixed fields the watch reads,
 `shape_change` and `pitch_contradiction`, each `yes` or `no`, and the door,
@@ -20,7 +20,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from xvlib import XVError, die, join_front_matter, split_front_matter  # noqa: E402
+from xvlib import XVError, agent_name, die, join_front_matter, split_front_matter  # noqa: E402
 
 CHECKS = re.compile(r"^##\s*(?:\d\.\s*)?(shape|pitch|moved tests|the picture|picture|security|usability)\b", re.I)
 CITATION = re.compile(
@@ -84,9 +84,9 @@ def misses(body):
             in_misses = bool(MISSES.match(line))
         m = MISS_REF.match(line) if in_misses else None
         if m and EVIDENCE.search(line):
-            to = re.search(r"\bto\s*:\s*(maker|scenario)\b", line, re.I)
+            to = re.search(r"\bto\s*:\s*(maker|test-writer|scenario)\b", line, re.I)
             out.append({"ref": re.sub(r"^(?:outcome|point)\s+", "", m.group(1).strip().lower()), "text": line.strip().lstrip("-* ").strip(),
-                        "to": to.group(1).lower() if to else "maker",
+                        "to": agent_name(to.group(1).lower(), "the miss's `to:`") if to else "maker",
                         "amend": bool(re.search(r"\bamend\s*:\s*yes\b", line, re.I))})
     return out
 
@@ -168,7 +168,7 @@ def note_crowded_picture_lines(path, root):
 def packet_checks(path, data, root=None):
     """The packet checks `xv step` and `xv record packet` share: the lint, then the record's count of expected moves,
     then a note for picture lines that hold more than one sentence, then one line per pairing.
-    Returns what goes into the guardian's checks."""
+    Returns what goes into the inspector's checks."""
     lint_result = fix(path)
     problems = lint_result["problems"] + expected_moves_problems(path, data)
     if root:

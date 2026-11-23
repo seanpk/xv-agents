@@ -221,14 +221,14 @@ class StepStartRemovalTest(WatchLoopSetup):
     def test_step_saves_head_as_step_start_before_the_agent_runs(self):
         self.step("forecaster")
         before = sh_head(self.wt)
-        self.step("scenario")
+        self.step("test-writer")
         data = self.record()
-        self.assertEqual(data["step_start"]["agent"], "scenario")
+        self.assertEqual(data["step_start"]["agent"], "test-writer")
         self.assertEqual(data["step_start"]["commit"], before)
 
     def test_a_removal_committed_by_the_step_then_moved_with_line_is_taken(self):
         self.step("forecaster")
-        self.step("scenario")
+        self.step("test-writer")
         self.step("maker")
         text = open(os.path.join(self.wt, "tests", "test_red.py")).read()
         line = text.split("\n").index("    def test_milk_today(self):") + 1
@@ -241,7 +241,7 @@ class StepStartRemovalTest(WatchLoopSetup):
 
     def test_a_slice_only_move_between_steps_reads_head_not_the_last_steps_start(self):
         self.step("forecaster")
-        self.step("scenario")
+        self.step("test-writer")
         self.step("maker")  # step_start is now the maker's start commit, and stays in the record
         path = os.path.join(self.wt, "tests", "test_red.py")
         text = open(path).read()

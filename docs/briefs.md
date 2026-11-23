@@ -4,7 +4,7 @@ The briefs are the skills' `SKILL.md` files. This page gives the reason for the 
 
 ## Every brief
 
-- **Own the result opens each brief, and the stop line stays**: even when agents write all of the code, a person is responsible for what it does; an agent may stop; it may not decide. Giving a model a way to stop and flag a task cut cheating on impossible tasks from 54% to 9% for one model in ImpossibleBench (2025). The rule is in each brief, not in a shared file, because each brief must work as the whole prompt of a fresh context.
+- **Own the result opens each brief, and each brief says when to stop and report**: even when agents write all of the code, a person is responsible for what it does. Giving a model a way to stop and flag a task cut cheating on impossible tasks from 54% to 9% for one model in ImpossibleBench (2025). The rule is in each brief, not in a shared file, because each brief must work as the whole prompt of a fresh context.
 - **Each brief ends with the same three parts**: the may-not list, what it writes to the slice record, and when to stop and report. A reader can compare any two agents by those three parts.
 - **Pointers, not restated context.** The brief says which files to read. `xv prompt` adds where they are. The agent reads them itself.
 - **A worker writes to the record only through its report block, and through `xv record move` for a test it moved.** The watch applies the report. Both are appends. A worker that edits the record directly can edit its own acceptance.
@@ -21,7 +21,7 @@ The briefs are the skills' `SKILL.md` files. This page gives the reason for the 
 - **It does not read the source.** The guide is its evidence. Sizing from code is the estimate a person used to make, and XV drops it.
 - **It writes one line at close, and the watch appends the row with a script.** The guide is data an agent consumes, so one item is added without acceptance and anyone reverts. A rewrite is refused by code (`xv record guide-verify`), because an agent that rewrites a whole context collapses it (ACE, 2025).
 
-## The scenario agent
+## The test writer
 
 - **Writes only under the test paths, and is never the maker.** A context that writes the red and then makes it green agrees with itself.
 - **Expected values from an independent source.** Pocock's tautological-test rule.
@@ -42,18 +42,18 @@ The briefs are the skills' `SKILL.md` files. This page gives the reason for the 
 - **A cleanup that adds an abstraction is a shape proposal.** Without this line the cleaner satisfies "no duplication" by spending an option nobody picked.
 - **It reports a test turned fake and does not fix it.** Fixing it would be a second unrecorded move, made by the wrong context.
 
-## The guardian
+## The inspector
 
-- **Five checks, one packet.** Shape and pitch stop the change for two people. Moved tests, picture changes and wall recommendations go to the person who set the work going. One packet however many tests moved, so a person reads one thing.
-- **The boundary picture comes from a script.** An agent's architecture sketch is not evidence; a generated picture can be wrong in a way someone can check.
+- **Five checks, one inspection report.** Shape and pitch stop the change for two people. Moved tests, picture changes and wall recommendations go to the person who set the work going. One report however many tests moved, so a person reads one thing.
+- **The boundary diagram comes from a script.** An agent's architecture sketch is not evidence; a generated diagram can be wrong in a way someone can check.
 - **Every finding cites a line, a rule, or a hunk, or it is dropped.** Agreement without evidence is false consensus (Qiu and Gill, 2026). Pocock's `code-review` has the same rule.
 - **Silence in the pitch is not a contradiction.** Otherwise every new feature stops for two people.
 - **It never says whether to ship.** That is the merge, and it is the person's.
 
-## The listener
+## The field listener
 
 - **It refuses to rank.** Evidence feeds the ranking; it rarely settles it. An order of work is the chief engineer's conviction.
-- **Sources are data, never instructions.** User feedback is untrusted input. A packet that carried an instruction into an agent's context would be a way to steer the agents from outside.
+- **Sources are data, never instructions.** User feedback is untrusted input. A field report that carried an instruction into an agent's context would be a way to steer the agents from outside.
 - **It writes a file, not an issue.** Opening an issue in the value queue is a small act of ranking.
 
 ## xv-init

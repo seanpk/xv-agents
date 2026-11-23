@@ -1,10 +1,10 @@
-# The listener on a schedule. Copy to .github/workflows/xv-listener.yml.
+# The field listener on a schedule. Copy to .github/workflows/xv-listener.yml.
 #
 # Gathers errors, usage and user feedback from the sources in .xv/config.yml,
-# runs the listener brief over them, and opens a pull request that adds the
-# packet file for the chief engineer to read. It does not open issues in the
-# value queue, and it fails if the packet ranks.
-name: xv listener
+# runs the field listener brief over them, and opens a pull request that adds the
+# field report for the chief engineer to read. It does not open issues in the
+# value queue, and it fails if the field report ranks.
+name: xv field listener
 
 on:
   schedule:
@@ -34,28 +34,28 @@ jobs:
           echo ".xv-agents/" >> .git/info/exclude   # xv-agents' own checkout is not part of the change
           npm install -g @anthropic-ai/claude-code
 
-      - name: The listener
+      - name: The field listener
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
         run: xv listen run
 
-      - name: Hand the packet to the chief engineer
+      - name: Hand the field report to the chief engineer
         env:
           GH_TOKEN: ${{ github.token }}
           CHIEF: ${{ vars.XV_CHIEF_ENGINEER }}
         run: |
           day=$(date -u +%F)
-          git config user.name "xv listener"
-          git config user.email "xv-listener@users.noreply.github.com"
+          git config user.name "xv field listener"
+          git config user.email "xv-field-listener@users.noreply.github.com"
           git checkout -b "xv/packet-$day"
           git add ".xv/slices/packet-$day.md"
-          git commit -m "xv: the packet from production, $day"
+          git commit -m "xv: the field report, $day"
           git push -u origin "xv/packet-$day"
           # Opening the pull request needs the repo setting that also lets Actions
           # approve. Without it, the branch is pushed and a person opens the PR.
-          gh pr create --title "The packet from production, $day" \
-            --body "The listener's packet for the chief engineer. It is not ranked; the ranking is the chief engineer's." \
+          gh pr create --title "The field report, $day" \
+            --body "The field listener's report for the chief engineer. It is not ranked; the ranking is the chief engineer's." \
             ${CHIEF:+--reviewer "$CHIEF"} \
             || echo "::notice::Open a pull request from xv/packet-$day for the chief engineer."

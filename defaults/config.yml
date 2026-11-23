@@ -34,7 +34,7 @@ tests:
   command: ""
   timeout: 900
   # Files whose tests are always slice-only: a mark on a test that checks one of
-  # these is accepted with no stop. The scenario agent's report names the file.
+  # these is accepted with no stop. The test writer's report names the file.
   slice_only_files: ["CHANGELOG.md"]
 
 source:
@@ -48,13 +48,13 @@ source:
 agents:
   default: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "sonnet", "{prompt}"]
   forecaster: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "haiku", "{prompt}"]
-  guardian: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "opus", "{prompt}"]
-  # A whole command list for the guardian's re-pass only (after a pairing or a send-back); absent, the re-pass runs `guardian`, then `default`:
-  # guardian_repass: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "sonnet", "{prompt}"]
+  inspector: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "opus", "{prompt}"]
+  # A whole command list for the inspector's re-pass only (after a pairing or a send-back); absent, the re-pass runs `inspector`, then `default`:
+  # inspector_repass: ["claude", "-p", "--safe-mode", "--disable-slash-commands", "--output-format", "json", "--permission-mode", "acceptEdits", "--model", "sonnet", "{prompt}"]
   # A local model through opencode:
   # maker: ["opencode", "run", "--auto", "--format", "json", "--model", "ollama/gpt-oss:20b", "{prompt}"]
   # Grok (its home rules and skills load into every run; see docs/harness-notes.md):
-  # guardian: ["grok", "--output-format", "json", "-m", "grok-4.7", "--no-subagents", "--permission-mode", "bypassPermissions", "-p", "{prompt}"]
+  # inspector: ["grok", "--output-format", "json", "-m", "grok-4.7", "--no-subagents", "--permission-mode", "bypassPermissions", "-p", "{prompt}"]
 
 # Who sits in each seat. The person who set the work going is named in each slice record.
 # A one-person team sets two_people to solo: the two-person stops still fire and
@@ -75,9 +75,9 @@ limits:
   # each went back to the maker at least once. 0: off.
   rework_slices: 3
 
-# Where the listener gathers the packet from production. Leave it out until the
+# Where the field listener gathers the field report from production. Leave it out until the
 # repo has users. Tokens come from the environment, never from this file.
-# listener:
+# field_listener:
 #   sentry:
 #     org: my-org
 #     project: my-project

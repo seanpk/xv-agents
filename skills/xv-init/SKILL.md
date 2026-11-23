@@ -6,9 +6,9 @@ license: MIT
 
 # xv-init
 
-The guardian checks every change against a pitch and a picture. This skill makes both before the first slice. The pitch is the people's statement of what the system is for, so it comes from them. The picture is generated where it can be, so it can be wrong in a checkable way, and people correct it.
+The inspector checks every change against a pitch and a picture. This skill makes both before the first slice. The pitch is the people's statement of what the system is for, so it comes from them. The picture is generated where it can be, so it can be wrong in a checkable way, and people correct it.
 
-Own the result: even when agents write all of the code, a person is responsible for what it does. An agent may stop. It may not decide. You may not invent what the system is for.
+Own the result: even when agents write all of the code, a person is responsible for what it does. You may not invent what the system is for.
 
 Note the time when you run `xv init`. Keep a list, as you go, of each question the person asks and each step that needs work this skill does not describe. Step 8 reports both.
 
@@ -31,11 +31,11 @@ copies the starter files from this repo's `defaults/` into `.xv/`, fills in `.xv
 
 - **The test command.** `xv init` ran it once, with a time limit (`tests.timeout` seconds, 900 by default, so the run can be slow), and the output's `test_run` says `passed`, `failed` (with the last lines of its output in `tail`), or `timed out`. If `test_run` is null, no command was guessed: ask the person for one. Otherwise tell the person which; if it failed or timed out, show the tail and ask about the command, and do not fix it yourself. Show `tests.command` and `tests.paths`. If the output lists `runners` (marker, command, paths), there is more than one suite. Show each and ask which command to use: one, several joined with `&&`, or a script. `tests.paths` is already the union over the runners; the wall hashes every file it matches. If the person changes `tests.command`, change the test rules in each agent's `--allowedTools` in `.xv/config.yml` to match. Give each part of the command its own rule, and never stop a rule at the program name: `Bash(python3 -m unittest:*)`, not `Bash(python3:*)`, which lets an agent run anything.
 - **A big suite.** The command must return in minutes. If the whole suite cannot, set `tests.command` to a script that picks the suites the slice touches. It runs with `XV_BASE` (the slice's base commit) and `XV_SLICE` (the slice id) in its environment. The script lists the changed files with `git diff --name-only "$XV_BASE"` and `git ls-files --others --exclude-standard` (new files), maps each to its runner and specs, and runs a fixed fast set when nothing maps. Add its path to `tests.paths`, so a change to it shows in `xv wall diff`. The person approves the script; it decides what green means.
-- **The source roots.** The output's `modules` is the number of modules in `.xv/boundary-all.md`; tell the person the count and ask whether it is too few (one module for a large app) or too many. `fixture_folders` lists each folder named like a fixture (`fixture`, `fixtures`, `examples`, `setups`) that holds code; tell the person about each and ask whether it belongs in `source.exclude`. Open `.xv/boundary-all.md` with the person. Each module should be a part the team names when it talks about the code. With `source.roots: ["."]`, a large app is one module, and the guardian never sees a shape change. A Rails layout gets `app`, `lib` and `app/javascript`. Under a root other than `.`, a module's name includes the root: `app/controllers`, `app/javascript/controllers`. After a change to the roots, run `xv boundary --all > .xv/boundary-all.md`. A list in `.xv/config.yml` may span lines.
+- **The source roots.** The output's `modules` is the number of modules in `.xv/boundary-all.md`; tell the person the count and ask whether it is too few (one module for a large app) or too many. `fixture_folders` lists each folder named like a fixture (`fixture`, `fixtures`, `examples`, `setups`) that holds code; tell the person about each and ask whether it belongs in `source.exclude`. Open `.xv/boundary-all.md` with the person. Each module should be a part the team names when it talks about the code. With `source.roots: ["."]`, a large app is one module, and the inspector never sees a shape change. A Rails layout gets `app`, `lib` and `app/javascript`. Under a root other than `.`, a module's name includes the root: `app/controllers`, `app/javascript/controllers`. After a change to the roots, run `xv boundary --all > .xv/boundary-all.md`. A list in `.xv/config.yml` may span lines.
 
 ## 2. The outsider read
 
-The picture is what the guardian checks a change's shape against, and what a new person or agent reads to learn the system. The outsider is a fresh agent context. It is not told how the system works and does not see the pitch. Where it gets something wrong, a newcomer would too, so each correction is a line the picture needs.
+The picture is what the inspector checks a change's shape against, and what a new person or agent reads to learn the system. The outsider is a fresh agent context. It is not told how the system works and does not see the pitch. Where it gets something wrong, a newcomer would too, so each correction is a line the picture needs.
 
 Run it before the interview, so nothing the person says shapes it:
 
@@ -51,7 +51,7 @@ If the harness cannot shell out, run the outsider read in a subagent with the te
 
 Ask one question at a time, and write down the person's words.
 
-**The pitch comes first.** No slice starts without it: `xv slice new` refuses while `.xv/pitch.md` says `status: not written`, because the guardian checks every change against it.
+**The pitch comes first.** No slice starts without it: `xv slice new` refuses while `.xv/pitch.md` says `status: not written`, because the inspector checks every change against it.
 
 1. **The pitch, in one sentence:** what does the system do, and for whom? Hold the person to one sentence. If the answer runs longer, read it back and ask which sentence is the pitch. Keep the rest for the page.
 2. **The page,** one heading at a time: Why does it exist; what would its users do without it? Who uses it? Who is it not for, and what will it never do?
@@ -63,12 +63,12 @@ The sentence goes under the title of `.xv/pitch.md`, the answers under the headi
 3. **Users:** who are they, by name or by role? Who on the team sits with them?
 4. **Vision:** what is the system becoming?
 5. **Decisions that bind:** what has the team settled that an agent must not reopen? Do not ask this cold. Draft the list from AGENTS.md, CLAUDE.md, `docs/` and the README, each decision with its source. Show the draft; the person cuts and adds. You may draft from what the repo already states. You may not invent a decision, or turn a habit you saw in the code into one.
-6. **In motion:** what work is under way that a slice could collide with? No agent checks this section by name. The guardian reads the whole picture, so it helps it and the person reading a packet tell a change that belongs to work under way from one that cuts across it. A useful answer is one line per item, dated: "Moving billing from Checkout to Elements; new code uses Elements; Checkout goes by March." Keep the question short. "Nothing" is a fine answer.
+6. **In motion:** what work is under way that a slice could collide with? No agent checks this section by name. The inspector reads the whole picture, so it helps it and the person reading an inspection report tell a change that belongs to work under way from one that cuts across it. A useful answer is one line per item, dated: "Moving billing from Checkout to Elements; new code uses Elements; Checkout goes by March." Keep the question short. "Nothing" is a fine answer.
 7. **Runtime budgets:** response times, sizes, costs the system must stay inside.
 
 Write answers 3 to 7 under their headings in `.xv/picture.md`. Then walk the person through the outsider's draft, section by section, and let them correct it. Settle each place the code and the docs disagree: which one is right, or a question for later.
 
-Write the picture with one sentence per line, so a change to one sentence shows as a change to one line. Keep a list item's extra lines lined up with the item's text (two spaces after `-`, three after `1.`), so they stay in the item. Keep the picture under two pages. The guardian loads all of it on every slice. The listener reads it for names and flows, and the prototype maker reads it loosely. The maker, the cleaner, the scenario agent and the forecaster do not read it. Where the repo's docs already say more, point to them; do not copy them. Keep in the picture what the guardian needs to check a change: users, shape, names, decisions.
+Write the picture with one sentence per line, so a change to one sentence shows as a change to one line. Keep a list item's extra lines lined up with the item's text (two spaces after `-`, three after `1.`), so they stay in the item. Keep the picture under two pages. The inspector loads all of it on every slice. The field listener reads it for names and flows, and the prototype maker reads it loosely. The maker, the cleaner, the test writer and the forecaster do not read it. Where the repo's docs already say more, point to them; do not copy them. Keep in the picture what the inspector needs to check a change: users, shape, names, decisions.
 
 When the person has corrected it, set `status: checked` and `checked_by: <name>` in its front matter. Note the time.
 
@@ -123,4 +123,4 @@ Then load the `xv-promote` skill and follow its "Across repos" steps. Each findi
 ## Stop and report when
 
 - The repo has no tests the wall can hash. Say so; the wall and the maker depend on a suite.
-- The person does not want to write the pitch now. Leave the prompts in place and say what that means for the guardian.
+- The person does not want to write the pitch now. Leave the prompts in place and say what that means for the inspector.

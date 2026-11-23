@@ -470,7 +470,7 @@ class KeptPickTest(PrototypesTest):
         self.xv("record", "set", "p1", "budget", '{"usd": 1}', "--by", "pat", cwd=self.wt)
         with mock.patch.dict(os.environ, e):
             self.xv("step", "forecaster", "p1", cwd=self.wt, check=False)
-            return self.xv("step", "scenario", "p1", cwd=self.wt, check=False)
+            return self.xv("step", "test-writer", "p1", cwd=self.wt, check=False)
 
     def ran(self, title):
         rows = [json.loads(l) for l in open(self.cwds) if l.strip()] if os.path.exists(self.cwds) else []
@@ -483,18 +483,18 @@ class KeptPickTest(PrototypesTest):
         base = self.record()["base"]
         p = self.run_steps()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        ran = self.ran("# The scenario agent")
-        self.assertIsNotNone(ran, "the scenario agent did not run")
-        self.assertFalse(ran["exists"][self.BUILD_FILE], "the scenario agent's checkout has the build in it")
+        ran = self.ran("# The test writer")
+        self.assertIsNotNone(ran, "the test writer did not run")
+        self.assertFalse(ran["exists"][self.BUILD_FILE], "the test writer's checkout has the build in it")
         self.assertEqual(ran["head"], base, "the red was not written at the base")
-        self.assertIs(self.record()["checks"]["scenario"].get("red_fails"), True)
+        self.assertIs(self.record()["checks"]["test-writer"].get("red_fails"), True)
 
     def test_a_red_that_fails_on_the_kept_build_goes_to_the_maker_with_no_stop(self):
         self.build_in("b", {self.BUILD_FILE: "KEPT = True\n"})
         self.pick("--keep")
         self.run_steps()
         rec = self.record()
-        self.assertEqual(rec["checks"]["scenario"].get("red_on_build", {}).get("passes"), False)
+        self.assertEqual(rec["checks"]["test-writer"].get("red_on_build", {}).get("passes"), False)
         self.assertEqual(rec["next"], "maker")
 
     def test_a_red_that_passes_on_the_kept_build_skips_the_maker(self):

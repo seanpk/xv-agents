@@ -65,15 +65,15 @@ class PacketTest(unittest.TestCase):
         self.assertFalse(any("change_misses_scenario" in p for p in problems))
 
     def test_the_packet_template_shows_the_fields_and_a_misses_section(self):
-        text = open(os.path.join(HOME, "skills", "guardian", "packet.md")).read()
+        text = open(os.path.join(HOME, "skills", "inspector", "packet.md")).read()
         front = text.split("---")[1]
         self.assertRegex(front, r"(?m)^change_misses_scenario: ")
         self.assertRegex(front, r"(?m)^shape_change: .*accepted")
         self.assertIn("accepted_by", front)
         self.assertRegex(text, r"(?im)^## .*miss")
 
-    def test_the_guardian_brief_names_change_misses_scenario_and_what_a_miss_cites(self):
-        text = open(os.path.join(HOME, "skills", "guardian", "SKILL.md")).read()
+    def test_the_inspector_brief_names_change_misses_scenario_and_what_a_miss_cites(self):
+        text = open(os.path.join(HOME, "skills", "inspector", "SKILL.md")).read()
         self.assertIn("change_misses_scenario", text)
         self.assertRegex(text, r"(?i)binding decision")
 
@@ -90,7 +90,7 @@ class PacketTest(unittest.TestCase):
 ## Scenario misses
 
 - 2: the list leaves out milk that runs out today (evidence: tests/test_store.py:7; to: maker)
-- amendment 1, item 3: no heading for the section (evidence: a run of `xv packet lint`; to: scenario)
+- amendment 1, item 3: no heading for the section (evidence: a run of `xv packet lint`; to: test-writer)
 - decision 4: breaks the by-name rule (evidence: pantry/store.py:12; to: maker)
 - The list feels thin (evidence: tests/test_store.py:9; to: maker)
 - 3: the stop is missing; to: maker
@@ -156,7 +156,7 @@ class PacketFieldDocsTest(unittest.TestCase):
         self.assertEqual(self.allowed("pitch_contradiction"), ["yes", "no"])
 
     def test_the_packet_template_names_every_allowed_value(self):
-        self.check(self.read("skills", "guardian", "packet.md"), "skills/guardian/packet.md")
+        self.check(self.read("skills", "inspector", "packet.md"), "skills/inspector/packet.md")
 
     def test_the_readme_names_every_allowed_value(self):
         self.check(self.read("README.md"), "README.md")
@@ -214,7 +214,7 @@ class CrowdedPictureNoteTest(unittest.TestCase):
         self.assertEqual(text.count(self.NOTE), 1, text)
 
     def test_a_note_quoted_inside_a_line_is_not_stripped(self):
-        quote = f"- The guardian saw that {self.NOTE} more than one sentence on .xv/picture.md:9 (evidence: x:1)"
+        quote = f"- The inspector saw that {self.NOTE} more than one sentence on .xv/picture.md:9 (evidence: x:1)"
         self.packet(GOOD.rstrip("\n") + "\n\n" + quote + "\n")
         text = self.run_note()
         self.assertIn(quote, text, "a line that quotes the note lost its text")

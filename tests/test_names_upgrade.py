@@ -50,7 +50,7 @@ class OldNamesAreStillReadTest(unittest.TestCase):
         first, second = self.data["stops"]
         self.assertEqual((first["order"], first["sendback"], first["sendback_to"]), ("moves_to_accept", True, "maker"))
         self.assertEqual(second["order"], "report_misses_outcome")
-        scenario = self.data["checks"]["scenario"]
+        scenario = self.data["checks"]["test-writer"]
         self.assertEqual((scenario["missed_outcomes"], scenario["red_joined_unsafely"]), (["1. a"], "a; b"))
         self.assertEqual(scenario["covered_kept"][0]["outcome"], "x")
 
@@ -60,7 +60,7 @@ class OldNamesAreStillReadTest(unittest.TestCase):
         self.assertEqual(orders_read, ["read_only_changed", "change_misses_scenario", "maker_stopped"])
         self.assertEqual(d["stops"][2]["sendback"], True)
         self.assertNotIn("send_back", d["stops"][2])
-        scenario = d["checks"]["scenario"]
+        scenario = d["checks"]["test-writer"]
         self.assertEqual(scenario["not_covered"][0]["outcome"], "2. b")
         self.assertEqual(scenario["covers_kept"][0]["outcome"], "3. c")
 

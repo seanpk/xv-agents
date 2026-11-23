@@ -27,13 +27,13 @@ class PictureInTheBriefsTest(unittest.TestCase):
         text = brief("skills", "maker", "SKILL.md")
         self.assertRegex(text, r"(?i)binding decisions[^\n]*before[^\n]*code|before[^\n]*code[^\n]*binding decisions")
 
-    def test_the_scenario_agent_may_read_the_picture_and_pull_the_binding_decisions(self):
-        text = brief("skills", "scenario", "SKILL.md")
+    def test_the_test_writer_may_read_the_picture_and_pull_the_binding_decisions(self):
+        text = brief("skills", "test-writer", "SKILL.md")
         self.assertIn(".xv/picture.md", section(text, "Read"))
         self.assertRegex(text, r"(?i)binding decisions")
 
-    def test_the_scenario_brief_says_each_numbered_point_must_be_in_covers_or_not_covered(self):
-        text = brief("skills", "scenario", "SKILL.md")
+    def test_the_test_writer_brief_says_each_numbered_point_must_be_in_covers_or_not_covered(self):
+        text = brief("skills", "test-writer", "SKILL.md")
         self.assertRegex(text, r"(?is)each numbered outcome[^\n]*amendment[^\n]*`covered`[^\n]*`not_covered`")
 
     def test_the_watch_may_edit_the_picture_when_a_person_directs_it(self):
@@ -43,20 +43,21 @@ class PictureInTheBriefsTest(unittest.TestCase):
 
 
 OPENERS = [
-    "skills/cleaner/SKILL.md", "skills/forecaster/SKILL.md", "skills/guardian/SKILL.md",
-    "skills/listener/SKILL.md", "skills/maker/SKILL.md", "skills/maker/prototype.md",
-    "skills/scenario/SKILL.md", "skills/watch/SKILL.md", "skills/xv-check/SKILL.md",
+    "skills/cleaner/SKILL.md", "skills/forecaster/SKILL.md", "skills/inspector/SKILL.md",
+    "skills/field-listener/SKILL.md", "skills/maker/SKILL.md", "skills/maker/prototype.md",
+    "skills/test-writer/SKILL.md", "skills/watch/SKILL.md", "skills/xv-check/SKILL.md",
     "skills/xv-init/SKILL.md", "skills/xv-init/outsider-read.md", "skills/xv-promote/SKILL.md",
     "skills/xv-retro/SKILL.md", "skills/xv-retro/retro-brief.md", "skills/xv-slice/SKILL.md",
 ]
 OWN = ("Own the result: even when agents write all of the code, a person is responsible "
-       "for what it does. An agent may stop. It may not decide.")
+       "for what it does.")
+OLD_HEADLINE = "An agent may stop. It may not decide."
 
-# The rest each brief already had after the stop line. The watch brief is
+# The rest each brief already had after Own the result. The watch brief is
 # absent: the scenario amendment lets it drop its old last sentence.
 OPENER_RESTS = {
     "skills/maker/prototype.md": "You do not pick, and you do not say which version is better.",
-    "skills/guardian/SKILL.md": "You give findings. You never fix, approve, or merge.",
+    "skills/inspector/SKILL.md": "You give findings. You never fix, approve, or merge.",
     "skills/xv-promote/SKILL.md": "You list, search and draft. People promote, approve, post and decide.",
     "skills/xv-init/outsider-read.md": "You describe; you do not decide what the system is for.",
     "skills/xv-init/SKILL.md": "You may not invent what the system is for.",
@@ -72,37 +73,43 @@ OPENER_RESTS = {
 
 
 class OwnTheResultTest(unittest.TestCase):
-    def test_each_of_the_15_brief_openers_names_own_the_result_first(self):
+    def test_each_of_the_15_brief_openers_names_own_the_result_first_without_the_old_headline(self):
         for rel in OPENERS:
             with self.subTest(brief=rel):
-                lines = brief(*rel.split("/")).splitlines()
-                stop = [l for l in lines if "An agent may stop. It may not decide." in l]
-                self.assertTrue(stop, "no stop line")
-                self.assertTrue(stop[0].startswith(OWN), stop[0])
+                text = brief(*rel.split("/"))
+                own = [l for l in text.splitlines() if l.startswith("Own the result:")]
+                self.assertTrue(own, "no Own the result line")
+                self.assertTrue(own[0].startswith(OWN), own[0])
+                self.assertNotIn(OLD_HEADLINE, text)
 
-    def test_each_opener_keeps_its_agent_specific_rest_after_the_stop_line(self):
+    def test_each_opener_keeps_its_agent_specific_rest_after_own_the_result(self):
         for rel, rest in OPENER_RESTS.items():
             with self.subTest(brief=rel):
-                stop = [l for l in brief(*rel.split("/")).splitlines()
-                        if "An agent may stop. It may not decide." in l]
-                self.assertEqual(stop[0], OWN + " " + rest)
+                own = [l for l in brief(*rel.split("/")).splitlines() if l.startswith("Own the result:")]
+                self.assertEqual(own[0], OWN + " " + rest)
 
     def test_the_one_rule_label_is_gone_from_the_openers(self):
         for rel in OPENERS:
             with self.subTest(brief=rel):
                 self.assertNotIn("The one rule:", brief(*rel.split("/")))
 
-    def test_briefs_doc_says_own_the_result_opens_each_brief_and_the_stop_line_stays(self):
+    def test_briefs_doc_says_own_the_result_opens_each_brief_and_the_old_headline_is_gone(self):
         every = section(brief("docs", "briefs.md"), "Every brief")
         self.assertRegex(every, r"(?i)own the result opens each brief")
-        self.assertRegex(every, r"(?i)stop line")
+        self.assertNotRegex(every, r"(?i)may stop; it may not decide|may stop\. it may not decide")
         self.assertNotRegex(every, r"(?i)the one rule opens")
 
     def test_picture_item_13_says_own_the_result_opens_each_brief(self):
         item = re.search(r"^13\. (.*)$", brief(".xv", "picture.md"), re.M).group(1)
         self.assertRegex(item, r"(?i)own the result")
-        self.assertRegex(item, r"(?i)stop line")
+        self.assertNotRegex(item, r"(?i)stop line")
         self.assertNotRegex(item, r"(?i)opens with the one rule")
+
+    def test_no_doc_or_brief_opens_with_the_old_headline(self):
+        for rel in ("README.md", "docs/briefs.md", ".xv/picture.md"):
+            with self.subTest(doc=rel):
+                text = " ".join(brief(*rel.split("/")).lower().split())
+                self.assertNotRegex(text, r"an agent may stop[.;] it may not decide")
 
 
 def paragraphs(text, *words):
@@ -111,31 +118,31 @@ def paragraphs(text, *words):
     return [b for b in blocks if all(w.lower() in b.lower() for w in words)]
 
 
-class ScenarioCatchesTest(unittest.TestCase):
-    def test_the_scenario_brief_marks_a_one_time_wording_check_slice_only(self):
-        text = brief("skills", "scenario", "SKILL.md")
+class TestWriterCatchesTest(unittest.TestCase):
+    def test_the_test_writer_brief_marks_a_one_time_wording_check_slice_only(self):
+        text = brief("skills", "test-writer", "SKILL.md")
         self.assertTrue(paragraphs(text, "slice_only", "wording", "README"), "no slice_only line for a wording change")
         self.assertTrue(paragraphs(text, "slice_only", "version pin"))
 
-    def test_the_scenario_report_names_each_old_test_the_red_forces_to_change(self):
-        text = brief("skills", "scenario", "SKILL.md")
+    def test_the_test_writer_report_names_each_old_test_the_red_forces_to_change(self):
+        text = brief("skills", "test-writer", "SKILL.md")
         hits = paragraphs(text, "old test", "force", "report", "why")
         self.assertTrue([h for h in hits if "file" in h and "test" in h], "no report line naming old tests")
 
-    def test_the_scenario_report_names_the_may_not_files_the_red_needs_changed(self):
-        text = brief("skills", "scenario", "SKILL.md")
+    def test_the_test_writer_report_names_the_may_not_files_the_red_needs_changed(self):
+        text = brief("skills", "test-writer", "SKILL.md")
         hits = paragraphs(text, "may-not", "report", ".xv/picture.md")
         self.assertTrue(hits, "no report line naming may-not files")
 
     def test_the_maker_may_change_a_named_old_test_without_stopping_and_records_it(self):
         text = brief("skills", "maker", "SKILL.md")
-        hits = paragraphs(text, "scenario agent", "report", "names", "record")
+        hits = paragraphs(text, "test writer", "report", "names", "record")
         self.assertTrue([h for h in hits if "stop" in h.lower() and "test" in h.lower()],
                         "the maker brief does not let it change a test the report names")
 
     def test_the_maker_may_change_a_named_may_not_file_and_no_other(self):
         text = brief("skills", "maker", "SKILL.md")
-        hits = paragraphs(text, "scenario agent", "report", "may-not")
+        hits = paragraphs(text, "test writer", "report", "may-not")
         self.assertTrue([h for h in hits if re.search(r"(?i)no other|only", h)],
                         "the maker brief does not limit the change to the files the report names")
 
@@ -143,20 +150,20 @@ class ScenarioCatchesTest(unittest.TestCase):
         text = brief("skills", "maker", "SKILL.md")
         self.assertRegex(text, r"(?is)not named[^\n]*(rule|stop|scenario forces)")
 
-    def test_the_guardian_lists_the_may_not_file_changes_in_the_packet(self):
-        text = brief("skills", "guardian", "SKILL.md") + brief("skills", "guardian", "packet.md")
-        self.assertTrue(paragraphs(text, "may-not", "packet", "scenario agent"),
-                        "the guardian brief does not list the changes the scenario agent's report allowed")
+    def test_the_inspector_lists_the_may_not_file_changes_in_the_inspection_report(self):
+        text = brief("skills", "inspector", "SKILL.md") + brief("skills", "inspector", "packet.md")
+        self.assertTrue(paragraphs(text, "may-not", "inspection report", "test writer"),
+                        "the inspector brief does not list the changes the test writer's report allowed")
 
-    def test_the_scenario_brief_asks_a_red_case_for_each_way_a_value_can_be_wrong(self):
-        text = brief("skills", "scenario", "SKILL.md")
+    def test_the_test_writer_brief_asks_a_red_case_for_each_way_a_value_can_be_wrong(self):
+        text = brief("skills", "test-writer", "SKILL.md")
         hits = paragraphs(text, "missing", "empty", "wrong type", "not_covered")
         self.assertTrue([h for h in hits if re.search(r"(?i)on the list", h)],
                         "no line asks for missing, empty, wrong type and off-list cases")
         self.assertTrue([h for h in hits if re.search(r"(?i)flag|field|report key", h)])
 
-    def test_the_scenario_brief_asks_a_case_where_a_read_only_agent_claims_a_persons_word(self):
-        text = brief("skills", "scenario", "SKILL.md")
+    def test_the_test_writer_brief_asks_a_case_where_a_read_only_agent_claims_a_persons_word(self):
+        text = brief("skills", "test-writer", "SKILL.md")
         hits = paragraphs(text, "read-only agent", "only a person")
         self.assertTrue(hits, "no case for an agent claiming what only a person may give")
 
@@ -168,15 +175,15 @@ class ScenarioCatchesTest(unittest.TestCase):
 
     def test_the_maker_brief_lets_it_change_only_the_picture_from_the_may_not_list(self):
         text = brief("skills", "maker", "SKILL.md")
-        hits = paragraphs(text, "scenario agent", "report", "may-not", ".xv/picture.md")
+        hits = paragraphs(text, "test writer", "report", "may-not", ".xv/picture.md")
         self.assertTrue(hits)
         self.assertFalse([h for h in hits if "no other file on this list" in h],
                          "the maker brief still lets it change any file the report names")
         self.assertTrue([h for h in hits if re.search(r"(?i)only `?\.xv/picture\.md", h)],
                         "the maker brief does not say the picture is the only file it may change")
 
-    def test_the_scenario_brief_says_the_maker_may_change_only_the_picture_from_the_list(self):
-        text = brief("skills", "scenario", "SKILL.md")
+    def test_the_test_writer_brief_says_the_maker_may_change_only_the_picture_from_the_list(self):
+        text = brief("skills", "test-writer", "SKILL.md")
         hits = paragraphs(text, "6d.", "may-not", "maker may change")
         self.assertTrue(hits)
         self.assertFalse([h for h in hits if "those files and no other file" in h],
@@ -190,8 +197,8 @@ class ScenarioCatchesTest(unittest.TestCase):
         self.assertNotIn("a named may-not file", line)
         self.assertRegex(line, r"(?i)only `?\.xv/picture\.md")
 
-    def test_the_scenario_brief_says_a_number_in_covers_names_only_the_scenarios_own_point(self):
-        text = brief("skills", "scenario", "SKILL.md")
+    def test_the_test_writer_brief_says_a_number_in_covers_names_only_the_scenarios_own_point(self):
+        text = brief("skills", "test-writer", "SKILL.md")
         self.assertRegex(text, r"(?is)\bnumber\b[^\n]*only[^\n]*scenario's own outcome")
         self.assertRegex(text, r"(?is)amendment's outcome[^\n]*own words")
 
@@ -211,11 +218,11 @@ class RetroDocsNameNumberedFilesTest(unittest.TestCase):
 
 class DefectsToolsDocsTest(unittest.TestCase):
     """defects-tools 16 and 17: the docs name what changed. README, the watch, xv-slice and cleaner briefs and the
-    picture name `build.commit`, the wall-flag forms, `run.py land-scenario`, `brief:` names and the repeating `--ignore`."""
+    picture name `build.commit`, the wall-flag forms, `run.py land-test-writer`, `brief:` names and the repeating `--ignore`."""
 
     def test_the_watch_brief_names_the_session_landing_and_the_wall_flag_forms(self):
         text = brief("skills", "watch", "SKILL.md")
-        self.assertIn("run.py land-scenario", text)
+        self.assertIn("run.py land-test-writer", text)
         self.assertIn("file::test", text)
 
     def test_the_xv_slice_brief_says_ignore_can_repeat(self):

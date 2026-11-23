@@ -1,16 +1,17 @@
-# The guardian on a pull request. Copy to .github/workflows/xv-guardian.yml.
+# The inspector on a pull request. Copy to .github/workflows/xv-inspector.yml.
+# A repo that has xv-guardian.yml from before #168 replaces it with this file.
 #
-# Runs the guardian brief in a fresh context through the agent CLI that
-# .xv/config.yml names for the guardian, and posts the packet as a comment.
+# Runs the inspector brief in a fresh context through the agent CLI that
+# .xv/config.yml names for the inspector, and posts the inspection report as a comment.
 # It never approves and never merges: no step calls an approve. GitHub lets a
 # workflow token approve only when the repo's setting "Allow GitHub Actions to
-# create and approve pull requests" is on; keep it off. A packet that says
+# create and approve pull requests" is on; keep it off. An inspection report that says
 # shape_change or pitch_contradiction only fails a check, so the merge waits
 # for two people.
 #
 # Needs: the agent CLI's credentials as a secret (ANTHROPIC_API_KEY for the
 # default `claude -p`). A login session is not available in CI.
-name: xv guardian
+name: xv inspector
 
 on:
   pull_request:
@@ -21,7 +22,7 @@ permissions:
   pull-requests: write     # to comment; no step approves
 
 jobs:
-  guardian:
+  inspector:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
@@ -42,26 +43,26 @@ jobs:
           echo "$GITHUB_WORKSPACE/.xv-agents/bin" >> "$GITHUB_PATH"
           echo ".xv-agents/" >> .git/info/exclude   # xv-agents' own checkout is not part of the change
           npm install -g @anthropic-ai/claude-code
-          git config user.name "xv guardian"
-          git config user.email "xv-guardian@users.noreply.github.com"
+          git config user.name "xv inspector"
+          git config user.email "xv-inspector@users.noreply.github.com"
 
-      - name: The guardian
-        id: guard
+      - name: The inspector
+        id: inspect
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           XV_NO_COMMIT: "1"
         run: |
           set +e
-          xv guard --base "origin/${{ github.base_ref }}" --out "$RUNNER_TEMP/packet.md" > "$RUNNER_TEMP/verdict.json"
+          xv inspect --base "origin/${{ github.base_ref }}" --out "$RUNNER_TEMP/packet.md" > "$RUNNER_TEMP/verdict.json"
           echo "code=$?" >> "$GITHUB_OUTPUT"
           cat "$RUNNER_TEMP/verdict.json"
 
-      - name: Post the packet
+      - name: Post the inspection report
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh pr comment "${{ github.event.pull_request.number }}" --body-file "$RUNNER_TEMP/packet.md"
 
       - name: Shape or pitch waits for two people
-        if: steps.guard.outputs.code == '10'
+        if: steps.inspect.outputs.code == '10'
         run: |
           python3 -c "import json,sys; v=json.load(open('$RUNNER_TEMP/verdict.json')); s=v.get('stop') or {}; print(s.get('question','')); sys.exit(1 if s.get('seat')=='two_people' else 0)"
