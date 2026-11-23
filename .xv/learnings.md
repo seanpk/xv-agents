@@ -18,6 +18,14 @@ An entry with three or more sightings that still splits people is marked `(watch
 
 ## Open
 
+### 2026-11-23: The cleaner left two slice-only test removals in the tree
+- added: 2026-11-23 by Sean Kennedy
+- from: 2026-11-20-names, `removal_not_made` at 2026-11-23T14:52:39 (`test_changelog_has_a_line_for_the_new_names`, `test_the_readme_upgrade_notes_say_what_an_adopter_changes`); the cleaner's log at 14:52:07 reports only one unrelated fix
+- miss: The record names these as slice-only removals. The cleaner finished without removing them, and the check stopped the slice. Sean answered "1". The same two-test shape (CHANGELOG and README notes) is in the rules about slice-only CHANGELOG tests, and nothing tells the cleaner to remove the README-notes test.
+- rule: The cleaner left two slice-only test removals in the tree
+- seen: [seanpk/xv-agents@2026-11-23]
+
+
 ### 2026-11-19: A rebase puts a slice's CHANGELOG line under the newest release heading
 - added: 2026-11-19 by Sean Kennedy
 - from: 2026-11-19-wall-keep, `xv slice rebase` onto v0.5.1 (commit 07af240), then the watch's fix commit 745db5f ("Keep the slice's CHANGELOG line under Unreleased after the rebase")
@@ -68,10 +76,10 @@ An entry with three or more sightings that still splits people is marked `(watch
 
 ### 2026-11-12: A scenario point or a red test that contradicts an old test or the harness is found only when the maker stops
 - added: 2026-11-12 by Sean Kennedy
-- from: 2026-11-09-retro-fixes, `maker_stopped` at 16:39:46 (point 3 reversed `SliceOnlyGateTest`, five tests the scenario report did not name); 2026-11-11-pairing-b, `maker_stopped` at 2026-11-11T23:02:33 (the red expects no transcript while the build defaults to the ambient session id); 2026-11-09-kept-pick, `maker_stopped` at 2026-11-10T03:00:11 (a red that cannot pass on the sh harness)
+- from: 2026-11-09-retro-fixes, `maker_stopped` at 16:39:46 (point 3 reversed `SliceOnlyGateTest`, five tests the scenario report did not name); 2026-11-11-pairing-b, `maker_stopped` at 2026-11-11T23:02:33 (the red expects no transcript while the build defaults to the ambient session id); 2026-11-09-kept-pick, `maker_stopped` at 2026-11-10T03:00:11 (a red that cannot pass on the sh harness); 2026-11-20-names, `maker_stopped` (needs_move) at 2026-11-23T14:25:33: both red tests failed only on `.xv/picture.md` line 289, and `may_not_files_needed` was empty
 - miss: Three slices stopped at the maker, a step after the red was written, because a red test could not pass beside what already existed. `maker_stopped` fired on 4 slices. Each cost a person's answer and a round of scenario and maker work. No check can see it before the maker runs the old suite against the new red. Evidence only; no rule yet.
 - rule: A scenario point or a red test that contradicts an old test or the harness is found only when the maker stops
-- seen: [seanpk/xv-agents@2026-11-12]
+- seen: [seanpk/xv-agents@2026-11-12, seanpk/xv-agents@2026-11-23]
 
 
 ### 2026-11-09: A new assertion's expected value is read from an independent source, not from what it checks
