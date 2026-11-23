@@ -119,11 +119,12 @@ class EvalIdsTest(unittest.TestCase):
             self.assertNotIn(old, agents)
 
     def test_the_report_shows_a_past_result_and_a_new_one_on_one_row(self):
-        sys.path.insert(0, os.path.join(HOME, "evals"))
+        evals = os.path.join(HOME, "evals")
+        sys.path.insert(0, evals)
         try:
             import report
         finally:
-            sys.path.pop(0)
+            sys.path.remove(evals)
         base = {"arm": "skill", "increment": 1, "passed": 2, "total": 3}
         runs = [dict(base, harness="claude", scenario="guardian-pitch"),
                 dict(base, harness="codex", scenario="inspector-pitch")]

@@ -8,8 +8,12 @@ from helpers import HOME, RepoCase
 import agentcli
 import record
 
-sys.path.insert(0, os.path.join(HOME, "evals"))
-import grade  # noqa: E402
+EVALS = os.path.join(HOME, "evals")
+sys.path.insert(0, EVALS)
+try:
+    import grade  # noqa: E402
+finally:
+    sys.path.remove(EVALS)
 
 REPORT = {"agent": "maker", "status": "green", "summary": "ok"}
 
