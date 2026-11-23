@@ -40,7 +40,7 @@ Then [try it on a repo](#try-it-on-a-repo).
 
 ### Upgrading past the #168 rename
 
-The scenario agent is now the test writer, the guardian the inspector, and the listener the field listener. The guardian's packet is the inspection report and the listener's is the field report; "packet" stays in the commands, the file names and the record. What an adopting repo changes:
+The scenario agent is now the test writer, the guardian the inspector, and the listener the field listener. What the inspector writes is the inspection report and what the field listener writes is the field report; "packet" stays in the commands, the file names and the record. What an adopting repo changes:
 
 - **Run `xv install` again** (and `xv install --scope project` where the repo carries copies). It links `skills/test-writer`, `skills/inspector` and `skills/field-listener`, and removes the links and unedited copies it made under `scenario`, `guardian` and `listener`. An edited copy under an old name is left and named.
 - **`.xv/config.yml`:** rename `agents.guardian` to `agents.inspector`, `agents.guardian_repass` to `agents.inspector_repass`, `agents.scenario` to `agents.test-writer`, `agents.listener` to `agents.field-listener`, and the top-level `listener:` to `field_listener:`.

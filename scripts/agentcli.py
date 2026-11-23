@@ -11,7 +11,7 @@ import os
 import subprocess
 import time
 
-from xvlib import XVError
+from xvlib import OLD_AGENT_KEYS, XVError, warn_old_name
 
 KNOWN = ("claude", "opencode", "codex", "grok")
 
@@ -29,10 +29,21 @@ def gone(cwd):
     return XVError(f"the working folder is gone: {cwd}")
 
 
+def _agent_key(agents, key):
+    """agents[key], or else the key's pre-#168 spelling, with a warning that names the new key."""
+    if agents.get(key):
+        return agents[key]
+    for old, new in OLD_AGENT_KEYS.items():
+        if new == key and agents.get(old):
+            warn_old_name(f"agents.{old} in .xv/config.yml", f"agents.{new}")
+            return agents[old]
+    return None
+
+
 def argv_for(config, agent, repass=False):
     agents = config.get("agents") or {}
-    repass_argv = agents.get("inspector_repass") if repass and agent == "inspector" else None
-    argv = repass_argv or agents.get(agent) or agents.get("default")
+    repass_argv = _agent_key(agents, "inspector_repass") if repass and agent == "inspector" else None
+    argv = repass_argv or _agent_key(agents, agent) or agents.get("default")
     if argv == "session" or argv == ["session"]:
         raise XVError(f"the {agent} is set to run in the person's session: give a subagent the text of "
                       f"`xv prompt {agent} <id>` and nothing else")

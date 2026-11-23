@@ -33,6 +33,7 @@ def load(d):
 
 
 def table(runs):
+    runs = [dict(r, scenario=OLD_IDS.get(r["scenario"], r["scenario"])) for r in runs]
     cols = sorted({(r["harness"], r["arm"]) for r in runs}, key=lambda c: (c[0], c[1] != "skill"))
     rows = sorted({(r.get("increment", 0), r["scenario"]) for r in runs})
     head = "| inc | scenario | " + " | ".join(f"{h} {a}" for h, a in cols) + " |"
