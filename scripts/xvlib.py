@@ -119,9 +119,9 @@ def agent_name(name, what="the step"):
 FINISHED = ("closed", "abandoned")
 
 
-def _stored_name(value, where, quiet=False):
+def _stored_name(value, quiet=False):
     """A step name stored in a record: the old one reads as the new one, with a warning unless `quiet` (a finished
-    record). One warning for each old name, whichever field (`where`) holds it."""
+    record). One warning for each old name, whichever field holds it."""
     if isinstance(value, str) and value in OLD_AGENTS:
         if not quiet:
             warn_old_name(f"the step {value!r} in a slice record",
@@ -136,19 +136,19 @@ def _upgrade_steps(data):
     data = dict(data)
     quiet = data.get("status") in FINISHED
 
-    def stored(value, where):
-        return _stored_name(value, where, quiet)
+    def stored(value):
+        return _stored_name(value, quiet)
 
     if "next" in data:
-        data["next"] = stored(data["next"], "next")
+        data["next"] = stored(data["next"])
     if isinstance(data.get("step_start"), dict):
-        data["step_start"] = {**data["step_start"], "agent": stored(data["step_start"].get("agent"), "step_start")}
+        data["step_start"] = {**data["step_start"], "agent": stored(data["step_start"].get("agent"))}
     if isinstance(data.get("checks"), dict):
         checks = {}
         for k, v in data["checks"].items():
             if k == "reports" and isinstance(v, list):
-                v = [{**r, "agent": stored(r.get("agent"), "reports")} if isinstance(r, dict) else r for r in v]
-            new = stored(k, "checks")
+                v = [{**r, "agent": stored(r.get("agent"))} if isinstance(r, dict) else r for r in v]
+            new = stored(k)
             if new != k and new in data["checks"]:
                 continue  # the new key is there already: it wins
             checks[new] = v
@@ -160,14 +160,14 @@ def _upgrade_steps(data):
                 s = dict(s)
                 for k in ("step", "sendback_to"):
                     if k in s:
-                        s[k] = stored(s[k], f"stops {k}")
+                        s[k] = stored(s[k])
                 if isinstance(s.get("sendback"), dict) and "to" in s["sendback"]:
-                    s["sendback"] = {**s["sendback"], "to": stored(s["sendback"]["to"], "stops sendback")}
+                    s["sendback"] = {**s["sendback"], "to": stored(s["sendback"]["to"])}
             stops.append(s)
         data["stops"] = stops
     for field, keys in (("spend", ("step",)), ("pairings", ("step", "next")), ("moved_tests", ("by",))):
         if isinstance(data.get(field), list):
-            data[field] = [{**r, **{k: stored(r[k], f"{field} {k}") for k in keys if k in r}}
+            data[field] = [{**r, **{k: stored(r[k]) for k in keys if k in r}}
                            if isinstance(r, dict) else r for r in data[field]]
     return data
 
