@@ -382,20 +382,6 @@ class InstallNamesTest(unittest.TestCase):
         self.assertFalse(os.path.islink(os.path.join(self.skills, "scenario")))
 
 
-class SliceOnlyTest(unittest.TestCase):
-    # 10, 11: one-time wording
-    def test_changelog_has_a_line_for_the_new_names(self):
-        unreleased = read("CHANGELOG.md").split("## Unreleased", 1)[1].split("\n## ", 1)[0]
-        for name in ("#168", "test-writer", "inspector", "field-listener", "#204"):
-            self.assertIn(name, unreleased)
-
-    def test_the_readme_upgrade_notes_say_what_an_adopter_changes(self):
-        readme = read("README.md")
-        for text in ("agents.test-writer", "agents.inspector_repass", "field_listener",
-                     "xv-inspector.yml", "xv inspect --base"):
-            self.assertIn(text, readme)
-
-
 # What a person should watch on the first green run: `xv step scenario <id>` on a
 # working slice prints one warning line naming test-writer and #204, and then runs;
 # `xv install` leaves ~/.claude/skills with test-writer, inspector and field-listener
