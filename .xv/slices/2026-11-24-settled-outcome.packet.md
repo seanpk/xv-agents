@@ -11,95 +11,95 @@ door: two-way
 blast_radius: small
 ---
 
-# Packet: A settled not-covered outcome does not stop again (#205)
+# Packet: A settled not-covered outcome does not stop again (#205), re-pass
 
-One scenario miss sends the slice back to the test writer.
-When one test-writer pass leaves two or more outcomes not covered, the stop keeps only the first one's question.
-So an answer that does not send the slice back settles only that first number, and the others stop again.
-That is point 2's case without a send-back, and #205's own pattern.
+This is a re-pass over `10b2f1c..ea2595e`.
+The earlier miss is fixed: a second not-covered outcome in one stop is now settled by an answer that does not send the slice back.
+The fix goes too far, and that sends the slice back to the test writer.
+An answer to another stop now settles every not-covered outcome that fired with that stop, even when the answer did not bundle `red_misses_scenario`.
+So an outcome that no person settled no longer stops, which breaks point 3.
+One new test does not reach the case it is named for.
 No shape stop and no pitch stop.
-Separately, decision 1 needs a second person: the slice changes a brief and a check.
+Decision 1 still needs a second name on the CHANGELOG line (see the earlier packet's finding; nothing here changes it).
 
 ## The scenario
 
 A not-covered outcome that a person settled does not stop again on a later test-writer pass.
-1. An outcome settled in an answer does not stop again, however the later pass words it ("7", "7. A line in CHANGELOG.md", "7. A line in CHANGELOG.md.").
+1. An outcome settled in an answer does not stop again, however the later pass words it.
 2. The same holds when the outcome was settled in an answer to another stop that bundled `red_misses_scenario`.
 3. An outcome nobody settled still stops, on the same pass as a settled one.
-4. A line in `CHANGELOG.md`. Sean settled that no test covers it.
-5. Amendment to point 2: an answer that sends the slice back settles N only when it names N with `xv record answer --no-test N` (the flag can repeat). A send-back without the flag still stops again. The watch brief says to pass `--no-test`.
+4. A line in `CHANGELOG.md` (Sean settled that no test covers it).
+5. Amendment to point 2: a send-back settles N only with `xv record answer --no-test N`.
 
 May ignore: an outcome that the scenario amends after the answer.
 
 ## The recording
 
-`.xv/recordings/rec-settled-outcome.md` has two slices from main where outcome 7, and points 5 and 13, stopped again three times after Sean settled them.
-Replay the red with `cd tests && python3 -m unittest test_run.TestWriterChecksTest`. It failed on the base (`unrecognized arguments: --no-test 7`). On HEAD it passes.
-I ran the whole suite on HEAD with `python3 tests/run.py`: `Ran 1512 tests ... OK`.
+`.xv/recordings/rec-settled-outcome.md`.
+Replay the red with `cd tests && python3 -m unittest test_run.TestWriterChecksTest`. On HEAD it gives `Ran 35 tests ... OK`.
+The whole suite on HEAD with `python3 tests/run.py` gives `Ran 1514 tests ... OK`.
 
 ## The boundary diagram
 
-From `.xv/slices/2026-11-24-settled-outcome.boundary.md`: modules touched are `scripts/record` and `scripts/run`. No modules, edges, tables or surface paths were added or removed. No shape hints.
+From `.xv/slices/2026-11-24-settled-outcome.boundary.md`: the modules touched are `scripts/record` and `scripts/run`. No modules, edges, tables or surface paths were added or removed. Shape hints: none.
 
-## What the suite asserts after
+## What the suite asserts after (new on this pass)
 
-- An outcome settled by an answer that did not send the slice back does not stop again whether the later pass words it as "7", "7. …" or "7. ….". A different number, "17", still stops.
-- An unsettled outcome, 8, stops on the same pass where a settled 7 does not.
-- An answer that sends the slice back with `--no-test 7` (direct or bundled) settles 7 however it is later worded. `--no-test 7 --no-test 8` settles both. `--no-test 7` leaves 8 stopping.
-- A bundled send-back without `--no-test` stops again when 7 comes back. The old test `test_a_not_covered_item_the_person_sent_back_stops_again_when_reported_again` is unchanged.
-- `skills/watch/SKILL.md` contains `xv record answer` and `--no-test`.
+- Two not-covered outcomes, 7 and 8, stop together in one stop. An answer that does not send the slice back settles both, so neither stops again (`tests/test_run.py:1592`).
+- A not-covered outcome 7 that fires on the same pass as a slice-only mark is settled by an answer with `--bundle red_misses_scenario` (`tests/test_run.py:1605`).
 - No old assertion changed.
 
 ## 1. Shape
 
 shape_change: no.
-- The boundary diagram shows no added module, edge, table or surface (`.xv/slices/2026-11-24-settled-outcome.boundary.md`, "Shape hints: none").
-- The new flag is one more option on an existing command (`scripts/record.py:1373`: `s.add_argument("--no-test", dest="no_test", action="append", metavar="N", …)`). Each stop gets one more key, `no_test` (`scripts/record.py:648`: `stop["no_test"] = [...]`). Both fit the shape that already exists: the record keys `bundle` and `sendback_to` (`.xv/picture.md:133`), and the answer flags `--bundle` and `--accept-wall`.
-- shape_breadth: narrow. The forecast was narrow, but its note expected only "the red_misses_scenario settled-outcome check, its tests, and one CHANGELOG line". The flag in `scripts/record.py` and the brief paragraph in `skills/watch/SKILL.md:61` came from amendment 5, which was made after the forecast. Neither widens the shape.
+- This pass adds one key, `fired_questions`, to each stop (`scripts/record.py:1140-1141`). It sits beside the keys a stop already keeps (`also`, `bundle`; `.xv/picture.md:133`). It adds no module, edge or table. The boundary diagram has no shape hints.
+- shape_breadth: narrow, the same as on the earlier pass. The forecast expected narrow (`.xv/slices/2026-11-24-settled-outcome.md:13`: `"shape_breadth": "narrow"`).
 
 ## 2. Pitch
 
 pitch_contradiction: no.
-The pitch says "xv-agents makes it easy for a team or an individual to adopt Xtreme Vibing in a repo: to vibe with discipline" (`.xv/pitch.md:7`). Stopping the person fewer times on a question they already settled serves that line. Nothing in the change touches "who it is not for" (`.xv/pitch.md:25`).
+I checked the change against `.xv/pitch.md:7` ("to vibe with discipline") and against who the pitch is not for (`.xv/pitch.md:25`). Neither line is touched. Note that settling a question the person never saw (see the miss below) works against "with discipline". It is a scenario miss, not a pitch contradiction.
 
 ## 3. Moved tests
 
-None. `xv wall diff 2026-11-24-settled-outcome` reports `changed: []`, `deleted: []` and `fewer_assertions: []`. `git diff 82a218f..HEAD -- tests` removes no lines. The record has `moved_tests: []` and `old_tests_to_move: []`.
+None. `xv wall diff 2026-11-24-settled-outcome` gives `changed: []`, `deleted: []` and `fewer_assertions: []`. The new diff adds 30 lines to `tests/test_run.py` and removes none. The record has `moved_tests: []`.
 
 Slice-only tests removed: none. Kept: none. `may_not_files_needed`: none.
 
 ## 4. The picture
 
-- `.xv/picture.md:228` is now incomplete: outcomes are matched by number, and `--no-test` settles them even on a send-back. Proposed replacement:
+- `.xv/picture.md:228`. This replaces the proposal in the earlier packet; when the miss below is fixed, its wording should follow the fix:
   ```
-    A `not_covered` outcome named in an earlier answered `red_misses_scenario` stop does not stop again, unless that answer sent the slice back (`sendback`).
+    A `not_covered` outcome is settled by an earlier answered stop that did not send the slice back, when that stop is `red_misses_scenario` or the answer bundled `red_misses_scenario`; every `red_misses_scenario` question that fired with the stop counts (`fired_questions`).
     An outcome that starts with a number matches by that number, so "7", "7. A line" and "7. A line." are one outcome (`run.settled_outcome_numbers`).
     An answer that names an outcome with `xv record answer --no-test <N>` settles N, even when it sends the slice back; the flag repeats.
   ```
-- `.xv/picture.md:133` lists the keys an answer keeps. Proposed new line after it: `  An answer given with `--no-test <N>` keeps `no_test`, a list of the outcomes it settled as having no test.`
-- If the miss below is fixed by keeping every fired question on the stop (`scripts/record.py:1137-1138`), `.xv/picture.md:228` should also say that each outcome bundled into the stop is settled, not only the first.
+- `.xv/picture.md:133`, a new line after it: `  A stop keeps `fired_questions`, the questions of every `red_misses_scenario` that fired with it; an answer given with `--no-test <N>` keeps `no_test`.`
 
 ## 5. The wall
 
-I checked the twelve new tests in `tests/test_run.py:1484-1589` against the scenario. Each one guards an ongoing rule: a check, a flag, or a brief line, the same kind as the brief tests already on the wall. None guards a one-time change, and none only restates another. No old wall test is dead: the one the amendment protects is unchanged. No recommendations.
+I checked the two new tests (`tests/test_run.py:1592-1619`) against the scenario.
+`test_a_second_not_covered_outcome_in_one_stop_is_settled_by_an_answer_without_a_send_back` guards a rule that keeps holding. It should join the wall.
+`test_a_not_covered_outcome_bundled_under_another_stop_is_settled_by_an_answer_without_a_send_back` is aimed wrong; see Other findings. It should be fixed, not marked slice-only.
+No old wall test is dead. No recommendations.
 
 ## Scenario misses
 
-- 2 (without a send-back): an outcome bundled as the second or a later `red_misses_scenario` fire on one pass is not settled when a person answers that stop without sending it back. It stops again on the next pass. Evidence: `scripts/record.py:1137-1138` stores only the primary fire's `"question": st["question"]` and puts the others in `"also": [f["order"] for f in v["fired"] if f is not st]`, so outcome 8's text is lost. `scripts/run.py:1331` (`nums.update(re.findall(r"did not cover (\d+)\b", s.get("question") or ""))`) reads only that one question. `scripts/orders.py:203-205` fires one `red_misses_scenario` per not-covered outcome. The same happens when the primary stop is another order that bundles `red_misses_scenario` (for example `slice_only_marks`, `unrecorded_move`): its question has no "did not cover", so no number is settled. The old text match had the same blind spot. No red test has two not-covered outcomes in one stop answered without a send-back; `test_an_unsettled_outcome_still_stops_on_the_same_pass_as_a_settled_one` settles 7 on an earlier pass. (to: test-writer)
+- 3: an outcome that no person settled stops again, but this pass makes it not stop when it fired under a stop of another order and the answer did not bundle `red_misses_scenario`. Evidence: `scripts/record.py:1140-1141` stores every `red_misses_scenario` question on the stop, whatever the stop's order: `"fired_questions": [f["question"] for f in v["fired"] if f["order"] == "red_misses_scenario"]`. `scripts/run.py:1330-1335` settles every number in those questions whenever the answer did not send back (`if not s.get("sendback"): questions = list(s.get("fired_questions") or [])`). It never reads the answer's `bundle`. An answer records which orders it answered in `bundle` (`scripts/record.py:1374`: `--bundle`, "comma-separated orders the same reply answered"). The watch shows the person only the stop's own question (`skills/watch/SKILL.md:33`: "which order fired, which seat it is for, and the question"). Here is a case that reaches it: at the test-writer step, `unrecorded_move` fires before `red_misses_scenario` (`scripts/orders.py:188-205`), and both are for the originator. `verdict` picks the first stop with the highest seat (`scripts/orders.py:471`, `max(blocking, key=lambda f: SEAT_RANK[f["seat"]])`), so `unrecorded_move` is the stop and "did not cover 7" rides in `fired_questions`. The person answers the old-test question with `--next maker` and no `--bundle`. On a later test-writer pass, 7 does not stop. Before this pass, 7 would have stopped, because only a `red_misses_scenario` stop's own question was read. No red test answers such a stop without `--bundle red_misses_scenario` and then checks that the outcome still stops. (to: test-writer)
 
 ## Other findings for the person
 
-- Decision 1: "A change to a brief, a may-not list, a standing order, or a check an agent is judged by needs two people and a line in `CHANGELOG.md`" (`.xv/picture.md:339`). This slice changes the watch brief (`skills/watch/SKILL.md:61`) and the `red_misses_scenario` check (`scripts/run.py:1183-1186`). The CHANGELOG line names one person: "(#205, decided by Sean Kennedy)" (`CHANGELOG.md:7`). It is under `## Unreleased`, and the file says "A version line without two names is a draft" (`CHANGELOG.md:3`). A second name is needed before release.
-- `--no-test` takes any string and quietly ignores one that does not start with a number. `scripts/run.py:1332-1334`: `for n in s.get("no_test") or []: if outcome_number(n): ...`. `scripts/record.py:648` stores it without checking it. A typo such as `--no-test seven` is recorded as settled but settles nothing, and the outcome stops again. Decision 12 (`.xv/picture.md:366`) covers broken check input; this is answer input, so it is a note, not a miss.
-- The usage line of the watch brief (`skills/watch/SKILL.md:56`) lists `[--bundle …]` but not `[--no-test <N>]`. The flag is only in the new paragraph at line 61.
+- `test_a_not_covered_outcome_bundled_under_another_stop_is_settled_by_an_answer_without_a_send_back` (`tests/test_run.py:1605-1619`) never puts `red_misses_scenario` under another stop. `red_misses_scenario` for 7 fires before `slice_only_marks` (`scripts/orders.py:203-205` comes before `219`), both are for the originator, and `max` keeps the first (`scripts/orders.py:471`). So the stop is `red_misses_scenario` with "did not cover 7" as its own question. The test checks the same case as `test_a_settled_outcome_reported_by_its_number_alone_does_not_stop_again`. The test writer's report says so: "A second test for a bundled red_misses_scenario under another stop passes already" (record log, 2026-11-24T23:05:41). To reach the case, the other stop has to come first, for example `unrecorded_move` via `old_red_changed`.
+- From the earlier packet, still open: decision 1 needs a second name on the CHANGELOG line (`.xv/picture.md:339`, `CHANGELOG.md:3`). `--no-test` with no leading number is recorded but settles nothing (`scripts/run.py:1336-1338`). The usage line of the watch brief (`skills/watch/SKILL.md:56`) does not list `--no-test`.
 
 ## Door
 
-**Door:** two-way. A revert removes the flag and the number match; a stop that kept a `no_test` key is ignored by the old code. **Blast radius:** small.
+**Door:** two-way. A revert removes the flag, the number match and `fired_questions`. The old code ignores the extra stop keys. **Blast radius:** small.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-11-24-settled-outcome.md`
-- Diff: `git diff 82a218f104bde75596fec4773887dc118aa50337..10b2f1c3db181c8ee09ba3f1ab2580bf8c2feb27`
+- Diff of this pass: `git diff 10b2f1c3db181c8ee09ba3f1ab2580bf8c2feb27..ea2595e19039824f00f1c30e5958a36508f636c7`
+- Whole slice: `git diff 82a218f104bde75596fec4773887dc118aa50337..HEAD`
 - Wall: `xv wall diff 2026-11-24-settled-outcome`
-- Boundary: `xv boundary --base 82a218f104bde75596fec4773887dc118aa50337`
+- Boundary: `.xv/slices/2026-11-24-settled-outcome.boundary.md`
