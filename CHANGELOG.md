@@ -2,7 +2,7 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
-## Unreleased
+## 0.6.1, 2026-11-24
 
 - The watch commits the cleaner's work (#206, decided by Sean Kennedy). The cleaner's brief says to leave its changes uncommitted and puts "Commit, merge, or push" in its may-not list, as the maker's has; the watch commits them after its checks as `xv(<id>): record the cleaner's pass`, and `cleaner_commit` names that commit (empty when the cleaner changed nothing). The brief's report has no `commit` field, and a report that still sends one is not refused. It adds decision 94 and moves no position on xtremevibing.com.
 
