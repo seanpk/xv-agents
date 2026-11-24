@@ -1327,10 +1327,11 @@ def settled_outcome_numbers(data):
     for s in data.get("stops") or []:
         if not s.get("answer"):
             continue
-        if s.get("order") == "red_misses_scenario" and not s.get("sendback"):
-            nums.update(re.findall(r"did not cover (\d+)\b", s.get("question") or ""))
         if not s.get("sendback"):
-            for q in s.get("fired_questions") or []:
+            questions = list(s.get("fired_questions") or [])
+            if s.get("order") == "red_misses_scenario":
+                questions.append(s.get("question") or "")
+            for q in questions:
                 nums.update(re.findall(r"did not cover (\d+)\b", q))
         for n in s.get("no_test") or []:
             if outcome_number(n):
