@@ -23,7 +23,7 @@ Each value is a bare word or one line of JSON.
 | `moved_tests` | the maker, the cleaner | one item per move: `{"file", "assertion", "why", "by", "at"}` |
 | `wall_recommendations` | the inspector | one item per recommendation: `{"file", "test", "recommend", "why", "accepted"}`; `accepted` turns true when the person answers `moves_to_accept` |
 | `suite` | the watch | `green` or `red` after the last maker or cleaner step |
-| `cleaner_commit` | the cleaner | the commit of the cleaner's fix |
+| `cleaner_commit` | the cleaner | the commit the watch made after the cleaner (`xv(<id>): record the cleaner's pass`); empty when the cleaner changed nothing |
 | `packet` | the watch | the path of the inspection report |
 | `shape_change`, `pitch_contradiction` | the inspection report | `yes` or `no`; `shape_change` may also be `accepted`, for a shape a decision record on the slice already accepted; the two-person stop reads them |
 | `spend` | the watch | one item per step: `{"step", "harness", "model", "model_id", "tokens_in", "tokens_out", "cache_read", "cache_write", "tokens", "usd", "turns", "wall_s", "session", "log"}` |
