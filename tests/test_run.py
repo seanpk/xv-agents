@@ -1618,6 +1618,21 @@ class TestWriterChecksTest(WatchLoopSetup):
         self.assertNotIn("did not cover 7", p.stdout)
         self.assertEqual(self.count_red_misses(), before)
 
+    def test_a_not_covered_outcome_under_another_stop_still_stops_when_the_answer_does_not_bundle_it(self):
+        mark = {"file": "tests/test_red.py", "test": "test_milk_today", "why": "checks the README wording",
+                "checks": "README.md"}
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7. A line in CHANGELOG.md", "why": "no seam"}]),
+                        FAKE_REPORT_EXTRA=json.dumps({"slice_only": [mark]}))
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1", "--next", "maker", cwd=self.wt)
+        self.assertFalse(self.record()["stops"][-1].get("sendback"))
+        before = self.count_red_misses()
+        p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7", "why": "x"}]),
+                        FAKE_REPORT_EXTRA=json.dumps({"slice_only": [mark]}))
+        self.assertIn("did not cover 7", p.stdout)
+        self.assertEqual(self.count_red_misses(), before + 1)
+
     def test_an_empty_covers_on_the_first_pass_still_stops(self):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.assert_stops(self.writer(FAKE_REPORT_EXTRA='{"covered": []}'), "`covered`")
