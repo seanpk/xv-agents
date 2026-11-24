@@ -132,7 +132,7 @@ The method is written up at [xtremevibing.com](https://xtremevibing.com/): [the 
 | **forecaster** | Forecasts tokens, turns and dollars per harness and model from the team's estimation guide; one line on the gap at close | Set or raise a budget; edit the guide |
 | **test writer** | Turns the scenario, or a defect's recording, into a test that fails before the fix | Touch source; be the maker |
 | **maker** | Makes the new scenario and every old test green; moves an old test only when the scenario forces it, with a record | Weaken a test; renovate; keep going past the budget |
-| **cleaner** | Fixes structure and style against the project's standards and commits | Change behaviour; add an abstraction; add or remove a standard |
+| **cleaner** | Fixes structure and style against the project's standards; the watch commits it | Change behaviour; add an abstraction; add or remove a standard |
 | **inspector** | One inspection report: a shape change, a contradiction of the pitch, any old test that moved, what the change does to the picture, each finding cited | Fix, approve, or merge |
 | **field listener** | The field report: complaints, paths no story describes, where the pitch and the behaviour diverge | Rank; open issues in the value queue |
 
@@ -167,7 +167,7 @@ The person-facing skills: `xv-init` writes a starter project layer, `xv-slice` s
 2. The forecaster forecasts from the estimation guide. The engineer sets the budget: tokens, dollars and turns, as a JSON object on the record. On a repo with no closed slices the forecaster has no history and says so, and the engineer sets the first number by hand.
 3. The test writer makes it red. The watch hashes every test file: that is the wall.
 4. The maker makes it green. The wall check fails on any test file that changed without a record.
-5. The cleaner makes it right and commits.
+5. The cleaner makes it right and leaves its change for the watch to commit.
 6. The inspector writes the inspection report. A shape change or a pitch contradiction stops it for two people. Moved tests and picture changes go to the person who set the work going.
 7. Nothing stopped and the suite is green: the merge is theirs.
 
@@ -182,7 +182,7 @@ flowchart TB
   sc["test writer: the red;<br/>then the wall baseline hashes every test file"]
   mk["maker: green behind the wall"]
   wall{"wall check"}
-  cl["cleaner: right, commits"]
+  cl["cleaner: right"]
   gd["inspector: one inspection report"]
   orders{"standing orders"}
   two["Two people decide<br/>from the packet"]
@@ -265,7 +265,7 @@ An agent reports back in one block at the end of its final message:
 {"agent": "maker", "status": "green", "summary": "...", "moved_tests": [...], "stop": null}
 ```
 
-The watch applies the report to the slice record. A worker never edits the record itself, because a worker that edits the record can edit its own acceptance. The maker's moved tests ride in its report, and the watch saves the report before the wall reads the record. The cleaner is the one worker that commits, so it records a move first with `xv record move`; the pre-commit hook refuses a commit that moves a test with no record.
+The watch applies the report to the slice record. A worker never edits the record itself, because a worker that edits the record can edit its own acceptance. The maker's moved tests ride in its report, and the watch saves the report before the wall reads the record. The watch commits each step's work, the cleaner's too. The cleaner records a move with `xv record move` before its step ends; the wall check after the step stops on a move with no record.
 
 ### One step
 
@@ -297,7 +297,7 @@ sequenceDiagram
 4. Runs the checks that follow that step. They are scripts, and the results go in the record:
    - after the test writer: it changed only test files, and the red command fails; then the wall baseline is taken;
    - after the maker and the cleaner: the whole suite, the names of the tests that failed, the size of the diff against the base, and the wall;
-   - after the cleaner: the standards file is untouched, and the fix was committed;
+   - after the cleaner: the standards file is untouched, and the watch commits the fix;
    - after the inspector: the inspection report exists, passes lint, and says `yes` or `no` to a shape change and a pitch contradiction;
    - after the forecaster and the inspector, which are read-only: nothing changed but their own output;
    - after the test writer, the maker and the cleaner: no file only people change was touched (the config, the pitch, the picture, the estimation guide, the rules, the wall's hashes).

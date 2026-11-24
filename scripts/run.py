@@ -1218,8 +1218,6 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         checks["standards_touched"] = now_text != pre.get("standards")
         head = git(["rev-parse", "HEAD"], root).strip()
         checks["committed"] = head != head_before
-        if head != head_before and not data.get("cleaner_commit"):
-            data["cleaner_commit"] = head
     if agent == "inspector":
         packet = os.path.join(root, XV_DIR, "slices", f"{data['id']}.packet.md")
         checks["packet"] = os.path.exists(packet)
@@ -1416,6 +1414,10 @@ def commit_step(agent, root, slice_id, checks):
         "forecaster": "forecast", "test-writer": "red", "maker": "make it work",
         "cleaner": "record the cleaner's pass", "inspector": "packet",
     }
+    if agent == "cleaner" and not checks.get("committed"):
+        code_changed = [f for f in changed_files(root, "HEAD") if not f.startswith(XV_DIR + "/")]
+        if not code_changed:
+            return  # the cleaner changed nothing: the watch makes no commit, and `cleaner_commit` stays empty
     commit(root, f"xv({slice_id}): {messages[agent]}")
 
 

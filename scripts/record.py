@@ -68,7 +68,21 @@ def load(root, slice_id):
     data, body = read_doc(path)
     for name, default in FIELDS:
         data.setdefault(name, json.loads(json.dumps(default)))
+    if not data.get("cleaner_commit"):
+        data["cleaner_commit"] = cleaner_pass_commit(root, data)
     return path, data, body
+
+
+def cleaner_pass_commit(root, data):
+    """The commit the watch made after the cleaner (`xv(<id>): record the cleaner's pass`): a commit cannot hold its
+    own hash, so the record names it by finding it. None when the cleaner changed nothing."""
+    if not data.get("base") or not any(s.get("step") == "cleaner" for s in data.get("spend") or []):
+        return None
+    p = subprocess.run(["git", "log", "--reverse", "--format=%H", "--fixed-strings",
+                        f"--grep=xv({data['id']}): record the cleaner's pass", f"{data['base']}..HEAD"],
+                       cwd=root, capture_output=True, text=True)
+    found = p.stdout.split() if p.returncode == 0 else []
+    return found[0] if found else None
 
 
 def save(path, data, body):
@@ -876,8 +890,6 @@ def apply_report(data, body, agent, text):
                                          and mark_key(r) not in said]
     if agent == "forecaster" and report.get("forecast") and not data.get("forecast"):
         data["forecast"] = report["forecast"]
-    if agent == "cleaner" and report.get("commit"):
-        data["cleaner_commit"] = report["commit"]
     keep = {k: report.get(k) for k in ("agent", "status", "summary", "stop", "why", "shape_actual",
                                        "picture_change", "shape_breadth", "shape_proposals",
                                        "candidate_standards", "applied") if report.get(k) is not None}
