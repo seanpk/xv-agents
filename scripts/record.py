@@ -645,6 +645,8 @@ def cmd_answer(a):
             stop[key] = value
     if a.bundle:
         stop["bundle"] = [b.strip() for b in a.bundle.split(",") if b.strip()]
+    if a.no_test:
+        stop["no_test"] = [n.strip() for n in a.no_test if n.strip()]
     had_seen = "budget_seen" in stop
     seen = stop.pop("budget_seen", None)
     if had_seen and seen != data.get("budget"):
@@ -1368,6 +1370,8 @@ def main(argv=None):
     s.add_argument("--cause", help="decision, environment, tool, agent or watch, then a free line")
     s.add_argument("--why", help="the person's reason")
     s.add_argument("--bundle", help="comma-separated orders the same reply answered")
+    s.add_argument("--no-test", dest="no_test", action="append", metavar="N",
+                   help="settle scenario outcome N as having no test, so it does not stop again; repeat per outcome")
     s.add_argument("--accept-wall", dest="accept_wall", action="append", metavar="TEST",
                    help="accept the wall recommendation for this test, or file::test when the name is "
                         "recommended in more than one file; repeat per test")

@@ -1180,8 +1180,10 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         checks["unreadable"] = unreadable_input(root, data, report)
         answered = " ".join(s.get("question") or "" for s in data.get("stops") or []
                             if s.get("order") == "red_misses_scenario" and s.get("answer") and not s.get("sendback"))
+        settled_numbers = settled_outcome_numbers(data)
         checks["not_covered"] = [n for n in (report.get("not_covered") or []) if isinstance(n, dict)
-                                 and f"did not cover {n.get('outcome')}:" not in answered]
+                                 and f"did not cover {n.get('outcome')}:" not in answered
+                                 and outcome_number(n.get("outcome")) not in settled_numbers]
         checks["missed_outcomes"] = missed_outcomes(root, data, report)
         if landed:  # the wall hashes the test files at the base, not at the build
             wb, wall_text = landed["wall"]
@@ -1310,6 +1312,27 @@ def covered_names(test):
     parts = test if isinstance(test, list) else re.split(r"[,;]", test) if isinstance(test, str) else []
     names = [p.strip() if isinstance(p, str) else "" for p in parts]
     return names if names and all(names) else []
+
+
+def outcome_number(outcome):
+    """The number an outcome starts with, or None."""
+    m = re.match(r"\s*(\d+)\b", outcome) if isinstance(outcome, str) else None
+    return m.group(1) if m else None
+
+
+def settled_outcome_numbers(data):
+    """Numbers of not-covered outcomes a person settled: a red_misses_scenario answer that did not send back,
+    or any answer that names the number with --no-test."""
+    nums = set()
+    for s in data.get("stops") or []:
+        if not s.get("answer"):
+            continue
+        if s.get("order") == "red_misses_scenario" and not s.get("sendback"):
+            nums.update(re.findall(r"did not cover (\d+)\b", s.get("question") or ""))
+        for n in s.get("no_test") or []:
+            if outcome_number(n):
+                nums.add(outcome_number(n))
+    return nums
 
 
 def scenario_red_gaps(root, data, red):
