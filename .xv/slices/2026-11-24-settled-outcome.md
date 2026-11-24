@@ -2,7 +2,7 @@
 id: 2026-11-24-settled-outcome
 title: "A settled not-covered outcome does not stop again (#205)"
 kind: defect
-status: stopped
+status: working
 originator: Sean Kennedy
 created: 2026-11-24
 branch: xv/2026-11-24-settled-outcome
@@ -12,7 +12,7 @@ build: none
 build_shared: no
 forecast: {"rows": [{"harness": "claude", "model": "sonnet", "tokens": 330000, "turns": null, "usd": 2.2, "basis": ["2026-10-30-covers-list", "2026-11-07-defects-stops", "2026-11-09-defects-tools", "2026-11-24-cleaner-commit"]}, {"harness": "claude", "model": "opus", "tokens": 200000, "turns": null, "usd": 2.3, "basis": ["2026-10-30-covers-list", "2026-11-07-defects-stops", "2026-11-09-defects-tools", "2026-11-24-cleaner-commit"]}, {"harness": "claude", "model": "haiku", "tokens": 55000, "turns": null, "usd": 0.01, "basis": ["2026-11-24-cleaner-commit", "2026-11-20-names", "2026-11-19-removal-line"]}], "wall_s": 1800, "rounds": 2, "rounds_reason": "The record bundles three cases one red pass may miss (wording variants, bundled stops, an unsettled outcome that must still fire), and the nearest basis, covers-list, ran three rounds on the same stop.", "shape_breadth": "narrow", "shape_note": "Expect the change to touch only the red_misses_scenario settled-outcome check, its tests, and one CHANGELOG line."}
 budget: {"tokens": 585000, "usd": 4.51, "set_by": "Sean Kennedy"}
-red: {"files": ["tests/test_run.py"], "command": "cd tests && python3 -m unittest test_run.TestWriterChecksTest", "failure": "AssertionError: 10 == 10 (red_misses_scenario fired again: 'The test writer did not cover 7: ...')", "watch_before_merge": null}
+red: null
 wall_baseline: {"commit": "30a29459de6704d92fc4c01054e1a39cab98b7e5", "count": 104, "digest": "5921d8e97c1da8da", "file": ".xv/slices/2026-11-24-settled-outcome.wall.json"}
 moved_tests: []
 slice_only: []
@@ -23,7 +23,7 @@ packet: null
 shape_change: null
 pitch_contradiction: null
 spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 6, "tokens_out": 6957, "cache_read": 64914, "cache_write": 46282, "tokens": 53245, "usd": 0.0134, "turns": 4, "wall_s": 32.4, "session": "39a5e326-038b-40d5-be22-dc0fe08736e3", "step": "forecaster", "at": "2026-11-24T22:25:43+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-24-settled-outcome/01-forecaster.out"}, {"harness": "claude", "model": "sonnet", "model_id": "claude-sonnet-5-5", "tokens_in": 24, "tokens_out": 8043, "cache_read": 382230, "cache_write": 35295, "tokens": 43362, "usd": 0.2599, "turns": 13, "wall_s": 80.6, "session": "325ec237-58ff-45ca-86f8-397a3847cfdc", "step": "test-writer", "at": "2026-11-24T22:27:15+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-24-settled-outcome/02-test-writer.out"}]
-stops: [{"at": "2026-11-24T22:25:43+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-24-settled-outcome budget ... --by <name>`).", "answered_by": ["Sean Kennedy"], "answer": "Standing answer: accept the forecast unless it is wide", "also": [], "answered_at": "2026-11-24T22:25:54+00:00", "pick": "other", "settled": "Sean sets budget {tokens: 585000, usd: 4.51}, the forecast (narrow); next is test-writer.", "new_info": "none", "cause": "decision: Sean's standing answer accepts a forecast that is not wide", "budget_change": {"from": null, "to": {"tokens": 585000, "usd": 4.51}}}, {"at": "2026-11-24T22:27:28+00:00", "step": "test-writer", "order": "red_misses_scenario", "seat": "originator", "question": "The test writer did not cover 4. A line in CHANGELOG.md: A CHANGELOG line is a one-time wording change; no test pins it, and the cleaner and guardian read the file.", "answered_by": [], "answer": null, "also": ["red_misses_scenario"], "budget_seen": {"tokens": 585000, "usd": 4.51, "set_by": "Sean Kennedy"}, "options": [{"text": "Amend point 2: an answer that sends the slice back settles outcome N only when it names N with a new flag, xv record answer --no-test N (repeatable), and the watch brief says to pass it; a send-back without the flag still stops again, as the old test says. Accept point 4 (the CHANGELOG line) as not covered. Send back to the test writer", "settles": "Amendment 5 to point 2: a send-back settles N only when the answer names it with xv record answer --no-test N; then N does not stop again however it is worded. A send-back without --no-test still stops again when N comes back (test_a_not_covered_item_the_person_sent_back_stops_again_when_reported_again stays). The watch brief says to pass --no-test. Point 4, the CHANGELOG line, has no test. Next is test-writer.", "amends": true}, {"text": "Keep the old rule for a direct send-back; only a send-back from a bundled answer settles N. Accept point 4 as not covered. Go on to the maker", "settles": "A direct red_misses_scenario answer that sends back does not settle N; a bundled answer that sends back does. Point 4, the CHANGELOG line, has no test. Next is maker.", "amends": false}, {"text": "Set aside", "settles": "The slice stays at the test-writer step.", "amends": false}], "recommended": 1}]
+stops: [{"at": "2026-11-24T22:25:43+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-24-settled-outcome budget ... --by <name>`).", "answered_by": ["Sean Kennedy"], "answer": "Standing answer: accept the forecast unless it is wide", "also": [], "answered_at": "2026-11-24T22:25:54+00:00", "pick": "other", "settled": "Sean sets budget {tokens: 585000, usd: 4.51}, the forecast (narrow); next is test-writer.", "new_info": "none", "cause": "decision: Sean's standing answer accepts a forecast that is not wide", "budget_change": {"from": null, "to": {"tokens": 585000, "usd": 4.51}}}, {"at": "2026-11-24T22:27:28+00:00", "step": "test-writer", "order": "red_misses_scenario", "seat": "originator", "question": "The test writer did not cover 4. A line in CHANGELOG.md: A CHANGELOG line is a one-time wording change; no test pins it, and the cleaner and guardian read the file.", "answered_by": ["Sean Kennedy"], "answer": "1 💯", "also": ["red_misses_scenario"], "options": [{"text": "Amend point 2: an answer that sends the slice back settles outcome N only when it names N with a new flag, xv record answer --no-test N (repeatable), and the watch brief says to pass it; a send-back without the flag still stops again, as the old test says. Accept point 4 (the CHANGELOG line) as not covered. Send back to the test writer", "settles": "Amendment 5 to point 2: a send-back settles N only when the answer names it with xv record answer --no-test N; then N does not stop again however it is worded. A send-back without --no-test still stops again when N comes back (test_a_not_covered_item_the_person_sent_back_stops_again_when_reported_again stays). The watch brief says to pass --no-test. Point 4, the CHANGELOG line, has no test. Next is test-writer.", "amends": true}, {"text": "Keep the old rule for a direct send-back; only a send-back from a bundled answer settles N. Accept point 4 as not covered. Go on to the maker", "settles": "A direct red_misses_scenario answer that sends back does not settle N; a bundled answer that sends back does. Point 4, the CHANGELOG line, has no test. Next is maker.", "amends": false}, {"text": "Set aside", "settles": "The slice stays at the test-writer step.", "amends": false}], "recommended": 1, "answered_at": "2026-11-24T22:47:02+00:00", "sendback": true, "sendback_to": "test-writer", "pick": 1, "settled": "Amendment 5 to point 2: a send-back settles N only when the answer names it with xv record answer --no-test N; then N does not stop again however it is worded. A send-back without --no-test still stops again when N comes back (test_a_not_covered_item_the_person_sent_back_stops_again_when_reported_again stays). The watch brief says to pass --no-test. Point 4, the CHANGELOG line, has no test. Next is test-writer.", "new_info": "Sean: a send-back answer can mean 'cover N' or 'N needs no test'; only an explicit flag tells them apart", "cause": "decision: the scenario did not say how a send-back that settles N differs from one that asks for a test", "bundle": ["red_misses_scenario"]}]
 decisions: []
 prototypes: []
 overrides: []
@@ -31,6 +31,7 @@ checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forec
 step_start: {"agent": "test-writer", "commit": "30a29459de6704d92fc4c01054e1a39cab98b7e5", "ended": true}
 old_tests_to_move: []
 may_not_files_needed: []
+reports_before_amend: 2
 ---
 # A settled not-covered outcome does not stop again (#205)
 
@@ -42,6 +43,10 @@ A not-covered outcome that a person settled does not stop again on a later test 
 2. It also holds when the person settled N in the answer to another stop that bundled `red_misses_scenario`, and when that answer sent the slice back.
 3. An outcome that no person settled still fires `red_misses_scenario`, on the same pass as a settled one.
 4. A line in `CHANGELOG.md`.
+
+### Amended 2026-11-24 by Sean Kennedy
+
+5. Point 2, amended: an answer that sends the slice back settles outcome N only when it names N with `xv record answer --no-test N` (the flag can repeat). Then N does not stop again, however a later pass words it. A send-back without `--no-test` still stops again when N comes back. The watch brief says to pass `--no-test` for each outcome the person settles as having no test.
 
 ## May ignore
 
@@ -61,3 +66,6 @@ an outcome that the scenario amends after the answer
 - 2026-11-24T22:27:15+00:00 test-writer: red: Six tests in TestWriterChecksTest: a settled not-covered outcome re-stops when reworded or settled in a bundled send-back answer; an unsettled one still stops.
 - 2026-11-24T22:27:28+00:00 watch: stop (red_misses_scenario) for originator: The test writer did not cover 4. A line in CHANGELOG.md: A CHANGELOG line is a one-time wording change; no test pins it, and the cleaner and guardian read the file.
 - 2026-11-24T22:28:02+00:00 watch: offered 3 options for red_misses_scenario
+- 2026-11-24T22:47:02+00:00 Sean Kennedy: answered red_misses_scenario: 1 💯
+- 2026-11-24T22:47:02+00:00 watch: scribe: wrote settled, new_info, cause for red_misses_scenario as the scribe of Sean Kennedy
+- 2026-11-24T22:47:21+00:00 Sean Kennedy: amended the scenario
