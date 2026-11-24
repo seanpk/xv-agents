@@ -130,15 +130,6 @@ class TheDecisionRowTest(unittest.TestCase):
         self.assertIn("the cleaner commits its own fix", seven)
 
 
-class TheChangelogTest(unittest.TestCase):
-    def test_an_unreleased_line_says_the_watch_commits_the_cleaners_work(self):
-        """Slice-only: checks one CHANGELOG line."""
-        text = read("CHANGELOG.md")
-        head = text.split("\n## 0.", 1)[0]
-        self.assertIn("## Unreleased", head)
-        self.assertRegex(head, r"(?is)unreleased.*#206.*cleaner.*watch commits|unreleased.*watch commits.*cleaner.*#206")
-
-
 # What a person should watch on the first green run: run a slice through the cleaner with a real agent and see that
 # the cleaner's edit sits, uncommitted, in the tree until `xv step` makes `xv(<id>): record the cleaner's pass`, and
 # that `cleaner_commit` in the record names that commit.

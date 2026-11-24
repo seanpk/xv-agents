@@ -1414,9 +1414,11 @@ def commit_step(agent, root, slice_id, checks):
         "forecaster": "forecast", "test-writer": "red", "maker": "make it work",
         "cleaner": "record the cleaner's pass", "inspector": "packet",
     }
-    if agent == "cleaner" and not checks.get("committed") and not [f for f in changed_files(root, "HEAD") if not f.startswith(XV_DIR + "/")]:
-        return None  # the cleaner changed nothing: the watch makes no commit, and `cleaner_commit` stays empty
-    return commit(root, f"xv({slice_id}): {messages[agent]}")
+    if agent == "cleaner" and not checks.get("committed"):
+        code_changed = [f for f in changed_files(root, "HEAD") if not f.startswith(XV_DIR + "/")]
+        if not code_changed:
+            return  # the cleaner changed nothing: the watch makes no commit, and `cleaner_commit` stays empty
+    commit(root, f"xv({slice_id}): {messages[agent]}")
 
 
 # The wall and the boundary diagram arrive with their own scripts; until a repo
