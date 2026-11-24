@@ -52,6 +52,7 @@ Sean Kennedy sits with them.
   A move with a `--line` is checked by its line's text, and its assertion is not read.
   It finds names with `record.test_still_there`, which matches a name as a whole word anywhere in its file.
   `record` owns the slice record, and the build rules: `has_build`, `build_commit` and `wall_for_build`.
+  `record.load` fills an empty `cleaner_commit` by finding the slice's `xv(<id>): record the cleaner's pass` commit between `base` and HEAD (`record.cleaner_pass_commit`).
   `suite` runs `tests.command` for `run` and `record`.
   `suite` also holds `failing_tests`, `own_red_names` and `in_own_red`, which `run` and `record` both import.
   `xv record offer` can put one directed edit on an option, and refuses one that does not fit its kind (`skills/watch/SKILL.md` lists the refusals).
@@ -90,6 +91,8 @@ Sean Kennedy sits with them.
   When no stop blocks, `orders` also returns a send-back with seat `watch`, naming where the slice goes and the misses: `change_misses_scenario` after the inspector, `report_misses_outcome` after the test-writer step.
   `orders.verdict` also returns `next`.
   After the test-writer step, `next` is `cleaner` when the red failed on the base and passes on the build.
+  The watch commits each step's work, the cleaner's too (`run.commit_step`, decision 94).
+  It makes the cleaner's commit only when a file outside `.xv/` changed; otherwise HEAD stays and the record's edits wait for the next commit.
   One function, `record.apply_verdict`, writes the stop or the send-backs, and `next`, on `xv step`, `xv run`, `xv record packet`, and `xv record answer` after a directed edit; it adds no second open stop of the same order.
   After a directed edit, `orders.verdict` does not fire the order the answer closed or any order bundled with it, `ready_to_merge` included, and the answer's `--next` stands.
   At the test-writer step, a directed edit counts the suite green when every failing test is one of the slice's own red tests.
