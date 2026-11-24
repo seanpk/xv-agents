@@ -126,3 +126,7 @@ No picture line says the cleaner commits (`tests/test_cleaner_commit.py` `test_n
 - Wall: `xv wall diff 2026-11-24-cleaner-commit`
 - Boundary: `.xv/slices/2026-11-24-cleaner-commit.boundary.md` (`xv boundary --base d4011e47fc52`)
 - Red at HEAD: `cd tests && python3 -m unittest test_cleaner_commit`, 15 tests, OK.
+
+## Directed edits after the inspector
+
+- CHANGELOG.md (changelog): directed by Sean Kennedy
