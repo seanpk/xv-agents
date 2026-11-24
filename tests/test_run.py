@@ -1516,7 +1516,7 @@ class TestWriterChecksTest(WatchLoopSetup):
         p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "17. A line in README.md", "why": "no seam"}]))
         self.assert_stops(p, "17")
 
-    def bundled_send_back(self):
+    def bundled_send_back(self, *no_test):
         """Pass one fires red_misses_scenario with another stop; one answer bundles both and sends the slice back."""
         mark = {"file": "tests/test_red.py", "test": "test_milk_today", "why": "checks the README wording",
                 "checks": "README.md"}
@@ -1525,15 +1525,56 @@ class TestWriterChecksTest(WatchLoopSetup):
                         FAKE_REPORT_EXTRA=json.dumps({"slice_only": [mark]}))
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1", "--bundle", "red_misses_scenario",
-                "--next", "test-writer", "--settled", "Outcome 7 has no test; the rest goes back.", cwd=self.wt)
+                "--next", "test-writer", "--settled", "Outcome 7 has no test; the rest goes back.",
+                *[a for n in no_test for a in ("--no-test", n)], cwd=self.wt)
         self.assertTrue(self.record()["stops"][-1].get("sendback"))
 
     def test_an_outcome_settled_in_a_bundled_answer_that_sent_the_slice_back_does_not_stop_again(self):
-        self.bundled_send_back()
+        self.bundled_send_back("7")
         before = self.count_red_misses()
         p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7", "why": "a one-time wording change"}]))
         self.assertEqual(self.count_red_misses(), before, p.stdout)
         self.assertNotIn("did not cover 7", p.stdout)
+
+    # amendment 5: a send-back settles N only when the answer names it with --no-test N
+    def test_a_bundled_send_back_without_no_test_stops_again_when_the_outcome_comes_back(self):
+        self.bundled_send_back()
+        before = self.count_red_misses()
+        p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7. A line in CHANGELOG.md", "why": "no seam"}]))
+        self.assert_stops(p, "7. A line in CHANGELOG.md")
+        self.assertEqual(self.count_red_misses(), before + 1)
+
+    def test_a_direct_send_back_with_no_test_settles_the_outcome_however_it_is_worded(self):
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7. A line in CHANGELOG.md", "why": "no seam"}]))
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "no test for 7", "--next", "test-writer",
+                "--settled", "Outcome 7 has no test.", "--no-test", "7", cwd=self.wt)
+        self.assertTrue(self.record()["stops"][-1].get("sendback"))
+        for worded in ("7", "7. A line in CHANGELOG.md.", "7. A line in CHANGELOG.md"):
+            p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": worded, "why": "other reason"}]))
+            self.assertNotIn("did not cover", p.stdout, worded)
+        self.assertEqual(self.count_red_misses(), 1)
+
+    def test_a_send_back_with_no_test_for_one_outcome_leaves_another_stopping(self):
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7. A line in CHANGELOG.md", "why": "no seam"},
+                                                 {"outcome": "8. A line in README.md", "why": "no seam"}]))
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "7 needs none", "--next", "test-writer",
+                "--settled", "Outcome 7 has no test.", "--no-test", "7", cwd=self.wt)
+        p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7", "why": "x"},
+                                                     {"outcome": "8. A line in README.md", "why": "no seam"}]))
+        self.assert_stops(p, "8. A line in README.md")
+        self.assertNotIn("did not cover 7", json.loads(p.stdout)["stop"]["question"])
+
+    def test_no_test_can_repeat_to_settle_two_outcomes(self):
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7. A line in CHANGELOG.md", "why": "no seam"},
+                                                 {"outcome": "8. A line in README.md", "why": "no seam"}]))
+        self.xv("record", "answer", "s1", "--by", "pat", "--answer", "none needed", "--next", "test-writer",
+                "--settled", "Outcomes 7 and 8 have no test.", "--no-test", "7", "--no-test", "8", cwd=self.wt)
+        p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7", "why": "x"}, {"outcome": "8", "why": "y"}]))
+        self.assertNotIn("did not cover", p.stdout)
+        self.assertEqual(self.count_red_misses(), 1)
 
     def test_an_unsettled_outcome_still_stops_on_the_same_pass_as_a_settled_one(self):
         self.settle_without_a_send_back("7. A line in CHANGELOG.md")
