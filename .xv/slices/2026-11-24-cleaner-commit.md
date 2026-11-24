@@ -77,3 +77,4 @@ None. A feature starts from words.
 - 2026-11-24T21:32:43+00:00 Sean Kennedy: answered moves_to_accept: 1
 - 2026-11-24T21:32:43+00:00 watch: scribe: wrote settled, new_info for moves_to_accept as the scribe of Sean Kennedy
 - 2026-11-24T21:32:43+00:00 Sean Kennedy: directed a changelog edit in CHANGELOG.md
+- 2026-11-24T21:54:57+00:00 watch: picture edit directed by Sean Kennedy (772e98c): .xv/picture.md:55 and :94-95, as the inspector worded them, with line 95 reworded by Sean so it does not read as the cleaner committing
