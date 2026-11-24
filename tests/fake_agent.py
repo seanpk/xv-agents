@@ -183,6 +183,10 @@ elif title.startswith("# The cleaner"):
         with open("pantry/store.py", "a") as f:
             f.write("\n# cleaned\n")
         os.system("git commit -q --no-verify -am 'a cleaner fix'")
+    if os.environ.get("FAKE_CLEANER_LEAVES"):
+        # a cleaner that follows its brief: it edits a file and leaves the change uncommitted for the watch
+        with open("pantry/store.py", "a") as f:
+            f.write("\n# cleaned\n")
     if os.environ.get("FAKE_CLEANER_REMOVES"):
         # removes the named test from tests/test_red.py and records it as a slice-only move, as the brief says
         import subprocess
@@ -219,7 +223,8 @@ elif title.startswith("# The cleaner"):
                         "--line", str(line), "--assertion", "removed", "--why", "slice-only; removed",
                         "--by", "cleaner"], check=True)
     extra = json.loads(os.environ.get("FAKE_CLEANER_REPORT_EXTRA") or "{}")
-    report(agent="cleaner", status="done", summary="nothing to fix", commit=None, applied=[], **extra)
+    report(agent="cleaner", status="done", summary="nothing to fix", commit=os.environ.get("FAKE_CLEANER_REPORT_COMMIT"),
+           applied=[], **extra)
 elif title.startswith("# The inspector"):
     packet_path = ".xv/slices/pr-packet.md" if sid == "pr-packet" else f".xv/slices/{sid}.packet.md"
     miss = os.environ.get("FAKE_SCENARIO_MISS")
