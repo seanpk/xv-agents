@@ -2,7 +2,7 @@
 id: 2026-11-24-settled-outcome
 title: "A settled not-covered outcome does not stop again (#205)"
 kind: defect
-status: open
+status: stopped
 originator: Sean Kennedy
 created: 2026-11-24
 branch: xv/2026-11-24-settled-outcome
@@ -10,7 +10,7 @@ base: 82a218f104bde75596fec4773887dc118aa50337
 next: forecaster
 build: none
 build_shared: no
-forecast: null
+forecast: {"rows": [{"harness": "claude", "model": "sonnet", "tokens": 330000, "turns": null, "usd": 2.2, "basis": ["2026-10-30-covers-list", "2026-11-07-defects-stops", "2026-11-09-defects-tools", "2026-11-24-cleaner-commit"]}, {"harness": "claude", "model": "opus", "tokens": 200000, "turns": null, "usd": 2.3, "basis": ["2026-10-30-covers-list", "2026-11-07-defects-stops", "2026-11-09-defects-tools", "2026-11-24-cleaner-commit"]}, {"harness": "claude", "model": "haiku", "tokens": 55000, "turns": null, "usd": 0.01, "basis": ["2026-11-24-cleaner-commit", "2026-11-20-names", "2026-11-19-removal-line"]}], "wall_s": 1800, "rounds": 2, "rounds_reason": "The record bundles three cases one red pass may miss (wording variants, bundled stops, an unsettled outcome that must still fire), and the nearest basis, covers-list, ran three rounds on the same stop.", "shape_breadth": "narrow", "shape_note": "Expect the change to touch only the red_misses_scenario settled-outcome check, its tests, and one CHANGELOG line."}
 budget: null
 red: null
 wall_baseline: null
@@ -22,12 +22,13 @@ cleaner_commit: null
 packet: null
 shape_change: null
 pitch_contradiction: null
-spend: []
-stops: []
+spend: [{"harness": "claude", "model": "haiku", "model_id": "claude-haiku-5-5", "tokens_in": 6, "tokens_out": 6957, "cache_read": 64914, "cache_write": 46282, "tokens": 53245, "usd": 0.0134, "turns": 4, "wall_s": 32.4, "session": "39a5e326-038b-40d5-be22-dc0fe08736e3", "step": "forecaster", "at": "2026-11-24T22:25:43+00:00", "exit": 0, "log": "/home/sean/Making/Personal/xv-agents/.git/xv/runs/2026-11-24-settled-outcome/01-forecaster.out"}]
+stops: [{"at": "2026-11-24T22:25:43+00:00", "step": "forecaster", "order": "budget_not_set", "seat": "originator", "question": "Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-24-settled-outcome budget ... --by <name>`).", "answered_by": [], "answer": null, "also": [], "budget_seen": null}]
 decisions: []
 prototypes: []
 overrides: []
-checks: {}
+checks: {"reports": [{"agent": "forecaster", "status": "done", "summary": "Forecast 330k sonnet, 200k opus, 55k haiku tokens; 1800 s wall, 2 rounds, narrow shape.", "at": "2026-11-24T22:25:43+00:00"}], "forecaster": {"at": "2026-11-24T22:25:43+00:00", "wrote": [], "removal_not_made": []}}
+step_start: {"agent": "forecaster", "commit": "a9be0198a85acb7588989d77048e6375f7b4d5e9", "ended": true}
 ---
 # A settled not-covered outcome does not stop again (#205)
 
@@ -50,3 +51,5 @@ an outcome that the scenario amends after the answer
 
 ## Log
 - 2026-11-24T22:25:03+00:00 watch: slice opened by Sean Kennedy
+- 2026-11-24T22:25:43+00:00 forecaster: done: Forecast 330k sonnet, 200k opus, 55k haiku tokens; 1800 s wall, 2 rounds, narrow shape.
+- 2026-11-24T22:25:43+00:00 watch: stop (budget_not_set) for originator: Sean Kennedy: set the budget from the forecast (`xv record set 2026-11-24-settled-outcome budget ... --by <name>`).
