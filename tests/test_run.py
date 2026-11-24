@@ -1576,6 +1576,11 @@ class TestWriterChecksTest(WatchLoopSetup):
         self.assertNotIn("did not cover", p.stdout)
         self.assertEqual(self.count_red_misses(), 1)
 
+    def test_the_watch_brief_names_no_test_for_an_outcome_the_person_settles_as_having_no_test(self):
+        text = open(os.path.join(HOME, "skills", "watch", "SKILL.md")).read()
+        self.assertIn("xv record answer", text)
+        self.assertIn("--no-test", text)
+
     def test_an_unsettled_outcome_still_stops_on_the_same_pass_as_a_settled_one(self):
         self.settle_without_a_send_back("7. A line in CHANGELOG.md")
         p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7", "why": "wording"},
