@@ -1137,6 +1137,8 @@ def apply_verdict(data, body, agent, v):
                                   "question": st["question"], "answered_by": [], "answer": None,
                                   "also": [f["order"] for f in v["fired"] if f is not st],
                                   "budget_seen": data.get("budget"),
+                                  "fired_questions": [f["question"] for f in v["fired"]
+                                                      if f["order"] == "red_misses_scenario"],
                                   **({"blobs": blobs} if blobs and st["order"] == "unrecorded_move" else {}),
                                   **({"breadth": st["breadth"]} if st.get("breadth") else {})})
             body = log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
