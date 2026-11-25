@@ -2,9 +2,11 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
-## 0.6.2, 2026-11-24
+## 0.6.3, 2026-11-25
 
 - In a slice from a build, the test writer's `unrecorded_move` stop names the build's changes to old tests apart from its own (#210, decided by Sean Kennedy). The question lists the old test files the build changed or removed as the build's ("not the test writer"), and the test writer's own changes in a separate list; a file both changed is in both, and a file with a recorded move is in neither. A slice with no build, or a build that changed no old test, stops as before. It moves no position on xtremevibing.com.
+
+## 0.6.2, 2026-11-24
 
 - A settled not-covered outcome does not stop again (#205, decided by Sean Kennedy). An outcome that a person settled in an answer that did not send the slice back, to a `red_misses_scenario` stop or to another stop that bundled it, is matched by its number on later passes, so "7", "7. A line in CHANGELOG.md" and "7. A line in CHANGELOG.md." are one outcome. An answer that sends the slice back settles an outcome only when it names it with the new `xv record answer --no-test <N>` (the flag repeats, and refuses a value with no outcome number); a send-back without it still stops again. The watch brief says to pass `--no-test`. It moves no position on xtremevibing.com.
 
