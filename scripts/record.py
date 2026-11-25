@@ -609,6 +609,9 @@ def cmd_answer(a):
         raise XVError(f"cause is one of {sorted(CAUSES)}, then a free line after a colon")
     if a.resume and not a.next:
         raise XVError("--resume needs --next: every answer says where the slice goes")
+    for n in a.no_test or []:
+        if not re.match(r"\s*\d+\b", n):
+            raise XVError(f"--no-test {n!r}: name the outcome by its number, such as --no-test 7")
     pick, settled, edit = None, a.settled, None
     if a.pick is not None:
         options = stop.get("options") or []

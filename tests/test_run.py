@@ -1577,6 +1577,15 @@ class TestWriterChecksTest(WatchLoopSetup):
         self.assertNotIn("did not cover", p.stdout)
         self.assertEqual(self.count_red_misses(), 1)
 
+    def test_no_test_with_no_outcome_number_is_refused_and_the_stop_stays_open(self):
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7. A line in CHANGELOG.md", "why": "no seam"}]))
+        p = self.xv("record", "answer", "s1", "--by", "pat", "--answer", "none needed", "--next", "test-writer",
+                    "--settled", "Outcome 7 has no test.", "--no-test", "seven", cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("--no-test 7", p.stderr)
+        self.assertFalse(self.record()["stops"][-1].get("answer"))
+
     def test_the_watch_brief_names_no_test_for_an_outcome_the_person_settles_as_having_no_test(self):
         text = open(os.path.join(HOME, "skills", "watch", "SKILL.md")).read()
         self.assertIn("xv record answer", text)
@@ -1604,18 +1613,19 @@ class TestWriterChecksTest(WatchLoopSetup):
         self.assertEqual(self.count_red_misses(), before)
 
     def test_a_not_covered_outcome_bundled_under_another_stop_is_settled_by_an_answer_without_a_send_back(self):
+        # unrecorded_move comes first in the stop order, so it is primary; red_misses_scenario is held as also
+        old = {"FAKE_SCENARIO_EDITS_OLD": "1"}
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7. A line in CHANGELOG.md", "why": "no seam"}]),
-                        FAKE_REPORT_EXTRA=json.dumps({"slice_only": [self.README_MARK]}))
+                        **old)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "unrecorded_move")
+        self.assertIn("did not cover 7", p.stdout)  # held as also
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1", "--bundle", "red_misses_scenario",
                 "--next", "maker", cwd=self.wt)
         self.assertFalse(self.record()["stops"][-1].get("sendback"))
-        before = self.count_red_misses()
-        p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7", "why": "x"}]),
-                        FAKE_REPORT_EXTRA=json.dumps({"slice_only": [self.README_MARK]}))
+        p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7", "why": "x"}]), **old)
         self.assertNotIn("did not cover 7", p.stdout)
-        self.assertEqual(self.count_red_misses(), before)
 
     def test_a_not_covered_outcome_under_another_stop_still_stops_when_the_answer_does_not_bundle_it(self):
         # unrecorded_move comes first in the stop order, so it is primary; red_misses_scenario is held as also

@@ -4,7 +4,7 @@ Every change to a brief, a may-not list, a standing order, or a check an agent i
 
 ## Unreleased
 
-- A settled not-covered outcome does not stop again (#205, decided by Sean Kennedy). An outcome that a person settled in a `red_misses_scenario` answer that did not send the slice back is matched by its number on later passes, so "7", "7. A line in CHANGELOG.md" and "7. A line in CHANGELOG.md." are one outcome. An answer that sends the slice back settles an outcome only when it names it with the new `xv record answer --no-test <N>` (the flag repeats); a send-back without it still stops again. The watch brief says to pass `--no-test`. It moves no position on xtremevibing.com.
+- A settled not-covered outcome does not stop again (#205, decided by Sean Kennedy). An outcome that a person settled in an answer that did not send the slice back, to a `red_misses_scenario` stop or to another stop that bundled it, is matched by its number on later passes, so "7", "7. A line in CHANGELOG.md" and "7. A line in CHANGELOG.md." are one outcome. An answer that sends the slice back settles an outcome only when it names it with the new `xv record answer --no-test <N>` (the flag repeats, and refuses a value with no outcome number); a send-back without it still stops again. The watch brief says to pass `--no-test`. It moves no position on xtremevibing.com.
 
 ## 0.6.1, 2026-11-24
 

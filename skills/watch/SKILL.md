@@ -53,7 +53,7 @@ When the person picks that option, `xv record answer --pick <n>` makes exactly t
 When the person answers, write it down before anything else:
 
 ```
-xv record answer <id> --by <name>[,<name>] --answer "<their words>" --pick <n|other> --settled "<what is now true>" --new-info "<what they brought, or none>" --cause "<decision|environment|tool|agent|watch>: <a line>" [--why "<their reason>"] [--bundle <order>[,<order>]] --next <step> --resume
+xv record answer <id> --by <name>[,<name>] --answer "<their words>" --pick <n|other> --settled "<what is now true>" --new-info "<what they brought, or none>" --cause "<decision|environment|tool|agent|watch>: <a line>" [--why "<their reason>"] [--bundle <order>[,<order>]] [--no-test <N>] --next <step> --resume
 ```
 
 `--resume` refuses an answer with no `--next`: `next` stays on the step that stopped, so every answer says where the slice goes.
