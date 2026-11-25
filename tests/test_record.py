@@ -457,6 +457,41 @@ class SliceOnlyGateTest(RepoCase):
         self.assertFalse(self.move(wt, "tests/test_y.py", "test_file_is_ts").get("slice_only"))
 
 
+class FailedStepEndsItsStartTest(RepoCase):
+    """#202: a step that fails because its agent could not run marks its start ended."""
+
+    def setUp(self):
+        super().setUp()
+        cfg = os.path.join(self.repo, ".xv", "config.yml")
+        text = open(cfg).read()
+        start, end = text.index("agents:"), text.index("seats:")
+        text = text[:start] + 'agents:\n  default: ["no-such-agent-cli-xv", "{prompt}"]\n' + text[end:]
+        open(cfg, "w").write(text)
+        sh(["git", "commit", "-qam", "an agent that is not installed"], self.repo)
+        self.wt = self.new_slice("s1")
+        self.xv("record", "set", "s1", "budget", '{"usd": 1}', "--by", "pat", cwd=self.wt)
+
+    def show(self):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=self.wt).stdout)
+
+    def fail_a_step(self):
+        commit_tests(self.wt, {"tests/test_x.py": "# old\n"})
+        p = self.xv("step", "forecaster", "s1", cwd=self.wt, check=False)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("agent CLI not found", p.stderr + p.stdout)
+
+    def test_a_step_that_could_not_run_marks_its_start_ended(self):
+        self.fail_a_step()
+        self.assertIs(self.show()["step_start"].get("ended"), True)
+
+    def test_a_slice_only_move_after_a_failed_step_reads_its_line_from_head(self):
+        self.fail_a_step()
+        commit_tests(self.wt, {"tests/test_x.py": "# old\n\n\n\ndef test_late():\n    pass\n"})
+        self.xv("record", "move", "s1", "--file", "tests/test_x.py", "--assertion", "test_late", "--why", "w",
+                "--slice-only", "--line", "5", cwd=self.wt)
+        self.assertEqual(len(self.show()["moved_tests"]), 1)
+
+
 class OfferAndAnswerTest(RepoCase):
     """A stop keeps the decision: the offer, the pick, and `settled`."""
 
