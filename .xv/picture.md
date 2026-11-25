@@ -243,6 +243,8 @@ Sean Kennedy sits with them.
   When two outcomes share a number, the number covers only the first one; a later one needs its own words (`run.missed_outcomes`).
   After the test-writer step, `unrecorded_move` stops for the originator before the maker when any test file that existed at the base, under `tests.paths` or in the red, lost or changed a line other than a blank, comment or import, unless a recorded move names the file.
   In a slice from a build, a test file the build only added lines to is not unrecorded; a line the build changed or removed at the base still stops.
+  In a slice from a build, the question names the old test files the build changed or removed as the build's, not the test writer's, measured from the base to the build's commit.
+  It lists the test writer's own changes apart from them, measured from the build's commit to the tree, and a file both changed is in both lists (`checks.old_red_changed_build`, `checks.old_red_changed`).
   A line the build added that the maker or the cleaner later changes or removes stops too, measured from the build's commit (`wall.check`).
   An answered `unrecorded_move` stop records each file's content (`blobs`), and the same content does not stop again.
   The maker and the cleaner record a move in their own names (`--by maker`, `--by cleaner`).
