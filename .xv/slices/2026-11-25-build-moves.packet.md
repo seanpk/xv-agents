@@ -133,3 +133,7 @@ No test that was on the wall before has become dead: `xv wall diff` shows no cha
 - Boundary: `xv boundary --base 84f20f5eb0c66ecb9426f6f63ce0074847a0d3be`
 
 Note: the picture should hold one sentence per line; more than one sentence on .xv/picture.md:231.
+
+## Directed edits after the inspector
+
+- CHANGELOG.md (changelog): directed by Sean Kennedy
