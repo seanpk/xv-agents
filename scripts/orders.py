@@ -185,10 +185,16 @@ def evaluate(data, after, config):
                             + f" The red is kept on `refs/xv/{data.get('id')}/red` at the base, and a later test-writer "
                             "pass starts from it whatever you land by hand, so a hand-landed red under another "
                             "commit subject is not lost. Resolve it by hand, or change the red so it fits the build."))
-        if checks.get("old_red_changed"):
+        if checks.get("old_red_changed") or checks.get("old_red_changed_build"):
+            parts = []
+            if checks.get("old_red_changed_build"):
+                parts.append("The build changed or removed old tests or assertions in old test files that existed at the base: "
+                             + ", ".join(checks["old_red_changed_build"]) + " (not the test writer).")
+            if checks.get("old_red_changed"):
+                parts.append("The test writer changed or removed old tests or assertions in old test files that existed at the base: "
+                             + ", ".join(checks["old_red_changed"]) + ".")
             out.append(fire("unrecorded_move", "originator",
-                            "The test writer changed or removed old tests or assertions in old test files that existed at the base: "
-                            + ", ".join(checks["old_red_changed"]) + ". Revert them, or record why the scenario forces it."))
+                            " ".join(parts) + " Revert them, or record why the scenario forces it."))
         if checks.get("old_red_unchecked"):
             out.append(fire("setup_failed", "originator", checks["old_red_unchecked"]))
         if checks.get("setup_failed"):
