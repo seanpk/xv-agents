@@ -1619,17 +1619,18 @@ class TestWriterChecksTest(WatchLoopSetup):
         self.assertEqual(self.count_red_misses(), before)
 
     def test_a_not_covered_outcome_under_another_stop_still_stops_when_the_answer_does_not_bundle_it(self):
-        mark = {"file": "tests/test_red.py", "test": "test_milk_today", "why": "checks the README wording",
-                "checks": "README.md"}
+        # unrecorded_move comes first in the stop order, so it is primary; red_misses_scenario is held as also
+        old = {"FAKE_SCENARIO_EDITS_OLD": "1"}
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7. A line in CHANGELOG.md", "why": "no seam"}]),
-                        FAKE_REPORT_EXTRA=json.dumps({"slice_only": [mark]}))
+                        **old)
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "unrecorded_move")
+        self.assertIn("did not cover 7", p.stdout)  # held as also
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1", "--next", "maker", cwd=self.wt)
         self.assertFalse(self.record()["stops"][-1].get("sendback"))
         before = self.count_red_misses()
-        p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7", "why": "x"}]),
-                        FAKE_REPORT_EXTRA=json.dumps({"slice_only": [mark]}))
+        p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7", "why": "x"}]), **old)
         self.assertIn("did not cover 7", p.stdout)
         self.assertEqual(self.count_red_misses(), before + 1)
 
