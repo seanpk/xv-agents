@@ -1166,6 +1166,13 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
             checks["red_fails"] = None
         changed = old_red_changed(root, data, red, tests)
         checks["old_red_changed"] = changed or []
+        build = data.get("build") if isinstance(data.get("build"), dict) else {}
+        if changed and build.get("commit"):
+            # a slice from a build: the build's changes are named apart from the test writer's own
+            import wall
+            checks["old_red_changed_build"] = [f for f in changed
+                                               if wall.removed_lines(root, data["base"], f, build["commit"])]
+            checks["old_red_changed"] = [f for f in changed if wall.removed_lines(root, build["commit"], f, None)]
         if changed is None:
             checks["old_red_unchecked"] = ("The check for changes to old test files that existed at the base could not run: "
                                            "the record has no base, or the wall module did not load.")

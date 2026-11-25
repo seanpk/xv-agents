@@ -135,6 +135,11 @@ elif title.startswith("# The test writer"):
     if os.environ.get("FAKE_SCENARIO_EDITS_OLD_OUTSIDE_RED"):
         t = open("tests/test_store.py").read().replace('["yogurt"]', '["yogurt"] or []')
         open("tests/test_store.py", "w").write(t)
+    if os.environ.get("FAKE_WRITER_REPLACE"):  # {file: [old text, new text]}: the test writer changes old test files
+        for rel, (old_text, new_text) in json.loads(os.environ["FAKE_WRITER_REPLACE"]).items():
+            body = open(rel).read()
+            assert old_text in body, f"{rel} has no {old_text!r} to change"
+            open(rel, "w").write(body.replace(old_text, new_text, 1))
     extra = {"covered": [{"outcome": "milk today", "test": "test_milk_today"}], "not_covered": []}
     if os.environ.get("FAKE_NOT_COVERED"):
         extra["not_covered"] = json.loads(os.environ["FAKE_NOT_COVERED"])

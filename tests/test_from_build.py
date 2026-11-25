@@ -805,6 +805,112 @@ class BuildAddedTestsTest(FromBuildBase):
         self.assertIn("tests/test_store.py", wall["unrecorded"])
 
 
+class BuildMovesNamedApartTest(FromBuildBase):
+    # #210: in a slice from a build, the test writer's stop names the build's changes to old tests apart from its own
+    # A slice from a build is opened with `xv slice new --from <ref>`; the stop is `unrecorded_move`; a recorded move
+    # comes from `xv record move`. The line in `CHANGELOG.md` is not tested here (slice-only wording).
+    STORE = "tests/test_store.py"
+    API = "tests/test_api.py"
+    STORE_EDIT = ['["beans", "rice"]', '["beans", "rice"] or []']  # the build's change to the store tests
+    STORE_EDIT_WRITER = ["(3, date(2026, 10, 23))", "(3, date(2026, 10, 24))"]  # the writer's, on another line
+    API_EDIT = ['"qty": 6', '"qty": 7']
+
+    def old(self, rel):
+        with open(os.path.join(self.repo, rel)) as f:
+            return f.read()
+
+    def build_changes_store(self):
+        self.make_build(fixed=False, files={self.STORE: self.old(self.STORE).replace(*self.STORE_EDIT)})
+
+    def replace_env(self, edits):
+        return {"FAKE_WRITER_REPLACE": json.dumps(edits)}
+
+    def writer_stop(self, **env):
+        self.open_slice("--from", BUILD)
+        self.step("forecaster")
+        p = self.step("test-writer", **env)
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        stop = json.loads(p.stdout)["stop"]
+        self.assertEqual(stop["order"], "unrecorded_move")
+        self.assertEqual(stop["seat"], "originator")
+        return stop["question"]
+
+    def labels(self, question, rel):
+        """Who the question says changed `rel`: for each place it names the file, the nearest of 'build' and
+        'test writer' before it (a 'not the test writer' aside is not a label)."""
+        q = re.sub(r"\bnot (by )?the test writer", "", question, flags=re.I).lower()
+        found = []
+        for m in re.finditer(re.escape(rel), q):
+            before = q[:m.start()]
+            b, w = before.rfind("build"), before.rfind("test writer")
+            found.append(None if max(b, w) < 0 else ("build" if b > w else "test writer"))
+        return found
+
+    def test_a_file_only_the_build_changed_is_named_as_the_builds(self):
+        self.build_changes_store()
+        q = self.writer_stop()
+        self.assertEqual(self.labels(q, self.STORE), ["build"], q)
+
+    def test_the_stop_for_the_builds_change_does_not_say_the_test_writer_changed_it(self):
+        self.build_changes_store()
+        q = self.writer_stop()
+        self.assertNotIn("The test writer changed or removed", q)
+
+    def test_the_writers_own_change_is_listed_apart_from_the_builds(self):
+        self.build_changes_store()
+        q = self.writer_stop(**self.replace_env({self.API: self.API_EDIT}))
+        self.assertEqual(self.labels(q, self.STORE), ["build"], q)
+        self.assertEqual(self.labels(q, self.API), ["test writer"], q)
+
+    def test_a_file_both_the_build_and_the_writer_changed_is_in_both_lists(self):
+        self.build_changes_store()
+        q = self.writer_stop(**self.replace_env({self.STORE: self.STORE_EDIT_WRITER}))
+        self.assertEqual(sorted(self.labels(q, self.STORE)), ["build", "test writer"], q)
+
+    def record_move(self, rel):
+        self.xv("record", "move", "s1", "--file", rel, "--assertion", "test_x [was: a; now: b]",
+                "--why", "the scenario forces it", cwd=self.wt)
+
+    def test_a_file_with_a_recorded_move_is_not_in_the_stop_whoever_changed_it(self):
+        self.build_changes_store()
+        self.open_slice("--from", BUILD)
+        self.record_move(self.STORE)
+        self.record_move(self.API)
+        self.step("forecaster")
+        p = self.step("test-writer", **self.replace_env({self.API: self.API_EDIT}))
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(self.open_stops(), [])
+
+    def test_a_recorded_build_file_is_left_out_and_the_unrecorded_one_still_stops(self):
+        self.make_build(fixed=False, files={self.STORE: self.old(self.STORE).replace(*self.STORE_EDIT),
+                                            self.API: self.old(self.API).replace(*self.API_EDIT)})
+        self.open_slice("--from", BUILD)
+        self.record_move(self.STORE)
+        self.step("forecaster")
+        p = self.step("test-writer")
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        q = json.loads(p.stdout)["stop"]["question"]
+        self.assertNotIn(self.STORE, q)
+        self.assertEqual(self.labels(q, self.API), ["build"], q)
+
+    def test_a_build_that_changed_no_old_test_does_not_stop_the_test_writer(self):
+        self.make_build(fixed=False)
+        self.open_slice("--from", BUILD)
+        self.step("forecaster")
+        p = self.step("test-writer")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(self.open_stops(), [])
+
+    def test_with_no_build_the_writers_change_stops_as_the_test_writers(self):
+        self.open_slice()
+        self.step("forecaster")
+        p = self.step("test-writer", **self.replace_env({self.API: self.API_EDIT}))
+        self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
+        q = json.loads(p.stdout)["stop"]["question"]
+        self.assertEqual(self.labels(q, self.API), ["test writer"], q)
+        self.assertIn("The test writer changed or removed old tests", q)
+
+
 class RecordCopyTest(FromBuildBase):
     # 14. when the build is not shared, the test writer's record copy names no branch or commit at the build
     def setUp(self):
