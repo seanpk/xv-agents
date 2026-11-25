@@ -1328,7 +1328,9 @@ def settled_outcome_numbers(data):
         if not s.get("answer"):
             continue
         if not s.get("sendback"):
-            questions = list(s.get("fired_questions") or [])
+            questions = []
+            if "red_misses_scenario" in [s.get("order"), *(s.get("bundle") or [])]:
+                questions = list(s.get("fired_questions") or [])
             if s.get("order") == "red_misses_scenario":
                 questions.append(s.get("question") or "")
             for q in questions:
