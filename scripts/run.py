@@ -862,6 +862,8 @@ def step(agent, slice_id, review_again=False):
     except BaseException:
         if scratch:
             drop_scratch(root, scratch)
+        data["step_start"]["ended"] = True  # the agent never ran: a move reads HEAD, not this step's start
+        record.save(path, data, body)
         raise
 
     data, body = record.load(root, slice_id)[1:]  # an agent may have run `xv record` itself
