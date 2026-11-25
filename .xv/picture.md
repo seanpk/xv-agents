@@ -131,6 +131,7 @@ Sean Kennedy sits with them.
   `listen`, `retro`, `promote` and `prototypes` are the side loops.
   `run.close` writes `modules_touched`, from `boundary.change` against the slice's base, and `maker_sendbacks`.
   A person's answer that sends work back keeps `sendback_to: <step>`.
+  A stop keeps `fired_questions`, the questions of every `red_misses_scenario` that fired with it; an answer given with `--no-test <N>` keeps `no_test`.
   `retro.reworked` finds the modules that at least `limits.rework_slices` closed, sent-back slices touched; `due` and the retro prompt both use it on slices created since the last retro.
   `retro.accept` only prints the `xv slice new --kind refactor` command for a candidate of kind `refactor`.
   After the test-writer step, `slice_only_marks` lists slice-only marks for the person who set the work going; they accept the marks or run `xv record unmark`.
@@ -225,7 +226,11 @@ Sean Kennedy sits with them.
   A red that fails before any test runs (exit 126 or 127, a runner's own words that a file could not load or no tests were found, or a general error name with no real failing test) stops the test-writer step for the originator (`red_cannot_run`), and `next` stays `test-writer`.
   After the test-writer step, `red_misses_scenario` stops for the originator before the maker when the report lists a `not_covered` outcome, when `red_gaps` lists anything, or when the check cannot read its input: no `## Scenario` heading, `covered` or `not_covered` missing or not a list, `covered` empty, or with an item whose `test` is not one name, a list of non-empty strings, or a string joined with `,` or `;`, or a `covered` name that matches no whole word in any red file.
   In a slice from a build, the coverage check and the flags check read each red file from the red ref, and read every file that any red on the ref changed (`run.red_file_texts`).
-  A `not_covered` outcome named in an earlier answered `red_misses_scenario` stop does not stop again, unless that answer sent the slice back (`sendback`).
+  A `not_covered` outcome is settled by an earlier answered stop that did not send the slice back, when that stop is `red_misses_scenario` or the answer bundled `red_misses_scenario`.
+  Every `red_misses_scenario` question that fired with such a stop counts (`fired_questions`).
+  An outcome that starts with a number matches by that number, so "7", "7. A line" and "7. A line." are one outcome (`run.settled_outcome_numbers`).
+  An answer that names an outcome with `xv record answer --no-test <N>` settles N, even when it sends the slice back; the flag repeats.
+  `--no-test` refuses a value that does not start with an outcome number.
   On a later scenario pass, the coverage kept from earlier passes (`checks.scenario.covered_kept`) is added to the report's `covered` before the check, except when the record's `next` is `maker` (a pass that went on to the maker ends the run), so an empty `covered` does not stop when something was kept; each kept name is checked again against the red files.
   A record written before the rename keeps its kept outcomes under `covers_kept`, and the check reads them when `covered_kept` is empty or missing (`scripts/run.py:1119`).
   A `covered` name whose last part is a test that the cleaner removed by a recorded `--slice-only` move does not stop.
