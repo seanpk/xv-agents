@@ -18,6 +18,14 @@ An entry with three or more sightings that still splits people is marked `(watch
 
 ## Open
 
+### 2026-11-25: The `unrecorded_move` stop fires on a test helper the scenario agent had to edit
+- added: 2026-11-25 by Sean Kennedy
+- from: 2026-11-24-cleaner-commit, `unrecorded_move` at 14:07:57 (`tests/fake_agent.py`), answered "1" at 15:03:17, about an hour; the `moved_tests` row for it says "the fake cleaner must leave its edit uncommitted"
+- miss: The wall counts a change to `tests/fake_agent.py` as an old test changed. It is a helper that holds no assertions. The new behaviour needed an env switch in it, so the stop was certain from the start and the answer was a rubber stamp. One sighting, and the closest entry in Open (the build rename) is a different cause. Evidence only: a person can see whether a second helper edit repeats it.
+- rule: The `unrecorded_move` stop fires on a test helper the scenario agent had to edit
+- seen: [seanpk/xv-agents@2026-11-25]
+
+
 ### 2026-11-23: The cleaner left two slice-only test removals in the tree
 - added: 2026-11-23 by Sean Kennedy
 - from: 2026-11-20-names, `removal_not_made` at 2026-11-23T14:52:39 (`test_changelog_has_a_line_for_the_new_names`, `test_the_readme_upgrade_notes_say_what_an_adopter_changes`); the cleaner's log at 14:52:07 reports only one unrelated fix

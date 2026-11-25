@@ -49,3 +49,9 @@ Each entry is a heading and these lines:
 - from: 2026-11-16-red-lands, `report_misses_outcome` send-back at 20:03:08 ("5. A line in CHANGELOG.md."); 2026-11-16-repass, `report_misses_outcome` send-backs at 20:24:25, 20:24:50, 20:35:52, 20:59:29, 20:59:51, and the stops at 20:25:11 and 21:00:13 (outcomes 7 and 8)
 - miss: The scenario agent left the CHANGELOG outcome out of both lists on two slices. On `repass` it took four send-backs and two stops to get the outcome numbered 8 listed, and Sean answered "repass: 1" each time. The existing rule says a CHANGELOG test is slice-only, but it does not say where the outcome goes in the report.
 - seen: [seanpk/xv-agents@2026-11-18]
+
+### When several blocking stops fire on one pass, `orders.verdict` picks the first of equal rank; a test that expects one particular stop must set up that stop as primary
+- added: 2026-11-25 by Sean Kennedy
+- from: 2026-11-24-settled-outcome, `maker_stopped` at 23:17:51 and 02:38:46 (the test assumed `slice_only_marks` primary, then `red_misses_scenario`, and `unrecorded_move` stayed primary); the stop-count assertion needed a person; `pairings` n=1 "agents went around three times on one test setup"; `maker_sendbacks: 3`
+- miss: The test writer and the maker each assumed a different primary stop. Two `maker_stopped` stops and a pairing followed. A test that asserts on a recorded stop count fails when another stop wins primary. Without this fact the agents cannot infer which stop wins.
+- seen: [seanpk/xv-agents@2026-11-25]
