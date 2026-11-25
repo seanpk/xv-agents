@@ -1629,10 +1629,11 @@ class TestWriterChecksTest(WatchLoopSetup):
         self.assertIn("did not cover 7", p.stdout)  # held as also
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1", "--next", "maker", cwd=self.wt)
         self.assertFalse(self.record()["stops"][-1].get("sendback"))
-        before = self.count_red_misses()
         p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7", "why": "x"}]), **old)
-        self.assertIn("did not cover 7", p.stdout)
-        self.assertEqual(self.count_red_misses(), before + 1)
+        # 7 still fires; unrecorded_move fires again and stays primary, so 7 is held as also
+        fired = json.loads(p.stdout)["fired"]
+        self.assertTrue(any(f["order"] == "red_misses_scenario" and "did not cover 7" in f["question"]
+                            for f in fired), p.stdout)
 
     def test_an_empty_covers_on_the_first_pass_still_stops(self):
         self.xv("step", "forecaster", "s1", cwd=self.wt)

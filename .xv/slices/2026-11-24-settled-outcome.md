@@ -11,10 +11,10 @@ next: maker
 build: none
 build_shared: no
 forecast: {"rows": [{"harness": "claude", "model": "sonnet", "tokens": 330000, "turns": null, "usd": 2.2, "basis": ["2026-10-30-covers-list", "2026-11-07-defects-stops", "2026-11-09-defects-tools", "2026-11-24-cleaner-commit"]}, {"harness": "claude", "model": "opus", "tokens": 200000, "turns": null, "usd": 2.3, "basis": ["2026-10-30-covers-list", "2026-11-07-defects-stops", "2026-11-09-defects-tools", "2026-11-24-cleaner-commit"]}, {"harness": "claude", "model": "haiku", "tokens": 55000, "turns": null, "usd": 0.01, "basis": ["2026-11-24-cleaner-commit", "2026-11-20-names", "2026-11-19-removal-line"]}], "wall_s": 1800, "rounds": 2, "rounds_reason": "The record bundles three cases one red pass may miss (wording variants, bundled stops, an unsettled outcome that must still fire), and the nearest basis, covers-list, ran three rounds on the same stop.", "shape_breadth": "narrow", "shape_note": "Expect the change to touch only the red_misses_scenario settled-outcome check, its tests, and one CHANGELOG line."}
-budget: {"tokens": 585000, "usd": 4.51, "set_by": "Sean Kennedy"}
+budget: {"tokens": 900000, "usd": 6.0, "set_by": "Sean Kennedy", "raised_from": {"tokens": 585000, "usd": 4.51}}
 red: {"files": ["tests/test_run.py"], "command": "cd tests && python3 -m unittest test_run.TestWriterChecksTest", "failure": "AssertionError: 'did not cover 7' not found in pass-two output after an answer to the unrecorded_move stop", "watch_before_merge": null}
 wall_baseline: {"commit": "8305b160ac083fe587d70e7301d8944cda8fe67d", "count": 104, "digest": "7b465fac1920a7ac", "file": ".xv/slices/2026-11-24-settled-outcome.wall.json"}
-moved_tests: []
+moved_tests: [{"file": "tests/test_run.py", "assertion": "was: count of recorded red_misses_scenario stops is before+1; now: red_misses_scenario for 7 is in the later pass fired list", "why": "point 3 says an unsettled outcome still fires red_misses_scenario; unrecorded_move stays primary, so 7 fires as also and is not recorded as its own stop", "by": "Sean Kennedy", "at": "2026-11-25T02:42:57+00:00", "pairing": 1}]
 slice_only: []
 wall_recommendations: []
 suite: red
@@ -104,3 +104,5 @@ an outcome that the scenario amends after the answer
 - 2026-11-25T02:41:19+00:00 Sean Kennedy: answered maker_stopped: pairing: agents went around three times on one test setup
 - 2026-11-25T02:41:19+00:00 watch: pairing 1 opened at stop maker_stopped: Sean Kennedy with the watch (no named session), because: agents went around three times on one test setup. Commits start with "pairing (Sean Kennedy with the watch):"; xv step and xv run refuse until it ends
 - 2026-11-25T02:41:19+00:00 watch: pairing 1: --session claude:009e989d-2ceb-45ce-b5a4-beec83f9774d is not <reader>:<session id or file> with a reader `xv spend read` takes, so the pair session's spend cannot be read when the pairing ends
+- 2026-11-25T02:41:19+00:00 Sean Kennedy: set budget
+- 2026-11-25T02:42:57+00:00 Sean Kennedy: moved a test in tests/test_run.py: point 3 says an unsettled outcome still fires red_misses_scenario; unrecorded_move stays primary, so 7 fires as also and is not recorded as its own stop (in pairing 1)
