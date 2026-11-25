@@ -103,3 +103,7 @@ No old wall test is dead. No recommendations.
 - Whole slice: `git diff 82a218f104bde75596fec4773887dc118aa50337..HEAD`
 - Wall: `xv wall diff 2026-11-24-settled-outcome`
 - Boundary: `.xv/slices/2026-11-24-settled-outcome.boundary.md`
+
+## Pairings
+
+- Pairing 1: Sean Kennedy with the watch (a session that was not named), because: agents went around three times on one test setup. Commits: 4cea58180b. Resumed at cleaner. Spend: not read (no session was named when the pairing opened); it is not in the slice's actual. Not blind (written or changed in the pairing): tests/test_run.py.
