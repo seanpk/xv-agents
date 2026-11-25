@@ -74,3 +74,4 @@ A way to accept all of the build's moves with one command
 - 2026-11-25T13:53:55+00:00 Sean Kennedy: answered moves_to_accept: 1 - and merge and release unless there's something that you think needs my attention
 - 2026-11-25T13:53:55+00:00 watch: scribe: wrote settled, new_info for moves_to_accept as the scribe of Sean Kennedy
 - 2026-11-25T13:53:55+00:00 Sean Kennedy: directed a changelog edit in CHANGELOG.md
+- 2026-11-25T13:55:27+00:00 watch: picture edit directed by Sean Kennedy (aae7d93): .xv/picture.md:246-247, as the inspector worded them
