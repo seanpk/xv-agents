@@ -609,6 +609,9 @@ def cmd_answer(a):
         raise XVError(f"cause is one of {sorted(CAUSES)}, then a free line after a colon")
     if a.resume and not a.next:
         raise XVError("--resume needs --next: every answer says where the slice goes")
+    for n in a.no_test or []:
+        if not re.match(r"\s*\d+\b", n):
+            raise XVError(f"--no-test {n!r}: name the outcome by its number, such as --no-test 7")
     pick, settled, edit = None, a.settled, None
     if a.pick is not None:
         options = stop.get("options") or []
@@ -645,6 +648,8 @@ def cmd_answer(a):
             stop[key] = value
     if a.bundle:
         stop["bundle"] = [b.strip() for b in a.bundle.split(",") if b.strip()]
+    if a.no_test:
+        stop["no_test"] = [n.strip() for n in a.no_test if n.strip()]
     had_seen = "budget_seen" in stop
     seen = stop.pop("budget_seen", None)
     if had_seen and seen != data.get("budget"):
@@ -1135,6 +1140,8 @@ def apply_verdict(data, body, agent, v):
                                   "question": st["question"], "answered_by": [], "answer": None,
                                   "also": [f["order"] for f in v["fired"] if f is not st],
                                   "budget_seen": data.get("budget"),
+                                  "fired_questions": [f["question"] for f in v["fired"]
+                                                      if f["order"] == "red_misses_scenario"],
                                   **({"blobs": blobs} if blobs and st["order"] == "unrecorded_move" else {}),
                                   **({"breadth": st["breadth"]} if st.get("breadth") else {})})
             body = log_line(body, "watch", f"stop ({st['order']}) for {st['seat']}: {st['question']}")
@@ -1368,6 +1375,8 @@ def main(argv=None):
     s.add_argument("--cause", help="decision, environment, tool, agent or watch, then a free line")
     s.add_argument("--why", help="the person's reason")
     s.add_argument("--bundle", help="comma-separated orders the same reply answered")
+    s.add_argument("--no-test", dest="no_test", action="append", metavar="N",
+                   help="settle scenario outcome N as having no test, so it does not stop again; repeat per outcome")
     s.add_argument("--accept-wall", dest="accept_wall", action="append", metavar="TEST",
                    help="accept the wall recommendation for this test, or file::test when the name is "
                         "recommended in more than one file; repeat per test")

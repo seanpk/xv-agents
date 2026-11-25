@@ -2,6 +2,10 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
+## Unreleased
+
+- A settled not-covered outcome does not stop again (#205, decided by Sean Kennedy). An outcome that a person settled in an answer that did not send the slice back, to a `red_misses_scenario` stop or to another stop that bundled it, is matched by its number on later passes, so "7", "7. A line in CHANGELOG.md" and "7. A line in CHANGELOG.md." are one outcome. An answer that sends the slice back settles an outcome only when it names it with the new `xv record answer --no-test <N>` (the flag repeats, and refuses a value with no outcome number); a send-back without it still stops again. The watch brief says to pass `--no-test`. It moves no position on xtremevibing.com.
+
 ## 0.6.1, 2026-11-24
 
 - The watch commits the cleaner's work (#206, decided by Sean Kennedy). The cleaner's brief says to leave its changes uncommitted and puts "Commit, merge, or push" in its may-not list, as the maker's has; the watch commits them after its checks as `xv(<id>): record the cleaner's pass`, and `cleaner_commit` names that commit (empty when the cleaner changed nothing). The brief's report has no `commit` field, and a report that still sends one is not refused. It adds decision 94 and moves no position on xtremevibing.com.
