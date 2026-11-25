@@ -123,3 +123,4 @@ Point 2, after a stop of another order: `scripts/run.py:1332` takes `fired_quest
 ## Pairings
 
 - Pairing 1: Sean Kennedy with the watch (a session that was not named), because: agents went around three times on one test setup. Commits: 4cea58180b. Resumed at cleaner. Spend: not read (no session was named when the pairing opened); it is not in the slice's actual. Not blind (written or changed in the pairing): tests/test_run.py.
+- Pairing 2: Sean Kennedy with Claude (claude-session session 009e989d-2ceb-45ce-b5a4-beec83f9774d), because: four small leftovers from the inspector: brief usage line, --no-test check, bundled test setup, CHANGELOG wording. Commits: bcaea71e32. Resumed at inspector. Spend: 17259 tokens (in 20, out 5272, cache write 11967; cache read 1283345 not counted), 10 turns, usd not reported. Not blind (written or changed in the pairing): tests/test_run.py.
