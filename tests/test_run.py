@@ -1516,13 +1516,14 @@ class TestWriterChecksTest(WatchLoopSetup):
         p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "17. A line in README.md", "why": "no seam"}]))
         self.assert_stops(p, "17")
 
+    README_MARK = {"file": "tests/test_red.py", "test": "test_milk_today", "why": "checks the README wording",
+                   "checks": "README.md"}
+
     def bundled_send_back(self, *no_test):
         """Pass one fires red_misses_scenario with another stop; one answer bundles both and sends the slice back."""
-        mark = {"file": "tests/test_red.py", "test": "test_milk_today", "why": "checks the README wording",
-                "checks": "README.md"}
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7. A line in CHANGELOG.md", "why": "no seam"}]),
-                        FAKE_REPORT_EXTRA=json.dumps({"slice_only": [mark]}))
+                        FAKE_REPORT_EXTRA=json.dumps({"slice_only": [self.README_MARK]}))
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1", "--bundle", "red_misses_scenario",
                 "--next", "test-writer", "--settled", "Outcome 7 has no test; the rest goes back.",
@@ -1603,18 +1604,16 @@ class TestWriterChecksTest(WatchLoopSetup):
         self.assertEqual(self.count_red_misses(), before)
 
     def test_a_not_covered_outcome_bundled_under_another_stop_is_settled_by_an_answer_without_a_send_back(self):
-        mark = {"file": "tests/test_red.py", "test": "test_milk_today", "why": "checks the README wording",
-                "checks": "README.md"}
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7. A line in CHANGELOG.md", "why": "no seam"}]),
-                        FAKE_REPORT_EXTRA=json.dumps({"slice_only": [mark]}))
+                        FAKE_REPORT_EXTRA=json.dumps({"slice_only": [self.README_MARK]}))
         self.assertEqual(p.returncode, 10, p.stdout + p.stderr)
         self.xv("record", "answer", "s1", "--by", "pat", "--answer", "1", "--bundle", "red_misses_scenario",
                 "--next", "maker", cwd=self.wt)
         self.assertFalse(self.record()["stops"][-1].get("sendback"))
         before = self.count_red_misses()
         p = self.writer(FAKE_NOT_COVERED=json.dumps([{"outcome": "7", "why": "x"}]),
-                        FAKE_REPORT_EXTRA=json.dumps({"slice_only": [mark]}))
+                        FAKE_REPORT_EXTRA=json.dumps({"slice_only": [self.README_MARK]}))
         self.assertNotIn("did not cover 7", p.stdout)
         self.assertEqual(self.count_red_misses(), before)
 
