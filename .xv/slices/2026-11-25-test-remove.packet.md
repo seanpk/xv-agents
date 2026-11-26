@@ -151,3 +151,7 @@ Those two tests will become dead when #216 removes the flags, not in this slice.
 - Boundary: `xv boundary --base 911f113209115d8a4e586a9f3d6efd095926baef`
 
 Note: the picture should hold one sentence per line; more than one sentence on .xv/picture.md:233.
+
+## Pairings
+
+- Pairing 1: Sean Kennedy with Claude (claude-session session 009e989d-2ceb-45ce-b5a4-beec83f9774d), because: three send-backs; the three changes left (every advice kind, the only test in a class, the inspector brief line) are small and settled. Commits: 84b532bb6c, 98f461cc4a. Resumed at cleaner. Spend: 32747 tokens (in 34, out 11698, cache write 21015; cache read 4252400 not counted), 17 turns, usd not reported. Not blind (written or changed in the pairing): tests/test_codex_step.py, tests/test_record.py.
