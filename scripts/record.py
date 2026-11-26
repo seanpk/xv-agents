@@ -421,16 +421,6 @@ def is_whole_test(text, old):
     return not after or indent_of(after[0]) <= depth
 
 
-def leaves_empty_block(text, old):
-    """Whether removing `old` leaves the block it sits in, a header ending in a colon, with nothing but comments."""
-    i = text.index(old)
-    depth = indent_of(next(ln for ln in old.splitlines() if ln.strip()))
-    code = lambda s: [ln for ln in s.splitlines() if ln.strip() and not ln.strip().startswith("#")]
-    before, after = code(text[:i]), code(text[i + len(old):])
-    opens = bool(before) and indent_of(before[-1]) < depth and before[-1].rstrip().endswith(":")
-    return opens and (not after or indent_of(after[0]) < depth)
-
-
 class OfferAction(argparse.Action):
     """--option starts an option; --settles, --amends and the edit flags belong to the --option just before them."""
 
@@ -508,8 +498,6 @@ def check_edit(root, config, n, edit):
             raise XVError(f"option {n}: the name {names[1]} is already used in {file}")
     if kind == "test-remove" and (new != "" or not is_whole_test(text, old)):
         raise XVError(f"option {n}: a removal's --new is empty, and --old is a whole test")
-    if kind == "test-remove" and leaves_empty_block(text, old):
-        raise XVError(f"option {n}: --old is the only test in its class, and the class would be left with no body")
 
 
 def cmd_offer(a):
@@ -595,16 +583,12 @@ def removal_edits(root, config, recs, picked):
         if not os.path.isfile(full):
             continue
         with open(full) as f:
-            text = f.read()
-        old = test_block(text, r.get("test"))
+            old = test_block(f.read(), r.get("test"))
         if old is None:
             continue
         if not old:
             raise XVError(f"{r['file']}::{r.get('test')} cannot be removed cleanly: it is not one whole test "
                           "with its decorators; nothing was removed")
-        if leaves_empty_block(text, old):
-            raise XVError(f"{r['file']}::{r.get('test')} cannot be removed cleanly: it is the only test in its class, "
-                          "and the class would be left with no body; nothing was removed")
         edit = {"file": r["file"], "old": old, "new": "", "kind": "test-remove"}
         check_edit(root, config, n, edit)
         edits.append(edit)
@@ -770,11 +754,13 @@ def rename_in_record(data, file, old_name, new_name):
 def make_directed_edit(root, path, data, body, stop, edits, who):
     """Make exactly the edits the person picked, in their own commit, then run the suite and the orders."""
     by = " and ".join(who)
+    before = {}  # each file as it was, to undo the edits when they turn the suite red
     for edit in edits:
         file, old, new, kind = edit["file"], edit["old"], edit["new"], edit["kind"]
         full = os.path.join(root, file)
         with open(full) as f:
             text = f.read()
+        before.setdefault(full, text)
         with open(full, "w") as f:
             f.write(text.replace(old, new, 1))
         if kind in ("test-rename", "test-remove"):
@@ -788,6 +774,15 @@ def make_directed_edit(root, path, data, body, stop, edits, who):
     kind = edits[0]["kind"] if len({e["kind"] for e in edits}) == 1 else "directed"
     config = load_config(root)
     data["suite"], suite_out = run_suite(root, config, data.get("base"), data.get("id"))
+    if stop["order"] == "moves_to_accept" and data["suite"] != "green":
+        # the suite was green at the inspector; a removal that breaks it is undone, in any language
+        for full, text in before.items():
+            with open(full, "w") as f:
+                f.write(text)
+        failing = [n for n in failing_tests(suite_out or "") if not n.startswith(("(failures=", "(errors="))]
+        raise XVError(f"the suite is not green after removing the tests from {file}"
+                      + (f" (failing: {', '.join(failing)})" if failing else "")
+                      + "; every removal is undone and nothing is recorded")
     step = stop.get("step") or data["next"]
     if data["suite"] == "red" and step == "test-writer":
         # at the test-writer step the slice's own red is meant to fail; only a failure outside it makes the suite red

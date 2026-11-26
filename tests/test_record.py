@@ -2935,25 +2935,41 @@ class TestRemoveFlagTest(RepoCase):
         self.assertIn(p.returncode, (0, 10), p.stdout + p.stderr)
         self.assertNotIn(self.GONE, self.read(wt))
 
-    def test_the_only_test_in_a_class_is_refused_and_nothing_is_removed(self):  # 3
+    def assert_refused_and_nothing_removed(self, wt, source, head, p, failing):
+        self.assertNotIn(p.returncode, (0, 10), p.stdout + p.stderr)
+        self.assertIn("the suite is not green", p.stderr)
+        self.assertIn(failing, p.stderr)
+        self.assertEqual(self.read(wt), source, "every removal is undone")
+        self.assertEqual(sh(["git", "rev-parse", "HEAD"], wt).stdout, head)
+        self.assertEqual(sh(["git", "status", "--porcelain", "--", self.STORE], wt).stdout, "")
+        data = self.show(wt)
+        self.assertIsNone(data["stops"][-1].get("answer"), "the stop stays open")
+        self.assertEqual(data["moved_tests"], [])
+
+    def test_a_removal_that_turns_the_suite_red_is_undone_and_refuses_the_answer(self):  # 3
+        source = ("import unittest\n\n\nclass StoreTest(unittest.TestCase):\n"
+                  "    def test_base(self):\n"
+                  "        self.assertTrue(True)\n\n"
+                  "    def test_uses_base(self):\n"
+                  "        self.test_base()\n")
+        wt = self.stopped(self.rec("test_base"), source=source)
+        head = sh(["git", "rev-parse", "HEAD"], wt).stdout
+        p = self.answer(wt, "--test-remove", "test_base")
+        self.assert_refused_and_nothing_removed(wt, source, head, p, "test_uses_base")
+
+    def test_removing_every_test_in_a_class_is_undone_and_refuses_the_answer(self):  # 3
         source = ("import unittest\n\n\nclass OnlyTest(unittest.TestCase):\n"
-                  "    # the one test\n"
                   "    def test_alone(self):\n"
+                  "        self.assertTrue(True)\n\n"
+                  "    def test_also(self):\n"
                   "        self.assertTrue(True)\n\n\n"
                   "class OtherTest(unittest.TestCase):\n"
                   "    def test_other(self):\n"
-                  "        self.assertTrue(True)\n\n"
-                  "    def test_more(self):\n"
                   "        self.assertTrue(True)\n")
-        wt = self.stopped(self.rec("test_alone"), self.rec("test_other"), source=source)
+        wt = self.stopped(self.rec("test_alone"), self.rec("test_also"), source=source)
         head = sh(["git", "rev-parse", "HEAD"], wt).stdout
-        p = self.answer(wt, "--test-remove", "test_other", "--test-remove", "test_alone")
-        self.assertNotIn(p.returncode, (0, 10), p.stdout + p.stderr)
-        self.assertIn("test_alone", p.stderr)
-        self.assertIn("only test in its class", p.stderr)
-        self.assertEqual(self.read(wt), source, "test_other is not removed either")
-        self.assertEqual(sh(["git", "rev-parse", "HEAD"], wt).stdout, head)
-        self.assertEqual(self.show(wt)["moved_tests"], [])
+        p = self.answer(wt, "--test-remove", "test_alone", "--test-remove", "test_also")
+        self.assert_refused_and_nothing_removed(wt, source, head, p, "test_store")
 
     def test_a_class_with_a_docstring_keeps_it_when_its_only_test_goes(self):  # 3
         source = ("import unittest\n\n\nclass OnlyTest(unittest.TestCase):\n"
