@@ -2883,6 +2883,183 @@ class SameMoveTwiceTest(RepoCase):
         self.assertEqual(len(moves), 2)
 
 
+class TestRemoveFlagTest(RepoCase):
+    """#202: at `moves_to_accept`, `xv record answer --test-remove <test>` takes the inspector's advice for that test
+    and removes it from its file, with the check a `test-remove` directed edit has. `--accept-wall` and
+    `--refuse-wall` still work, with a warning that names the new way and #216."""
+
+    STORE = "tests/test_store.py"
+    GONE = "test_use_refuses_more_than_there_is"
+    OTHER = "test_use_takes_from_the_quantity"
+    KEPT = "test_used_up_item_stays_listed"
+
+    def rec(self, test, **more):
+        return dict({"file": self.STORE, "test": test, "recommend": "remove", "why": "the scenario makes it dead"},
+                    **more)
+
+    def stopped(self, *recs, source=None):
+        wt = self.new_slice("s1")
+        if source is not None:
+            with open(os.path.join(wt, self.STORE), "w") as f:
+                f.write(source)
+            sh(["git", "add", "-A"], wt)
+            sh(["git", "commit", "-qm", "tests"], wt)
+        path = os.path.join(self.tmp, "g.txt")
+        report = {"agent": "inspector", "status": "done", "summary": "p", "shape_change": "no",
+                  "pitch_contradiction": "no", "wall_recommendations": list(recs)}
+        with open(path, "w") as f:
+            f.write("```xv-report\n" + json.dumps(report) + "\n```\n")
+        self.xv("record", "report", "s1", "inspector", path, cwd=wt)
+        self.xv("record", "stop", "s1", "--order", "moves_to_accept", "--seat", "originator",
+                "--question", "accept?", "--step", "inspector", cwd=wt)
+        return wt
+
+    def answer(self, wt, *flags):
+        return self.xv("record", "answer", "s1", "--by", "pat", "--answer", "go", *flags, cwd=wt, check=False)
+
+    def read(self, wt):
+        with open(os.path.join(wt, self.STORE)) as f:
+            return f.read()
+
+    def show(self, wt):
+        return json.loads(self.xv("record", "show", "s1", "--json", cwd=wt).stdout)
+
+    def commits_on_store(self, wt):
+        return sh(["git", "log", "--format=%H", "--", self.STORE], wt).stdout.split()
+
+    def test_test_remove_removes_the_whole_test_and_commits_it(self):  # 1, 2
+        wt = self.stopped(self.rec(self.GONE))
+        before = self.commits_on_store(wt)
+        p = self.answer(wt, "--test-remove", self.GONE)
+        self.assertIn(p.returncode, (0, 10), p.stdout + p.stderr)
+        text = self.read(wt)
+        self.assertNotIn(self.GONE, text)
+        self.assertNotIn('self.store.use("eggs", 2)', text)
+        self.assertIn("def test_used_up_item_stays_listed(self):", text)
+        self.assertEqual(len(self.commits_on_store(wt)), len(before) + 1, "the removal is committed")
+        self.assertEqual(sh(["git", "status", "--porcelain", "--", self.STORE], wt).stdout, "")
+        self.assertEqual([m["file"] for m in self.show(wt)["moved_tests"]], [self.STORE])
+
+    def test_test_remove_runs_the_suite(self):  # 2
+        wt = self.stopped(self.rec(self.GONE))
+        self.assertIsNone(self.show(wt)["suite"])
+        self.answer(wt, "--test-remove", self.GONE)
+        self.assertEqual(self.show(wt)["suite"], "green")
+
+    def test_test_remove_takes_the_decorators_with_the_test(self):  # 1
+        source = ("import unittest\n\n\nclass StoreTest(unittest.TestCase):\n"
+                  "    @unittest.skip('later')\n"
+                  "    def test_decorated(self):\n"
+                  "        self.assertTrue(True)\n\n"
+                  "    def test_next(self):\n"
+                  "        self.assertTrue(True)\n")
+        wt = self.stopped(self.rec("test_decorated"), source=source)
+        self.answer(wt, "--test-remove", "test_decorated")
+        self.assertEqual(self.read(wt), source.split("    @unittest.skip")[0]
+                         + "    def test_next(self):\n        self.assertTrue(True)\n")
+
+    def test_a_test_the_answer_does_not_name_stays_in_its_file(self):  # 4
+        wt = self.stopped(self.rec(self.GONE), self.rec(self.OTHER))
+        self.answer(wt, "--test-remove", self.GONE)
+        text = self.read(wt)
+        self.assertIn(self.OTHER, text)
+        self.assertIn(self.KEPT, text)
+
+    def test_a_test_already_gone_from_its_file_is_skipped(self):  # 3
+        wt = self.stopped(self.rec("test_not_in_the_file_any_more"), self.rec(self.GONE))
+        before = self.read(wt)
+        p = self.answer(wt, "--test-remove", "test_not_in_the_file_any_more", "--test-remove", self.GONE)
+        self.assertIn(p.returncode, (0, 10), p.stdout + p.stderr)
+        self.assertEqual(self.read(wt), before.replace(
+            '    def test_use_refuses_more_than_there_is(self):\n'
+            '        self.store.add("eggs", 1, date(2026, 10, 30))\n'
+            '        with self.assertRaises(ValueError):\n'
+            '            self.store.use("eggs", 2)\n\n', ""))
+        self.assertTrue(self.show(wt)["stops"][0].get("answer"), "the answer was taken")
+
+    def test_a_test_that_cannot_be_removed_cleanly_refuses_the_answer_and_removes_nothing(self):  # 3
+        source = ("import unittest\n\n\nclass StoreTest(unittest.TestCase):\n"
+                  "    def test_one_liner(self): pass\n\n"
+                  "    def test_fine(self):\n"
+                  "        self.assertTrue(True)\n")
+        wt = self.stopped(self.rec("test_one_liner"), self.rec("test_fine"), source=source)
+        head = sh(["git", "rev-parse", "HEAD"], wt).stdout
+        p = self.answer(wt, "--test-remove", "test_fine", "--test-remove", "test_one_liner")
+        self.assertNotIn("unrecognized arguments", p.stderr, "the answer knows --test-remove and refuses the test")
+        self.assertNotIn(p.returncode, (0, 10), p.stdout + p.stderr)
+        self.assertIn("test_one_liner", p.stderr)
+        self.assertEqual(self.read(wt), source, "test_fine is not removed either")
+        self.assertEqual(sh(["git", "rev-parse", "HEAD"], wt).stdout, head)
+        data = self.show(wt)
+        self.assertIsNone(data["stops"][-1].get("answer"), "the stop stays open")
+        self.assertEqual(data["moved_tests"], [])
+
+    def test_a_test_with_no_recommendation_is_refused(self):  # 3
+        wt = self.stopped(self.rec(self.GONE))
+        before = self.read(wt)
+        p = self.answer(wt, "--test-remove", self.OTHER)
+        self.assertNotIn("unrecognized arguments", p.stderr, "the answer knows --test-remove and refuses the test")
+        self.assertNotIn(p.returncode, (0, 10))
+        self.assertEqual(self.read(wt), before)
+
+    def test_a_test_accepted_for_removal_earlier_and_still_in_its_file_is_removed(self):  # 6
+        wt = self.stopped(self.rec(self.OTHER, accepted=True), self.rec(self.GONE))
+        self.answer(wt, "--test-remove", self.GONE)
+        text = self.read(wt)
+        self.assertNotIn(self.OTHER, text)
+        self.assertNotIn(self.GONE, text)
+        self.assertIn(self.KEPT, text)
+
+    def test_accept_wall_does_what_test_remove_does_and_warns(self):  # 5
+        wt = self.stopped(self.rec(self.GONE))
+        p = self.answer(wt, "--accept-wall", self.GONE)
+        self.assertIn(p.returncode, (0, 10), p.stdout + p.stderr)
+        self.assertNotIn(self.GONE, self.read(wt))
+        self.assertIn("--test-remove", p.stderr)
+        self.assertIn("#216", p.stderr)
+
+    def test_refuse_wall_does_what_unmark_does_and_warns(self):  # 5
+        wt = self.stopped(self.rec(self.OTHER, recommend="mark slice-only"))
+        self.xv("record", "add", "s1", "slice_only",
+                json.dumps({"file": self.STORE, "test": self.OTHER, "why": "w"}), cwd=wt)
+        before = self.read(wt)
+        p = self.answer(wt, "--refuse-wall", self.OTHER)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual([m["test"] for m in self.show(wt)["slice_only"]], [])
+        self.assertEqual(self.read(wt), before, "refusing removes nothing")
+        self.assertIn("unmark", p.stderr)
+        self.assertIn("#216", p.stderr)
+
+    def test_test_remove_on_another_stop_is_refused(self):  # 3
+        wt = self.new_slice("s1")
+        self.xv("record", "stop", "s1", "--order", "test_writer_stopped", "--seat", "originator",
+                "--question", "q?", "--step", "test-writer", cwd=wt)
+        before = self.read(wt)
+        p = self.answer(wt, "--test-remove", self.GONE, "--next", "maker", "--settled", "x")
+        self.assertNotIn("unrecognized arguments", p.stderr, "the answer knows --test-remove and refuses the stop")
+        self.assertNotIn(p.returncode, (0, 10))
+        self.assertEqual(self.read(wt), before)
+
+    def test_the_watch_brief_and_the_readme_name_only_the_new_way(self):  # 5
+        for rel in ("skills/watch/SKILL.md", "README.md"):
+            with open(os.path.join(HOME, rel)) as f:
+                text = f.read()
+            self.assertIn("--test-remove", text, rel)
+            self.assertNotIn("--accept-wall", text, rel)
+            self.assertNotIn("--refuse-wall", text, rel)
+
+    def test_the_changelog_has_a_line_for_test_remove(self):  # 7
+        with open(os.path.join(HOME, "CHANGELOG.md")) as f:
+            unreleased = f.read().split("\n## ", 2)[1]  # the newest section, whatever its heading
+        self.assertIn("--test-remove", unreleased)
+        self.assertIn("#202", unreleased)
+
+
+# What a person should watch on the first green run of TestRemoveFlagTest: at `moves_to_accept`, answer with
+# `--test-remove <test>` and see the test leave its file in its own commit and the suite run; name a test whose
+# file no longer holds it and see it skipped; name a one-line test and see the answer refused with nothing removed.
+
+
 # What a person should watch on the first green run of RecordStateTest: accept a narrow shape at
 # `shape_wider_than_forecast`, then attach a packet that says wide and see the stop come back; accept a
 # "mark slice-only" recommendation with `--accept-wall` and see the test in `slice_only`; at a later
