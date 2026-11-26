@@ -3002,13 +3002,38 @@ class TestRemoveFlagTest(RepoCase):
         self.assertNotIn(p.returncode, (0, 10))
         self.assertEqual(self.read(wt), before)
 
-    def test_a_test_accepted_for_removal_earlier_and_still_in_its_file_is_removed(self):  # 6
-        wt = self.stopped(self.rec(self.OTHER, accepted=True), self.rec(self.GONE))
-        self.answer(wt, "--test-remove", self.GONE)
-        text = self.read(wt)
-        self.assertNotIn(self.OTHER, text)
-        self.assertNotIn(self.GONE, text)
-        self.assertIn(self.KEPT, text)
+    # Tests that past slice records list in `accepted_wall` (accepted for removal) and that were still in the
+    # file they were accepted from when this slice began. Names come from the slice records, not from the code.
+    LEFTOVER_ACCEPTED = [
+        ("tests/test_agent_names.py", "test_explore_notes_is_not_in_the_tree"),
+        ("tests/test_agent_names.py", "test_no_brief_or_doc_opens_with_the_old_line"),
+        ("tests/test_agent_names.py", "test_boundary_picture_is_boundary_diagram"),
+        ("tests/test_briefs_picture.py",
+         "test_the_changelog_does_not_say_the_maker_may_change_any_named_may_not_file"),
+        ("tests/test_cleaner_commit.py", "test_the_brief_no_longer_tells_the_cleaner_to_commit_its_fix"),
+        ("tests/test_cleaner_commit.py",
+         "test_the_readme_no_longer_says_the_pre_commit_hook_refuses_the_cleaners_unrecorded_move"),
+        ("tests/test_codex_step.py",
+         "test_the_note_says_the_brief_is_not_the_whole_prompt_because_agents_md_and_skills_load"),
+        ("tests/test_codex_step.py", "test_relies_on_has_a_line_for_the_codex_event_shape"),
+        ("tests/test_record.py",
+         "test_a_name_that_is_in_no_file_when_the_step_began_is_refused_and_nothing_is_recorded"),
+        ("tests/test_record.py", "test_each_form_of_a_name_is_taken"),
+        ("tests/test_record.py", "test_a_name_followed_by_a_note_in_brackets_is_taken_whichever_bracket"),
+        ("tests/test_record.py", "test_none_of_the_inputs_passes_while_the_test_is_still_in_its_file"),
+        ("tests/test_run.py", "test_an_empty_covers_on_the_first_pass_still_stops"),
+        ("tests/test_run.py", "test_a_slice_only_move_whose_assertion_names_a_double_colon_test_still_there_stops"),
+        ("tests/test_suite_runner.py", "test_ci_shards_run_at_the_same_time"),
+    ]
+
+    def test_the_tests_past_slices_accepted_for_removal_are_gone_from_their_files(self):  # 6, slice-only
+        import re
+        left = []
+        for rel, name in self.LEFTOVER_ACCEPTED:
+            with open(os.path.join(HOME, rel)) as f:
+                if re.search(r"^\s*def " + re.escape(name) + r"\(", f.read(), re.M):
+                    left.append(rel + "::" + name)
+        self.assertEqual(left, [])
 
     def test_accept_wall_does_what_test_remove_does_and_warns(self):  # 5
         wt = self.stopped(self.rec(self.GONE))

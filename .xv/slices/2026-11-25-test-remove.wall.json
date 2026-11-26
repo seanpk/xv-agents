@@ -82,7 +82,7 @@
   "tests/test_promote_draft.py": 8,
   "tests/test_prototype_errored_spend.py": 16,
   "tests/test_prototypes.py": 140,
-  "tests/test_record.py": 551,
+  "tests/test_record.py": 549,
   "tests/test_recording.py": 9,
   "tests/test_refactor_kind.py": 60,
   "tests/test_refactor_skills.py": 11,
@@ -105,7 +105,7 @@
   "tests/test_worktree_setup_settled.py": 21,
   "tests/test_xvlib.py": 27
  },
- "commit": "70e054869a850a7ed993545ac5e481f015822d61",
+ "commit": "f153d16b3c7204ec678dc7abef05791943233047",
  "files": {
   "tests/data/cannot-run/cargo-load.txt": "d3e835e2490c11e3f1b7c1a00ef224a143e7badb854bddd76372f2c3a55b5dd6",
   "tests/data/cannot-run/cargo-none.txt": "7553d787f97f86d518d5fa9ec516c5226bb880a466df2f96684c69bf4595cd46",
@@ -189,7 +189,7 @@
   "tests/test_promote_draft.py": "564226e253e4b8a0308407fcd8eade9a132af0c500276234d6e56303c39f226d",
   "tests/test_prototype_errored_spend.py": "2b0ef0225ed9a5480a22cfb67eca135086670359f9e523537857db66bfa60c90",
   "tests/test_prototypes.py": "f668782591204203a3c4708840d8659047de89f0be2243cbe6281da53203cd15",
-  "tests/test_record.py": "868694e321d221b474766932e06f92da273dd60ec092c00d5f67546236fc3b29",
+  "tests/test_record.py": "f90c9e703be5ecd73eb3f9789a2c5e3792015007ce427e863fb82f4ddafb90e7",
   "tests/test_recording.py": "cd7ec7c5a70baa7e8ed2561895adb281f33fbd0280bbb61c51f1d47f16819581",
   "tests/test_refactor_kind.py": "7cfe615bb3aceb378ddbe38718bb5a12e86d152e45bd2474adc098f724493405",
   "tests/test_refactor_skills.py": "7b75a91712d9ecb1d0970ee189d22978e50b8f86b5d7fa0d92388a383487a2d5",
