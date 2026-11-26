@@ -2934,7 +2934,7 @@ class TestRemoveFlagTest(RepoCase):
         self.assertIn(p.returncode, (0, 10), p.stdout + p.stderr)
         text = self.read(wt)
         self.assertNotIn(self.GONE, text)
-        self.assertNotIn('self.store.use("eggs", 2)', text)
+        self.assertNotIn("with self.assertRaises(ValueError):", text)
         self.assertIn("def test_used_up_item_stays_listed(self):", text)
         self.assertEqual(len(self.commits_on_store(wt)), len(before) + 1, "the removal is committed")
         self.assertEqual(sh(["git", "status", "--porcelain", "--", self.STORE], wt).stdout, "")
