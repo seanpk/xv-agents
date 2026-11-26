@@ -77,6 +77,8 @@ Sean Kennedy sits with them.
   `--slice-only` without `--line` is refused, as is a blank line or a number past the end of the file, and nothing is recorded; `--assertion` is a free note that nothing reads.
   The line is read from the open pairing's `start_commit`, which `xv pairing start` saves, else from `step_start`, which `xv step` saves before the agent runs, else from `HEAD`.
   `xv step` marks `step_start` ended once its checks are done, so a move between steps reads `HEAD`.
+  A step that fails, also when its agent could not run, marks `step_start` ended before it fails, so a move after it reads `HEAD`.
+  It reloads the record first, so anything the agent wrote with `xv record` before the failure stays.
   Two slice-only moves for the same file and line are one move.
   A move recorded before `--line` existed keeps the old name check.
   After the maker and the cleaner, `moves` compares each test file that changed since the wall baseline, or that the record already holds as expected, with the slice's base and a test file the slice added with its newest `red` commit, against `expect_moves` and `renames`.
