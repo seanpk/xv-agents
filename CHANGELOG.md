@@ -2,6 +2,10 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
+## Unreleased
+
+- A step that fails because the agent could not run marks its `step_start` ended (#202, decided by Sean Kennedy). When the agent CLI is missing or the worktree is gone, the record's `step_start` is marked ended as it is after a step that ran, so a slice-only move recorded after that failed step reads its line from `HEAD`, not from the failed step's start. It moves no position on xtremevibing.com.
+
 ## 0.6.3, 2026-11-25
 
 - In a slice from a build, the test writer's `unrecorded_move` stop names the build's changes to old tests apart from its own (#210, decided by Sean Kennedy). The question lists the old test files the build changed or removed as the build's ("not the test writer"), and the test writer's own changes in a separate list; a file both changed is in both, and a file with a recorded move is in neither. A slice with no build, or a build that changed no old test, stops as before. It moves no position on xtremevibing.com.
