@@ -2921,6 +2921,51 @@ class TestRemoveFlagTest(RepoCase):
         self.assertEqual(self.read(wt), source.split("    @unittest.skip")[0]
                          + "    def test_next(self):\n        self.assertTrue(True)\n")
 
+    def test_test_remove_removes_a_test_the_inspector_said_to_mark_slice_only(self):  # 1
+        wt = self.stopped(self.rec(self.GONE, recommend="mark slice-only"))
+        p = self.answer(wt, "--test-remove", self.GONE)
+        self.assertIn(p.returncode, (0, 10), p.stdout + p.stderr)
+        text = self.read(wt)
+        self.assertNotIn(self.GONE, text)
+        self.assertIn(self.KEPT, text)
+
+    def test_accept_wall_on_a_mark_slice_only_recommendation_removes_the_test(self):  # 5
+        wt = self.stopped(self.rec(self.GONE, recommend="mark slice-only"))
+        p = self.answer(wt, "--accept-wall", self.GONE)
+        self.assertIn(p.returncode, (0, 10), p.stdout + p.stderr)
+        self.assertNotIn(self.GONE, self.read(wt))
+
+    def test_the_only_test_in_a_class_is_refused_and_nothing_is_removed(self):  # 3
+        source = ("import unittest\n\n\nclass OnlyTest(unittest.TestCase):\n"
+                  "    # the one test\n"
+                  "    def test_alone(self):\n"
+                  "        self.assertTrue(True)\n\n\n"
+                  "class OtherTest(unittest.TestCase):\n"
+                  "    def test_other(self):\n"
+                  "        self.assertTrue(True)\n\n"
+                  "    def test_more(self):\n"
+                  "        self.assertTrue(True)\n")
+        wt = self.stopped(self.rec("test_alone"), self.rec("test_other"), source=source)
+        head = sh(["git", "rev-parse", "HEAD"], wt).stdout
+        p = self.answer(wt, "--test-remove", "test_other", "--test-remove", "test_alone")
+        self.assertNotIn(p.returncode, (0, 10), p.stdout + p.stderr)
+        self.assertIn("test_alone", p.stderr)
+        self.assertIn("only test in its class", p.stderr)
+        self.assertEqual(self.read(wt), source, "test_other is not removed either")
+        self.assertEqual(sh(["git", "rev-parse", "HEAD"], wt).stdout, head)
+        self.assertEqual(self.show(wt)["moved_tests"], [])
+
+    def test_a_class_with_a_docstring_keeps_it_when_its_only_test_goes(self):  # 3
+        source = ("import unittest\n\n\nclass OnlyTest(unittest.TestCase):\n"
+                  '    """Kept."""\n\n'
+                  "    def test_alone(self):\n"
+                  "        self.assertTrue(True)\n")
+        wt = self.stopped(self.rec("test_alone"), source=source)
+        p = self.answer(wt, "--test-remove", "test_alone")
+        self.assertIn(p.returncode, (0, 10), p.stdout + p.stderr)
+        self.assertNotIn("test_alone", self.read(wt))
+        self.assertIn('"""Kept."""', self.read(wt))
+
     def test_a_test_the_answer_does_not_name_stays_in_its_file(self):  # 4
         wt = self.stopped(self.rec(self.GONE), self.rec(self.OTHER))
         self.answer(wt, "--test-remove", self.GONE)

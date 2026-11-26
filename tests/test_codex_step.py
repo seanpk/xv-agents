@@ -90,11 +90,6 @@ class CodexHarnessEntryTest(unittest.TestCase):
         self.assertEqual((agentcli.harness_of(argv), agentcli.model_of(argv)), ("codex", "gpt-6.1-terra"))
 
 
-
-class CodexDocsTest(unittest.TestCase):
-    pass
-
-
 class CodexDriftTest(RepoCase):
     def test_xv_check_drift_offline_lists_the_codex_event_shape_line(self):
         out = self.xv("check", "drift", "--offline", "--json").stdout

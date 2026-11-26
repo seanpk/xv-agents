@@ -421,6 +421,16 @@ def is_whole_test(text, old):
     return not after or indent_of(after[0]) <= depth
 
 
+def leaves_empty_block(text, old):
+    """Whether removing `old` leaves the block it sits in, a header ending in a colon, with nothing but comments."""
+    i = text.index(old)
+    depth = indent_of(next(ln for ln in old.splitlines() if ln.strip()))
+    code = lambda s: [ln for ln in s.splitlines() if ln.strip() and not ln.strip().startswith("#")]
+    before, after = code(text[:i]), code(text[i + len(old):])
+    opens = bool(before) and indent_of(before[-1]) < depth and before[-1].rstrip().endswith(":")
+    return opens and (not after or indent_of(after[0]) < depth)
+
+
 class OfferAction(argparse.Action):
     """--option starts an option; --settles, --amends and the edit flags belong to the --option just before them."""
 
@@ -498,6 +508,8 @@ def check_edit(root, config, n, edit):
             raise XVError(f"option {n}: the name {names[1]} is already used in {file}")
     if kind == "test-remove" and (new != "" or not is_whole_test(text, old)):
         raise XVError(f"option {n}: a removal's --new is empty, and --old is a whole test")
+    if kind == "test-remove" and leaves_empty_block(text, old):
+        raise XVError(f"option {n}: --old is the only test in its class, and the class would be left with no body")
 
 
 def cmd_offer(a):
@@ -583,12 +595,16 @@ def removal_edits(root, config, recs, picked):
         if not os.path.isfile(full):
             continue
         with open(full) as f:
-            old = test_block(f.read(), r.get("test"))
+            text = f.read()
+        old = test_block(text, r.get("test"))
         if old is None:
             continue
         if not old:
             raise XVError(f"{r['file']}::{r.get('test')} cannot be removed cleanly: it is not one whole test "
                           "with its decorators; nothing was removed")
+        if leaves_empty_block(text, old):
+            raise XVError(f"{r['file']}::{r.get('test')} cannot be removed cleanly: it is the only test in its class, "
+                          "and the class would be left with no body; nothing was removed")
         edit = {"file": r["file"], "old": old, "new": "", "kind": "test-remove"}
         check_edit(root, config, n, edit)
         edits.append(edit)
@@ -618,9 +634,6 @@ def answer_wall(data, stop, a, root=None):
                 raise XVError(f"{flag} {t}: {len(found)} wall recommendations have that name ({files}); "
                               "give the file too, as file::test")
             picked[flag].add(next(i for i, r in enumerate(recs) if r is found[0]))
-    for i in picked["--test-remove"]:
-        if recs[i].get("recommend") != "remove":
-            raise XVError(f"--test-remove {recs[i].get('test')}: the inspector did not recommend removing it")
     for i in sorted((picked["--accept-wall"] | picked["--test-remove"]) & picked["--refuse-wall"]):
         raise XVError(f"{recs[i].get('test')} in {recs[i].get('file')} is both accepted and refused; give one")
     if a.accept_wall:
@@ -628,7 +641,7 @@ def answer_wall(data, stop, a, root=None):
     if a.refuse_wall:
         print("warning: --refuse-wall is deprecated (#216); use `xv record unmark` for a test marked slice-only",
               file=sys.stderr)
-    removing = picked["--test-remove"] | {i for i in picked["--accept-wall"] if recs[i].get("recommend") == "remove"}
+    removing = picked["--test-remove"] | picked["--accept-wall"]  # every kind of advice takes the test off the wall
     edits = removal_edits(root, load_config(root), recs, removing) if root else []
     picked["--accept-wall"] |= picked["--test-remove"]
     stop["accepted_wall"] = list(a.accept_wall or []) + list(a.test_remove or [])
