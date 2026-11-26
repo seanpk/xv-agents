@@ -2,135 +2,137 @@
 slice: 2026-11-25-test-remove
 shape_change: no
 pitch_contradiction: no
-change_misses_scenario: yes
+change_misses_scenario: no
 picture_change: yes
 shape_breadth: narrow
-moved_tests_count: 22
+moved_tests_count: 23
 expected_moves: 0
 door: two-way
 blast_radius: low
 ---
 
-# Packet (re-pass after pairing 1): Taking the inspector's advice to remove a test removes it: --test-remove (#202)
+# Packet (re-pass after pairing 2): Taking the inspector's advice to remove a test removes it: --test-remove (#202)
 
-This re-pass covers `ba851c4..74ef83b`: the pairing's commits `84b532b` and `98f461c`.
-No stop for two people. One scenario miss sends the slice back:
-- Removing every test of a class in one answer is not refused, and leaves a class with no body (scenario miss 1).
+This re-pass covers `74ef83b..73b8c2f`: pairing 2's commits `ed56797` and `3200850`.
+No stop for two people, and no scenario miss.
 
 Decisions for the originator:
-- Two brief lines are now stale (check 1, finding C). Changing them needs two people (`.xv/picture.md:348`).
-- The CHANGELOG line still has one name (check 2).
-- The picture edit in check 4.
+- F. With no `tests.command`, every `--test-remove` answer is now refused (check 1).
+- G. One new test's check on the failing test's name passes from the file path alone (what the suite asserts).
+- Pairing 2 dropped the Python-only check for the only test in a class. The 04:04:49 correction is now met only where an empty class turns the suite red (scenario, below).
+- Still open from the earlier pass: brief line C, the CHANGELOG's second name, and the picture edit in check 4.
 
-Earlier finding A (the exact word `remove`) is resolved: `--test-remove` now takes every kind of advice (`scripts/record.py:644`).
-Earlier finding B (the only test in a class) is resolved for one test (`scripts/record.py:605-607`), but not for two tests in one class (miss 1).
+Earlier miss 1 is resolved: removing every test of a class leaves a file Python cannot parse, the suite goes red, and every removal is undone (`scripts/record.py:777-785`).
+I ran it: `test_removing_every_test_in_a_class_is_undone_and_refuses_the_answer` passes.
+Earlier finding D is resolved: a refused answer exits 2 (`scripts/record.py:1491-1492`), so the `(0, 10)` checks at `tests/test_record.py:2927`, `2935` and `2965` now fail if a removal leaves the suite red.
 
 ## Scenario misses
 
-- outcome 3: removing every test of a class in one answer is not refused, and leaves the class with no body; the originator settled that the only test in a class is refused (record log, 04:04:49 correction). Evidence: `scripts/record.py:605` checks each test against the file before any removal, and `scripts/record.py:779` applies the removals one after another. to: test-writer
-   Detail:
-   `scripts/record.py:597-607`: `removal_edits` reads each file again for each test (`text = f.read()`) and calls `leaves_empty_block(text, old)` against the file as it is now, not as it will be after the other removals.
-   `scripts/record.py:773-779`: `make_directed_edit` then applies the edits one after another with `text.replace(old, new, 1)`, and checks nothing between them.
-   So `--test-remove test_a --test-remove test_b` on a class holding only those two tests passes both checks.
-   For `test_a`, the next line is `def test_b` at the same indent, so `leaves_empty_block` returns false (`scripts/record.py:431`).
-   For `test_b`, the line before is the last line of `test_a`'s body, at a deeper indent, so `opens` is false (`scripts/record.py:430`).
-   Both are removed and committed, and `class X(...):` is left with no body, which Python cannot parse.
-   I found this by reading the code; I did not run it.
-   `test_the_only_test_in_a_class_is_refused_and_nothing_is_removed` (`tests/test_record.py:2938`) removes one test from a two-test class and the only test from another class, so it does not cover this.
-   to: test-writer (no red covers it).
+None.
+I checked outcome 3 and the originator's 04:04:49 correction ("the only test in a class is refused") against pairing 2's diff.
+The `leaves_empty_block` check is gone (`scripts/record.py:424-431` before).
+The red-suite undo takes its place (`scripts/record.py:777-785`).
+For Python, the only test in a class with no docstring still gets refused, because the empty class is a syntax error.
+In a language where an empty class or block still runs, it would be removed.
+The originator chose this in the pairing ("Sean chose a language-neutral rule instead", pairing 2 why, and record log 04:50:54).
+It is not in a stop's `settled` and not in an amendment, so the person may want to settle it there.
 
 ## The scenario
 
 Unchanged from the earlier packet.
 At `moves_to_accept`, `xv record answer --test-remove <test>` removes the whole test, with its decorators, using the `test-remove` directed-edit check (1); it commits and runs the suite (2); a gone test is skipped, and an unclean removal refuses the answer with nothing removed (3); an unnamed test stays (4); `--accept-wall` and `--refuse-wall` still work and warn (5); the leftover accepted tests are removed (6); there is a CHANGELOG line (7).
-The pairing carried the originator's answer at `moves_to_accept`, which the watch reverted by mistake and logged as a correction (record log, 04:04:49): every kind of advice removes the test, the only test in a class is refused, and the inspector brief names `--test-remove`.
 
 ## The recording
 
 None. Replay with `cd tests && python3 -m unittest test_record.TestRemoveFlagTest`.
-I ran it at `74ef83b`: 14 tests, OK. I did not run the whole suite. The record says the cleaner's run after the pairing was green (1525 tests).
+I ran it at `73b8c2f`: 15 tests, OK.
+I ran the whole suite (`python3 tests/run.py`): 1526 tests, OK.
 
 ## The boundary diagram
 
 From `.xv/slices/2026-11-25-test-remove.boundary.md`, as given: touched `scripts/record`; no module, edge, table or surface path added or removed; no shape hints.
-The pairing added one function, `leaves_empty_block` (`scripts/record.py:424-431`), inside the same module.
+Pairing 2 removed `leaves_empty_block` and its two uses, and added an undo inside `make_directed_edit` (`scripts/record.py:757-785`), all in the same module.
 
 ## What the suite asserts after
 
-`TestRemoveFlagTest` now has 14 tests. The pairing added four:
-- `--test-remove` removes a test whose advice was `mark slice-only` (`tests/test_record.py:2924`).
-- `--accept-wall` on a `mark slice-only` advice removes the test (`tests/test_record.py:2932`).
-- Naming the only test in a class refuses the answer, and the other named test is not removed either; HEAD and `moved_tests` are unchanged (`tests/test_record.py:2938`).
-- A class with a docstring keeps it when its only test goes (`tests/test_record.py:2958`).
+`TestRemoveFlagTest` now has 15 tests.
+Pairing 2 replaced one test with two, sharing a helper `assert_refused_and_nothing_removed` (`tests/test_record.py:2938-2947`).
+The helper checks that the answer is refused (not exit 0 or 10), that the error says "the suite is not green" and names a failing test, and that the file is as before.
+It also checks that HEAD is unchanged, the test file has no uncommitted change, the stop has no answer, and `moved_tests` is empty.
+- Removing a test that another test calls turns the suite red and is undone; the error names `test_uses_base` (`tests/test_record.py:2949-2958`).
+- Removing both tests of a class is undone (`tests/test_record.py:2960-2972`).
 
-These tests were written in the pairing, so they are not blind. I checked each against the code.
-None restates the code: each drives the CLI and reads the file, HEAD or the record.
-- **D. The docstring test accepts a stop** (`tests/test_record.py:2965`: `self.assertIn(p.returncode, (0, 10), ...)`).
-  Exit 10 means the answer raised a stop (`scripts/record.py:820-821`), which a red suite run does.
-  So if the removal left the class unparseable, this test would still pass; it asserts only that the docstring is there and the test is gone.
-  The same `(0, 10)` form is in `tests/test_record.py:2927` and `2935`.
+These tests are not blind; I checked each against the code. Each drives the CLI and reads the file, HEAD or the record.
+- **G. The failing name in the second test checks itself** (`tests/test_record.py:2972`: `self.assert_refused_and_nothing_removed(wt, source, head, p, "test_store")`).
+  The error always names the file: "the suite is not green after removing the tests from {file}" (`scripts/record.py:783`), and the file is `tests/test_store.py` (`tests/test_record.py:2854`).
+  So `assertIn("test_store", p.stderr)` passes even when the failing list is empty.
+  The first test's `test_uses_base` is a real check, so the failing list is covered once.
 
-No test reaches the new refusal in `check_edit` (`scripts/record.py:511-512`), the `xv record offer` path.
-`removal_edits` raises its own refusal before it calls `check_edit` (`scripts/record.py:605-608`), so an answer never reaches line 511.
-No test covers a `stay off the wall` advice, which the CHANGELOG names (`CHANGELOG.md:7`); the code treats every kind the same (`scripts/record.py:644`).
+No test covers a `moves_to_accept` answer in a repo with no `tests.command` (finding F).
 
 ## 1. Shape
 
 shape_change: no. shape_breadth: narrow.
 The boundary diagram shows no new module, edge, table or surface path, and no shape hints.
-The pairing's code change stays in `scripts/record.py`: `leaves_empty_block`, two uses of it, and a dropped refusal (`scripts/record.py:424-431`, `511-512`, `605-607`, `637-639` before).
+`make_directed_edit` already ran the suite after a directed edit (`scripts/record.py:776`); pairing 2 adds an undo and a refusal on its result.
 It is still the forecast's shape: "one new flag on record answer that reuses the directed-edit removal check".
 
 Findings for the person (inside the shape):
-- **C. Two brief lines no longer say what the code does** (`skills/watch/SKILL.md:63`, `skills/watch/SKILL.md:49`).
-  `skills/watch/SKILL.md:63`: "`--test-remove` takes the inspector's advice to remove a test". It now takes every kind of advice (`scripts/record.py:644`).
-  `skills/watch/SKILL.md:49` lists what `xv record offer` refuses for a `test-remove`. It does not name the new refusal of the only test in a class (`scripts/record.py:511-512`).
-  The picture sends readers to that list: "`skills/watch/SKILL.md` lists the refusals" (`.xv/picture.md:58`).
-- **E. Accepting a `mark slice-only` advice now removes the test and also lists it in `slice_only`** (`scripts/record.py:644`, `653-657`).
-  The `slice_only` entry then names a test that is no longer in its file.
-  The inspector brief still asks for `recommend` as exactly `mark slice-only` (`skills/inspector/SKILL.md:28`), and it dropped the reason (the `slice_only` listing) in this diff.
-  The listing still happens, so the exact word still matters. The brief no longer says why.
+- **F. With no suite command, every removal is refused** (`scripts/record.py:777`: `if stop["order"] == "moves_to_accept" and data["suite"] != "green":`).
+  `run_suite` returns `None` when `.xv/config.yml` has no `tests.command` (`scripts/suite.py:69-70`).
+  `None != "green"`, so the answer is undone and refused with "the suite is not green".
+  The standing orders treat a missing suite as no failure: `if checks.get("suite") not in (None, "green"):` (`scripts/orders.py:317`).
+  Before pairing 2, such an answer removed the test.
+- **H. The undo also undoes an offered edit picked in the same answer, and the error calls it a removal** (`scripts/record.py:736`: `edits = ([edit] if edit else []) + answer_wall(...)`; `scripts/record.py:783`: "after removing the tests from").
+  A `--pick` of a `test-rename` or `changelog` edit at `moves_to_accept` that turns the suite red is undone too, and the message calls it a removal.
+- **C (still open). The watch brief's line does not say what the code does** (`skills/watch/SKILL.md:63`: "`--test-remove` takes the inspector's advice to remove a test").
+  It takes every kind of advice (`scripts/record.py:644`), and it does not say that a red suite undoes the removals.
+  `skills/watch/SKILL.md:49` is accurate again: pairing 2 removed the `check_edit` refusal it did not list (`scripts/record.py:511-512` before).
+- **E (unchanged).** Accepting a `mark slice-only` advice removes the test and also lists it in `slice_only` (`scripts/record.py:644`, `653-657`).
 
 ## 2. Pitch
 
 pitch_contradiction: no.
-I read `.xv/pitch.md` again against the pairing's diff.
+I read pairing 2's diff against `.xv/pitch.md`.
 "xv-agents is not for people or projects that will not trust agents to write production code" (`.xv/pitch.md:25`).
-Removing a test on any kind of accepted advice is still a person's explicit answer, and it serves the same users.
+Undoing a removal that breaks the suite keeps a person's answer from leaving a red suite. It serves the same users.
 
 Binding decision 1 (`.xv/picture.md:348`): a change to a brief needs two people and a CHANGELOG line.
-This slice now changes two briefs, the watch's and the inspector's (`skills/inspector/SKILL.md:28`).
-The CHANGELOG line names them, but one person: "decided by Sean Kennedy" (`CHANGELOG.md:7`).
-The heading moved from `0.6.5, 2026-11-26` to `Unreleased` (`CHANGELOG.md:5`), which fits "A version line without two names is a draft" (`CHANGELOG.md:3`).
-It needs a second name before it gets a version.
+Pairing 2 rewrote the CHANGELOG line (`CHANGELOG.md:7`); it still has one name, "decided by Sean Kennedy", under `Unreleased` (`CHANGELOG.md:5`).
+It needs a second name before it gets a version, as `CHANGELOG.md:3` says.
+The line now says "before, such an answer closed the stop with no stop" (`CHANGELOG.md:7`). I did not run the old code to check that.
 
 ## 3. Moved tests
 
-The 15 outcome-6 removals and the 3 slice-only removals are as in the earlier packet; the pairing changed none of them.
-Five of the 15 still need someone to confirm the earlier acceptance; my search did not find it (earlier packet, check 3).
+The 15 outcome-6 removals, the 3 slice-only removals and the pairing-1 `CodexDocsTest` removal are as in the earlier packets.
+Five of the 15 still need someone to confirm the earlier acceptance (first packet, check 3).
 One move is new:
 
 | File | Before | After | Why (record) | Forced by the scenario? |
 | --- | --- | --- | --- | --- |
-| tests/test_codex_step.py | `class CodexDocsTest(unittest.TestCase): pass`, with no test | removed (`tests/test_codex_step.py:93-96` before) | "the class held no test after the outcome-6 removals; an empty class is dead code" (Sean Kennedy, pairing 1) | Not by a scenario line; it follows from outcome 6 and asserts nothing |
+| tests/test_record.py | `test_the_only_test_in_a_class_is_refused_and_nothing_is_removed`: names `test_other` (a two-test class) and `test_alone` (a one-test class); asserts refusal, `test_alone` and "only test in its class" in stderr, file, HEAD and `moved_tests` unchanged | `test_removing_every_test_in_a_class_is_undone_and_refuses_the_answer`: names both tests of one class; asserts refusal, "the suite is not green", `test_store` in stderr, file, HEAD, test-file status, open stop and `moved_tests` unchanged (`tests/test_record.py:2960-2972`) | "Sean chose a language-neutral rule in pairing 2: a red suite after the removals undoes them and refuses the answer, in place of the Python-only check" (record log 04:50:54) | Yes: outcome 3 and the 04:04:49 correction, under the originator's new rule |
 
-The move asserts nothing less: the class held no assertion.
-It also takes away the blank lines left by the earlier removal (`tests/test_codex_step.py:93` before).
-`xv wall diff` in the record shows nothing unrecorded (`checks.cleaner.wall.ok: true`). In `tests/test_record.py` the assertion count went from 550 to 556, which is the pairing's new tests.
+It asserts less in two places.
+It no longer names the refused test: `test_alone` became `test_store`, which the path always gives (finding G).
+It no longer mixes a removable test with a refused one; both named tests are now undone together.
+It asserts more in two places: the test file has no uncommitted change, and the stop stays open.
+
+`xv wall diff`: the same seven files changed as before, with nothing added or deleted. `tests/test_record.py` went from 556 to 562 assertions since the earlier pass, which is the pairing's new tests.
 
 Slice-only tests removed: test_the_tests_past_slices_accepted_for_removal_are_gone_from_their_files, test_the_watch_brief_and_the_readme_name_only_the_new_way, test_the_changelog_has_a_line_for_test_remove (all `tests/test_record.py`). Kept: none.
 Changes to may-not files that the test writer allowed (`may_not_files_needed`): none.
 
 ## 4. The picture
 
-`.xv/picture.md:147-150` is still out of date, and the edit the earlier packet proposed needs two changes: every kind of advice now removes the test, and the only test in a class is refused.
-Proposed lines, replacing 147-150:
+`.xv/picture.md:147-150` is still out of date.
+Proposed lines, replacing 147-150 (the earlier packet's edit, with the fourth line changed and a fifth added):
 
 ```
   A person's `--test-remove <test>` takes the inspector's advice on that test, of any kind, and removes the whole test, with its decorators, from its file.
   It uses the `test-remove` directed-edit check, commits the removal, and runs the suite.
   A named test already gone from its file is skipped.
-  A named test that cannot be removed whole, or that is the only test in its class, refuses the answer, and nothing is removed.
+  A named test that cannot be removed whole refuses the answer, and nothing is removed.
+  When the suite is not green after the removals, in any language, every removal is undone and the answer is refused, naming the failing tests.
   `--accept-wall` and `--refuse-wall` are deprecated (#216) and print a warning that names the new way.
   `--accept-wall <test>` does what `--test-remove <test>` does, and `--refuse-wall <test>` does what `xv record unmark <test>` does.
   An accepted `mark slice-only` recommendation is listed in `slice_only`, and refusing it later takes it out, matched on file and test.
@@ -141,25 +143,24 @@ Proposed lines, replacing 147-150:
   Each answered `moves_to_accept` stop keeps `accepted_wall`, which includes the `--test-remove` names, and `refused_wall`.
 ```
 
-If miss 1 is fixed, the fourth line should also say that removing every test of a class in one answer is refused.
+If finding F is fixed, the fifth line should say what happens with no `tests.command`.
 
 Note: `.xv/picture.md:147` holds more than one sentence, joined by semicolons, and so does `.xv/picture.md:233`.
 
 ## 5. The wall
 
 No recommendations.
-I looked at the four new tests in `TestRemoveFlagTest` (`tests/test_record.py:2924-2967`).
-Each guards a behaviour that stays after the slice (outcomes 1, 3 and 5), and none only restates another test.
-`test_accept_wall_on_a_mark_slice_only_recommendation_removes_the_test` becomes dead when #216 removes `--accept-wall`, not in this slice.
+I looked at the two new tests (`tests/test_record.py:2949-2972`).
+Each guards the undo that stays after the slice (outcome 3), and neither only restates the other: one breaks the suite with a failing test, the other with a file that will not parse.
 
 ## Door
 
-**Door:** two-way. The code, the brief line and the test removals are git commits, and a revert brings them back. **Blast radius:** low.
+**Door:** two-way. The code, the brief lines and the test removals are git commits, and a revert brings them back. **Blast radius:** low.
 
 ## Raw data
 
 - Slice record: `.xv/slices/2026-11-25-test-remove.md`
-- Diff since the earlier packet: `git diff ba851c4aae2896f4aae1c9b773441a1a02f2ee46..74ef83b09d2346256c54979a770a3a158175c289`
+- Diff since the earlier packet: `git diff 74ef83b09d2346256c54979a770a3a158175c289..73b8c2f626d89f477c5a610fd581248b8a92a477`
 - Whole diff: `git diff 911f113209115d8a4e586a9f3d6efd095926baef..HEAD`
 - Wall: `xv wall diff 2026-11-25-test-remove`
 - Boundary: `xv boundary --base 911f113209115d8a4e586a9f3d6efd095926baef`
