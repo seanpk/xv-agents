@@ -546,14 +546,65 @@ def wall_matches(recs, spec, root=None):
     return named
 
 
+def test_block(text, name):
+    """The whole test `name` with its decorators and the blank lines that follow it, as text; None when the file
+    has no such test; "" when it has one that cannot be removed whole."""
+    lines = text.splitlines(keepends=True)
+    last = COVERED_SEPARATOR.split(name or "")[-1].strip()
+    decls = [i for i, ln in enumerate(lines)
+             if (m := TEST_DECL.match(ln)) and m.group(1) == last]
+    if not decls:
+        return None
+    if len(decls) > 1:
+        return ""
+    d = decls[0]
+    start, depth = decorator_start([ln.rstrip("\n") for ln in lines], d), indent_of(lines[d])
+    end = d + 1
+    while end < len(lines) and (not lines[end].strip() or indent_of(lines[end]) > depth):
+        end += 1
+    while end > d + 1 and not lines[end - 1].strip():
+        end -= 1
+    nxt = end
+    while nxt < len(lines) and not lines[nxt].strip():
+        nxt += 1
+    if nxt < len(lines) and indent_of(lines[nxt]) == depth:
+        end = nxt
+    old = "".join(lines[start:end])
+    return old if text.count(old) == 1 and is_whole_test(text, old) else ""
+
+
+def removal_edits(root, config, recs, picked):
+    """The test-remove edits for the recommendations picked; a test already gone from its file is skipped, one that
+    cannot be removed cleanly refuses the answer."""
+    edits = []
+    for n, i in enumerate(sorted(picked), 1):
+        r = recs[i]
+        full = os.path.join(root, r.get("file") or "")
+        if not os.path.isfile(full):
+            continue
+        with open(full) as f:
+            old = test_block(f.read(), r.get("test"))
+        if old is None:
+            continue
+        if not old:
+            raise XVError(f"{r['file']}::{r.get('test')} cannot be removed cleanly: it is not one whole test "
+                          "with its decorators; nothing was removed")
+        edit = {"file": r["file"], "old": old, "new": "", "kind": "test-remove"}
+        check_edit(root, config, n, edit)
+        edits.append(edit)
+    return edits
+
+
 def answer_wall(data, stop, a, root=None):
-    """--accept-wall and --refuse-wall answer a moves_to_accept stop's wall recommendations, and only that."""
-    wall_flags = (("--accept-wall", a.accept_wall), ("--refuse-wall", a.refuse_wall))
+    """--test-remove (and the deprecated --accept-wall and --refuse-wall) answer a moves_to_accept stop's wall
+    recommendations, and only that. Returns the removal edits the answer makes."""
+    wall_flags = (("--test-remove", a.test_remove), ("--accept-wall", a.accept_wall),
+                  ("--refuse-wall", a.refuse_wall))
     if stop["order"] != "moves_to_accept":
         for flag, names in wall_flags:
             if names:
                 raise XVError(f"{flag} only answers a moves_to_accept stop, not {stop['order']}")
-        return
+        return []
     recs = data.get("wall_recommendations") or []
     picked = {}  # flag -> the recommendations (by position) its values name
     for flag, names in wall_flags:
@@ -567,10 +618,20 @@ def answer_wall(data, stop, a, root=None):
                 raise XVError(f"{flag} {t}: {len(found)} wall recommendations have that name ({files}); "
                               "give the file too, as file::test")
             picked[flag].add(next(i for i, r in enumerate(recs) if r is found[0]))
-    for i in sorted(picked["--accept-wall"] & picked["--refuse-wall"]):
-        raise XVError(f"--accept-wall and --refuse-wall both name {recs[i].get('test')} "
-                      f"in {recs[i].get('file')}; give one")
-    stop["accepted_wall"] = list(a.accept_wall or [])
+    for i in picked["--test-remove"]:
+        if recs[i].get("recommend") != "remove":
+            raise XVError(f"--test-remove {recs[i].get('test')}: the inspector did not recommend removing it")
+    for i in sorted((picked["--accept-wall"] | picked["--test-remove"]) & picked["--refuse-wall"]):
+        raise XVError(f"{recs[i].get('test')} in {recs[i].get('file')} is both accepted and refused; give one")
+    if a.accept_wall:
+        print("warning: --accept-wall is deprecated (#216); use --test-remove <test>", file=sys.stderr)
+    if a.refuse_wall:
+        print("warning: --refuse-wall is deprecated (#216); use `xv record unmark` for a test marked slice-only",
+              file=sys.stderr)
+    removing = picked["--test-remove"] | {i for i in picked["--accept-wall"] if recs[i].get("recommend") == "remove"}
+    edits = removal_edits(root, load_config(root), recs, removing) if root else []
+    picked["--accept-wall"] |= picked["--test-remove"]
+    stop["accepted_wall"] = list(a.accept_wall or []) + list(a.test_remove or [])
     stop["refused_wall"] = list(a.refuse_wall or [])
     for i, r in enumerate(recs):
         test = r.get("test")
@@ -587,6 +648,7 @@ def answer_wall(data, stop, a, root=None):
             if i in picked["--refuse-wall"]:
                 data["slice_only"] = [m for m in data.get("slice_only") or [] if not (
                     isinstance(m, dict) and (m.get("file"), m.get("test")) == (r.get("file"), test))]
+    return edits
 
 
 def cmd_answer(a):
@@ -657,7 +719,7 @@ def cmd_answer(a):
         stop["budget_change"] = {"from": amounts(seen), "to": amounts(data.get("budget"))}
     scribed = [name for name, value in (("settled", settled), ("new_info", a.new_info),
                                         ("cause", a.cause)) if value]
-    answer_wall(data, stop, a, slice_root(path))
+    edits = ([edit] if edit else []) + answer_wall(data, stop, a, slice_root(path))
     if "slice_only_marks" in [stop["order"], *(stop.get("bundle") or [])]:
         for m in data.get("slice_only") or []:
             if isinstance(m, dict):
@@ -677,8 +739,8 @@ def cmd_answer(a):
     if scribed:
         body = log_line(body, "watch", f"scribe: wrote {', '.join(scribed)} for {stop['order']} "
                                        f"as the scribe of {','.join(who)}")
-    if edit:
-        make_directed_edit(edit_root, path, data, body, stop, edit, who)
+    if edits:
+        make_directed_edit(slice_root(path), path, data, body, stop, edits, who)
         return
     save(path, data, body)
 
@@ -692,21 +754,25 @@ def rename_in_record(data, file, old_name, new_name):
                 entry["test"] = test[:len(test) - len(old_name)] + new_name
 
 
-def make_directed_edit(root, path, data, body, stop, edit, who):
-    """Make exactly the edit the person picked, in its own commit, then run the suite and the orders."""
-    file, old, new, kind = edit["file"], edit["old"], edit["new"], edit["kind"]
-    full = os.path.join(root, file)
-    with open(full) as f:
-        text = f.read()
-    with open(full, "w") as f:
-        f.write(text.replace(old, new, 1))
+def make_directed_edit(root, path, data, body, stop, edits, who):
+    """Make exactly the edits the person picked, in their own commit, then run the suite and the orders."""
     by = " and ".join(who)
-    if kind in ("test-rename", "test-remove"):
-        data["moved_tests"].append({"file": file, "assertion": f"was: {old.strip()}; now: {new.strip() or 'removed'}",
-                                    "why": f"directed by {by}: {kind}", "by": ",".join(who), "at": now()})
-        if kind == "test-rename":
-            rename_in_record(data, file, *name_change(old, new))
-    body = log_line(body, ",".join(who), f"directed a {kind} edit in {file}")
+    for edit in edits:
+        file, old, new, kind = edit["file"], edit["old"], edit["new"], edit["kind"]
+        full = os.path.join(root, file)
+        with open(full) as f:
+            text = f.read()
+        with open(full, "w") as f:
+            f.write(text.replace(old, new, 1))
+        if kind in ("test-rename", "test-remove"):
+            data["moved_tests"].append({"file": file, "assertion": f"was: {old.strip()}; now: {new.strip() or 'removed'}",
+                                        "why": f"directed by {by}: {kind}", "by": ",".join(who), "at": now()})
+            if kind == "test-rename":
+                rename_in_record(data, file, *name_change(old, new))
+        body = log_line(body, ",".join(who), f"directed a {kind} edit in {file}")
+    files = list(dict.fromkeys(e["file"] for e in edits))
+    file = ", ".join(files)
+    kind = edits[0]["kind"] if len({e["kind"] for e in edits}) == 1 else "directed"
     config = load_config(root)
     data["suite"], suite_out = run_suite(root, config, data.get("base"), data.get("id"))
     step = stop.get("step") or data["next"]
@@ -722,7 +788,7 @@ def make_directed_edit(root, path, data, body, stop, edit, who):
     body = apply_verdict(data, body, step, v)
     save(path, data, body)
     rel = os.path.relpath(path, root)
-    paths = [file, rel]
+    paths = [*files, rel]
     if data.get("packet"):
         packet = os.path.join(root, data["packet"])
         with open(packet) as f:
@@ -730,7 +796,7 @@ def make_directed_edit(root, path, data, body, stop, edit, who):
         heading = "## Directed edits after the inspector"
         had = heading in packet_text or "## Directed edits after the guardian" in packet_text  # the heading before #168
         packet_text = packet_text.rstrip("\n") + ("\n" if had else f"\n\n{heading}\n\n") \
-            + f"- {file} ({kind}): directed by {by}\n"
+            + "".join(f"- {e['file']} ({e['kind']}): directed by {by}\n" for e in edits)
         with open(packet, "w") as f:
             f.write(packet_text)
         paths.append(data["packet"])
@@ -1377,11 +1443,13 @@ def main(argv=None):
     s.add_argument("--bundle", help="comma-separated orders the same reply answered")
     s.add_argument("--no-test", dest="no_test", action="append", metavar="N",
                    help="settle scenario outcome N as having no test, so it does not stop again; repeat per outcome")
+    s.add_argument("--test-remove", dest="test_remove", action="append", metavar="TEST",
+                   help="take the inspector's advice to remove this test (or file::test) and remove it from its "
+                        "file; repeat per test")
     s.add_argument("--accept-wall", dest="accept_wall", action="append", metavar="TEST",
-                   help="accept the wall recommendation for this test, or file::test when the name is "
-                        "recommended in more than one file; repeat per test")
+                   help="deprecated (#216): use --test-remove")
     s.add_argument("--refuse-wall", dest="refuse_wall", action="append", metavar="TEST",
-                   help="refuse the wall recommendation for this test, or file::test; repeat per test")
+                   help="deprecated (#216): use `xv record unmark`")
     s.set_defaults(fn=cmd_answer)
 
     s = sub.add_parser("report", help="apply a worker's xv-report block")
