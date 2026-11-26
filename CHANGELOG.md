@@ -2,7 +2,7 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
-## Unreleased
+## 0.6.4, 2026-11-25
 
 - A step that fails because the agent could not run marks its `step_start` ended (#202, decided by Sean Kennedy). When the agent CLI is missing or the worktree is gone, the record's `step_start` is marked ended as it is after a step that ran, so a slice-only move recorded after that failed step reads its line from `HEAD`, not from the failed step's start. It moves no position on xtremevibing.com.
 
