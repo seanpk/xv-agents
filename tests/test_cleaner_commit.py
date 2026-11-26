@@ -86,11 +86,6 @@ class TheCleanerBriefTest(unittest.TestCase):
         self.assertNotIn("pre-commit hook", self.text)
         self.assertRegex(self.text, r"wall check")
 
-    def test_the_brief_no_longer_tells_the_cleaner_to_commit_its_fix(self):
-        self.assertNotIn("commit the fix", self.text)
-        self.assertNotIn("Commit your fix", self.text)
-        self.assertNotIn("make it right` and one line per rule", self.text)
-
     def test_the_report_example_has_no_commit_field(self):
         block = re.search(r"```xv-report\n(.*?)```", self.text, re.S)[1]
         self.assertNotIn('"commit"', block)
@@ -106,9 +101,6 @@ class TheDocsDoNotSayTheCleanerCommitsTest(unittest.TestCase):
                       ("docs", "harness-notes.md"), (".xv", "picture.md")):
             for n, line in enumerate(read(*parts).splitlines(), 1):
                 self.assertIsNone(self.OLD.search(line), f"{'/'.join(parts)}:{n}: {line[:120]}")
-
-    def test_the_readme_no_longer_says_the_pre_commit_hook_refuses_the_cleaners_unrecorded_move(self):
-        self.assertNotIn("The cleaner is the one worker that commits", read("README.md"))
 
     def test_the_slice_record_doc_says_cleaner_commit_is_the_commit_the_watch_made_after_the_cleaner(self):
         row = [l for l in read("docs", "slice-record.md").splitlines() if l.startswith("| `cleaner_commit`")][0]

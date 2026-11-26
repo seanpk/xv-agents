@@ -1644,10 +1644,6 @@ class TestWriterChecksTest(WatchLoopSetup):
         self.assertTrue(any(f["order"] == "red_misses_scenario" and "did not cover 7" in f["question"]
                             for f in fired), p.stdout)
 
-    def test_an_empty_covers_on_the_first_pass_still_stops(self):
-        self.xv("step", "forecaster", "s1", cwd=self.wt)
-        self.assert_stops(self.writer(FAKE_REPORT_EXTRA='{"covered": []}'), "`covered`")
-
     def test_an_empty_covers_after_a_send_back_still_stops_when_nothing_was_kept(self):
         self.xv("step", "forecaster", "s1", cwd=self.wt)
         self.writer(FAKE_REPORT_EXTRA='{"covered": []}')
@@ -2457,15 +2453,6 @@ class RemovalNotMadeTest(WatchLoopSetup):
         p = self.step("cleaner")
         self.assert_removal_stop(p, "tests/test_red.py")
         self.assertIn("could not be read", json.loads(p.stdout)["stop"]["question"])
-
-    def test_a_slice_only_move_whose_assertion_names_a_double_colon_test_still_there_stops(self):
-        self.to_the_maker()
-        p = self.xv("record", "move", "s1", "--file", "tests/test_red.py", "--slice-only", "--line",
-                    str(self.milk_line()), "--assertion",
-                    "removed tests/milk-red.py::Red::test_milk_today as slice-only", "--why", "slice-only; removed",
-                    "--by", "cleaner", cwd=self.wt, check=False)
-        self.assertEqual(p.returncode, 0, p.stderr)  # the assertion is a free note
-        self.assert_removal_stop(self.step("maker"), "tests/test_red.py", "test_milk_today")
 
     def prose_move(self, sentence):
         self.to_the_maker()

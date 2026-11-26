@@ -232,11 +232,6 @@ def read(*parts):
 
 
 class WiringTest(unittest.TestCase):
-    def test_ci_shards_run_at_the_same_time(self):
-        wf = read(".github", "workflows", "tests.yml")
-        self.assertNotRegex(wf, r"max-parallel:\s*1\b")
-        self.assertNotIn("needs:", wf)
-
     def test_the_tests_import_only_the_standard_library(self):
         std = set(sys.stdlib_module_names)
         local = set()

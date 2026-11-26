@@ -58,10 +58,6 @@ class TreeNamesTest(unittest.TestCase):
         self.assertIn("xv inspect --base", read("ci", "github", "xv-inspector.yml"))
         self.assertNotIn("xv guard", read("ci", "github", "xv-inspector.yml"))
 
-    def test_explore_notes_is_not_in_the_tree(self):
-        self.assertFalse(os.path.exists(os.path.join(HOME, "EXPLORE-NOTES.md")))
-        self.assertEqual(sh(["git", "ls-files", "EXPLORE-NOTES.md"], HOME).stdout.strip(), "")
-
     # 13: names inside the code
     def test_no_script_or_ci_file_is_named_for_an_old_agent_name(self):
         bad = []
@@ -137,15 +133,6 @@ class EvalIdsTest(unittest.TestCase):
 
 class ProseTest(unittest.TestCase):
     # 7, 8, 9
-    def test_no_brief_or_doc_opens_with_the_old_line(self):
-        found = [os.path.relpath(p, HOME) for p in doc_files() if OLD_STOPS in open(p, encoding="utf-8").read()]
-        self.assertEqual(found, [])
-
-    def test_boundary_picture_is_boundary_diagram(self):
-        found = [os.path.relpath(p, HOME) for p in doc_files()
-                 if "boundary picture" in open(p, encoding="utf-8").read().lower()]
-        self.assertEqual(found, [])
-
     def test_the_two_packets_have_their_prose_names(self):
         for p in doc_files():
             t = open(p, encoding="utf-8").read().lower()

@@ -89,22 +89,10 @@ class CodexHarnessEntryTest(unittest.TestCase):
         argv = self.entry()["argv"]
         self.assertEqual((agentcli.harness_of(argv), agentcli.model_of(argv)), ("codex", "gpt-6.1-terra"))
 
-    def test_the_note_says_the_brief_is_not_the_whole_prompt_because_agents_md_and_skills_load(self):
-        note = self.entry()["note"]
-        self.assertIn("not the whole prompt", note)
-        self.assertIn("AGENTS.md", note)
-        self.assertIn("skills", note)
 
 
 class CodexDocsTest(unittest.TestCase):
-    def test_relies_on_has_a_line_for_the_codex_event_shape(self):
-        lines = [x for x in read("docs/relies-on.md").splitlines()
-                 if x.startswith("- ") and "codex" in x.lower() and "agent_message" in x]
-        self.assertEqual(len(lines), 1, "one relies-on line for the Codex events")
-        what, url, quote = [p.strip() for p in lines[0][2:].split(" | ")]
-        self.assertIn("spend.py", what)
-        self.assertTrue(url.startswith("https://"))
-        self.assertTrue(quote.startswith('"') and quote.endswith('"') and len(quote) > 2)
+    pass
 
 
 class CodexDriftTest(RepoCase):

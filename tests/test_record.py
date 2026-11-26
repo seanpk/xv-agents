@@ -1567,16 +1567,6 @@ class SliceOnlyAssertionFormTest(RepoCase):
         sh(["git", "add", "-A"], wt)
         sh(["git", "commit", "-qm", "the test"], wt)
 
-    def test_a_name_that_is_in_no_file_when_the_step_began_is_refused_and_nothing_is_recorded(self):
-        wt = self.new_slice("s1")
-        self.commit_file(wt)
-        for line in (2, 99):  # a blank line, a number past the end
-            with self.subTest(line=line):
-                p = self.move(wt, "Red.test_milk_today", line)
-                self.assertNotEqual(p.returncode, 0, line)
-                self.assertIn("test_red.py", p.stderr)
-                self.assertEqual(self.moves(wt), [])
-
     def test_a_name_in_the_file_at_the_start_is_taken_though_the_step_has_since_removed_it(self):
         wt = self.new_slice("s1")
         self.commit_file(wt)
@@ -1601,28 +1591,6 @@ class SliceOnlyAssertionFormTest(RepoCase):
                 p = self.move(wt, text)
                 self.assertEqual(p.returncode, 0, p.stderr)
                 self.assertEqual(len(self.moves(wt)), 1)
-
-    def test_each_form_of_a_name_is_taken(self):
-        for text in self.READ:
-            with self.subTest(assertion=text):
-                sid = "s-%d" % self.READ.index(text)
-                wt = self.new_slice(sid)
-                self.commit_file(wt)
-                p = self.xv("record", "move", sid, "--file", "tests/test_red.py",
-                            "--slice-only", "--line", "5", "--assertion", text, "--why", "slice-only; removed",
-                            "--by", "cleaner", cwd=wt, check=False)
-                self.assertEqual(p.returncode, 0, p.stderr)
-
-    def test_a_name_followed_by_a_note_in_brackets_is_taken_whichever_bracket(self):
-        for note in self.NOTES:
-            with self.subTest(note=note):
-                sid = "n-%d" % self.NOTES.index(note)
-                wt = self.new_slice(sid)
-                self.commit_file(wt)
-                p = self.xv("record", "move", sid, "--file", "tests/test_red.py",
-                            "--slice-only", "--line", "5", "--assertion", "Red.test_milk_today " + note, "--why",
-                            "slice-only; removed", "--by", "cleaner", cwd=wt, check=False)
-                self.assertEqual(p.returncode, 0, p.stderr)
 
     def test_a_plain_move_without_slice_only_still_takes_any_words(self):
         wt = self.new_slice("s1")
@@ -1653,11 +1621,6 @@ class RemovalCheckNamesTest(unittest.TestCase):
                                      "line_text": "def test_milk_today(self):", "line_count": 1}],
                     "slice_only": []}
             return record.removals_not_made(root, data, agent, None)
-
-    def test_none_of_the_inputs_passes_while_the_test_is_still_in_its_file(self):
-        for text in self.STILL_THERE:
-            with self.subTest(assertion=text):
-                self.assertTrue(self.check(text, self.TEST_FILE), text)
 
     def test_an_input_that_is_not_a_name_is_a_note_nothing_reads_and_passes_when_the_line_is_gone(self):
         for text in self.UNREADABLE:

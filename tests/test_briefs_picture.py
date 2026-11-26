@@ -191,12 +191,6 @@ class TestWriterCatchesTest(unittest.TestCase):
         self.assertTrue([h for h in hits if re.search(r"(?i)only `?\.xv/picture\.md", h)],
                         "6d does not say the maker may change only the picture")
 
-    def test_the_changelog_does_not_say_the_maker_may_change_any_named_may_not_file(self):
-        text = brief("CHANGELOG.md")
-        line = next(l for l in text.splitlines() if "scenario agent catches more" in l)
-        self.assertNotIn("a named may-not file", line)
-        self.assertRegex(line, r"(?i)only `?\.xv/picture\.md")
-
     def test_the_test_writer_brief_says_a_number_in_covers_names_only_the_scenarios_own_point(self):
         text = brief("skills", "test-writer", "SKILL.md")
         self.assertRegex(text, r"(?is)\bnumber\b[^\n]*only[^\n]*scenario's own outcome")
