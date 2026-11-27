@@ -144,10 +144,20 @@ Sean Kennedy sits with them.
   The inspector's `wall_recommendations` go to the same person in `moves_to_accept`.
   A recommendation a person accepted stays on the record when the next inspector pass names no recommendation with its file and test.
   An accepted or refused mark carries to the next inspector pass only on a recommendation with the same file and test; the same test name in another file is a new, unmarked recommendation.
-  Only a person's `--accept-wall <test>` accepts one, and only `--refuse-wall <test>` takes back one accepted earlier; an accepted `mark slice-only` recommendation is listed in `slice_only`, and refusing it later takes it out, matched on file and test; a new recommendation not named is refused, and an agent's report sets neither.
-  Both flags take the test with its file, in the forms the coverage check takes (`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`); a bare name that two files share is refused, and the refusal names each `file::test`.
-  Giving either flag on another kind of stop, or both on one test, is refused.
-  Each answered `moves_to_accept` stop keeps `accepted_wall` and `refused_wall`.
+  A person's `--test-remove <test>` takes the inspector's advice on that test, of any kind, and removes the whole test, with its decorators, from its file.
+  It uses the `test-remove` directed-edit check, commits the removal, and runs the suite.
+  A named test already gone from its file is skipped.
+  A named test that cannot be removed whole refuses the answer, and nothing is removed.
+  When the suite is red after the removals, in any language, every removal is undone and the answer is refused, naming the failing tests.
+  A repo with no `tests.command` has no suite to run, so the removal stands.
+  `--accept-wall` and `--refuse-wall` are deprecated (#216) and print a warning that names the new way.
+  `--accept-wall <test>` does what `--test-remove <test>` does, and `--refuse-wall <test>` does what `xv record unmark <test>` does.
+  An accepted `mark slice-only` recommendation is listed in `slice_only`, and refusing it later takes it out, matched on file and test.
+  A new recommendation not named is refused, and an agent's report sets neither.
+  The flags take the test with its file, in the forms the coverage check takes (`file::test`, `file::Class.test`, `Class#test`, `module.Class.test`, `Class > test`).
+  A bare name that two files share is refused, and the refusal names each `file::test`.
+  Giving any of them on another kind of stop, or accepting and refusing one test in one answer, is refused.
+  Each answered `moves_to_accept` stop keeps `accepted_wall`, which includes the `--test-remove` names, and `refused_wall`.
   `decisions` reads every slice record through `retro.records()` and counts answered stops per order: picks equal to the recommendation, `new_info: none`, and causes.
   `record.apply_report` keeps a scenario report's `old_tests_to_move` and `may_not_files_needed`, and a report without them clears them.
   `prompt` shows them to the maker only, and only the picture from `may_not_files_needed`.
