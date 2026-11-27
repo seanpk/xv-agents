@@ -131,3 +131,4 @@ None. A feature starts from words.
 - 2026-11-27T01:21:53+00:00 watch: offered 3 options for moves_to_accept
 - 2026-11-27T14:07:46+00:00 Sean Kennedy: answered moves_to_accept: 1
 - 2026-11-27T14:07:46+00:00 watch: scribe: wrote settled, new_info for moves_to_accept as the scribe of Sean Kennedy
+- 2026-11-27T14:08:05+00:00 watch: picture edit directed by Sean Kennedy (aba277a): .xv/picture.md:147-160, as the inspector worded them
