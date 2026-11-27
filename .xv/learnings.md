@@ -18,6 +18,22 @@ An entry with three or more sightings that still splits people is marked `(watch
 
 ## Open
 
+### 2026-11-27: The counts file records one slice-only rule under seven phrasings
+- added: 2026-11-27 by Sean Kennedy
+- from: 2026-11-25-test-remove, `.xv/retro/2026-11-27.counts.json`: seven rows ("slice-only test removal (recorded move)", "slice_only: removed slice-only test, recorded move", and five more), each `fired: 1`, `overridden: 0`
+- miss: Each phrasing is counted on its own, so no row reaches `min_fires: 5`. The 2026-11-05 rule about slice-only CHANGELOG tests therefore cannot be flagged for probation, whichever way its override rate goes. This is evidence only. The fix may be a fixed label per rule, which belongs to whoever owns `xv retro counts`.
+- rule: The counts file records one slice-only rule under seven phrasings
+- seen: [seanpk/xv-agents@2026-11-27]
+
+
+### 2026-11-27: `expected_moves` was missing from the packet's front matter
+- added: 2026-11-27 by Sean Kennedy
+- from: 2026-11-25-failed-step, `expected_moves_wrong` at 19:38:49 ("front matter expected_moves is missing"), answered "1" at 19:48:06
+- miss: The slice had no moved tests and the inspector reported "expected_moves 0 added". The packet still omitted the field, and the slice stopped on it. It was seen once and no check holds it yet. A person can see whether a second slice repeats it. If it does, it is a check: the packet writer or `xv record` defaults the field to 0 when no move is recorded.
+- rule: `expected_moves` was missing from the packet's front matter
+- seen: [seanpk/xv-agents@2026-11-27]
+
+
 ### 2026-11-25: The `unrecorded_move` stop fires on a test helper the scenario agent had to edit
 - added: 2026-11-25 by Sean Kennedy
 - from: 2026-11-24-cleaner-commit, `unrecorded_move` at 14:07:57 (`tests/fake_agent.py`), answered "1" at 15:03:17, about an hour; the `moved_tests` row for it says "the fake cleaner must leave its edit uncommitted"
@@ -84,10 +100,10 @@ An entry with three or more sightings that still splits people is marked `(watch
 
 ### 2026-11-12: A scenario point or a red test that contradicts an old test or the harness is found only when the maker stops
 - added: 2026-11-12 by Sean Kennedy
-- from: 2026-11-09-retro-fixes, `maker_stopped` at 16:39:46 (point 3 reversed `SliceOnlyGateTest`, five tests the scenario report did not name); 2026-11-11-pairing-b, `maker_stopped` at 2026-11-11T23:02:33 (the red expects no transcript while the build defaults to the ambient session id); 2026-11-09-kept-pick, `maker_stopped` at 2026-11-10T03:00:11 (a red that cannot pass on the sh harness); 2026-11-20-names, `maker_stopped` (needs_move) at 2026-11-23T14:25:33: both red tests failed only on `.xv/picture.md` line 289, and `may_not_files_needed` was empty
+- from: 2026-11-09-retro-fixes, `maker_stopped` at 16:39:46 (point 3 reversed `SliceOnlyGateTest`, five tests the scenario report did not name); 2026-11-11-pairing-b, `maker_stopped` at 2026-11-11T23:02:33 (the red expects no transcript while the build defaults to the ambient session id); 2026-11-09-kept-pick, `maker_stopped` at 2026-11-10T03:00:11 (a red that cannot pass on the sh harness); 2026-11-20-names, `maker_stopped` (needs_move) at 2026-11-23T14:25:33: both red tests failed only on `.xv/picture.md` line 289, and `may_not_files_needed` was empty; 2026-11-25-test-remove, `maker_stopped` at 02:49:25 (`test_test_remove_removes_the_whole_test_and_commits_it` asserts `self.store.use("eggs", 2)` is absent, but `evals/fixture/tests/test_store.py` line 29 contains it); `maker_sendbacks: 1`; pairings 1 to 3; the budget raised from $6.00 to $7.50
 - miss: Three slices stopped at the maker, a step after the red was written, because a red test could not pass beside what already existed. `maker_stopped` fired on 4 slices. Each cost a person's answer and a round of scenario and maker work. No check can see it before the maker runs the old suite against the new red. Evidence only; no rule yet.
 - rule: A scenario point or a red test that contradicts an old test or the harness is found only when the maker stops
-- seen: [seanpk/xv-agents@2026-11-12, seanpk/xv-agents@2026-11-23]
+- seen: [seanpk/xv-agents@2026-11-12, seanpk/xv-agents@2026-11-23, seanpk/xv-agents@2026-11-27]
 
 
 ### 2026-11-09: A new assertion's expected value is read from an independent source, not from what it checks
