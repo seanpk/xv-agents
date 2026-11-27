@@ -2,7 +2,7 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
-## Unreleased
+## 0.6.5, 2026-11-27
 
 - `xv record answer --test-remove <test>` takes the inspector's advice on a test and removes the test from its file (#202, decided by Sean Kennedy). It works for each kind of wall recommendation (`remove`, `mark slice-only` and `stay off the wall`), removes the whole test with its decorators, commits the removal and runs the suite. A test already gone from its file is skipped. A test that cannot be removed whole refuses the answer, and nothing is removed. When the suite is red after the removals, in any language, every removal is undone and the answer is refused, naming the failing tests; before, such an answer closed the stop with no stop. A repo with no `tests.command` has no suite to run, so the removal stands. `--accept-wall` and `--refuse-wall` still work, with a warning that names the new way and #216. The inspector brief names `--test-remove`. The 15 tests that earlier slices accepted for removal, and that were still in their files, are removed. It moves no position on xtremevibing.com.
 
