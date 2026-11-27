@@ -774,13 +774,14 @@ def make_directed_edit(root, path, data, body, stop, edits, who):
     kind = edits[0]["kind"] if len({e["kind"] for e in edits}) == 1 else "directed"
     config = load_config(root)
     data["suite"], suite_out = run_suite(root, config, data.get("base"), data.get("id"))
-    if stop["order"] == "moves_to_accept" and data["suite"] != "green":
-        # the suite was green at the inspector; a removal that breaks it is undone, in any language
+    if stop["order"] == "moves_to_accept" and data["suite"] == "red":
+        # the suite was green at the inspector; a removal that breaks it is undone, in any language.
+        # With no tests.command there is no suite to break, so the removal stands
         for full, text in before.items():
             with open(full, "w") as f:
                 f.write(text)
         failing = [n for n in failing_tests(suite_out or "") if not n.startswith(("(failures=", "(errors="))]
-        raise XVError(f"the suite is not green after removing the tests from {file}"
+        raise XVError(f"the suite is red after removing the tests from {file}"
                       + (f" (failing: {', '.join(failing)})" if failing else "")
                       + "; every removal is undone and nothing is recorded")
     step = stop.get("step") or data["next"]

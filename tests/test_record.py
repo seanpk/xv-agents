@@ -2937,8 +2937,8 @@ class TestRemoveFlagTest(RepoCase):
 
     def assert_refused_and_nothing_removed(self, wt, source, head, p, failing):
         self.assertNotIn(p.returncode, (0, 10), p.stdout + p.stderr)
-        self.assertIn("the suite is not green", p.stderr)
-        self.assertIn(failing, p.stderr)
+        self.assertIn("the suite is red", p.stderr)
+        self.assertIn(f"(failing: {failing}", p.stderr)
         self.assertEqual(self.read(wt), source, "every removal is undone")
         self.assertEqual(sh(["git", "rev-parse", "HEAD"], wt).stdout, head)
         self.assertEqual(sh(["git", "status", "--porcelain", "--", self.STORE], wt).stdout, "")
@@ -2969,7 +2969,20 @@ class TestRemoveFlagTest(RepoCase):
         wt = self.stopped(self.rec("test_alone"), self.rec("test_also"), source=source)
         head = sh(["git", "rev-parse", "HEAD"], wt).stdout
         p = self.answer(wt, "--test-remove", "test_alone", "--test-remove", "test_also")
-        self.assert_refused_and_nothing_removed(wt, source, head, p, "test_store")
+        self.assert_refused_and_nothing_removed(wt, source, head, p, "tests.test_store")
+
+    def test_with_no_test_command_the_removal_stands(self):  # 2
+        wt = self.stopped(self.rec(self.GONE))
+        config = os.path.join(wt, ".xv", "config.yml")
+        with open(config) as f:
+            text = f.read()
+        with open(config, "w") as f:
+            f.write(text.replace('  command: "python3 -m unittest discover -s tests -t ."\n', ""))
+        sh(["git", "commit", "-qam", "no tests.command"], wt)
+        p = self.answer(wt, "--test-remove", self.GONE)
+        self.assertIn(p.returncode, (0, 10), p.stdout + p.stderr)
+        self.assertNotIn(self.GONE, self.read(wt))
+        self.assertIsNone(self.show(wt)["suite"])
 
     def test_a_class_with_a_docstring_keeps_it_when_its_only_test_goes(self):  # 3
         source = ("import unittest\n\n\nclass OnlyTest(unittest.TestCase):\n"
