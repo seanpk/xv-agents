@@ -60,7 +60,7 @@ End your final message with one report block. `files` are the test files you wro
  "red": {"files": ["tests/test_expiring.py"], "command": "python3 -m unittest tests.test_expiring", "failure": "<the failing assertion, one line>",
          "watch_before_merge": "<for a feature: what a person should watch; null for a defect>"},
  "covered": [{"outcome": "<an outcome the scenario names>", "test": ["test_expiring_today", "test_expiring_tomorrow"]}],
- "not_covered": [{"outcome": "<an outcome with no test>", "why": "<why it has none>", "checks": ["CHANGELOG.md"]}],
+ "not_covered": [{"outcome": "<an outcome with no test>", "why": "<why it has none>", "checks": ["<the files the outcome is about>"]}],
  "slice_only": [{"file": "tests/test_expiring.py", "test": "test_file_is_ts", "why": "<why it has no value after the slice>"}],
  "old_tests_to_move": [{"file": "tests/test_api.py", "test": "test_message", "why": "<how the scenario forces the change>"}],
  "may_not_files_needed": [{"file": ".xv/picture.md", "why": "<why the red needs it changed>"}]}
