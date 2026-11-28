@@ -910,6 +910,15 @@ def step(agent, slice_id, review_again=False):
     return (EXIT_STOP if v["stop"] else 0), v
 
 
+def checks_only_listed_files(checks, config):
+    """True when a not-covered outcome's `checks` names files, and every one is in `tests.slice_only_files`."""
+    listed = (config.get("tests") or {}).get("slice_only_files") or []
+    if isinstance(checks, str):
+        checks = [checks]
+    return (isinstance(checks, list) and bool(checks)
+            and all(isinstance(c, str) and c and c in listed for c in checks))
+
+
 def accept_listed_marks(data, body, config):
     """A slice-only mark whose test checks a file the config lists in `tests.slice_only_files` is accepted."""
     listed = (config.get("tests") or {}).get("slice_only_files") or []
@@ -1194,7 +1203,8 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         settled_numbers = settled_outcome_numbers(data)
         checks["not_covered"] = [n for n in (report.get("not_covered") or []) if isinstance(n, dict)
                                  and f"did not cover {n.get('outcome')}:" not in answered
-                                 and outcome_number(n.get("outcome")) not in settled_numbers]
+                                 and outcome_number(n.get("outcome")) not in settled_numbers
+                                 and not checks_only_listed_files(n.get("checks"), config)]
         checks["missed_outcomes"] = missed_outcomes(root, data, report)
         if landed:  # the wall hashes the test files at the base, not at the build
             wb, wall_text = landed["wall"]
