@@ -2,7 +2,7 @@
 slice: 2026-11-27-changelog-at-merge
 shape_change: no
 pitch_contradiction: no
-change_misses_scenario: yes
+change_misses_scenario: no
 picture_change: yes
 shape_breadth: narrow
 moved_tests_count: 1
@@ -13,8 +13,8 @@ blast_radius: narrow
 
 # Packet: A slice-only not-covered outcome is checked at the merge, not stopped at the red (#214)
 
-Back to the test writer, with no stop: a `not_covered` outcome that goes through on its `checks` leaves nothing on the record, so the inspector cannot read it at the merge as outcome 3 needs (see Scenario misses).
-The picture edit (check 4) and the one-line slice-only removal (check 3) go to Sean Kennedy, who set the work going.
+Re-pass at `aafe8de`: the earlier miss on outcome 3 is met on the agent path, because an outcome let through now leaves a watch log line (`scripts/run.py:934-942`).
+Two findings go to Sean Kennedy, who set the work going: the session-mode path on a slice from a build still lets an outcome through without a log line (check 3), and the picture edit (check 4).
 The change edits a check and a brief, so binding decision 1 asks for two people at the merge (`.xv/picture.md:358`).
 
 ## The scenario
@@ -22,7 +22,7 @@ The change edits a check and a brief, so binding decision 1 asks for two people 
 1. A `not_covered` outcome whose `checks` files are all in `tests.slice_only_files` does not stop with `red_misses_scenario`.
 2. A `not_covered` outcome whose `checks` names any other file, or has no `checks`, still stops.
 3. The inspector brief asks the inspector to read each outcome that went through this way, check that the file change is right and in the right place, and put that in the inspection report.
-4. There is a line in `CHANGELOG.md`.
+4. There is a line in `CHANGELOG.md`. Sean Kennedy settled that this needs no test: the line is read at the merge (record stop `red_misses_scenario`, `no_test: ["4"]`).
 
 The slice may ignore the deputation part of #214 (that waits for #159 and #160) and records of slices already open or closed.
 
@@ -30,57 +30,61 @@ The slice may ignore the deputation part of #214 (that waits for #159 and #160) 
 
 None; a feature starts from words.
 To replay the red, run `cd tests && python3 -m unittest test_run.NotCoveredCheckedAtTheMergeTest test_briefs_picture.TestWriterCatchesTest`.
-I ran it at HEAD `7609028`: 26 tests, OK.
-At `f6ababf` (the red) the record shows 5 failures, starting with `test_an_outcome_that_checks_a_listed_file_goes_on_with_no_stop` (exit 10, `red_misses_scenario`).
-I did not run the whole suite again: the cleaner ran it green at the same HEAD (`cleaner_commit: 7609028`, 1540 tests), and the only change since is to files under `.xv/slices/`.
+I ran it at HEAD `aafe8de`: 27 tests, OK.
+The second red failed with `AssertionError: 0 != 1 : no watch log line names 'a line in the changelog'` (record `red.failure`).
+I did not run the whole suite again: the maker and the cleaner both ran it green at this HEAD (1541 tests, record `checks.cleaner.suite_output`).
 
 ## The boundary diagram
 
 From `xv boundary` (`.xv/slices/2026-11-27-changelog-at-merge.boundary.md`), as given.
 The only module touched is `scripts/run`.
-No modules, edges, outbound calls, tables or surface paths were added or removed.
-There are no shape hints.
+No modules, edges, outbound calls, tables or surface paths were added or removed (`"edges_added": []`, `"shape_hints": []`).
 
 ## What the suite asserts after
 
-- The red check lets a `not_covered` outcome go on to the maker with no stop when its `checks` is `"CHANGELOG.md"`, `["CHANGELOG.md"]` or `["CHANGELOG.md", "CHANGELOG.md"]` (`tests/test_run.py:1945-1955`).
-- It still stops with `red_misses_scenario` when `checks` names `README.md`, mixes a listed and an unlisted file, names `docs/CHANGELOG.md`, is missing, is `[]` or `""`, is `5`, holds a non-string, or comes with an agent's own `accepted: true` (`tests/test_run.py:1957-1984`).
-- The inspector brief has a paragraph that names `not_covered`, `checks` and the inspection report and asks about the "right place" (`tests/test_briefs_picture.py:158-162`).
-- No test checks that an outcome let through is recorded anywhere, or that it reaches the inspector.
-- No old assertion moved; the only removal is the slice-only CHANGELOG test (check 3).
+- Everything the earlier packet listed still holds: listed `checks` go on, every other `checks` value stops (`tests/test_run.py:1945-1993`), and the inspector brief has the item (`tests/test_briefs_picture.py:158-162`).
+- New: an outcome let through on `checks: ["CHANGELOG.md"]` leaves exactly one `watch:` log line that names the outcome and `CHANGELOG.md` (`tests/test_run.py:1959-1963`).
+- No test checks the session-mode landing path (`run.land_session_test_writer`) for that log line.
+- No old assertion moved.
 
 ## 1. Shape
 
 shape_change: no.
-The boundary diagram lists no added or removed module or edge and no shape hints (`.xv/slices/2026-11-27-changelog-at-merge.boundary.md`: "edges added: none").
-The change adds one function and one condition inside `run.post_step` (`scripts/run.py:913-919`, `scripts/run.py:1206-1207`), so it stays inside `run` as the picture describes it (`.xv/picture.md:39`).
-shape_breadth: narrow, the same as the forecast (`shape_breadth: narrow`: "One new exemption branch in the red check …, one inspector brief item, and a CHANGELOG line").
+The re-pass adds one function, `run.log_listed_outcomes`, and one call to it in `run.step` (`scripts/run.py:887`, `scripts/run.py:934-942`).
+It writes through `record.log_line`, which `run.accept_listed_marks` already calls (`scripts/run.py:928`), so it adds no edge.
+The boundary diagram lists no added module, edge or shape hint.
+shape_breadth: narrow, the same as the forecast ("One new exemption branch in the red check …, one inspector brief item, and a CHANGELOG line").
 
 ## 2. Pitch
 
 pitch_contradiction: no.
-I read the whole pitch.
-The change keeps a person in charge of the merge, so it serves "to vibe with discipline" (`.xv/pitch.md:7`).
-It does not touch "people or projects that will not trust agents to write production code" (`.xv/pitch.md:25`).
+The new log line helps a person see at the merge what went through, which serves "to vibe with discipline" (`.xv/pitch.md:7`).
+Nothing in the re-pass touches who the system is for (`.xv/pitch.md:25`).
 
 ## 3. Moved tests
 
 | File | Before | After | Why (the maker's record) | Forced by the scenario? |
 | --- | --- | --- | --- | --- |
-| `tests/test_briefs_picture.py` | `test_the_changelog_has_a_line_for_214_not_covered_at_merge` asserted a #214 line in CHANGELOG (added in the red, `f6ababf`) | removed (53 → 52 assertions, `xv wall diff`) | "checks one CHANGELOG line that is written once" (cleaner, slice-only, `removal_named`) | Yes: outcome 4 is a one-time line, and `CHANGELOG.md` is in `tests.slice_only_files` (`.xv/config.yml:27`) |
+| `tests/test_briefs_picture.py` | `test_the_changelog_has_a_line_for_214_not_covered_at_merge` asserted a #214 line in CHANGELOG (added in the first red) | removed | "checks one CHANGELOG line that is written once" (cleaner, slice-only, `removal_named`) | Yes: outcome 4 is a one-time line, `CHANGELOG.md` is in `tests.slice_only_files` (`.xv/config.yml:27`), and Sean Kennedy settled it needs no test |
 
 Slice-only tests removed: `TestWriterCatchesTest.test_the_changelog_has_a_line_for_214_not_covered_at_merge` (`checks: CHANGELOG.md`, accepted by the watch). Kept: none.
 
-`xv wall diff` flags `tests/test_briefs_picture.py` as asserting less, and the recorded move above accounts for it in full; there is no unrecorded change.
-No test that was there at the base was changed: `git diff dd577e5..HEAD -- tests/` only adds lines.
+`xv wall diff` against the new baseline `e5f5735` shows nothing changed, deleted or with fewer assertions, and `git diff e5f5735..HEAD -- tests/` removes no lines.
 `may_not_files_needed` is `[]`.
 
 Outcomes that went through on their `checks`: none in this slice.
-The test writer's `not_covered` was `[]`, and outcome 4 went in as a slice-only mark instead (record `checks.test-writer.not_covered: []`).
-So the new brief item had nothing to read here, and the `watch_before_merge` step "the inspection report it produces for the outcome that went through" still has to be done by hand.
+The second test writer's only `not_covered` outcome (4) had no `checks`, so it stopped, and Sean Kennedy settled it (record `checks.test-writer.not_covered`, log line 02:40:12).
+The CHANGELOG line is there, on its own line, in the top section: `CHANGELOG.md:7` ("A slice-only `not_covered` outcome is checked at the merge … (#214, decided by Sean Kennedy)").
 
-Brief note, not a miss: the test writer's report shape lists `not_covered` items as `{"outcome", "why"}` with no `checks` (`skills/test-writer/SKILL.md:63`), and no brief tells the test writer that `checks` on a `not_covered` outcome lets it through.
-Outcome 1's path only fires if the test writer adds a key its brief does not name.
+Finding, for the person: the session-mode path still lets an outcome through with no trace.
+`run.land_session_test_writer` calls `post_step`, which drops a listed outcome from `not_covered` (`scripts/run.py:995`, `scripts/run.py:1219`), but it never calls `log_listed_outcomes` (that only runs in `run.step`, `scripts/run.py:886-887`).
+So `xv record report <id> test-writer -` after a session-mode step on a slice from a build lets the outcome go on, and the inspector has nothing to read.
+I did not make this a scenario miss: the scenario names no mode, and the same path already skips `accept_listed_marks`, so the gap is older than this slice.
+
+Note: `log_listed_outcomes` writes "goes on to the merge" before the joined-red check (`scripts/run.py:887-890`), so when the red command is refused and `next` stays `test-writer`, the log line says more than happened.
+
+Brief note, carried from the earlier packet: the test writer's report shape still lists `not_covered` items as `{"outcome", "why"}` with no `checks` (`skills/test-writer/SKILL.md:63`), so outcome 1's path only fires if the test writer adds a key its brief does not name.
+This slice shows it: the second test writer left `checks` off outcome 4, and the slice stopped (record stop cause: "the test writer left checks off the CHANGELOG outcome").
 
 ## 4. The picture
 
@@ -91,21 +95,15 @@ The proposed edit adds these lines after `.xv/picture.md:242`:
 ```
   A `not_covered` outcome whose `checks` names only files listed in `tests.slice_only_files` (a string or a non-empty list of exact paths) does not stop (`run.checks_only_listed_files`).
   A missing, empty or non-string `checks`, or one that names any other file, still stops.
-  The inspector reads each outcome that went through this way and says in the inspection report whether the file change is there and in the right place.
+  The watch writes a log line naming each outcome that went through this way and its files (`run.log_listed_outcomes`).
+  The inspector reads those log lines and says in the inspection report whether the file change is there and in the right place.
 ```
-
-If the miss below is fixed so that outcomes let through are recorded, the last line should name the record field the inspector reads.
 
 ## 5. The wall
 
-I looked at the 12 new tests in `NotCoveredCheckedAtTheMergeTest` (`tests/test_run.py:1930-1985`), the new `test_the_inspector_reads_each_not_covered_outcome_that_went_through_on_its_checks` (`tests/test_briefs_picture.py:158`), and the record's `slice_only` list.
-`TestWriterCatchesTest.test_the_changelog_has_a_line_for_214_not_covered_at_merge` is already removed from its file (record `moved_tests`, line 165), so there is nothing left to recommend for it.
-Each new test guards behaviour that keeps mattering (the exemption and its refusals, or a brief item), and none only restates another.
+I looked at the new `test_an_outcome_that_went_through_leaves_a_watch_log_line_naming_it_and_its_file` and its helper `log_lines` (`tests/test_run.py:1956-1963`).
+It guards behaviour that keeps mattering, the trace the inspector reads, and it restates no other test.
 I have no recommendation.
-
-## Scenario misses
-
-- 3: The brief asks the inspector to read "each `not_covered` outcome that went through on its `checks`" (`skills/inspector/SKILL.md:26`), but the change keeps no trace of such an outcome. `run.post_step` drops it from `checks["not_covered"]` (`scripts/run.py:1204-1207`: `and not checks_only_listed_files(n.get("checks"), config)]`). The record keeps only `agent, status, summary, …` from the report (`scripts/record.py:973-975`). Unlike a listed slice-only mark (`scripts/run.py:928`, "slice-only mark on … accepted"), it gets no log line. So the inspector, and the person at the merge, cannot find the outcome, and an outcome the test writer self-labels `checks: ["CHANGELOG.md"]` passes both the red and the merge unseen. No red test covers recording it (evidence: the diff hunks above; `tests/test_run.py:1945-1984` assert only stop or no stop; to: test-writer)
 
 ## Door
 
@@ -114,7 +112,7 @@ I have no recommendation.
 ## Raw data
 
 - Slice record: `.xv/slices/2026-11-27-changelog-at-merge.md`
-- Diff: `git diff dd577e56d4a5315f8bcd44af60e6af600af7bd87..7609028`
+- Diff: `git diff dd577e56d4a5315f8bcd44af60e6af600af7bd87..aafe8de` (re-pass: `git diff 7609028..aafe8de -- scripts tests`)
 - Wall: `xv wall diff 2026-11-27-changelog-at-merge`
 - Boundary: `.xv/slices/2026-11-27-changelog-at-merge.boundary.md` (`xv boundary --base dd577e56d4a5`)
 
