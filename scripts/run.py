@@ -884,6 +884,7 @@ def step(agent, slice_id, review_again=False):
         body = record.log_line(body, agent, f"the report could not be applied: {e}")
     if agent == "test-writer":
         body = accept_listed_marks(data, body, config)
+        body = log_listed_outcomes(report, body, config)
     reported = ((report or {}).get("red") or {}).get("command") if agent == "test-writer" else None
     if reported and joined_unsafely(reported):
         data["red"] = red_before  # a refused red is not kept: the maker is never handed it
@@ -910,6 +911,15 @@ def step(agent, slice_id, review_again=False):
     return (EXIT_STOP if v["stop"] else 0), v
 
 
+def checks_only_listed_files(checks, config):
+    """True when a not-covered outcome's `checks` names files, and every one is in `tests.slice_only_files`."""
+    listed = (config.get("tests") or {}).get("slice_only_files") or []
+    if isinstance(checks, str):
+        checks = [checks]
+    return (isinstance(checks, list) and bool(checks)
+            and all(isinstance(c, str) and c and c in listed for c in checks))
+
+
 def accept_listed_marks(data, body, config):
     """A slice-only mark whose test checks a file the config lists in `tests.slice_only_files` is accepted."""
     listed = (config.get("tests") or {}).get("slice_only_files") or []
@@ -918,6 +928,17 @@ def accept_listed_marks(data, body, config):
             m["accepted"] = True
             body = record.log_line(body, "watch", f"slice-only mark on {m.get('test')} accepted: it checks "
                                    f"{m['checks']}, which the config lists in tests.slice_only_files")
+    return body
+
+
+def log_listed_outcomes(report, body, config):
+    """A not-covered outcome that checks only listed files goes on unstopped; the log names it for the merge."""
+    for n in (report or {}).get("not_covered") or []:
+        if isinstance(n, dict) and checks_only_listed_files(n.get("checks"), config):
+            files = [n["checks"]] if isinstance(n["checks"], str) else n["checks"]
+            body = record.log_line(body, "watch", f"not-covered outcome '{n.get('outcome')}' goes on to the merge: "
+                                   f"it checks {', '.join(dict.fromkeys(files))}, which the config lists in "
+                                   "tests.slice_only_files")
     return body
 
 
@@ -972,6 +993,7 @@ def land_session_test_writer(root, slice_id, report):
                       f"run `xv step test-writer {slice_id}` again")
     landed = land_scratch(root, state["scratch"], data, config, report)
     data["checks"]["test-writer"] = post_step("test-writer", root, data, config, state["head_before"], {}, report, landed)
+    body = log_listed_outcomes(report, body, config)
     record.save(path, data, body)
     return True
 
@@ -1194,7 +1216,8 @@ def post_step(agent, root, data, config, head_before, pre, report, landed=None):
         settled_numbers = settled_outcome_numbers(data)
         checks["not_covered"] = [n for n in (report.get("not_covered") or []) if isinstance(n, dict)
                                  and f"did not cover {n.get('outcome')}:" not in answered
-                                 and outcome_number(n.get("outcome")) not in settled_numbers]
+                                 and outcome_number(n.get("outcome")) not in settled_numbers
+                                 and not checks_only_listed_files(n.get("checks"), config)]
         checks["missed_outcomes"] = missed_outcomes(root, data, report)
         if landed:  # the wall hashes the test files at the base, not at the build
             wb, wall_text = landed["wall"]

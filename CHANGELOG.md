@@ -2,6 +2,10 @@
 
 Every change to a brief, a may-not list, a standing order, or a check an agent is judged by, with who agreed it. A change to an agent is Decide from evidence: two people, written down short. A version line without two names is a draft.
 
+## Unreleased
+
+- A slice-only `not_covered` outcome is checked at the merge, not stopped at the red (#214, decided by Sean Kennedy). A `not_covered` outcome whose `checks` name only files the config lists in `tests.slice_only_files` no longer stops with `red_misses_scenario`; any other `checks` value (missing, empty, the wrong type, or a file off the list) still stops. The test writer brief tells the test writer to name `checks` on each `not_covered` outcome. The watch writes a log line naming each outcome that went through this way and its files, in an agent step and in a session-mode landing. The inspector brief reads each such outcome on its `checks` and says whether the file change is in the right place. It moves no position on xtremevibing.com.
+
 ## 0.6.5, 2026-11-27
 
 - `xv record answer --test-remove <test>` takes the inspector's advice on a test and removes the test from its file (#202, decided by Sean Kennedy). It works for each kind of wall recommendation (`remove`, `mark slice-only` and `stay off the wall`), removes the whole test with its decorators, commits the removal and runs the suite. A test already gone from its file is skipped. A test that cannot be removed whole refuses the answer, and nothing is removed. When the suite is red after the removals, in any language, every removal is undone and the answer is refused, naming the failing tests; before, such an answer closed the stop with no stop. A repo with no `tests.command` has no suite to run, so the removal stands. `--accept-wall` and `--refuse-wall` still work, with a warning that names the new way and #216. The inspector brief names `--test-remove`. The 15 tests that earlier slices accepted for removal, and that were still in their files, are removed. It moves no position on xtremevibing.com.

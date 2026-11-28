@@ -1927,6 +1927,72 @@ class SliceOnlyFilesTest(WatchLoopSetup):
         self.assertNotEqual(p.returncode, 10, p.stdout + p.stderr)
 
 
+class NotCoveredCheckedAtTheMergeTest(WatchLoopSetup):
+    """#214: a not_covered outcome whose `checks` files are all in tests.slice_only_files does not stop at the red."""
+
+    writer = TestWriterChecksTest.writer
+    assert_goes_on = TestWriterChecksTest.assert_goes_on
+    assert_stops = TestWriterChecksTest.assert_stops
+
+    def run_outcome(self, **item):
+        self.xv("step", "forecaster", "s1", cwd=self.wt)
+        n = {"outcome": "a line in the changelog", "why": "a one-time wording line"}
+        for k, v in item.items():
+            if v is not MISSING:
+                n[k] = v
+        return self.writer(FAKE_REPORT_EXTRA=json.dumps({"not_covered": [n]}))
+
+    def test_an_outcome_that_checks_a_listed_file_goes_on_with_no_stop(self):
+        p = self.run_outcome(checks=["CHANGELOG.md"])
+        self.assert_goes_on(p)
+        self.assertEqual(self.record()["stops"], [])
+
+    def test_an_outcome_that_checks_a_listed_file_given_as_a_string_goes_on(self):
+        self.assert_goes_on(self.run_outcome(checks="CHANGELOG.md"))
+
+    def test_an_outcome_whose_checks_are_all_listed_goes_on(self):
+        self.assert_goes_on(self.run_outcome(checks=["CHANGELOG.md", "CHANGELOG.md"]))
+
+    def log_lines(self):
+        return [l for l in self.xv("record", "show", "s1", cwd=self.wt).stdout.splitlines() if l.startswith("- 20")]
+
+    def test_an_outcome_that_went_through_leaves_a_watch_log_line_naming_it_and_its_file(self):
+        self.assert_goes_on(self.run_outcome(checks=["CHANGELOG.md"]))
+        lines = [l for l in self.log_lines() if "a line in the changelog" in l and " watch: " in l]
+        self.assertEqual(len(lines), 1, self.log_lines())
+        self.assertIn("CHANGELOG.md", lines[0])
+
+    def test_an_outcome_that_checks_an_unlisted_file_still_stops(self):
+        p = self.run_outcome(checks=["README.md"])
+        self.assert_stops(p, "a line in the changelog")
+        self.assertEqual(json.loads(p.stdout)["stop"]["order"], "red_misses_scenario")
+
+    def test_an_outcome_that_checks_one_listed_and_one_unlisted_file_still_stops(self):
+        p = self.run_outcome(checks=["CHANGELOG.md", "README.md"])
+        self.assert_stops(p, "a line in the changelog")
+
+    def test_an_outcome_whose_path_only_ends_in_a_listed_name_still_stops(self):
+        self.assert_stops(self.run_outcome(checks=["docs/CHANGELOG.md"]), "a line in the changelog")
+
+    def test_an_outcome_with_no_checks_still_stops(self):
+        self.assert_stops(self.run_outcome(checks=MISSING), "a line in the changelog")
+
+    def test_an_outcome_with_empty_checks_still_stops(self):
+        self.assert_stops(self.run_outcome(checks=[]), "a line in the changelog")
+
+    def test_an_outcome_with_an_empty_file_name_still_stops(self):
+        self.assert_stops(self.run_outcome(checks=""), "a line in the changelog")
+
+    def test_an_outcome_whose_checks_is_not_a_string_or_list_still_stops(self):
+        self.assert_stops(self.run_outcome(checks=5), "a line in the changelog")
+
+    def test_an_outcome_whose_checks_list_holds_a_non_string_still_stops(self):
+        self.assert_stops(self.run_outcome(checks=["CHANGELOG.md", 5]), "a line in the changelog")
+
+    def test_an_agent_that_claims_the_outcome_accepted_on_an_unlisted_file_still_stops(self):
+        self.assert_stops(self.run_outcome(checks=["README.md"], accepted=True), "a line in the changelog")
+
+
 class RemovedSliceOnlyTestInCoversTest(WatchLoopSetup):
     """11. A covers name for a slice-only test the cleaner removed does not stop the slice."""
 
