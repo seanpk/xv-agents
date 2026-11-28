@@ -124,6 +124,15 @@ class TestWriterCatchesTest(unittest.TestCase):
         self.assertTrue(paragraphs(text, "slice_only", "wording", "README"), "no slice_only line for a wording change")
         self.assertTrue(paragraphs(text, "slice_only", "version pin"))
 
+    def test_the_test_writer_brief_report_block_names_checks_on_the_not_covered_item(self):
+        text = brief("skills", "test-writer", "SKILL.md")
+        lines = [l for l in text.splitlines() if l.lstrip().startswith('"not_covered"')]
+        self.assertTrue(lines, "no not_covered item in the report block")
+        self.assertIn('"checks"', lines[0], "the not_covered item in the report block does not name checks")
+        hits = paragraphs(text, "slice_only_files", "not_covered")
+        self.assertTrue([h for h in hits if re.search(r"(?i)no stop", h) and re.search(r"(?i)merge", h)],
+                        "no text says a not_covered outcome on listed checks files goes on with no stop and is read at the merge")
+
     def test_the_test_writer_report_names_each_old_test_the_red_forces_to_change(self):
         text = brief("skills", "test-writer", "SKILL.md")
         hits = paragraphs(text, "old test", "force", "report", "why")

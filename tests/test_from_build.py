@@ -1083,6 +1083,17 @@ class SessionTestWriterReportTest(FromBuildBase):
         self.assertIs(checks["red_fails"], True)
         self.assertEqual(checks["red_on_build"]["passes"], False)
 
+    def test_a_not_covered_outcome_that_went_through_on_a_listed_file_leaves_one_watch_log_line(self):
+        checkout = self.checkout_named(self.writer_step())
+        report = dict(self.REPORT, not_covered=[{"outcome": "a line in the changelog", "why": "a one-time wording line",
+                                                 "checks": ["CHANGELOG.md"]}])
+        p = self.write_the_red_and_report(checkout, report=report)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        shown = self.xv("record", "show", "s1", cwd=self.wt).stdout.splitlines()
+        lines = [l for l in shown if l.startswith("- 20") and " watch: " in l and "a line in the changelog" in l]
+        self.assertEqual(len(lines), 1, shown)
+        self.assertIn("CHANGELOG.md", lines[0])
+
     def test_the_report_drops_the_checkout(self):
         checkout = self.checkout_named(self.writer_step())
         self.write_the_red_and_report(checkout)
