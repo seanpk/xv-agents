@@ -240,6 +240,11 @@ Sean Kennedy sits with them.
   In a slice from a build, the coverage check and the flags check read each red file from the red ref, and read every file that any red on the ref changed (`run.red_file_texts`).
   A `not_covered` outcome is settled by an earlier answered stop that did not send the slice back, when that stop is `red_misses_scenario` or the answer bundled `red_misses_scenario`.
   Every `red_misses_scenario` question that fired with such a stop counts (`fired_questions`).
+  A `not_covered` outcome whose `checks` names only files listed in `tests.slice_only_files` (a string or a non-empty list of exact paths) does not stop (`run.checks_only_listed_files`).
+  A missing, empty or non-string `checks`, or one that names any other file, still stops.
+  The watch writes a log line naming each outcome that went through this way and its files, on the agent path and on the session-mode landing (`run.log_listed_outcomes`).
+  The test writer brief tells the test writer to name `checks` on each `not_covered` outcome, and its report block shows `checks` on the item.
+  The inspector reads those log lines and says in the inspection report whether the file change is there and in the right place.
   An outcome that starts with a number matches by that number, so "7", "7. A line" and "7. A line." are one outcome (`run.settled_outcome_numbers`).
   An answer that names an outcome with `xv record answer --no-test <N>` settles N, even when it sends the slice back; the flag repeats.
   `--no-test` refuses a value that does not start with an outcome number.
