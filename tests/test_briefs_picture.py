@@ -161,13 +161,6 @@ class TestWriterCatchesTest(unittest.TestCase):
         self.assertTrue([h for h in hits if re.search(r"(?i)right place", h)],
                         "the inspector brief does not ask for the file change and its place to be checked")
 
-    # slice-only: one CHANGELOG line, checked once (#214)
-    def test_the_changelog_has_a_line_for_214_not_covered_at_merge(self):
-        with open(os.path.join(HOME, "CHANGELOG.md")) as f:
-            text = f.read()
-        self.assertRegex(text, r"(?m)^- [^\n]*not_covered[^\n]*#214[^\n]*Sean Kennedy"
-                               r"|^- [^\n]*#214[^\n]*not_covered[^\n]*Sean Kennedy")
-
     def test_the_test_writer_brief_asks_a_red_case_for_each_way_a_value_can_be_wrong(self):
         text = brief("skills", "test-writer", "SKILL.md")
         hits = paragraphs(text, "missing", "empty", "wrong type", "not_covered")
