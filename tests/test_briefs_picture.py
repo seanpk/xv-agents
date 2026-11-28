@@ -155,6 +155,19 @@ class TestWriterCatchesTest(unittest.TestCase):
         self.assertTrue(paragraphs(text, "may-not", "inspection report", "test writer"),
                         "the inspector brief does not list the changes the test writer's report allowed")
 
+    def test_the_inspector_reads_each_not_covered_outcome_that_went_through_on_its_checks(self):
+        text = brief("skills", "inspector", "SKILL.md") + brief("skills", "inspector", "packet.md")
+        hits = paragraphs(text, "not_covered", "checks", "inspection report")
+        self.assertTrue([h for h in hits if re.search(r"(?i)right place", h)],
+                        "the inspector brief does not ask for the file change and its place to be checked")
+
+    # slice-only: one CHANGELOG line, checked once (#214)
+    def test_the_changelog_has_a_line_for_214_not_covered_at_merge(self):
+        with open(os.path.join(HOME, "CHANGELOG.md")) as f:
+            text = f.read()
+        self.assertRegex(text, r"(?m)^- [^\n]*not_covered[^\n]*#214[^\n]*Sean Kennedy"
+                               r"|^- [^\n]*#214[^\n]*not_covered[^\n]*Sean Kennedy")
+
     def test_the_test_writer_brief_asks_a_red_case_for_each_way_a_value_can_be_wrong(self):
         text = brief("skills", "test-writer", "SKILL.md")
         hits = paragraphs(text, "missing", "empty", "wrong type", "not_covered")
