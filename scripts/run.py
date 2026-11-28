@@ -884,6 +884,7 @@ def step(agent, slice_id, review_again=False):
         body = record.log_line(body, agent, f"the report could not be applied: {e}")
     if agent == "test-writer":
         body = accept_listed_marks(data, body, config)
+        body = log_listed_outcomes(report, body, config)
     reported = ((report or {}).get("red") or {}).get("command") if agent == "test-writer" else None
     if reported and joined_unsafely(reported):
         data["red"] = red_before  # a refused red is not kept: the maker is never handed it
@@ -927,6 +928,17 @@ def accept_listed_marks(data, body, config):
             m["accepted"] = True
             body = record.log_line(body, "watch", f"slice-only mark on {m.get('test')} accepted: it checks "
                                    f"{m['checks']}, which the config lists in tests.slice_only_files")
+    return body
+
+
+def log_listed_outcomes(report, body, config):
+    """A not-covered outcome that checks only listed files goes on unstopped; the log names it for the merge."""
+    for n in (report or {}).get("not_covered") or []:
+        if isinstance(n, dict) and checks_only_listed_files(n.get("checks"), config):
+            files = [n["checks"]] if isinstance(n["checks"], str) else n["checks"]
+            body = record.log_line(body, "watch", f"not-covered outcome '{n.get('outcome')}' goes on to the merge: "
+                                   f"it checks {', '.join(dict.fromkeys(files))}, which the config lists in "
+                                   "tests.slice_only_files")
     return body
 
 
