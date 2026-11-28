@@ -993,6 +993,7 @@ def land_session_test_writer(root, slice_id, report):
                       f"run `xv step test-writer {slice_id}` again")
     landed = land_scratch(root, state["scratch"], data, config, report)
     data["checks"]["test-writer"] = post_step("test-writer", root, data, config, state["head_before"], {}, report, landed)
+    body = log_listed_outcomes(report, body, config)
     record.save(path, data, body)
     return True
 
