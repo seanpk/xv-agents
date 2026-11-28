@@ -1953,6 +1953,15 @@ class NotCoveredCheckedAtTheMergeTest(WatchLoopSetup):
     def test_an_outcome_whose_checks_are_all_listed_goes_on(self):
         self.assert_goes_on(self.run_outcome(checks=["CHANGELOG.md", "CHANGELOG.md"]))
 
+    def log_lines(self):
+        return [l for l in self.xv("record", "show", "s1", cwd=self.wt).stdout.splitlines() if l.startswith("- 20")]
+
+    def test_an_outcome_that_went_through_leaves_a_watch_log_line_naming_it_and_its_file(self):
+        self.assert_goes_on(self.run_outcome(checks=["CHANGELOG.md"]))
+        lines = [l for l in self.log_lines() if "a line in the changelog" in l and " watch: " in l]
+        self.assertEqual(len(lines), 1, self.log_lines())
+        self.assertIn("CHANGELOG.md", lines[0])
+
     def test_an_outcome_that_checks_an_unlisted_file_still_stops(self):
         p = self.run_outcome(checks=["README.md"])
         self.assert_stops(p, "a line in the changelog")
